@@ -1,0 +1,135 @@
+services:
+  # --------------------------------------------------------------------------------
+  # 1. Admin API (Web Service)
+  # --------------------------------------------------------------------------------
+  - type: web
+    name: admin-api
+    env: docker
+    dockerContext: humanitas_backend/admin-backend
+    dockerfilePath: humanitas_backend/admin-backend/Dockerfile
+    plan: free # 'free' is available but limits uptime
+    region: ohio # or frankfurt, oregon, etc.
+    numInstances: 1
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: ENABLE_CRON
+        value: false
+      - key: API_PREFIX
+        value: api/v1
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+      - key: JWT_SECRET
+        value: your-super-secret-jwt-key-change-this-in-production
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        value: your-refresh-token-secret-change-this-too
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: COOKIE_SECRET
+        value: My-coockie_secretecode
+      - key: FRONTEND_URL
+        value: https://humanitas-tenant.vercel.app
+      - key: THROTTLE_LIMIT
+        value: 100
+      - key: THROTTLE_TTL
+        value: 60
+      - key: CORS_ORIGINS
+        value: https://humanitas-tenant.vercel.app,https://admin-humanitas.vercel.app
+      # Database Connection (Placeholder - Render will inject if linked, or paste string)
+      - key: DATABASE_URL
+        sync: false
+
+  # --------------------------------------------------------------------------------
+  # 2. Tenant API (Web Service)
+  # --------------------------------------------------------------------------------
+  - type: web
+    name: tenant-api
+    env: docker
+    dockerContext: humanitas_backend/tenant-backend/main_rest_apis
+    dockerfilePath: humanitas_backend/tenant-backend/main_rest_apis/Dockerfile
+    plan: free
+    region: ohio
+    numInstances: 1
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: ENABLE_CRON
+        value: false # Main API does NOT run scheduler
+      - key: ADMIN_BACKEND_URL
+        value: http://admin-api:3000/api/v1 # Internal Render networking
+      - key: API_PREFIX
+        value: api/v1
+      - key: FRONTEND_URL
+        value: https://humanitas-tenant.vercel.app
+      - key: WORKER_URL
+        value: http://tenant-worker:3002
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+      - key: JWT_SECRET
+        value: my-supper-secrete-key # Match User's provided key
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        value: my-secret-key
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CORS_ORIGINS
+        value: https://humanitas-tenant.vercel.app,https://admin-humanitas.vercel.app
+      # Database Connection
+      - key: DATABASE_URL
+        sync: false
+
+  # --------------------------------------------------------------------------------
+  # 3. Tenant Worker (Background Worker)
+  # [PRODUCTION NOTE]: Currently set to 'web' to run on Free Tier.
+  # FOR PAID/PRODUCTION: Change type back to 'worker', remove 'healthCheckPath', and remove 'PORT' env var.
+  # --------------------------------------------------------------------------------
+  - type: web # <--- Change to 'worker' for Production
+    name: tenant-worker
+    env: docker
+    dockerContext: humanitas_backend/tenant-backend/main_rest_apis
+    dockerfilePath: humanitas_backend/tenant-backend/main_rest_apis/Dockerfile
+    plan: free
+    region: ohio
+    numInstances: 1
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: ENABLE_CRON
+        value: true # Worker runs scheduler
+      - key: ADMIN_BACKEND_URL
+        value: http://admin-api:3000/api/v1
+      - key: API_PREFIX
+        value: api/v1
+      - key: FRONTEND_URL
+        value: https://humanitas-tenant.vercel.app
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+      - key: JWT_SECRET
+        value: my-supper-secrete-key
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        value: my-secret-key
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      # Database Connection
+      - key: DATABASE_URL
+        sync: false
+
+# --------------------------------------------------------------------------------
+# Database: Use Render's Managed PostgreSQL
+# PRO TIP: Since you already have a database (tenant_nvp7) on Render,
+# you can link it to these services in the Dashboard instead of creating new one.
+# --------------------------------------------------------------------------------

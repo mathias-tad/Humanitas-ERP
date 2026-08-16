@@ -1,0 +1,313 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { API_BASE_URL } from "@/config/api.config";
+import { useAuth } from "@/context/AuthContext";
+
+export interface AttendanceRecord {
+    id: string;
+    user_id: string;
+    full_name?: string; // Optional depending on endpoint
+    email?: string;
+    department?: string;
+    date: string;
+    shift_id?: string;
+    shift_name?: string;
+    shift_color?: string;
+    updated_at?: string;
+    scheduled_in?: string;
+    scheduled_out?: string;
+    actual_in?: string;
+    actual_out?: string;
+    status: string;
+    work_hours?: string | { hours?: number; minutes?: number } | null;
+    remarks?: string;
+    is_corrected?: boolean;
+    corrected_by_name?: string;
+    late_minutes?: number;
+}
+
+export interface UserWithAssignment {
+    id: string;
+    full_name: string;
+    email: string;
+    department: string;
+    position: string;
+    avatar_url?: string;
+    pattern_id?: string;
+    pattern_name?: string;
+    rotation_type?: string;
+    current_week_in_rotation?: number;
+}
+
+export interface UserDevice {
+    id: string;
+    user_id: string;
+    device_id: string;
+    device_name: string;
+    device_type: string;
+    is_active: boolean;
+    registered_at: string;
+    approved_at: string | null;
+    full_name?: string;
+    email?: string;
+    department?: string;
+}
+
+export interface AllowedNetwork {
+    id: string;
+    name: string;
+    ip_address: string;
+    subnet_mask: string;
+    description?: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+const getHeaders = () => ({
+    "Content-Type": "application/json",
+});
+
+export const useMyAttendance = (month: number, year: number) => {
+    const { isAuthenticated } = useAuth();
+    return useQuery<AttendanceRecord[]>({
+        queryKey: ['my-attendance', month, year],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/records/my?month=${month}&year=${year}`, { // Corrected endpoint if needed, previously was attendance/my-records?
+                headers: getHeaders(),
+                credentials: 'include',
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('Failed to fetch my attendance records');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+};
+
+export const useAttendance = (date?: string) => {
+    const { isAuthenticated } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Attendance Records
+    const attendanceQuery = useQuery<AttendanceRecord[]>({
+        queryKey: ['attendance-records', date],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/records?date=${date}`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch attendance records');
+            return response.json();
+        },
+        enabled: isAuthenticated && !!date,
+    });
+
+    // Users with assignments
+    const assignmentsQuery = useQuery<UserWithAssignment[]>({
+        queryKey: ['attendance-assignments'],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/users/with-assignments`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch assignments');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+
+    // Devices
+    const devicesQuery = useQuery<UserDevice[]>({
+        queryKey: ['attendance-devices'],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/devices/all`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch devices');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+
+    // Networks
+    const networksQuery = useQuery<AllowedNetwork[]>({
+        queryKey: ['attendance-networks'],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/networks`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch networks');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+
+    // Detected IP
+    const detectedIpQuery = useQuery({
+        queryKey: ['detected-ip'],
+        queryFn: async () => {
+            const response = await fetch(`${API_BASE_URL}/attendance/network-check`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch ip');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+
+    // Mutations
+    const assignShiftMutation = useMutation({
+        mutationFn: async (data: any) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/assignments`, {
+                method: "POST",
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) throw new Error('Failed to assign shift');
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-assignments'] });
+        }
+    });
+
+    const removeAssignmentMutation = useMutation({
+        mutationFn: async (userId: string) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/assignments/${userId}`, {
+                method: "DELETE",
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to remove assignment');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-assignments'] });
+        }
+    });
+
+    const correctAttendanceMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: string, data: any }) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/records/${id}/correct`, {
+                method: "PATCH",
+                headers: getHeaders(),
+                credentials: "include",
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Correction failed');
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
+        }
+    });
+
+    const addNetworkMutation = useMutation({
+        mutationFn: async (network: any) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/networks`, {
+                method: "POST",
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify(network),
+            });
+            if (!response.ok) throw new Error('Failed to add network');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-networks'] });
+        }
+    });
+
+    const removeNetworkMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/networks/${id}`, {
+                method: "DELETE",
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to remove network');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-networks'] });
+        }
+    });
+
+    const approveDeviceMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/devices/${id}/approve`, {
+                method: "POST",
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify({}),
+            });
+            if (!response.ok) throw new Error('Failed to approve device');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-devices'] });
+        }
+    });
+
+    const rejectDeviceMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/devices/${id}/reject`, {
+                method: "POST",
+                headers: getHeaders(),
+                credentials: 'include',
+                body: JSON.stringify({}),
+            });
+            if (!response.ok) throw new Error('Failed to reject device');
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-devices'] });
+        }
+    });
+
+    return {
+        attendanceQuery,
+        assignmentsQuery,
+        devicesQuery,
+        networksQuery,
+        detectedIpQuery,
+        assignShiftMutation,
+        removeAssignmentMutation,
+        correctAttendanceMutation,
+        addNetworkMutation,
+        removeNetworkMutation,
+        approveDeviceMutation,
+        rejectDeviceMutation
+    };
+};
+
+export interface LatenessSummaryItem {
+    id: string;
+    full_name: string;
+    department: string;
+    avatar_url?: string;
+    today_late: string | number;
+    week_late: string | number;
+    month_late: string | number;
+}
+
+export const useLatenessSummary = (date?: string, userId?: string) => {
+    const { isAuthenticated } = useAuth();
+    return useQuery<LatenessSummaryItem[]>({
+        queryKey: ['lateness-summary', date, userId],
+        queryFn: async () => {
+            const queryDate = date || new Date().toISOString().split('T')[0];
+            let url = `${API_BASE_URL}/attendance/late-summary?date=${queryDate}`;
+            if (userId) {
+                url += `&userId=${userId}`;
+            }
+            const response = await fetch(url, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) throw new Error('Failed to fetch lateness summary');
+            return response.json();
+        },
+        enabled: isAuthenticated,
+    });
+};

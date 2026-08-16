@@ -1,0 +1,188 @@
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { DataSource } from 'typeorm';
+import { Tenant } from './modules/auth/entities/tenant.entity';
+import { CalculationLog } from './modules/system-logs/entities/calculation-log.entity';
+import { AuthModule } from './modules/auth/auth.module';
+import { SetupModule } from './modules/setup/setup.module';
+import { HealthModule } from './modules/health/health.module';
+import { DatabaseModule } from './modules/database/database.module';
+import { UsersModule } from './modules/users/users.module';
+import { EmployeeCategoriesModule } from './modules/users/employee-categories.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { PresenceModule } from './modules/presence/presence.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { LeaveModule } from './modules/leave/leave.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { LoggerModule } from './modules/logger/logger.module';
+import { HolidaysModule } from './modules/holidays/holidays.module';
+import { OvertimeModule } from './modules/overtime/overtime.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
+import { EventsModule } from './modules/events/events.module';
+import { SystemLogsModule } from './modules/system-logs/system-logs.module';
+import { PmsModule } from './modules/pms/pms.module';
+import { BiometricDevicesModule } from './modules/biometric-devices/biometric-devices.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { AiModule } from './modules/ai/ai.module';
+import * as dns from 'dns';
+
+// Force IPv4 for DNS resolution
+dns.setDefaultResultOrder('ipv4first');
+
+@Module({
+  imports: [
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+
+    // Scheduler (Always enabled for Keep-Alive, specific jobs have their own guards)
+    ScheduleModule.forRoot(),
+
+    // Rate limiting — applied globally to all routes.
+    // Limits: 100 requests per 60s per IP by default.
+    // Auth routes (login, refresh) override this with stricter @Throttle() decorators.
+    // RATE_LIMIT_TTL and RATE_LIMIT_MAX can be set in .env for easy tuning.
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [{
+          ttl: configService.get<number>('RATE_LIMIT_TTL', 60) * 1000, // convert s → ms
+          limit: configService.get<number>('RATE_LIMIT_MAX', 100),
+        }],
+      }),
+      inject: [ConfigService],
+    }),
+
+    // Master Database (to read tenant info)
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        const sslEnabled = configService.get<string>('DATABASE_SSL') === 'true';
+
+        const baseConfig = {
+          type: 'postgres' as const,
+          entities: [Tenant, CalculationLog], // [FIX] Added CalculationLog for centralized logging
+          synchronize: false, // [FIX] Disable sync on Master DB to prevent schema corruption
+          logging: configService.get<string>('NODE_ENV') === 'development',
+          extra: {
+            max: 20,
+            connectionTimeoutMillis: 10000,
+            idleTimeoutMillis: 30000,
+            keepAlive: true,
+          },
+        };
+
+        if (dbUrl) {
+          return {
+            ...baseConfig,
+            url: dbUrl,
+            ssl: (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) ? false : (sslEnabled ? { rejectUnauthorized: false } : false),
+          };
+        }
+
+        return {
+          ...baseConfig,
+          host: configService.get<string>('DATABASE_HOST'),
+          port: configService.get<number>('DATABASE_PORT', 5432),
+          username: configService.get<string>('DATABASE_USERNAME'),
+          password: configService.get<string>('DATABASE_PASSWORD'),
+          database: configService.get<string>('DATABASE_NAME'),
+          ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+        };
+      },
+      inject: [ConfigService],
+    }),
+
+    // Core modules
+    HealthModule,
+    DatabaseModule,
+    AuthModule,
+    SetupModule,
+    UsersModule,
+    EmployeeCategoriesModule,
+    SettingsModule,
+    RolesModule,
+    PresenceModule,
+    AttendanceModule,
+    LeaveModule,
+    PayrollModule,
+    SchedulingModule,
+    AuditModule,
+    LoggerModule,
+    HolidaysModule,
+    OvertimeModule,
+    NotificationsModule,
+    MessagingModule,
+    AnnouncementsModule,
+    EventsModule,
+    SystemLogsModule,
+    PmsModule,
+    BiometricDevicesModule,
+    RecruitmentModule,
+    AiModule,
+  ],
+  providers: [
+    // Activate ThrottlerGuard globally — every route gets rate limiting automatically.
+    // Individual controllers/routes can override with @Throttle({ default: { limit, ttl } })
+    // or opt out with @SkipThrottle() for internal/health endpoints.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
+})
+export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+
+  constructor(private dataSource: DataSource) {}
+
+  async onModuleInit() {
+    this.logger.log('='.repeat(60));
+    this.logger.log('TENANT-BACKEND STARTUP CHECK');
+    this.logger.log('='.repeat(60));
+
+    try {
+      // Check database connection
+      const dbInfo = await this.dataSource.query(
+        `SELECT current_database(), current_user`,
+      );
+      this.logger.log(`Connected to database: ${dbInfo[0].current_database}`);
+      this.logger.log(`Database user: ${dbInfo[0].current_user}`);
+
+      // Check if tenants table exists
+      const tenantsTable = await this.dataSource.query(`
+        SELECT table_name FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'tenants'
+      `);
+
+      if (tenantsTable.length > 0) {
+        this.logger.log('tenants table: EXISTS');
+        const count = await this.dataSource.query(`SELECT COUNT(*) FROM tenants`);
+        this.logger.log(`Total tenants: ${count[0].count}`);
+      } else {
+        this.logger.warn('tenants table: NOT FOUND — ensure admin-backend is deployed and has created the tables');
+      }
+
+      // List all schemas
+      const schemas = await this.dataSource.query(`
+        SELECT schema_name FROM information_schema.schemata 
+        WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+        ORDER BY schema_name
+      `);
+      this.logger.log(`Schemas: ${schemas.map((s: { schema_name: string }) => s.schema_name).join(', ')}`);
+    } catch (error) {
+      this.logger.error('Database check failed', error.message);
+    }
+
+    this.logger.log('='.repeat(60));
+  }
+}

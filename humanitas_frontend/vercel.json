@@ -1,0 +1,22 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "/api/proxy?path=v1/:path*"
+    },
+    {
+      "source": "/api/uploads/:path*",
+      "destination": "/api/proxy?path=uploads/:path*"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/"
+    }
+  ],
+  "functions": {
+    "api/proxy.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
