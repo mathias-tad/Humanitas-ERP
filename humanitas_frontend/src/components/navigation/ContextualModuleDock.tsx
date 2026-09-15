@@ -28,7 +28,6 @@ import {
   Clock,
   Shield,
   Layers,
-  Sparkles,
   QrCode,
   Tag,
   Warehouse,
@@ -37,6 +36,7 @@ import {
   FileSpreadsheet,
   BookOpen,
   PieChart,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -253,7 +253,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "System Health", url: "/system-logs", icon: Activity },
         { title: "Audit Trail", url: "/audit-logs", icon: Shield },
         { title: "Access Control", url: "/accesscontrol", icon: Key },
-        { title: "Appearance Settings", url: "/settings/appearance", icon: Sparkles },
+        { title: "Appearance Settings", url: "/settings/appearance", icon: Settings },
       ],
     },
   ],
@@ -261,7 +261,12 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
 
 export const ContextualModuleDock: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { activeModule, setIsAppLauncherOpen } = useERPModules();
+  const {
+    activeModule,
+    setIsAppLauncherOpen,
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen,
+  } = useERPModules();
   const { hasPermission } = useAuth();
   const location = useLocation();
 
@@ -269,17 +274,16 @@ export const ContextualModuleDock: React.FC = () => {
   const navSections = MODULE_NAV_CONFIGS[activeModule] || MODULE_NAV_CONFIGS.hrms;
   const ModuleIcon = currentModule.icon;
 
-  return (
-    <aside
-      className={`relative flex flex-col h-screen border-r border-dock-border bg-dock-bg select-none transition-all duration-200 z-30 shrink-0 ${
-        isCollapsed ? "w-[64px]" : "w-[240px]"
-      }`}
-    >
+  const content = (
+    <div className="flex flex-col h-full w-full select-none bg-dock-bg border-r border-dock-border">
       {/* Top App Header & App Launcher Trigger */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-dock-border bg-surface-1">
-        {!isCollapsed && (
+        {(!isCollapsed || isMobileSidebarOpen) && (
           <div
-            onClick={() => setIsAppLauncherOpen(true)}
+            onClick={() => {
+              setIsAppLauncherOpen(true);
+              setIsMobileSidebarOpen(false);
+            }}
             className="flex items-center gap-2.5 cursor-pointer group flex-1 min-w-0"
             title="Open App Launcher (9-Dots)"
           >
@@ -297,7 +301,7 @@ export const ContextualModuleDock: React.FC = () => {
           </div>
         )}
 
-        {isCollapsed && (
+        {isCollapsed && !isMobileSidebarOpen && (
           <button
             onClick={() => setIsAppLauncherOpen(true)}
             className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-surface-2 text-primary transition-colors mx-auto"
@@ -307,22 +311,30 @@ export const ContextualModuleDock: React.FC = () => {
           </button>
         )}
 
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={`h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors ${
-            isCollapsed ? "hidden" : "block"
-          }`}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+        {/* Mobile Close Button / Desktop Collapse Toggle */}
+        {isMobileSidebarOpen ? (
+          <button
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`h-6 w-6 hidden md:flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors ${
+              isCollapsed ? "hidden" : "flex"
+            }`}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Navigation Links (Grouped by section) */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
         {navSections.map((section, sIdx) => {
-          // Filter items based on permissions if required
           const visibleItems = section.items.filter((item) => {
             if (!item.permissions || item.permissions.length === 0) return true;
             return item.permissions.some((p) => hasPermission(p));
@@ -332,7 +344,7 @@ export const ContextualModuleDock: React.FC = () => {
 
           return (
             <div key={sIdx} className="space-y-1">
-              {!isCollapsed && (
+              {(!isCollapsed || isMobileSidebarOpen) && (
                 <p className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
                   {section.title}
                 </p>
@@ -350,24 +362,25 @@ export const ContextualModuleDock: React.FC = () => {
                     <NavLink
                       key={iIdx}
                       to={item.url}
-                      className={`flex items-center gap-3 rounded-lg text-xs font-medium transition-all ${
-                        isCollapsed
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl text-xs font-medium transition-all ${
+                        isCollapsed && !isMobileSidebarOpen
                           ? "h-10 w-10 justify-center mx-auto"
-                          : "px-2.5 py-2 w-full"
+                          : "px-3 py-2.5 w-full"
                       } ${
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                          ? "gold-gradient font-bold shadow-sm shadow-amber-500/20 text-slate-950"
                           : "text-foreground/80 hover:bg-surface-2 hover:text-foreground"
                       }`}
-                      title={isCollapsed ? item.title : undefined}
+                      title={isCollapsed && !isMobileSidebarOpen ? item.title : undefined}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-slate-950" : "text-muted-foreground"}`} />
 
-                      {!isCollapsed && (
+                      {(!isCollapsed || isMobileSidebarOpen) && (
                         <div className="flex items-center justify-between flex-1 min-w-0">
                           <span className="truncate">{item.title}</span>
                           {item.badge && (
-                            <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-[9px] font-bold">
+                            <span className="rounded-full bg-black/15 px-1.5 py-0.2 text-[9px] font-bold">
                               {item.badge}
                             </span>
                           )}
@@ -384,7 +397,7 @@ export const ContextualModuleDock: React.FC = () => {
 
       {/* Pinned Bottom Controls */}
       <div className="border-t border-dock-border p-2 bg-surface-1/50 space-y-1">
-        {isCollapsed ? (
+        {isCollapsed && !isMobileSidebarOpen ? (
           <button
             onClick={() => setIsCollapsed(false)}
             className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 mx-auto"
@@ -399,6 +412,35 @@ export const ContextualModuleDock: React.FC = () => {
           </div>
         )}
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (Static Rail) */}
+      <aside
+        className={`hidden md:flex flex-col h-screen border-r border-dock-border select-none transition-all duration-200 z-30 shrink-0 ${
+          isCollapsed ? "w-[64px]" : "w-[240px]"
+        }`}
+      >
+        {content}
+      </aside>
+
+      {/* Mobile Drawer (Slide-Over with Backdrop) */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden animate-fadeIn">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative flex flex-col w-[280px] max-w-[85vw] h-full shadow-2xl z-10 animate-slideRight">
+            {content}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/design-system/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +34,6 @@ import {
     Plus,
     Pencil,
     Trash2,
-    Megaphone,
     Users,
     Search,
     Loader2,
@@ -128,11 +128,11 @@ export default function Announcements() {
     const getPriorityBadge = (priority: string) => {
         switch (priority) {
             case 'urgent':
-                return <Badge className="bg-red-100 text-red-700">Urgent</Badge>;
+                return <Badge className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">Urgent</Badge>;
             case 'important':
-                return <Badge className="bg-orange-100 text-orange-700">Important</Badge>;
+                return <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">Important</Badge>;
             default:
-                return <Badge className="bg-gray-100 text-gray-700">Normal</Badge>;
+                return <Badge className="bg-surface-2 text-muted-foreground border border-border">Normal</Badge>;
         }
     };
 
@@ -145,22 +145,27 @@ export default function Announcements() {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                        <Megaphone className="h-6 w-6" />
-                        Announcements
-                    </h1>
-                    <p className="text-gray-500 mt-1">Create and manage company announcements</p>
-                </div>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Announcement
-                    </Button>
-                )}
-            </div>
+        <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+            {/* Executive Page Header */}
+            <PageHeader
+                title="Company Announcements"
+                description="Broadcast vital enterprise notices, policy updates, and broadcast bulletins across roles and departments."
+                breadcrumbs={[
+                    { label: "Organization", href: "/dashboard" },
+                    { label: "Announcements" },
+                ]}
+                actions={
+                    canCreate ? (
+                        <Button
+                            onClick={openCreate}
+                            className="gap-2 h-9 px-3.5 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
+                        >
+                            <Plus className="h-4 w-4 stroke-[2.5]" />
+                            New Announcement
+                        </Button>
+                    ) : undefined
+                }
+            />
 
             <Card>
                 <CardContent className="p-0">

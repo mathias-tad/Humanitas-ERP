@@ -1,18 +1,16 @@
-# Python Calculation Service Dockerfile
+# Python Calculation Service Dockerfile (Lightweight & Fast)
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Set environment variables for clean python execution
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Copy requirements file
+# Copy requirements file first for layer caching
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies (all packages use pre-compiled wheels)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

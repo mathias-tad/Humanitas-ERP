@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Table,
   TableBody,
@@ -100,62 +102,40 @@ export default function PayrollDashboard() {
   }
 
   return (
-    <>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Payroll Dashboard
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Overview of your company's payroll status
-            </p>
-          </div>
-          <div className="flex gap-3">
-            {/* <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Download Reports
-            </Button> */}
-            <Button
-              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-              onClick={() => navigate('/payroll/run')}
-            >
-              <DollarSign className="h-4 w-4" />
-              Run Payroll
-            </Button>
-          </div>
-        </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      {/* Executive Page Header */}
+      <PageHeader
+        title="Compensation & Payroll"
+        description="Comprehensive salary runs, automated tax deductions, pension withholdings, and payslip distribution."
+        breadcrumbs={[
+          { label: "HRMS", href: "/dashboard" },
+          { label: "Payroll" },
+        ]}
+        actions={
+          <Button
+            onClick={() => navigate('/payroll/run')}
+            className="gap-2 h-9 px-3.5 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
+          >
+            <DollarSign className="h-4 w-4 stroke-[2.5]" />
+            Run Payroll
+          </Button>
+        }
+      />
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, idx) => (
-            <Card key={idx} className="py-2">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.bg}`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                  <span
-                    className={`text-xs font-medium px-2 py-1 rounded-full ${String(stat.change).includes("+") || String(stat.change).includes("days")
-                      ? "bg-green-50 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    {stat.change}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">
-                    {stat.title}
-                  </p>
-                  <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                    {stat.value}
-                  </h3>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, idx) => (
+          <KPITile
+            key={idx}
+            title={stat.title}
+            value={stat.value}
+            subtitle={stat.change}
+            icon={stat.icon}
+            iconColor={stat.color}
+            iconBg={stat.bg}
+          />
+        ))}
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Payrolls */}
@@ -203,8 +183,8 @@ export default function PayrollDashboard() {
                         </TableCell>
                         <TableCell>
                           <Badge className={`
-                            ${payroll.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              payroll.status === 'processing' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}
+                            ${payroll.status === 'completed' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' :
+                              payroll.status === 'processing' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-surface-2 text-muted-foreground border border-border'}
                           `}>
                             {payroll.status}
                           </Badge>
@@ -223,11 +203,11 @@ export default function PayrollDashboard() {
               <CardTitle className="text-lg">System Status</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-green-50 border border-green-100">
-                <Clock className="h-5 w-5 text-green-600 mt-0.5" />
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <Clock className="h-5 w-5 text-emerald-500 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-900">Payroll Engine Ready</p>
-                  <p className="text-sm text-green-700 mt-1">
+                  <p className="font-semibold text-emerald-600 dark:text-emerald-400">Payroll Engine Ready</p>
+                  <p className="text-sm text-muted-foreground mt-1">
                     System is online and ready for processing.
                   </p>
                 </div>
@@ -235,10 +215,10 @@ export default function PayrollDashboard() {
               <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                 <Users className="h-5 w-5 text-primary mt-0.5" />
                 <div>
-                  <p className="font-medium text-blue-900">
+                  <p className="font-semibold text-foreground">
                     Configuration
                   </p>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Currency: {currency}<br />
                     Run Date: Day {settings?.payroll_run_day}
                   </p>
@@ -246,7 +226,7 @@ export default function PayrollDashboard() {
                     <Button
                       size="sm"
                       variant="link"
-                      className="px-0 h-auto mt-2 text-blue-700"
+                      className="px-0 h-auto mt-2 text-primary hover:underline"
                     >
                       Manage Settings &rarr;
                     </Button>
@@ -256,7 +236,6 @@ export default function PayrollDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
-    </>
+    </div>
   );
 }

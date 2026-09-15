@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   Users,
   Briefcase,
@@ -151,6 +152,8 @@ interface ModuleContextType {
   setIsAppLauncherOpen: (open: boolean) => void;
   isCommandPaletteOpen: boolean;
   setIsCommandPaletteOpen: (open: boolean) => void;
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (open: boolean) => void;
   subscribedModules: ERPModuleKey[];
   isModuleSubscribed: (moduleKey: ERPModuleKey) => boolean;
   switchModule: (moduleKey: ERPModuleKey) => void;
@@ -161,25 +164,50 @@ const ModuleContext = createContext<ModuleContextType | undefined>(undefined);
 export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { tenant } = useAuth();
 
   // Active module state
   const [activeModule, setActiveModule] = useState<ERPModuleKey>("hrms");
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Subscribed modules for current tenant (defaults to all modules enabled for development/super-admin)
-  const [subscribedModules] = useState<ERPModuleKey[]>([
-    "hrms",
-    "pms",
-    "products",
-    "inventory",
-    "purchasing",
-    "sales",
-    "pos",
-    "accounting",
-    "ai",
-    "system",
-  ]);
+  // Subscribed modules for current tenant dynamically derived from tenant settings/package
+  const subscribedModules = useMemo<ERPModuleKey[]>(() => {
+    // If no features configured yet, enable all modules for dev/admin onboarding
+    if (!tenant || !tenant.enabled_features || tenant.enabled_features.length === 0) {
+      return [
+        "hrms",
+        "pms",
+        "products",
+        "inventory",
+        "purchasing",
+        "sales",
+        "pos",
+        "accounting",
+        "ai",
+        "system",
+      ];
+    }
+
+    const feats = tenant.enabled_features.map((f) => f.toLowerCase());
+    const result: ERPModuleKey[] = [];
+
+    if (feats.some((f) => f === "hr" || f === "hrms" || f === "*")) result.push("hrms");
+    if (feats.some((f) => f === "pms" || f === "*")) result.push("pms");
+    if (feats.some((f) => f === "products" || f === "*")) result.push("products");
+    if (feats.some((f) => f === "inventory" || f === "*")) result.push("inventory");
+    if (feats.some((f) => f === "purchasing" || f === "*")) result.push("purchasing");
+    if (feats.some((f) => f === "sales" || f === "*")) result.push("sales");
+    if (feats.some((f) => f === "pos" || f === "*")) result.push("pos");
+    if (feats.some((f) => f === "accounting" || f === "*")) result.push("accounting");
+    if (feats.some((f) => f.startsWith("ai") || f === "*")) result.push("ai");
+    result.push("system"); // System logs always accessible
+
+    return result.length > 0
+      ? result
+      : ["hrms", "system"];
+  }, [tenant]);
 
   // Synchronize active module based on current URL path
   useEffect(() => {
@@ -243,6 +271,8 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsAppLauncherOpen,
         isCommandPaletteOpen,
         setIsCommandPaletteOpen,
+        isMobileSidebarOpen,
+        setIsMobileSidebarOpen,
         subscribedModules,
         isModuleSubscribed,
         switchModule,

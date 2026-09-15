@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Table,
   TableBody,
@@ -62,14 +64,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 // Local interfaces removed in favor of @/hooks/useUsers types
 
 const getStatusColor = (isActive: boolean) => {
-  return isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
+  return isActive
+    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+    : "bg-surface-2 text-muted-foreground border border-border";
 };
 
 const getStatusIcon = (isActive: boolean) => {
   return isActive ? (
-    <CheckCircle className="h-4 w-4 text-green-600" />
+    <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
   ) : (
-    <XCircle className="h-4 w-4 text-gray-600" />
+    <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
   );
 };
 
@@ -287,73 +291,59 @@ function Accounts() {
   }
 
   return (
-    <>
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">User Accounts</h1>
-            <p className="text-gray-500 mt-1">
-              Manage employee accounts and access
-            </p>
-          </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      {/* Executive Page Header */}
+      <PageHeader
+        title="Workforce Directory"
+        description="Manage employee profiles, role assignments, department structures, and account credentials."
+        breadcrumbs={[
+          { label: "HRMS", href: "/dashboard" },
+          { label: "Directory" },
+        ]}
+        actions={
           <Button
-            style={{ backgroundColor: "#2563eb", color: "white" }}
-            className="gap-2"
             onClick={() => {
               setEditingUser(null);
               setIsModalOpen(true);
             }}
             disabled={!canCreate}
+            className="gap-2 h-9 px-3.5 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
           >
-            <UserPlus className="h-4 w-4" />
-            Add User
+            <UserPlus className="h-4 w-4 stroke-[2.5]" />
+            Add Employee
           </Button>
-        </div>
+        }
+      />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Users</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.total}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-100">
-                <UserCheck className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Active</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.active}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-gray-100">
-                <UserX className="h-6 w-6 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Inactive</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.inactive}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <KPITile
+          title="Total Employees"
+          value={stats.total}
+          subtitle="All registered accounts"
+          icon={Users}
+          iconColor="text-primary"
+          iconBg="bg-primary/10"
+        />
+        <KPITile
+          title="Active Employees"
+          value={stats.active}
+          subtitle="Currently active in directory"
+          icon={UserCheck}
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-500/10"
+        />
+        <KPITile
+          title="Inactive / Suspended"
+          value={stats.inactive}
+          subtitle="Deactivated or suspended accounts"
+          icon={UserX}
+          iconColor="text-muted-foreground"
+          iconBg="bg-surface-2"
+        />
+      </div>
 
+      <div className="space-y-4">
         {/* Search Bar */}
         <Card>
           <CardContent className="py-4">
@@ -393,7 +383,7 @@ function Accounts() {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <TableRow key={user.id} className="hover:bg-surface-1 transition-colors">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="relative">
@@ -401,11 +391,11 @@ function Accounts() {
                               <img
                                 src={getUploadUrl(user.avatar_url)}
                                 alt={user.full_name}
-                                className="w-10 h-10 rounded-full object-cover"
+                                className="w-10 h-10 rounded-full object-cover border border-border"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span className="text-blue-600 font-semibold text-sm">
+                                <span className="text-primary font-semibold text-sm">
                                   {user.full_name
                                     ?.split(" ")
                                     .map((n) => n[0])
@@ -415,16 +405,16 @@ function Accounts() {
                               </div>
                             )}
                             <span
-                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isUserOnline(user.id) ? "bg-green-500" : "bg-gray-300"
+                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card ${isUserOnline(user.id) ? "bg-emerald-500" : "bg-muted-foreground/30"
                                 }`}
                               title={isUserOnline(user.id) ? "Online" : "Offline"}
                             />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-foreground">
                               {user.full_name}
                             </p>
-                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {user.email}
                             </p>
@@ -433,22 +423,22 @@ function Accounts() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {user.role_name || "No Role"}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             {user.department || "-"}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Phone className="h-3 w-3" />
                           {user.phone || "-"}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {user.hire_date
                             ? new Date(user.hire_date).toLocaleDateString(
@@ -464,7 +454,7 @@ function Accounts() {
                       </TableCell>
                       <TableCell>
                         {user.last_login ? (
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-muted-foreground">
                             {new Date(user.last_login).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -476,7 +466,7 @@ function Accounts() {
                             })}
                           </span>
                         ) : (
-                          <span className="text-sm text-gray-400 italic">
+                          <span className="text-sm text-muted-foreground/50 italic">
                             Never
                           </span>
                         )}
@@ -902,7 +892,7 @@ function Accounts() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

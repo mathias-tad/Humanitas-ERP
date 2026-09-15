@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -13,18 +15,22 @@ import {
   Coffee,
   AlertCircle,
   Loader2,
+  CalendarCheck,
+  TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api.config";
+import { Link } from "react-router-dom";
 
 interface AttendanceRecord {
   id: string;
   date: string;
-  status: string; // Present, Absent, Late, Early Leave, etc.
+  status: string;
   actual_in?: string;
   actual_out?: string;
-  work_hours?: string | { hours: number; minutes: number }; // Can be string or PostgreSQL interval object
+  work_hours?: string | { hours: number; minutes: number };
   remarks?: string;
   shift_name?: string;
   shift_color?: string;
@@ -33,44 +39,42 @@ interface AttendanceRecord {
 }
 
 const getStatusColor = (status: string) => {
-  const normalizedStatus = status?.toLowerCase() || "";
+  const s = status?.toLowerCase() || "";
 
-  if (normalizedStatus.includes("present")) {
-    return "bg-green-500/15 text-green-600 border-green-500/20";
-  } else if (normalizedStatus.includes("absent")) {
-    return "bg-red-500/15 text-red-600 border-red-500/20";
-  } else if (normalizedStatus.includes("late")) {
-    return "bg-yellow-500/15 text-yellow-600 border-yellow-500/20";
-  } else if (normalizedStatus.includes("early")) {
-    return "bg-orange-500/15 text-orange-600 border-orange-500/20";
-  } else if (normalizedStatus.includes("half") || normalizedStatus.includes("pending")) {
-    return "bg-primary/10 text-primary border-primary/20";
-  } else if (normalizedStatus.includes("leave") || normalizedStatus.includes("day-off")) {
-    return "bg-purple-500/15 text-purple-600 border-purple-500/20";
-  } else if (normalizedStatus.includes("scheduled")) {
-    return "bg-indigo-500/15 text-indigo-600 border-indigo-500/20";
+  if (s.includes("present")) {
+    return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+  } else if (s.includes("absent")) {
+    return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+  } else if (s.includes("late")) {
+    return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+  } else if (s.includes("early")) {
+    return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20";
+  } else if (s.includes("half") || s.includes("pending")) {
+    return "bg-primary/10 text-primary border border-primary/20";
+  } else if (s.includes("leave") || s.includes("day-off") || s.includes("off")) {
+    return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20";
+  } else if (s.includes("scheduled")) {
+    return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20";
   } else {
-    return "bg-muted text-muted-foreground border-border";
+    return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
 const getStatusIcon = (status: string) => {
-  const normalizedStatus = status?.toLowerCase() || "";
+  const s = status?.toLowerCase() || "";
 
-  if (normalizedStatus.includes("present")) {
-    return <CheckCircle className="h-4 w-4" />;
-  } else if (normalizedStatus.includes("absent")) {
-    return <XCircle className="h-4 w-4" />;
-  } else if (normalizedStatus.includes("late")) {
-    return <AlertCircle className="h-4 w-4" />;
-  } else if (normalizedStatus.includes("early") || normalizedStatus.includes("half")) {
-    return <Clock className="h-4 w-4" />;
-  } else if (normalizedStatus.includes("leave") || normalizedStatus.includes("day-off")) {
-    return <Coffee className="h-4 w-4" />;
-  } else if (normalizedStatus.includes("scheduled")) {
-    return <Clock className="h-4 w-4" />;
+  if (s.includes("present")) {
+    return <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />;
+  } else if (s.includes("absent")) {
+    return <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />;
+  } else if (s.includes("late")) {
+    return <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />;
+  } else if (s.includes("early") || s.includes("half")) {
+    return <Clock className="h-3.5 w-3.5 text-orange-500 shrink-0" />;
+  } else if (s.includes("leave") || s.includes("day-off") || s.includes("off")) {
+    return <Coffee className="h-3.5 w-3.5 text-violet-500 shrink-0" />;
   } else {
-    return <CalendarIcon className="h-4 w-4" />;
+    return <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
   }
 };
 
@@ -78,16 +82,14 @@ const getDaysInMonth = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
 
   const days: (Date | null)[] = [];
 
-  // Add empty slots for days before the 1st of the month
   for (let i = 0; i < firstDayOfMonth; i++) {
     days.push(null);
   }
 
-  // Add actual days
   for (let i = 1; i <= daysInMonth; i++) {
     days.push(new Date(year, month, i));
   }
@@ -95,15 +97,14 @@ const getDaysInMonth = (date: Date) => {
   return days;
 };
 
-function Calendar() {
+export default function Calendar() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  /* Restoring missing state and fetch logic */
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
 
-  // Fetch attendance records and holidays
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       fetchAttendance();
@@ -114,24 +115,20 @@ function Calendar() {
   const fetchAttendance = async () => {
     setIsLoading(true);
     try {
-      const month = currentDate.getMonth() + 1; // 0-indexed
+      const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
 
       const response = await fetch(
-        `${API_BASE_URL}/attendance/my-records?month=${month}&year=${year}`,
-        { credentials: 'include' }
+        `${API_BASE_URL}/attendance/my-monthly-calendar?month=${month}&year=${year}`,
+        { credentials: "include" }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setAttendance(data);
-      } else {
-        console.error('Failed to fetch attendance');
-        setAttendance([]);
+        setAttendance(data || []);
       }
     } catch (error) {
-      console.error('Error fetching attendance:', error);
-      setAttendance([]);
+      console.error("Failed to fetch attendance:", error);
     } finally {
       setIsLoading(false);
     }
@@ -139,85 +136,56 @@ function Calendar() {
 
   const fetchHolidays = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/holidays`, {
-        credentials: 'include',
-      });
+      const year = currentDate.getFullYear();
+      const response = await fetch(
+        `${API_BASE_URL}/holidays?year=${year}`,
+        { credentials: "include" }
+      );
+
       if (response.ok) {
         const data = await response.json();
-        setHolidays(data);
+        setHolidays(data || []);
       }
     } catch (error) {
-      console.error('[Calendar] Error fetching holidays:', error);
+      console.error("Failed to fetch holidays:", error);
     }
   };
 
   const getHolidayForDate = (date: Date | null) => {
     if (!date) return null;
-
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     const dateStr = `${year}-${month}-${day}`;
-    const monthDay = dateStr.substring(5);
 
-    return holidays.find(h => {
-      if (!h.date) return false;
-
-      // Parse holiday date
-      // If it's stored as "YYYY-MM-DD", splitting T is fine.
-      // If it's ISO, we should parse it.
-      // But we want to preserve the "intended" date.
-      // If backend says "2024-05-01T00:00:00.000Z", it means May 1st.
-      // We should treat it as UTC string and extract the date part directly from the string 
-      // without timezone conversion, because usually holidays are defined as "Dates" not "Moments in Time".
-      let hDateStr = String(h.date);
-      if (hDateStr.includes('T')) {
-        hDateStr = hDateStr.split('T')[0];
-      }
-
-      // Check exact date
-      if (hDateStr === dateStr) return true;
-
-      // Check recurring date (ignoring year)
-      if (h.is_recurring && hDateStr.substring(5) === monthDay) return true;
-
-      return false;
-    });
+    return holidays.find((h) => {
+      const holidayDate = h.date.split("T")[0];
+      return holidayDate === dateStr;
+    }) || null;
   };
 
-  // ... (existing getAttendanceForDate, formatTime, etc.) will be preserved by context matching if possible, but simpler to just insert helper and update render
-
-  const getAttendanceForDate = (date: Date | null): AttendanceRecord | null => {
+  const getAttendanceForDate = (date: Date | null) => {
     if (!date) return null;
-
-    // Format date string directly from date components to avoid timezone issues
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`; // e.g., "2025-12-11"
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
 
-    // Find matching attendance record
-    const found = attendance.find((record) => {
-      // Extract date portion from backend's ISO timestamp
-      const recordDate = record.date.split("T")[0]; // Convert "2025-12-11T00:00:00.000Z" to "2025-12-11"
+    return attendance.find((record) => {
+      const recordDate = record.date.split("T")[0];
       return recordDate === dateStr;
-    });
-
-    return found || null;
+    }) || null;
   };
 
-  // ... formatTime, formatWorkHours, formatMonth, goToPreviousMonth, goToNextMonth, isToday ...
-
-  // Format time from "HH:MM:SS" or ISO string to "HH:MM"
   const formatTime = (timeStr: string | undefined) => {
     if (!timeStr) return undefined;
     try {
       const date = new Date(timeStr);
       if (!isNaN(date.getTime())) {
         return date.toLocaleTimeString("en-US", {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
         });
       }
       return timeStr.substring(0, 5);
@@ -228,8 +196,8 @@ function Calendar() {
 
   const formatWorkHours = (workHours: any) => {
     if (!workHours) return undefined;
-    if (typeof workHours === 'string') return workHours;
-    if (typeof workHours === 'object') {
+    if (typeof workHours === "string") return workHours;
+    if (typeof workHours === "object") {
       const hours = workHours.hours || 0;
       const minutes = workHours.minutes || 0;
       return `${hours}h ${minutes}m`;
@@ -249,6 +217,11 @@ function Calendar() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
+  const goToCurrentMonth = () => {
+    setCurrentDate(new Date());
+    setSelectedDay(new Date());
+  };
+
   const isToday = (date: Date | null) => {
     if (!date) return false;
     const today = new Date();
@@ -259,367 +232,472 @@ function Calendar() {
     );
   };
 
+  const isSelected = (date: Date | null) => {
+    if (!date || !selectedDay) return false;
+    return (
+      date.getDate() === selectedDay.getDate() &&
+      date.getMonth() === selectedDay.getMonth() &&
+      date.getFullYear() === selectedDay.getFullYear()
+    );
+  };
+
   const days = getDaysInMonth(currentDate);
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const weekDays = [
+    { name: "Sun", isWeekend: true },
+    { name: "Mon", isWeekend: false },
+    { name: "Tue", isWeekend: false },
+    { name: "Wed", isWeekend: false },
+    { name: "Thu", isWeekend: false },
+    { name: "Fri", isWeekend: false },
+    { name: "Sat", isWeekend: true },
+  ];
 
   const stats = {
     present: attendance.filter((r) => r.status?.toLowerCase().includes("present")).length,
     absent: attendance.filter((r) => r.status?.toLowerCase().includes("absent")).length,
     late: attendance.filter((r) => r.status?.toLowerCase().includes("late")).length,
-    dayOff: attendance.filter((r) =>
-      r.status?.toLowerCase().includes("leave") ||
-      r.status?.toLowerCase().includes("day-off")
+    dayOff: attendance.filter(
+      (r) =>
+        r.status?.toLowerCase().includes("leave") ||
+        r.status?.toLowerCase().includes("day-off") ||
+        r.status?.toLowerCase().includes("off")
     ).length,
   };
 
+  const totalTrackedDays = stats.present + stats.absent + stats.late;
+  const attendanceRate = totalTrackedDays > 0 ? Math.round((stats.present / totalTrackedDays) * 100) : 100;
+
+  const selectedDayAttendance = selectedDay ? getAttendanceForDate(selectedDay) : null;
+  const selectedDayHoliday = selectedDay ? getHolidayForDate(selectedDay) : null;
+
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <>
-      <div className="p-6 space-y-6">
-        {/* Header and Stats Cards ... (Using existing code structure, simplified update) */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              My Attendance Calendar
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Track your attendance, punch times, and leave records
-            </p>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      <PageHeader
+        title="My Attendance Calendar"
+        description="Monitor your monthly punch times, scheduled shift rosters, overtime hours, and leave history."
+        breadcrumbs={[
+          { label: "HRMS", href: "/dashboard" },
+          { label: "Attendance", href: "/attendance/view" },
+          { label: "Calendar" },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToCurrentMonth}
+              className="h-9 px-3 text-xs font-semibold border-border hover:bg-surface-1"
+            >
+              Today
+            </Button>
+            <Link to="/attendance/clock-in">
+              <Button
+                size="sm"
+                className="h-9 px-4 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
+              >
+                <LogIn className="h-4 w-4 mr-1.5 stroke-[2.5]" />
+                Clock In
+              </Button>
+            </Link>
           </div>
-          {isLoading && (
-            <div className="flex items-center gap-2 text-gray-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Loading...</span>
-            </div>
-          )}
-        </div>
+        }
+      />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* ... existing stats cards ... */}
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-100">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Present Days</p>
-                <p className="text-2xl font-bold text-foreground">{stats.present}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-red-100">
-                <XCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Absent Days</p>
-                <p className="text-2xl font-bold text-foreground">{stats.absent}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-yellow-100">
-                <AlertCircle className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Late Arrivals</p>
-                <p className="text-2xl font-bold text-foreground">{stats.late}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-purple-100">
-                <Coffee className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Days Off</p>
-                <p className="text-2xl font-bold text-foreground">{stats.dayOff}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPITile
+          title="Present Days"
+          value={stats.present}
+          subtitle="On-time working days"
+          icon={CheckCircle}
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-500/10"
+        />
+        <KPITile
+          title="Absent Days"
+          value={stats.absent}
+          subtitle="Unexcused or missing logs"
+          icon={XCircle}
+          iconColor="text-rose-500"
+          iconBg="bg-rose-500/10"
+        />
+        <KPITile
+          title="Late Arrivals"
+          value={stats.late}
+          subtitle="Shift grace period exceeded"
+          icon={AlertCircle}
+          iconColor="text-amber-500"
+          iconBg="bg-amber-500/10"
+        />
+        <KPITile
+          title="Days Off & Leaves"
+          value={stats.dayOff}
+          subtitle="Approved leave or rest days"
+          icon={Coffee}
+          iconColor="text-violet-500"
+          iconBg="bg-violet-500/10"
+        />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Calendar View */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold">
-                    {formatMonth(currentDate)}
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={goToNextMonth}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="border-border shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-surface-1/50 py-3.5 px-4 sm:px-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 text-primary">
+                    <CalendarCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight">
+                      {formatMonth(currentDate)}
+                    </h2>
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      Click any date to inspect shift intervals and punch timestamps
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="overflow-x-auto">
-                  <div className="min-w-[700px]">
-                    <div className="grid grid-cols-7 gap-2 mb-2">
-                      {weekDays.map((day) => (
-                        <div key={day} className="text-center text-sm font-semibold text-muted-foreground py-2">
-                          {day}
-                        </div>
-                      ))}
-                    </div>
 
-                    <div className="grid grid-cols-7 gap-2">
-                      {days.map((date, index) => {
-                        const dayAttendance = getAttendanceForDate(date);
-                        const holiday = getHolidayForDate(date);
-                        const today = isToday(date);
+                <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg p-0.5 shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToPreviousMonth}
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Previous Month"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToCurrentMonth}
+                    className="h-8 px-2.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                  >
+                    Current
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={goToNextMonth}
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Next Month"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
 
+            <CardContent className="p-3 sm:p-4">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground font-medium">Loading calendar records...</span>
+                </div>
+              ) : (
+                <div className="w-full">
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2">
+                    {weekDays.map((day) => (
+                      <div
+                        key={day.name}
+                        className={`text-center text-xs font-bold py-1.5 rounded-md ${
+                          day.isWeekend
+                            ? "text-muted-foreground/60 bg-surface-1/40"
+                            : "text-muted-foreground bg-surface-1"
+                        }`}
+                      >
+                        {day.name}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {days.map((date, index) => {
+                      if (!date) {
                         return (
                           <div
-                            key={index}
-                            className={`min-h-[180px] p-2 border rounded-lg ${date ? "bg-card hover:bg-muted/50 cursor-pointer" : "bg-muted/20"
-                              } ${today ? "ring-2 ring-primary" : ""} ${holiday ? "bg-purple-500/10 hover:bg-purple-500/20" : ""}`}
-                          >
-                            {date && (
-                              <>
-                                <div className="flex justify-between items-start mb-2">
-                                  <div
-                                    className={`text-sm font-medium ${today
-                                      ? "bg-primary text-primary-foreground w-7 h-7 flex items-center justify-center rounded-full"
-                                      : "text-foreground"
-                                      }`}
-                                  >
-                                    {date.getDate()}
-                                  </div>
-                                  {holiday && (
-                                    <Badge variant="secondary" className="text-[10px] bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-200">
-                                      Holiday
-                                    </Badge>
-                                  )}
-                                </div>
+                            key={`empty-${index}`}
+                            className="min-h-[90px] sm:min-h-[110px] rounded-xl border border-dashed border-border/40 bg-surface-1/20"
+                          />
+                        );
+                      }
 
-                                {holiday && (
-                                  <div className="text-xs font-medium text-purple-700 mb-1 truncate" title={holiday.name}>
-                                    {holiday.name}
-                                  </div>
-                                )}
+                      const dayAttendance = getAttendanceForDate(date);
+                      const holiday = getHolidayForDate(date);
+                      const isCurrentDay = isToday(date);
+                      const isSelectedDate = isSelected(date);
+                      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-                                {dayAttendance && (
-                                  <div className="space-y-1">
-                                    <Badge
-                                      className={`text-[10px] px-1 py-0 h-5 w-full justify-start whitespace-nowrap overflow-hidden ${getStatusColor(
-                                        dayAttendance.status
-                                      )}`}
-                                      title={dayAttendance.status}
-                                    >
-                                      <span className="flex items-center gap-1 truncate">
-                                        {getStatusIcon(dayAttendance.status)}
-                                        <span className="truncate">{dayAttendance.status}</span>
-                                      </span>
-                                    </Badge>
+                      return (
+                        <div
+                          key={date.toISOString()}
+                          onClick={() => setSelectedDay(date)}
+                          className={`min-h-[95px] sm:min-h-[115px] p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer flex flex-col justify-between relative group ${
+                            isSelectedDate
+                              ? "border-primary bg-primary/5 ring-2 ring-primary/30 shadow-md"
+                              : isCurrentDay
+                              ? "border-primary/60 bg-primary/5 shadow-sm"
+                              : holiday
+                              ? "border-violet-500/30 bg-violet-500/5 hover:border-violet-500/50"
+                              : isWeekend
+                              ? "border-border/60 bg-surface-1/30 hover:bg-surface-1 hover:border-border"
+                              : "border-border bg-card hover:bg-surface-1 hover:border-border/80"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={`text-xs sm:text-sm font-bold flex items-center justify-center rounded-lg ${
+                                isCurrentDay
+                                  ? "w-6 h-6 bg-primary text-slate-950 gold-gradient font-black shadow-sm"
+                                  : isSelectedDate
+                                  ? "text-primary font-black"
+                                  : isWeekend
+                                  ? "text-muted-foreground/60"
+                                  : "text-foreground"
+                              }`}
+                            >
+                              {date.getDate()}
+                            </span>
 
-                                    {/* Scheduled Shift Times */}
-                                    {(dayAttendance.scheduled_in || dayAttendance.scheduled_out) && (
-                                      <div className="text-[10px] text-gray-500 border-t pt-1">
-                                        <div className="flex flex-col">
-                                          <div className="flex items-center gap-0.5">
-                                            <Clock className="h-2.5 w-2.5 shrink-0" />
-                                            <span className="truncate">
-                                              {formatTime(dayAttendance.scheduled_in)}-{formatTime(dayAttendance.scheduled_out)}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Actual Clock In/Out */}
-                                    {(dayAttendance.actual_in || dayAttendance.actual_out) && (
-                                      <div className="text-xs border-t pt-1">
-                                        <div className="font-medium text-gray-700 mb-0.5">Actual:</div>
-                                        {dayAttendance.actual_in && (
-                                          <div className="flex items-center gap-1 text-gray-600">
-                                            <LogIn className="h-3 w-3 text-green-600" />
-                                            <span>In: {formatTime(dayAttendance.actual_in)}</span>
-                                          </div>
-                                        )}
-                                        {dayAttendance.actual_out && (
-                                          <div className="flex items-center gap-1 text-gray-600">
-                                            <LogOut className="h-3 w-3 text-red-600" />
-                                            <span>Out: {formatTime(dayAttendance.actual_out)}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {dayAttendance.work_hours && (
-                                      <div className="text-xs font-semibold text-blue-700 border-t pt-1">
-                                        Total: {formatWorkHours(dayAttendance.work_hours)}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </>
+                            {holiday && (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1 py-0 h-4 bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20 font-semibold"
+                              >
+                                Holiday
+                              </Badge>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          <div className="space-y-4">
-            {/* ... Legend and Recent Records ... */}
+                          <div className="my-1 space-y-1">
+                            {holiday && (
+                              <p
+                                className="text-[10px] font-semibold text-violet-600 dark:text-violet-400 truncate"
+                                title={holiday.name}
+                              >
+                                {holiday.name}
+                              </p>
+                            )}
 
-            {/* Legend */}
-            <Card>
-              <CardHeader className="border-b">
-                <CardTitle className="text-lg">Status Legend</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 bg-purple-100 rounded border border-purple-200 flex items-center justify-center">
-                    <span className="text-[10px] text-purple-700">H</span>
-                  </div>
-                  <span className="text-sm text-gray-700">Public Holiday</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-gray-700">Present</span>
-                </div>
-                {/* ... other legend items ... */}
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-red-600" />
-                  <span className="text-sm text-gray-700">Absent</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm text-gray-700">Late Arrival</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Half Day</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Coffee className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm text-gray-700">Day Off</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm text-gray-700">Weekend</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Attendance */}
-            <Card>
-              <CardHeader className="border-b">
-                <CardTitle className="text-lg">Recent Records</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                {attendance.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No attendance records yet
-                  </p>
-                ) : (
-                  attendance
-                    .slice(-5)
-                    .reverse()
-                    .map((record) => (
-                      <div
-                        key={record.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50"
-                      >
-                        {/* ... Recent record logic ... */}
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {new Date(record.date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </p>
-                            <Badge
-                              className={`text-xs mt-1 ${getStatusColor(
-                                record.status
-                              )}`}
-                            >
-                              {record.status}
-                            </Badge>
+                            {dayAttendance ? (
+                              <Badge
+                                className={`text-[10px] px-1.5 py-0.5 h-auto w-full justify-start font-semibold rounded-md border ${getStatusColor(
+                                  dayAttendance.status
+                                )}`}
+                              >
+                                <span className="flex items-center gap-1 truncate">
+                                  {getStatusIcon(dayAttendance.status)}
+                                  <span className="truncate">{dayAttendance.status}</span>
+                                </span>
+                              </Badge>
+                            ) : !holiday && isWeekend ? (
+                              <span className="text-[10px] text-muted-foreground/40 font-medium italic block text-center">
+                                Weekend
+                              </span>
+                            ) : null}
                           </div>
-                          {record.shift_name && (
-                            <Badge variant="outline" className="text-xs">
-                              {record.shift_name}
-                            </Badge>
-                          )}
-                        </div>
-                        {/* ... (rest of record details) ... */}
-                        {(record.scheduled_in || record.scheduled_out) && (
-                          <div className="bg-gray-50 p-2 rounded mb-2">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Clock className="h-3 w-3" />
-                              <span className="font-medium">Schedule:</span>
-                              <span>
-                                {formatTime(record.scheduled_in) || '--'} - {formatTime(record.scheduled_out) || '--'}
+
+                          {dayAttendance && (dayAttendance.actual_in || dayAttendance.actual_out) ? (
+                            <div className="text-[9px] font-mono text-muted-foreground flex items-center justify-between border-t border-border/50 pt-1">
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                {formatTime(dayAttendance.actual_in) || "--"}
+                              </span>
+                              <span>&rarr;</span>
+                              <span className="text-rose-600 dark:text-rose-400">
+                                {formatTime(dayAttendance.actual_out) || "--"}
                               </span>
                             </div>
-                          </div>
-                        )}
+                          ) : dayAttendance?.scheduled_in ? (
+                            <div className="text-[9px] font-mono text-muted-foreground/70 flex items-center gap-1 border-t border-border/40 pt-1">
+                              <Clock className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate">
+                                {formatTime(dayAttendance.scheduled_in)}-{formatTime(dayAttendance.scheduled_out)}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-                        {/* Actual Times */}
-                        {(record.actual_in || record.actual_out) && (
-                          <div className="space-y-1 mb-2">
-                            {record.actual_in && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <LogIn className="h-3 w-3 text-green-600" />
-                                <span className="font-medium">In:</span>
-                                <span>{formatTime(record.actual_in)}</span>
-                              </div>
-                            )}
-                            {record.actual_out && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <LogOut className="h-3 w-3 text-red-600" />
-                                <span className="font-medium">Out:</span>
-                                <span>{formatTime(record.actual_out)}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {record.work_hours && (
-                          <div className="text-sm font-semibold text-primary bg-primary/20 p-2 rounded mb-2">
-                            Total Hours: {formatWorkHours(record.work_hours)}
-                          </div>
-                        )}
-                        {record.remarks && (
-                          <div className="text-xs text-gray-500 italic border-t pt-2">
-                            💬 {record.remarks}
-                          </div>
-                        )}
-                      </div>
-                    ))
+        <div className="space-y-4">
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b border-border py-3 px-4 bg-surface-1/50">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  {selectedDay
+                    ? selectedDay.toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : "Day Details"}
+                </CardTitle>
+                {selectedDay && isToday(selectedDay) && (
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">
+                    Today
+                  </Badge>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 space-y-3">
+              {selectedDayAttendance ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
+                    <span className="text-xs text-muted-foreground">Attendance Status</span>
+                    <Badge className={getStatusColor(selectedDayAttendance.status)}>
+                      <span className="flex items-center gap-1">
+                        {getStatusIcon(selectedDayAttendance.status)}
+                        {selectedDayAttendance.status}
+                      </span>
+                    </Badge>
+                  </div>
+
+                  {selectedDayAttendance.shift_name && (
+                    <div className="flex items-center justify-between text-xs pb-2 border-b border-border">
+                      <span className="text-muted-foreground">Assigned Shift</span>
+                      <Badge variant="outline" className="font-mono text-xs border-border">
+                        {selectedDayAttendance.shift_name}
+                      </Badge>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-xl bg-surface-1 border border-border">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">
+                        Check In
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        <LogIn className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formatTime(selectedDayAttendance.actual_in) || "No Punch"}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-surface-1 border border-border">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">
+                        Check Out
+                      </span>
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-rose-600 dark:text-rose-400">
+                        <LogOut className="h-3.5 w-3.5 shrink-0" />
+                        <span>{formatTime(selectedDayAttendance.actual_out) || "No Punch"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedDayAttendance.work_hours && (
+                    <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
+                      <span className="font-medium text-foreground">Total Work Hours</span>
+                      <span className="font-mono font-bold text-primary">
+                        {formatWorkHours(selectedDayAttendance.work_hours)}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedDayAttendance.remarks && (
+                    <div className="p-2.5 rounded-xl bg-surface-1 border border-border text-xs text-muted-foreground italic">
+                      💬 {selectedDayAttendance.remarks}
+                    </div>
+                  )}
+                </div>
+              ) : selectedDayHoliday ? (
+                <div className="text-center py-6 space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-600 flex items-center justify-center mx-auto">
+                    <Coffee className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-sm font-bold text-foreground">{selectedDayHoliday.name}</h4>
+                  <p className="text-xs text-muted-foreground">Official Company / Public Holiday</p>
+                </div>
+              ) : (
+                <div className="text-center py-6 space-y-1.5">
+                  <CalendarIcon className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+                  <p className="text-xs font-medium text-foreground">No logs recorded for this day</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {selectedDay && (selectedDay.getDay() === 0 || selectedDay.getDay() === 6)
+                      ? "Standard weekend off"
+                      : "No punch activity found"}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b border-border py-3 px-4 bg-surface-1/50">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                Monthly Attendance Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Punctuality Score</span>
+                <span className="text-lg font-black text-foreground">{attendanceRate}%</span>
+              </div>
+              <div className="w-full bg-surface-2 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-primary gold-gradient h-2.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, attendanceRate))}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Based on {totalTrackedDays} logged working days in {formatMonth(currentDate)}.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border shadow-sm">
+            <CardHeader className="border-b border-border py-3 px-4 bg-surface-1/50">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Status Legend
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold truncate">Present</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+                  <XCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold truncate">Absent</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold truncate">Late Arrival</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400">
+                  <Coffee className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold truncate">Day Off / Leave</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                  <span className="font-semibold truncate">Half Day</span>
+                </div>
+                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400">
+                  <span className="w-3.5 h-3.5 flex items-center justify-center font-bold text-[10px]">H</span>
+                  <span className="font-semibold truncate">Holiday</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 }
-
-export default Calendar;

@@ -1,5 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
   CheckCircle2,
   Clock,
@@ -18,34 +22,34 @@ import { PerformanceOverview } from "@/components/pms/PerformanceOverview";
 const getStatusColor = (status: TaskStatus | string) => {
   switch (status) {
     case TaskStatus.DONE:
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
     case TaskStatus.IN_PROGRESS:
-      return "bg-primary/10 text-primary";
+      return "bg-primary/10 text-primary border border-primary/20";
     case TaskStatus.IN_REVIEW:
-      return "bg-purple-100 text-purple-800";
+      return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20";
     case TaskStatus.BLOCKED:
-      return "bg-red-100 text-red-800";
+      return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
     case TaskStatus.TODO:
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
     case TaskStatus.BACKLOG:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case ProjectPriority.HIGH:
-      return "bg-red-100 text-red-800";
-    case ProjectPriority.MEDIUM:
-      return "bg-orange-100 text-orange-800";
-    case ProjectPriority.LOW:
-      return "bg-gray-100 text-gray-800";
     case ProjectPriority.CRITICAL:
-      return "bg-red-200 text-red-900";
+      return "bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 font-bold";
+    case ProjectPriority.HIGH:
+      return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+    case ProjectPriority.MEDIUM:
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+    case ProjectPriority.LOW:
+      return "bg-surface-2 text-muted-foreground border border-border";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
@@ -154,45 +158,42 @@ export default function PMSDashboard() {
   const assigneeOptions = users.map(u => ({ id: u.id, name: u.full_name }));
 
   return (
-    <>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">PMS Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Welcome back! Here's your project overview.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {/* 
-            <TrendingUp className="h-4 w-4 text-green-500" />
-            <span>12% increase this month</span>
-             */}
-          </div>
-        </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      {/* Executive Page Header */}
+      <PageHeader
+        title="Project Management (PMS)"
+        description="Monitor sprint velocity, project milestone progress, team workloads, and active task review queues."
+        breadcrumbs={[
+          { label: "PMS", href: "/pms/dashboard" },
+          { label: "Overview" },
+        ]}
+        actions={
+          <Button
+            onClick={() => setIsTaskModalOpen(true)}
+            className="gap-2 h-9 px-3.5 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
+          >
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            New Task
+          </Button>
+        }
+      />
 
+      {/* Advanced Performance Overview (Tenant Wide) */}
+      {tenant && <PerformanceOverview tenantId={tenant.id} />}
 
-        {/* Advanced Performance Overview (Tenant Wide) */}
-        {tenant && <PerformanceOverview tenantId={tenant.id} />}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat) => (
-            <Card key={stat.title} className="py-4">
-              <CardContent className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {stat.value}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, idx) => (
+          <KPITile
+            key={idx}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconColor={stat.color}
+            iconBg={stat.bg}
+          />
+        ))}
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Tasks */}
@@ -294,16 +295,14 @@ export default function PMSDashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
-
       <TaskModal
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
         onSave={handleSaveTask}
         task={null}
-        projects={projectOptions as any} // Assuming TaskModal accepts this structure
+        projects={projectOptions as any}
         assignees={assigneeOptions as any}
       />
-    </>
+    </div>
   );
 }

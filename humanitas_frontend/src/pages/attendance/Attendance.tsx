@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Table,
   TableBody,
@@ -84,19 +85,19 @@ const formatWorkHours = (workHours: string | { hours?: number; minutes?: number 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Present":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
     case "Absent":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
     case "Late":
-      return "bg-orange-100 text-orange-800";
+      return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20";
     case "Early Leave":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
     case "Half Day":
-      return "bg-amber-100 text-amber-800";
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
     case "Day Off":
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
@@ -563,21 +564,16 @@ export default function Attendance() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{stat.title}</p>
-                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                </div>
-                <div className={`${stat.bg} p-3 rounded-full`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, idx) => (
+          <KPITile
+            key={idx}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconColor={stat.color}
+            iconBg={stat.bg}
+          />
         ))}
       </div>
 

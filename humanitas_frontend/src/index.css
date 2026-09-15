@@ -6,6 +6,36 @@
 @theme {
   --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-dock-bg: var(--dock-bg);
+  --color-dock-border: var(--dock-border);
+  --color-dock-active: var(--dock-active);
+  --color-dock-active-fg: var(--dock-active-fg);
 }
 
 #root {
@@ -16,7 +46,7 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   ENTERPRISE DESIGN SYSTEM TOKENS (SLATE / ZINC HIGH-DENSITY)
+   ENTERPRISE DESIGN SYSTEM TOKENS — SHINY GOLD LUXE THEME
    ───────────────────────────────────────────────────────────── */
 :root {
   font-family: var(--font-family-sans);
@@ -28,9 +58,9 @@
   -moz-osx-font-smoothing: grayscale;
 
   color-scheme: light;
-  --radius: 0.5rem;
+  --radius: 0.625rem;
   --radius-sm: 0.375rem;
-  --radius-lg: 0.75rem;
+  --radius-lg: 0.875rem;
 
   /* Density Tokens (Default: Comfortable) */
   --spacing-density-py: 0.5rem;
@@ -38,35 +68,35 @@
   --table-row-height: 2.75rem;
   --font-density-scale: 1;
 
-  /* Light Theme (Clean Crisp Enterprise Slate) */
-  --background: oklch(0.99 0.002 247.8);
-  --foreground: oklch(0.18 0.02 260);
+  /* Light Theme (Clean Crisp Warm Slate with Lustrous Gold Accents) */
+  --background: oklch(0.99 0.003 85);
+  --foreground: oklch(0.16 0.02 60);
 
   --surface-0: oklch(1 0 0);
-  --surface-1: oklch(0.985 0.004 250);
-  --surface-2: oklch(0.96 0.008 250);
-  --surface-3: oklch(0.93 0.012 250);
+  --surface-1: oklch(0.985 0.005 85);
+  --surface-2: oklch(0.96 0.01 85);
+  --surface-3: oklch(0.93 0.015 85);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.16 0.02 60);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.16 0.02 60);
 
-  /* Primary Brand Dynamic Hue (Default: Corporate Blue-Slate #2563EB / oklch 0.55 0.2 260) */
-  --primary: oklch(0.55 0.2 260);
-  --primary-hover: oklch(0.48 0.22 260);
-  --primary-foreground: oklch(0.99 0.002 260);
+  /* Shiny Gold Primary Theme (#D4AF37 / #ECC94B) */
+  --primary: oklch(0.74 0.16 85);
+  --primary-hover: oklch(0.68 0.18 80);
+  --primary-foreground: oklch(0.15 0.04 60);
 
-  --secondary: oklch(0.95 0.01 250);
-  --secondary-hover: oklch(0.92 0.015 250);
-  --secondary-foreground: oklch(0.22 0.02 260);
+  --secondary: oklch(0.96 0.02 85);
+  --secondary-hover: oklch(0.93 0.03 85);
+  --secondary-foreground: oklch(0.25 0.04 60);
 
-  --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.5 0.02 250);
+  --muted: oklch(0.97 0.008 85);
+  --muted-foreground: oklch(0.5 0.025 60);
 
-  --accent: oklch(0.95 0.015 260);
-  --accent-foreground: oklch(0.25 0.05 260);
+  --accent: oklch(0.95 0.03 85);
+  --accent-foreground: oklch(0.2 0.05 60);
 
   /* Semantic Alerts */
   --success: oklch(0.62 0.18 145);
@@ -81,27 +111,27 @@
   --destructive-surface: oklch(0.96 0.04 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --info: oklch(0.6 0.18 230);
-  --info-surface: oklch(0.96 0.04 230);
-  --info-foreground: oklch(0.25 0.08 230);
+  --info: oklch(0.65 0.15 85);
+  --info-surface: oklch(0.96 0.04 85);
+  --info-foreground: oklch(0.25 0.08 85);
 
-  --border: oklch(0.9 0.008 250);
-  --input: oklch(0.9 0.008 250);
-  --input-focus: oklch(0.55 0.2 260);
-  --ring: oklch(0.55 0.2 260);
+  --border: oklch(0.91 0.01 85);
+  --input: oklch(0.91 0.01 85);
+  --input-focus: oklch(0.74 0.16 85);
+  --ring: oklch(0.74 0.16 85);
 
   /* Enterprise Navigation Dock */
-  --dock-bg: oklch(0.985 0.003 250);
-  --dock-border: oklch(0.91 0.008 250);
-  --dock-active: oklch(0.94 0.02 260);
-  --dock-active-fg: oklch(0.35 0.18 260);
+  --dock-bg: oklch(0.985 0.004 85);
+  --dock-border: oklch(0.92 0.01 85);
+  --dock-active: oklch(0.94 0.035 85);
+  --dock-active-fg: oklch(0.3 0.1 60);
 
   /* Charts */
-  --chart-1: oklch(0.55 0.2 260);
-  --chart-2: oklch(0.65 0.16 160);
-  --chart-3: oklch(0.7 0.18 45);
-  --chart-4: oklch(0.6 0.18 310);
-  --chart-5: oklch(0.65 0.15 210);
+  --chart-1: oklch(0.74 0.16 85); /* Gold */
+  --chart-2: oklch(0.62 0.18 145); /* Emerald */
+  --chart-3: oklch(0.6 0.16 45); /* Bronze */
+  --chart-4: oklch(0.55 0.18 300); /* Violet */
+  --chart-5: oklch(0.7 0.15 70); /* Amber */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
@@ -110,38 +140,39 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DARK THEME (DEEP SLATE ENTERPRISE PALETTE)
+   DARK THEME (DEEP ONYX & GLEAMING GOLD)
    ───────────────────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
 
-  --background: oklch(0.14 0.015 260);
-  --foreground: oklch(0.96 0.005 250);
+  --background: oklch(0.14 0.015 60);
+  --foreground: oklch(0.96 0.008 85);
 
-  --surface-0: oklch(0.17 0.018 260);
-  --surface-1: oklch(0.2 0.02 260);
-  --surface-2: oklch(0.24 0.022 260);
-  --surface-3: oklch(0.28 0.025 260);
+  --surface-0: oklch(0.17 0.018 60);
+  --surface-1: oklch(0.2 0.02 60);
+  --surface-2: oklch(0.24 0.022 60);
+  --surface-3: oklch(0.28 0.025 60);
 
-  --card: oklch(0.17 0.018 260);
-  --card-foreground: oklch(0.96 0.005 250);
+  --card: oklch(0.17 0.018 60);
+  --card-foreground: oklch(0.96 0.008 85);
 
-  --popover: oklch(0.17 0.018 260);
-  --popover-foreground: oklch(0.96 0.005 250);
+  --popover: oklch(0.17 0.018 60);
+  --popover-foreground: oklch(0.96 0.008 85);
 
-  --primary: oklch(0.62 0.19 260);
-  --primary-hover: oklch(0.68 0.17 260);
-  --primary-foreground: oklch(0.12 0.02 260);
+  /* Gleaming Gold in Dark Mode */
+  --primary: oklch(0.78 0.16 85);
+  --primary-hover: oklch(0.84 0.14 85);
+  --primary-foreground: oklch(0.12 0.04 60);
 
-  --secondary: oklch(0.22 0.02 260);
-  --secondary-hover: oklch(0.26 0.025 260);
-  --secondary-foreground: oklch(0.92 0.01 250);
+  --secondary: oklch(0.22 0.025 60);
+  --secondary-hover: oklch(0.26 0.03 60);
+  --secondary-foreground: oklch(0.94 0.01 85);
 
-  --muted: oklch(0.2 0.015 260);
-  --muted-foreground: oklch(0.65 0.015 250);
+  --muted: oklch(0.2 0.015 60);
+  --muted-foreground: oklch(0.65 0.02 85);
 
-  --accent: oklch(0.24 0.03 260);
-  --accent-foreground: oklch(0.95 0.02 260);
+  --accent: oklch(0.24 0.04 85);
+  --accent-foreground: oklch(0.96 0.02 85);
 
   --success: oklch(0.68 0.18 145);
   --success-surface: oklch(0.22 0.05 145);
@@ -155,21 +186,21 @@
   --destructive-surface: oklch(0.22 0.05 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --info: oklch(0.68 0.18 230);
-  --info-surface: oklch(0.22 0.05 230);
-  --info-foreground: oklch(0.94 0.04 230);
+  --info: oklch(0.75 0.15 85);
+  --info-surface: oklch(0.22 0.05 85);
+  --info-foreground: oklch(0.94 0.04 85);
 
-  --border: oklch(0.26 0.018 260);
-  --input: oklch(0.26 0.018 260);
-  --input-focus: oklch(0.62 0.19 260);
-  --ring: oklch(0.62 0.19 260);
+  --border: oklch(0.26 0.02 60);
+  --input: oklch(0.26 0.02 60);
+  --input-focus: oklch(0.78 0.16 85);
+  --ring: oklch(0.78 0.16 85);
 
-  --dock-bg: oklch(0.15 0.016 260);
-  --dock-border: oklch(0.24 0.018 260);
-  --dock-active: oklch(0.24 0.035 260);
-  --dock-active-fg: oklch(0.85 0.12 260);
+  --dock-bg: oklch(0.15 0.016 60);
+  --dock-border: oklch(0.24 0.018 60);
+  --dock-active: oklch(0.25 0.04 85);
+  --dock-active-fg: oklch(0.85 0.14 85);
 
-  --chart-1: oklch(0.62 0.19 260);
+  --chart-1: oklch(0.78 0.16 85);
   --chart-2: oklch(0.7 0.16 160);
   --chart-3: oklch(0.75 0.18 45);
   --chart-4: oklch(0.68 0.18 310);
@@ -182,30 +213,23 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DENSITY PRESETS (APPLIED VIA BODY CLASS)
+   METALLIC GOLD LUXURY UTILITIES
    ───────────────────────────────────────────────────────────── */
-body.density-compact {
-  --spacing-density-py: 0.25rem;
-  --spacing-density-px: 0.5rem;
-  --table-row-height: 2.25rem;
-  --font-density-scale: 0.92;
-  font-size: 0.875rem;
+.gold-gradient {
+  background: linear-gradient(135deg, #f6d365 0%, #d4af37 50%, #b7791f 100%);
+  color: #1a1608;
 }
 
-body.density-comfortable {
-  --spacing-density-py: 0.5rem;
-  --spacing-density-px: 0.75rem;
-  --table-row-height: 2.75rem;
-  --font-density-scale: 1;
-  font-size: 0.9375rem;
+.gold-gradient-subtle {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.03) 100%);
 }
 
-body.density-spacious {
-  --spacing-density-py: 0.75rem;
-  --spacing-density-px: 1rem;
-  --table-row-height: 3.25rem;
-  --font-density-scale: 1.05;
-  font-size: 1rem;
+.gold-border {
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.gold-glow {
+  box-shadow: 0 0 18px -3px rgba(212, 175, 55, 0.28);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -235,11 +259,6 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   opacity: 0.6;
-}
-
-/* Smooth micro-transitions */
-.transition-standard {
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Data Table Grid helper utilities */

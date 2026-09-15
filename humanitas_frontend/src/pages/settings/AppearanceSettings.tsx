@@ -13,11 +13,11 @@ interface ColorPreset {
 
 const COLOR_PRESETS: ColorPreset[] = [
   {
-    name: "blue",
-    label: "Corporate Blue",
-    oklchLight: "oklch(0.55 0.2 260)",
-    oklchDark: "oklch(0.62 0.19 260)",
-    previewClass: "bg-blue-600",
+    name: "gold",
+    label: "Shiny Gold (Default)",
+    oklchLight: "oklch(0.74 0.16 85)",
+    oklchDark: "oklch(0.78 0.16 85)",
+    previewClass: "gold-gradient",
   },
   {
     name: "emerald",
@@ -48,22 +48,22 @@ const COLOR_PRESETS: ColorPreset[] = [
     previewClass: "bg-teal-600",
   },
   {
-    name: "violet",
-    label: "Luxe Violet",
-    oklchLight: "oklch(0.52 0.24 300)",
-    oklchDark: "oklch(0.64 0.22 300)",
-    previewClass: "bg-violet-600",
+    name: "blue",
+    label: "Corporate Blue",
+    oklchLight: "oklch(0.55 0.2 260)",
+    oklchDark: "oklch(0.62 0.19 260)",
+    previewClass: "bg-blue-600",
   },
 ];
 
 export const AppearanceSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const [selectedColor, setSelectedColor] = useState<string>("blue");
+  const [selectedColor, setSelectedColor] = useState<string>("gold");
   const [density, setDensity] = useState<"compact" | "comfortable" | "spacious">("comfortable");
 
   // Load saved preferences
   useEffect(() => {
-    const savedColor = localStorage.getItem("humanitas_brand_color") || "blue";
+    const savedColor = localStorage.getItem("humanitas_brand_color") || "gold";
     const savedDensity = (localStorage.getItem("humanitas_density") as any) || "comfortable";
     setSelectedColor(savedColor);
     setDensity(savedDensity);

@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Table,
   TableBody,
@@ -34,24 +36,24 @@ import { useLeave, type LeaveRequest } from "@/hooks/useLeave";
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Approved":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
     case "Rejected":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
     case "Pending":
-      return "bg-yellow-100 text-yellow-800";
+      return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
 const getTypeColor = (type: string) => {
   const colors: Record<string, string> = {
-    "Annual Leave": "bg-primary/20 text-primary",
-    "Sick Leave": "bg-orange-100 text-orange-800",
-    "Personal Leave": "bg-purple-100 text-purple-800",
-    "Unpaid Leave": "bg-gray-100 text-gray-800",
+    "Annual Leave": "bg-primary/10 text-primary border border-primary/20",
+    "Sick Leave": "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20",
+    "Personal Leave": "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20",
+    "Unpaid Leave": "bg-surface-2 text-muted-foreground border border-border",
   };
-  return colors[type] || "bg-primary/20 text-primary";
+  return colors[type] || "bg-primary/10 text-primary border border-primary/20";
 };
 
 export default function LeaveRequests() {
@@ -235,25 +237,28 @@ export default function LeaveRequests() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex justify-between items-center w-full">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Leave Requests</h2>
-            <p className="text-muted-foreground">Manage and approve employee leave requests.</p>
-          </div>
-          <div className="flex gap-2">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      {/* Executive Page Header */}
+      <PageHeader
+        title="Leave Management"
+        description="Review, approve, or reject employee time-off and vacation requests with multi-level workflow approval."
+        breadcrumbs={[
+          { label: "HRMS", href: "/dashboard" },
+          { label: "Leaves" },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
             <Button
               variant={isLiveMode ? "default" : "outline"}
               size="sm"
               onClick={() => setIsLiveMode(!isLiveMode)}
-              className={isLiveMode ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+              className={isLiveMode ? "gold-gradient gold-glow border-none font-bold text-slate-950" : "h-8 text-xs font-semibold"}
             >
               {isLiveMode ? (
                 <>
                   <span className="relative flex h-2 w-2 mr-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-black"></span>
                   </span>
                   Live Mode
                 </>
@@ -264,61 +269,51 @@ export default function LeaveRequests() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="mr-2 h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="h-8 text-xs font-semibold">
+              <RefreshCw className="mr-2 h-3.5 w-3.5" />
               Refresh
             </Button>
           </div>
-        </div>
-      </div>
-
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="py-3">
-          <CardContent className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-yellow-100">
-              <Clock className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pending Requests</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="py-3">
-          <CardContent className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-green-100">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Approved</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="py-3">
-          <CardContent className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-red-100">
-              <XCircle className="h-6 w-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Rejected</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <KPITile
+          title="Pending Requests"
+          value={stats.pending}
+          subtitle="Awaiting management action"
+          icon={Clock}
+          iconColor="text-amber-500"
+          iconBg="bg-amber-500/10"
+        />
+        <KPITile
+          title="Approved Leaves"
+          value={stats.approved}
+          subtitle="Processed and approved"
+          icon={CheckCircle}
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-500/10"
+        />
+        <KPITile
+          title="Rejected Requests"
+          value={stats.rejected}
+          subtitle="Declined by management"
+          icon={XCircle}
+          iconColor="text-rose-500"
+          iconBg="bg-rose-500/10"
+        />
       </div>
 
-      <div className="flex gap-4 border-b">
+      <div className="flex gap-4 border-b border-border">
         <button
-          className={`pb-2 px-4 text-sm font-medium ${tab === 'all' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`pb-2.5 px-4 text-xs font-bold transition-colors ${tab === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setTab('all')}
         >
           All Requests
         </button>
         <button
-          className={`pb-2 px-4 text-sm font-medium ${tab === 'my-approval' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`pb-2.5 px-4 text-xs font-bold transition-colors ${tab === 'my-approval' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           onClick={() => setTab('my-approval')}
         >
           Pending My Approval
@@ -383,7 +378,7 @@ export default function LeaveRequests() {
                 </TableRow>
               ) : (
                 filteredRequests.map((request) => (
-                  <TableRow key={request.id} className="hover:bg-gray-50">
+                  <TableRow key={request.id} className="hover:bg-surface-1 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="relative">
@@ -393,16 +388,16 @@ export default function LeaveRequests() {
                             </AvatarFallback>
                           </Avatar>
                           <span
-                            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isUserOnline(request.user_id || "") ? "bg-green-500" : "bg-gray-300"
+                            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-card ${isUserOnline(request.user_id || "") ? "bg-emerald-500" : "bg-muted-foreground/30"
                               }`}
                             title={isUserOnline(request.user_id || "") ? "Online" : "Offline"}
                           />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {request.user_name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {request.department || request.user_email}
                           </p>
                         </div>
@@ -415,16 +410,16 @@ export default function LeaveRequests() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-sm">
-                        <span className="text-gray-900">
+                        <span className="text-foreground font-medium">
                           {new Date(request.start_date).toLocaleDateString()}
                         </span>
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-muted-foreground text-xs">
                           to {new Date(request.end_date).toLocaleDateString()}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{request.days} days</TableCell>
-                    <TableCell className="max-w-[150px] truncate text-gray-600">
+                    <TableCell className="text-foreground">{request.days} days</TableCell>
+                    <TableCell className="max-w-[150px] truncate text-muted-foreground">
                       {request.reason || "-"}
                     </TableCell>
                     <TableCell>
@@ -438,13 +433,13 @@ export default function LeaveRequests() {
                           </span>
                         )}
                         {request.status === "Rejected" && request.rejection_reason && (
-                          <p className="text-xs text-red-500 mt-1 truncate max-w-[100px]" title={request.rejection_reason}>
+                          <p className="text-xs text-rose-500 mt-1 truncate max-w-[100px]" title={request.rejection_reason}>
                             {request.rejection_reason}
                           </p>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-500 text-sm">
+                    <TableCell className="text-muted-foreground text-sm">
                       {new Date(request.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>

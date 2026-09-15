@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/design-system/PageHeader";
+import { KPITile } from "@/components/design-system/KPITile";
 import {
   Table,
   TableBody,
@@ -75,15 +77,15 @@ const getStatusColor = (status: string) => {
   const normalized = status?.toLowerCase() || 'offline';
   switch (normalized) {
     case "online":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
     case "offline":
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
     case "error":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
     case "syncing":
-      return "bg-primary/20 text-primary";
+      return "bg-primary/10 text-primary border border-primary/20";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-surface-2 text-muted-foreground border border-border";
   }
 };
 
@@ -222,82 +224,63 @@ export default function Devices() {
   };
 
   return (
-    <>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Biometric Devices
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Manage fingerprint and face recognition terminals
-            </p>
-          </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fadeIn">
+      {/* Executive Page Header */}
+      <PageHeader
+        title="Biometric Hardware & Terminals"
+        description="Monitor physical access devices, sync live fingerprint and facial recognition templates, and configure attendance gateways."
+        breadcrumbs={[
+          { label: "Organization", href: "/dashboard" },
+          { label: "Biometric Devices" },
+        ]}
+        actions={
           <Button
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={handleOpenAddModal}
+            className="gap-2 h-9 px-3.5 text-xs font-bold gold-gradient gold-glow border-none text-slate-950 transition-transform hover:scale-105"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 stroke-[2.5]" />
             Add Device
           </Button>
-        </div>
+        }
+      />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Fingerprint className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Devices</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.total}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-100">
-                <Wifi className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Online</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.online}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-gray-100">
-                <WifiOff className="h-6 w-6 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Offline</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.offline}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-red-100">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Error</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {stats.error}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPITile
+          title="Total Terminals"
+          value={stats.total}
+          subtitle="Configured hardware devices"
+          icon={Fingerprint}
+          iconColor="text-primary"
+          iconBg="bg-primary/10"
+        />
+        <KPITile
+          title="Online Devices"
+          value={stats.online}
+          subtitle="Actively communicating"
+          icon={Wifi}
+          iconColor="text-emerald-500"
+          iconBg="bg-emerald-500/10"
+        />
+        <KPITile
+          title="Offline Devices"
+          value={stats.offline}
+          subtitle="Connection unreachable"
+          icon={WifiOff}
+          iconColor="text-muted-foreground"
+          iconBg="bg-surface-2"
+        />
+        <KPITile
+          title="Sync Errors"
+          value={stats.error}
+          subtitle="Requires attention"
+          icon={AlertCircle}
+          iconColor="text-rose-500"
+          iconBg="bg-rose-500/10"
+        />
+      </div>
 
+      <div className="space-y-4">
         {/* Search Bar */}
         <Card>
           <CardContent className="py-4">
@@ -351,17 +334,17 @@ export default function Devices() {
                       </TableCell>
                     </TableRow>
                   ) : filteredDevices.map((device) => (
-                    <TableRow key={device.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <TableRow key={device.id} className="hover:bg-surface-1 transition-colors">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/5 rounded-lg">
-                            <Fingerprint className="h-5 w-5 text-blue-600" />
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Fingerprint className="h-5 w-5 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium text-foreground">
                               {device.name}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               SN: {device.serial_number}
                             </p>
                           </div>
@@ -370,17 +353,17 @@ export default function Devices() {
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium text-foreground">{device.brand}</span>
-                          <span className="text-xs text-gray-500">{device.model}</span>
+                          <span className="text-xs text-muted-foreground">{device.model}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs">
+                        <Badge variant="outline" className="font-mono text-xs border-border">
                           {device.protocol}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 text-gray-400" />
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 text-muted-foreground/70" />
                           {device.location}
                         </div>
                       </TableCell>
@@ -394,15 +377,15 @@ export default function Devices() {
                           {device.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm font-mono text-gray-600">
+                      <TableCell className="text-sm font-mono text-muted-foreground">
                         {device.ip_address}:{device.port}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-muted-foreground">
                         {device.last_sync_at ? new Date(device.last_sync_at).toLocaleString() : 'Never'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="h-4 w-4 text-gray-400" />
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4 text-muted-foreground/70" />
                           {device.current_users || 0}
                         </div>
                       </TableCell>
@@ -410,7 +393,7 @@ export default function Devices() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4 text-gray-500" />
+                              <MoreVertical className="h-4 w-4 text-muted-foreground" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -446,6 +429,6 @@ export default function Devices() {
         onSave={handleAddDevice}
         device={editingDevice}
       />
-    </>
+    </div>
   );
 }

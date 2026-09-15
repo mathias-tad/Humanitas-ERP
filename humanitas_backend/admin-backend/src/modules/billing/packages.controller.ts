@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, UseGuards,
+  Controller, Get, Post, Patch, Delete, Body, Param, UseGuards,
 } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +16,11 @@ export class PackagesController {
     return this.billingService.getAllPackages();
   }
 
+  @Get(':id')
+  getPackageById(@Param('id') id: string) {
+    return this.billingService.getPackageById(id);
+  }
+
   @Post()
   createPackage(@Body() dto: Partial<SubscriptionPackage>) {
     return this.billingService.createPackage(dto);
@@ -26,6 +31,16 @@ export class PackagesController {
     return this.billingService.updatePackage(id, dto);
   }
 
+  @Delete(':id')
+  deletePackage(@Param('id') id: string) {
+    return this.billingService.deletePackage(id);
+  }
+
+  @Get('tenants/:tenantId/entitlements')
+  getTenantEntitlements(@Param('tenantId') tenantId: string) {
+    return this.billingService.getTenantEntitlements(tenantId);
+  }
+
   @Post(':tenantId/assign/:packageId')
   assignPackageToTenant(
     @Param('tenantId') tenantId: string,
@@ -34,3 +49,4 @@ export class PackagesController {
     return this.billingService.assignPackage(tenantId, packageId);
   }
 }
+

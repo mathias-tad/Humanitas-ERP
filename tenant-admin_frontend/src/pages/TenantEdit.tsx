@@ -30,14 +30,20 @@ import { api } from '@/lib/api';
 import type { Tenant } from '@/types/tenant';
 
 const AVAILABLE_SERVICES = [
-  { id: 'hr', name: 'HR Management', description: 'Employee records, departments, positions', icon: Users },
-  { id: 'pms', name: 'Project Management', description: 'Projects, tasks, team collaboration', icon: ClipboardList },
-  { id: 'attendance', name: 'Attendance', description: 'Time tracking, clock in/out, schedules', icon: Calendar },
-  { id: 'leave', name: 'Leave Management', description: 'Leave requests, approvals, balances', icon: Briefcase },
-  { id: 'payroll', name: 'Payroll', description: 'Salary processing, payslips, deductions', icon: DollarSign },
-  { id: 'reports', name: 'Advanced Reports', description: 'Custom reports, analytics, exports', icon: BarChart3 },
-  { id: 'inventory', name: 'Inventory', description: 'Stock management, warehouses (coming soon)', icon: Package, comingSoon: true },
-  { id: 'accounting', name: 'Accounting', description: 'Ledger, invoicing, expenses (coming soon)', icon: FileText, comingSoon: true },
+  { id: 'hr', name: 'HRMS & Workforce Directory', description: 'Employee records, departments, positions & org chart', icon: Users },
+  { id: 'attendance', name: 'Attendance & Biometrics', description: 'Time tracking, shift schedules & biometric hardware sync', icon: Calendar },
+  { id: 'leave', name: 'Leave Management', description: 'Leave requests, multi-tier approvals & balances', icon: Briefcase },
+  { id: 'payroll', name: 'Payroll Processing', description: 'Automated salary runs, tax deductions & payslips', icon: DollarSign },
+  { id: 'recruitment', name: 'Recruitment & ATS', description: 'Job openings, candidates & interview pipelines', icon: Users },
+  { id: 'pms', name: 'Projects & Tasks (PMS)', description: 'Sprint planning, Kanban boards & employee KPIs', icon: ClipboardList },
+  { id: 'products', name: 'Products & QR Catalog', description: 'Product variants, dynamic pricing & QR/barcode labels', icon: Package },
+  { id: 'inventory', name: 'Multi-Warehouse Inventory', description: 'Stock quant, batch/lot tracking & FIFO/AVCO valuation', icon: Package },
+  { id: 'purchasing', name: 'Purchasing & Vendors', description: 'Vendor RFQs, purchase orders & 3-way match validation', icon: Briefcase },
+  { id: 'sales', name: 'Sales & CRM Invoicing', description: 'CRM leads, sales quotations, orders & deliveries', icon: BarChart3 },
+  { id: 'pos', name: 'Point of Sale (POS)', description: 'Offline POS checkout, barcode scanning & cash shifts', icon: DollarSign },
+  { id: 'accounting', name: 'General Ledger & Financials', description: 'Double-entry journals, chart of accounts & balance sheet', icon: FileText },
+  { id: 'ai', name: 'AI Intelligence Suite', description: 'AI contextual help, document generator & autonomous actions', icon: BarChart3 },
+  { id: 'reports', name: 'Advanced Reports & Export', description: 'Executive summary dashboards & per-module analytics', icon: BarChart3 },
 ];
 
 export default function TenantEdit() {
@@ -273,44 +279,35 @@ export default function TenantEdit() {
           {/* Services */}
           <Card>
             <CardHeader>
-              <CardTitle>Enabled Services</CardTitle>
+              <CardTitle>Enabled Services & Modules</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
                   const isChecked = formData.enabled_features.includes(service.id);
-                  const isDisabled = service.comingSoon;
 
                   return (
                     <div
                       key={service.id}
-                      className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
-                        isDisabled
-                          ? 'bg-gray-50 opacity-60 cursor-not-allowed'
-                          : isChecked
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'hover:bg-gray-50 cursor-pointer'
+                      className={`flex items-start space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                        isChecked
+                          ? 'bg-primary/10 border-primary text-foreground shadow-sm'
+                          : 'bg-card border-border text-foreground hover:bg-muted/50'
                       }`}
-                      onClick={() => !isDisabled && toggleService(service.id)}
+                      onClick={() => toggleService(service.id)}
                     >
                       <Checkbox
                         checked={isChecked}
-                        disabled={isDisabled}
                         onCheckedChange={() => toggleService(service.id)}
                         className="mt-0.5"
                       />
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${isChecked ? 'text-blue-600' : 'text-gray-500'}`} />
-                          <span className={`text-sm font-medium ${isChecked ? 'text-blue-900' : ''}`}>
+                          <Icon className={`h-4 w-4 ${isChecked ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <span className={`text-sm font-semibold ${isChecked ? 'text-foreground' : 'text-foreground/80'}`}>
                             {service.name}
                           </span>
-                          {service.comingSoon && (
-                            <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
-                              Soon
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{service.description}</p>
                       </div>

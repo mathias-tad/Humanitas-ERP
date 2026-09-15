@@ -4,6 +4,27 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
+## 📊 Overall Progress
+
+| Module | Total | ✅ Done | ⏳ Remaining | % Complete |
+|--------|-------|---------|-------------|-----------|
+| System Architecture & Core | 41 | 0 | 41 | 0% |
+| Products & Catalog | 25 | 0 | 25 | 0% |
+| Inventory & Warehouse | 32 | 0 | 32 | 0% |
+| Purchasing & Vendors | 32 | 0 | 32 | 0% |
+| Sales, CRM & E-Invoicing | 34 | 0 | 34 | 0% |
+| Point of Sale (POS) | 37 | 0 | 37 | 0% |
+| Accounting & Fixed Assets | 54 | 0 | 54 | 0% |
+| HRMS & Recruitment | 41 | 0 | 41 | 0% |
+| Project Management (PMS) | 28 | 0 | 28 | 0% |
+| Dynamic Approval Engine | 12 | 0 | 12 | 0% |
+| Webhooks & Developer API | 16 | 0 | 16 | 0% |
+| Enterprise UI/UX | 18 | 0 | 18 | 0% |
+| Billing & Subscriptions | 21 | 0 | 21 | 0% |
+| AI Intelligence Module | 38 | 0 | 38 | 0% |
+| **TOTAL** | **429** | **0** | **429** | **0%** |
+
+
 ## 🏛️ System Architecture & Multi-Tenancy Core
 
 - [ ] **Database-Per-Tenant Isolation**: Hard physical data separation per tenant (`tenant_{slug}`) with dynamic connection pooling and auto-eviction of idle pools.
@@ -175,6 +196,10 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Automated invoice generation from Sales Orders or Delivery Orders.
   - [ ] Multi-rate tax engine (VAT, GST, State Tax, Withholding) calculated by Python Engine.
   - [ ] Recurring Invoicing engine for subscription-based sales.
+- [ ] **Regulatory E-Invoicing & Fiscalization**:
+  - [ ] Cryptographic hash generation and QR code fiscalization complying with tax authorities (e.g., Ethiopian ERCA/Ministry of Revenues, ZATCA Phase 2, European e-invoicing).
+  - [ ] Tamper-proof digital invoice signature and audit validation.
+  - [ ] Automated transmission to government tax portals where supported.
 - [ ] **Credit Notes & Returns**:
   - [ ] Customer return processing, stock re-entry, and Credit Note issuance against customer ledger.
 - [ ] **Sales Commission & Analytics**:
@@ -231,7 +256,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 6. 📊 Double-Entry Accounting & Financials (`/accounting`)
+## 6. 📊 Double-Entry Accounting, Financials & Fixed Assets (`/accounting`)
 
 - [ ] **Chart of Accounts (COA)**:
   - [ ] Standard hierarchical multi-tier Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expenses).
@@ -247,6 +272,24 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
     - [ ] Vendor Bills (Debit Expense / Asset, Debit Tax Input, Credit AP)
     - [ ] POS Daily Z-Reports (Debit Cash / Bank / Payment Clearing, Credit POS Revenue)
     - [ ] Payroll Pay Runs (Debit Salary Expense, Credit Bank, Credit Tax / Pension Payable)
+    - [ ] Fixed Asset Depreciation (Debit Depreciation Expense, Credit Accumulated Depreciation)
+- [ ] **Fixed Asset Management & Depreciation Engine (`/accounting/assets`)**:
+  - [ ] Fixed Asset Registry (Machinery, Vehicles, IT Hardware, Buildings, Furniture) with QR asset tagging.
+  - [ ] Depreciation methods computed via Python Calculation Engine:
+    - [ ] Straight-Line Method
+    - [ ] Declining Balance / Double Declining Balance Method
+    - [ ] Units of Production Method
+  - [ ] Automated monthly depreciation schedule and journal post trigger.
+  - [ ] Asset revaluations, impairment adjustments, and disposal/scrap write-offs with automatic gain/loss calculation.
+  - [ ] Asset maintenance logs, warranty tracking, and custodian assignment.
+  - [ ] Fixed Asset Reports:
+    - [ ] Fixed Asset Register: acquisition cost, accumulated depreciation, net book value.
+    - [ ] Depreciation forecast schedule (monthly projections by asset class).
+    - [ ] Asset disposal and write-off audit log.
+- [ ] **Multi-Company & Branch Financial Consolidation**:
+  - [ ] Multi-entity and branch transaction tagging.
+  - [ ] Inter-company transfer journals and elimination entries.
+  - [ ] Consolidated Balance Sheet, P&L, and Trial Balance across subsidiaries or branch entities.
 - [ ] **Accounts Receivable (AR) & Credit Management**:
   - [ ] Customer balances, statement generation, and payment matching.
   - [ ] Aged Receivables Analysis (Current, 1-30, 31-60, 61-90, 90+ days).
@@ -265,18 +308,30 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] **Trial Balance**: Debit/Credit validation across all ledger accounts.
   - [ ] **General Ledger & Journal Reports**: Transaction-level drilldowns.
   - [ ] **Tax Summary Reports**: Output VAT, Input VAT, Net VAT liability computation.
+  - [ ] **Fixed Asset Register & Depreciation Report**: Acquisition cost, accumulated depreciation, net book value.
 - [ ] **Fiscal Year & Multi-Currency Controls**:
   - [ ] Fiscal year definition, accounting period locks (closing past months to prevent unauthorized edits).
   - [ ] Multi-currency revaluation with automatic Realized and Unrealized Foreign Exchange Gain/Loss journals.
 
 ---
 
-## 7. 👥 Decoupled Human Resource Management (HRMS) (`/hrms`)
+## 7. 👥 Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
 
 - [ ] **Employee Lifecycle & Profiles**:
   - [ ] Comprehensive digital employee profile: Personal info, emergency contacts, employment contracts, salary grade, bank details, and compliance documents.
   - [ ] Visual Organizational Chart with reporting manager hierarchy.
   - [ ] Onboarding & Offboarding task checklists.
+- [ ] **Recruitment & Applicant Tracking System (ATS) (`/hrms/recruitment`)**:
+  - [ ] Job Requisition creation with budget approval workflow.
+  - [ ] Job Postings management & public career portal page.
+  - [ ] Candidate Pipeline Kanban (`Applied` -> `Screening` -> `Interview` -> `Offer` -> `Hired` -> `Rejected`).
+  - [ ] Candidate Resume/CV storage, applicant scoring, and interview scheduling with calendar sync.
+  - [ ] Offer letter generation and digital acceptance workflow.
+  - [ ] **1-Click Candidate-to-Employee Conversion**: Auto-provisions employee profile, contract, and onboarding checklist upon hire.
+  - [ ] Recruitment Reports:
+    - [ ] Hiring funnel conversion rates (Applied -> Screened -> Interviewed -> Offered -> Hired).
+    - [ ] Time-to-hire and cost-per-hire analytics by department and role.
+    - [ ] Open vs. filled positions summary.
 - [ ] **Biometric & Mobile Attendance**:
   - [ ] Integration with ZKTeco & Hikvision hardware biometric devices.
   - [ ] Mobile Geofenced & QR Code Clock-In / Clock-Out with anti-spoofing checks.
@@ -297,6 +352,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Direct Bank Transfer export files (ABA, NACHA, local bank CSV formats).
 - [ ] **HRMS Reports**:
   - [ ] Headcount and demographic analysis (by department, gender, age band, tenure).
+  - [ ] Recruitment velocity & hiring funnel conversion report.
   - [ ] Attendance summary report (present, absent, late, early departure rates).
   - [ ] Leave utilization report by type and department.
   - [ ] Overtime cost analysis by department and period.
@@ -338,7 +394,45 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 9. 🎨 Modern Enterprise UI / UX Architecture
+## 9. 🔀 Dynamic Approval Workflow Engine (`/settings/approvals`)
+
+- [ ] **Configurable Multi-Tier Approval Rules**:
+  - [ ] User-defined approval hierarchies across all operational workflows:
+    - [ ] Purchase Requisitions & Purchase Orders (threshold-based: e.g. <$1,000 Manager, >$5,000 Director, >$25,000 CFO)
+    - [ ] Sales Quotation & Order Discounts (e.g. >10% Team Lead, >20% Sales VP)
+    - [ ] Customer Credit Limit overrides
+    - [ ] Leave Requests & Overtime Claims
+    - [ ] Inventory Write-offs & Stock Adjustments
+    - [ ] Fixed Asset disposals and write-offs
+    - [ ] General Journal Postings
+  - [ ] Support for parallel (all must approve) and sequential (stepped approval) routes.
+  - [ ] Automated email and push notification alerts with 1-click Approve / Reject action links.
+  - [ ] Complete approval audit trail with timestamp, approver comments, and full status history.
+
+---
+
+## 10. 🔌 Webhooks & Developer API Portal (`/settings/developer-api`)
+
+- [ ] **Tenant API Key Management**:
+  - [ ] Generation of scoped, revocable REST API keys for external ERP integrations.
+  - [ ] Granular permission assignment per API key (e.g. read-only products, create sales orders).
+  - [ ] Rate limiting and request throttling per API token.
+  - [ ] API key activity log (last used, request count).
+- [ ] **Outgoing Event Webhooks**:
+  - [ ] Real-time HTTP POST event dispatch to external URLs upon ERP triggers:
+    - [ ] `invoice.created`, `invoice.paid`, `invoice.overdue`
+    - [ ] `inventory.low_stock`, `inventory.stock_received`
+    - [ ] `order.confirmed`, `order.dispatched`, `order.delivered`
+    - [ ] `employee.hired`, `employee.terminated`
+    - [ ] `payroll.run_completed`
+    - [ ] `leave.approved`, `leave.rejected`
+  - [ ] HMAC SHA-256 signature verification for secure webhook delivery.
+  - [ ] Automated retry queue with exponential backoff for failed webhook deliveries.
+  - [ ] Interactive Webhook delivery log viewer (request payload, HTTP status, response body).
+
+---
+
+## 11. 🎨 Modern Enterprise UI / UX Architecture
 
 - [ ] **Design Language & Aesthetics**:
   - [ ] Clean, high-performance, clutter-free design inspired by Microsoft Dynamics 365, SAP Fiori, and modern SaaS standards.
@@ -361,12 +455,12 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 10. 💳 Self-Service Subscription, Billing & Landing Page
+## 12. 💳 Self-Service Subscription, Billing & Landing Page
 
 - [ ] **Interactive SaaS Landing Page**:
   - [ ] Hero showcase displaying Humanitas ERP modules with live animated workflow previews.
   - [ ] **Interactive Modular Pricing Calculator**:
-    - [ ] Real-time toggles for each module (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, AI).
+    - [ ] Real-time toggles for each module (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, Recruitment, Fixed Assets, AI).
     - [ ] AI capability tier add-ons (AI Help, AI Documents, AI Actions, Full AI) with per-tier pricing.
     - [ ] Dynamic base plan + per-user + selected module add-on live total calculator.
     - [ ] Monthly vs. Annual discount selector.
@@ -387,7 +481,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 11. 🤖 AI Intelligence Module (`/ai`)
+## 13. 🤖 AI Intelligence Module (`/ai`)
 
 ### Subscribable AI Capability Tiers
 - [ ] **AI Help (`ai.help`)**: Conversational assistant that answers questions about how to use Humanitas. Knows every page, route, button, and action in the system via the AI Knowledge Base.
@@ -441,12 +535,12 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 12. ⚙️ Humanitas Antigravity Coding & Architecture Directives
+## 14. ⚙️ Humanitas Global Engineering & Architecture Directives
 
 To maintain unwavering code quality, security, and zero-rework consistency during development, the following principles are strictly enforced across every prompt and file edit:
 
 ```markdown
-# Humanitas Antigravity Coding & Architecture Directives
+# Humanitas Global Engineering & Architecture Directives
 
 1. ZERO-TRUST ACCESS CONTROL ON 100% OF ENDPOINTS & ACTIONS:
    - NEVER leave any controller, route, mutation, query, or UI action button unprotected.
@@ -455,7 +549,7 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
    - Never implement features with "temporary bypasses" or plan to add permissions later.
 
 2. MANDATORY PACKAGE & SUBSCRIPTION MODULE GATING:
-   - All modules (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, AI) are bound to tenant package subscriptions and tenant admin module selections.
+   - All modules (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, AI, Recruitment, Fixed Assets) are bound to tenant package subscriptions and tenant admin module selections.
    - AI capabilities are further sub-gated by capability tier (ai.help, ai.documents, ai.actions, ai.full).
    - If a tenant has not subscribed to a module or if it's disabled in their package, the backend MUST reject requests with HTTP 403 Forbidden, and the frontend MUST hide all associated routes, navigation items, and permission checkboxes.
 

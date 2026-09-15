@@ -27,7 +27,13 @@ export class BillingService {
   // ─── Package CRUD (Super Admin) ────────────────────────────────────────────
 
   async getAllPackages() {
-    return this.packageRepo.find({ order: { price_usd: 'ASC' } });
+    return this.packageRepo.find({ order: { sort_order: 'ASC', price_usd: 'ASC' } });
+  }
+
+  async getPackageById(id: string) {
+    const pkg = await this.packageRepo.findOneBy({ id });
+    if (!pkg) throw new NotFoundException('Subscription package not found');
+    return pkg;
   }
 
   async createPackage(dto: Partial<SubscriptionPackage>) {
@@ -38,6 +44,97 @@ export class BillingService {
   async updatePackage(id: string, dto: Partial<SubscriptionPackage>) {
     await this.packageRepo.update(id, dto);
     return this.packageRepo.findOneBy({ id });
+  }
+
+  async deletePackage(id: string) {
+    const pkg = await this.packageRepo.findOneBy({ id });
+    if (!pkg) throw new NotFoundException('Subscription package not found');
+    // Soft delete / deactivate
+    pkg.is_active = false;
+    return this.packageRepo.save(pkg);
+  }
+
+  async getTenantEntitlements(tenantId: string) {
+    const sub = await this.subscriptionRepo.findOne({
+      where: { tenant_id: tenantId },
+      relations: ['package'],
+    });
+
+    if (!sub || !sub.package || sub.status !== 'active') {
+      // Default free entitlements
+      return {
+        tenant_id: tenantId,
+        has_subscription: false,
+        package_name: 'None',
+        modules: {
+          hrms: true,
+          attendance: true,
+          leave: true,
+          payroll: false,
+          recruitment: false,
+          pms: false,
+          products: false,
+          inventory: false,
+          purchasing: false,
+          sales: false,
+          pos: false,
+          accounting: false,
+          ai_help: false,
+          ai_documents: false,
+          ai_actions: false,
+          ai_full: false,
+          system: true,
+        },
+        limits: {
+          max_employees: 10,
+          max_warehouses: 1,
+          max_pos_terminals: 1,
+          storage_gb: 5,
+          ai_token_limit: 50000,
+          ai_tokens_used: sub?.ai_tokens_used_this_period || 0,
+        },
+      };
+    }
+
+    const pkg = sub.package;
+    const f = pkg.features || {};
+
+    return {
+      tenant_id: tenantId,
+      has_subscription: true,
+      subscription_id: sub.id,
+      package_id: pkg.id,
+      package_name: pkg.name,
+      status: sub.status,
+      current_period_end: sub.current_period_end,
+      modules: {
+        hrms: f.has_hrms !== false,
+        attendance: f.has_attendance !== false,
+        leave: f.has_leave !== false,
+        payroll: !!f.has_payroll,
+        recruitment: !!f.has_recruitment,
+        pms: !!f.has_pms,
+        products: !!f.has_products,
+        inventory: !!f.has_inventory,
+        purchasing: !!f.has_purchasing,
+        sales: !!f.has_sales,
+        pos: !!f.has_pos,
+        accounting: !!f.has_accounting,
+        ai_help: !!(f.has_ai_help || f.has_ai_full),
+        ai_documents: !!(f.has_ai_documents || f.has_ai_full),
+        ai_actions: !!(f.has_ai_actions || f.has_ai_full),
+        ai_full: !!f.has_ai_full,
+        system: true,
+      },
+      limits: {
+        max_employees: pkg.max_employees || 50,
+        max_warehouses: pkg.max_warehouses || 1,
+        max_pos_terminals: pkg.max_pos_terminals || 1,
+        storage_gb: pkg.storage_gb || 10,
+        ai_token_limit: pkg.ai_token_limit_per_period || 100000,
+        ai_tokens_used: sub.ai_tokens_used_this_period || 0,
+      },
+    };
   }
 
   // ─── Tenant Subscription ───────────────────────────────────────────────────
