@@ -45,6 +45,7 @@ import LeaveWorkflowSettings from "./pages/admin/LeaveWorkflowSettings";
 import MyLoans from "./pages/MyLoans";
 import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
+import ComingSoonModulePage from "./components/common/ComingSoonModulePage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -332,7 +333,41 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/my-loans" element={<MyLoans />} />
+
+        {/* Helper Navigation Redirects */}
+        <Route path="/attendance" element={<Navigate to="/attendance/view" replace />} />
+        <Route path="/leave" element={<Navigate to="/leave/requests" replace />} />
+        <Route path="/loans" element={<Navigate to="/payroll/loans" replace />} />
+        <Route path="/audit-logs" element={<PermissionRoute permissions={["view_logs"]}><SystemLogs /></PermissionRoute>} />
+
+        {/* HRMS Reports (Coming Soon) */}
+        <Route path="/hrms/reports" element={<ComingSoonModulePage moduleKey="hrms" subSectionTitle="HRMS Analytics & Reports" />} />
+
+        {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
+        <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />
+        <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
+
+        <Route path="/inventory" element={<ComingSoonModulePage moduleKey="inventory" />} />
+        <Route path="/inventory/*" element={<ComingSoonModulePage moduleKey="inventory" />} />
+
+        <Route path="/purchasing" element={<ComingSoonModulePage moduleKey="purchasing" />} />
+        <Route path="/purchasing/*" element={<ComingSoonModulePage moduleKey="purchasing" />} />
+
+        <Route path="/sales" element={<ComingSoonModulePage moduleKey="sales" />} />
+        <Route path="/sales/*" element={<ComingSoonModulePage moduleKey="sales" />} />
+
+        <Route path="/pos" element={<ComingSoonModulePage moduleKey="pos" />} />
+        <Route path="/pos/*" element={<ComingSoonModulePage moduleKey="pos" />} />
+
+        <Route path="/accounting" element={<ComingSoonModulePage moduleKey="accounting" />} />
+        <Route path="/accounting/*" element={<ComingSoonModulePage moduleKey="accounting" />} />
+
+        <Route path="/ai" element={<ComingSoonModulePage moduleKey="ai" />} />
+        <Route path="/ai/*" element={<ComingSoonModulePage moduleKey="ai" />} />
       </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

@@ -36,6 +36,7 @@ import {
   FileSpreadsheet,
   BookOpen,
   PieChart,
+  UserPlus,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -64,6 +65,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
       items: [
         { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
         { title: "Directory", url: "/accounts", icon: Users, permissions: ["view_users"] },
+        { title: "Recruitment (ATS)", url: "/recruitment", icon: UserPlus, permissions: ["manage_recruitment", "view_hrm_settings"] },
         { title: "Attendance", url: "/attendance", icon: Clock },
         { title: "Leaves", url: "/leave", icon: CalendarDays },
         { title: "Shifts & Roster", url: "/scheduling", icon: CalendarClock },
