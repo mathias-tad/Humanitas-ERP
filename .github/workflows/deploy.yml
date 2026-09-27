@@ -38,35 +38,38 @@ jobs:
             git checkout main || git checkout master
             git pull origin main || git pull origin master
 
-            # 3. Ensure .env.production exists (never overwrite existing)
-            if [ ! -f "/srv/Humanitas-ERP/.env.production" ]; then
-              echo "📝 Initializing .env.production from example..."
+            # 3. Ensure .env.production exists (if not present or contains CHANGE_ME, replace with template)
+            if [ ! -f "/srv/Humanitas-ERP/.env.production" ] || grep -q "CHANGE_ME" /srv/Humanitas-ERP/.env.production 2>/dev/null; then
+              echo "📝 Refreshing .env.production with production database settings..."
               cp /srv/Humanitas-ERP/.env.production.example /srv/Humanitas-ERP/.env.production
-              echo "⚠️  IMPORTANT: Edit /srv/Humanitas-ERP/.env.production with real secrets!"
             fi
 
             # Copy to .env so docker compose can read it
             cp /srv/Humanitas-ERP/.env.production /srv/Humanitas-ERP/.env
 
-            # 4. Build and start containers
+            # 4. Build and start containers with force-recreate
             echo "🐳 Building and starting containers..."
             docker compose --env-file .env.production build
-            docker compose --env-file .env.production up -d --remove-orphans
+            docker compose --env-file .env.production up -d --force-recreate --remove-orphans
 
             # 5. Wait for admin-api to be ready
             echo "🔄 Waiting for erp-admin-api to be ready..."
-            for i in $(seq 1 15); do
-              if docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+            for i in $(seq 1 20); do
+              if docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/health > /dev/null 2>&1 || \
+                 docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/docs > /dev/null 2>&1; then
                 echo "✅ erp-admin-api is ready."
                 break
               fi
-              echo "   Waiting... ($i/15)"
-              sleep 4
+              echo "   Waiting for erp-admin-api... ($i/20)"
+              sleep 3
             done
 
-            # 6. Cleanup dangling images
-            docker image prune -f
+            # 6. Auto-seed admin user
+            echo "🌱 Running admin database seeder..."
+            docker compose exec -T admin-api wget -qO- --post-data="" http://localhost:3000/api/v1/users/admins/seed 2>/dev/null || \
+            curl -s -X POST http://127.0.0.1:5001/api/v1/users/admins/seed || true
 
+            docker image prune -f
             echo "================================================="
             echo "🎉 Humanitas-ERP Deployment Completed Successfully!"
             echo "================================================="
