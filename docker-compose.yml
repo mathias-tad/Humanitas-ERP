@@ -1,13 +1,13 @@
 services:
   # -------------------------------------------------------------------------
-  # Service 1: Admin Backend (Port 6002 on host)
+  # Service 1: Admin Backend (NestJS)
   # -------------------------------------------------------------------------
   admin-api:
     build: ./humanitas_backend/admin-backend
     container_name: erp-admin-api
     restart: always
     ports:
-      - "6002:3000"
+      - "127.0.0.1:5001:3000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -17,28 +17,28 @@ services:
       - DATABASE_SSL=false
       - API_PREFIX=api/v1
       - BCRYPT_SALT_ROUNDS=12
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=7d
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-refresh-token-secret}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_REFRESH_EXPIRES_IN=30d
-      - COOKIE_SECRET=${COOKIE_SECRET:-My-cookie-secret}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:6001}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
       - THROTTLE_LIMIT=100
       - THROTTLE_TTL=60
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:6001,http://localhost:6000}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
     volumes:
       - ./uploads:/app/uploads
 
   # -------------------------------------------------------------------------
-  # Service 2: Tenant API (Port 6003 on host) - NO Cron
+  # Service 2: Tenant API (NestJS)
   # -------------------------------------------------------------------------
   tenant-api:
     build: ./humanitas_backend/tenant-backend/main_rest_apis
     container_name: erp-tenant-api
     restart: always
     ports:
-      - "6003:3001"
+      - "127.0.0.1:5002:3001"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -51,21 +51,21 @@ services:
       - DATABASE_SSL=false
       - ADMIN_BACKEND_URL=${ADMIN_BACKEND_URL:-http://admin-api:3000/api/v1}
       - API_PREFIX=api/v1
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:6000}
+      - FRONTEND_URL=${FRONTEND_URL}
       - BCRYPT_SALT_ROUNDS=12
-      - JWT_SECRET=${JWT_SECRET:-my-supper-secrete-key}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=8h
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-my-secret-key}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_REFRESH_EXPIRES_IN=7d
       - CALCULATION_SERVICE_URL=http://python-api:8000
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:6000}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
     depends_on:
       - admin-api
 
   # -------------------------------------------------------------------------
-  # Service 3: Tenant Worker - YES Cron
+  # Service 3: Tenant Worker (NestJS cron)
   # -------------------------------------------------------------------------
   tenant-worker:
     build: ./humanitas_backend/tenant-backend/main_rest_apis
@@ -81,11 +81,11 @@ services:
       - DATABASE_SSL=false
       - ADMIN_BACKEND_URL=${ADMIN_BACKEND_URL:-http://admin-api:3000/api/v1}
       - API_PREFIX=api/v1
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:6000}
+      - FRONTEND_URL=${FRONTEND_URL}
       - BCRYPT_SALT_ROUNDS=12
-      - JWT_SECRET=${JWT_SECRET:-my-supper-secrete-key}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=8h
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-my-secret-key}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_REFRESH_EXPIRES_IN=7d
       - CALCULATION_SERVICE_URL=http://python-api:8000
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
@@ -96,14 +96,14 @@ services:
       - admin-api
 
   # -------------------------------------------------------------------------
-  # Service 4: Python Calculation API (Port 6004 on host)
+  # Service 4: Python Calculation API
   # -------------------------------------------------------------------------
   python-api:
     build: ./humanitas_backend/tenant-backend/calculation_service
     container_name: erp-python-api
     restart: always
     ports:
-      - "6004:8000"
+      - "127.0.0.1:5003:8000"
     environment:
       - ADMIN_DATABASE_URL=${DATABASE_URL}
       - DEBUG=false
@@ -126,53 +126,34 @@ services:
     command: python -m app.worker_main
 
   # -------------------------------------------------------------------------
-  # Service 6: Admin Frontend (Port 6001 on host)
+  # Service 6: Admin Frontend (React Vite)
   # -------------------------------------------------------------------------
   admin-frontend:
     build:
       context: ./tenant-admin_frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${ADMIN_API_URL:-http://localhost:6002/api/v1}
+        VITE_API_URL: ${ADMIN_API_URL:-https://api-admin.humanitas-erp.ziontech.tech/api/v1}
     container_name: erp-admin-frontend
     restart: always
     ports:
-      - "6001:80"
+      - "127.0.0.1:5010:80"
     depends_on:
       - admin-api
 
   # -------------------------------------------------------------------------
-  # Service 7: Tenant Frontend (Port 6000 on host)
+  # Service 7: Tenant Frontend (React Vite)
   # -------------------------------------------------------------------------
   tenant-frontend:
     build:
       context: ./humanitas_frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${TENANT_API_URL:-http://localhost:6003/api/v1}
-        VITE_SOCKET_URL: ${SOCKET_URL:-http://localhost:6003}
+        VITE_API_URL: ${TENANT_API_URL:-https://api.humanitas-erp.ziontech.tech/api/v1}
+        VITE_SOCKET_URL: ${SOCKET_URL:-https://api.humanitas-erp.ziontech.tech}
     container_name: erp-tenant-frontend
     restart: always
     ports:
-      - "6000:80"
+      - "127.0.0.1:5011:80"
     depends_on:
       - tenant-api
-
-  # -------------------------------------------------------------------------
-  # Service 8: Nginx Reverse Proxy (Port 6100/6101 on host)
-  # -------------------------------------------------------------------------
-  nginx:
-    image: nginx:alpine
-    container_name: humanitas-erp-nginx
-    restart: always
-    ports:
-      - "6100:80"
-      - "6101:8080"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - admin-api
-      - tenant-api
-      - admin-frontend
-      - tenant-frontend
-

@@ -1,0 +1,72 @@
+name: Deploy Humanitas-ERP to VPS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 Starting Humanitas-ERP Deployment..."
+
+            # 1. Initialize directory and clone if not present
+            if [ ! -d "/srv/Humanitas-ERP" ]; then
+              echo "📁 /srv/Humanitas-ERP not found. Cloning..."
+              mkdir -p /srv/Humanitas-ERP
+              git clone https://github.com/mathias-tad/Humanitas-ERP.git /srv/Humanitas-ERP
+            fi
+
+            cd /srv/Humanitas-ERP
+
+            # 2. Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git checkout main || git checkout master
+            git pull origin main || git pull origin master
+
+            # 3. Ensure .env.production exists (never overwrite existing)
+            if [ ! -f "/srv/Humanitas-ERP/.env.production" ]; then
+              echo "📝 Initializing .env.production from example..."
+              cp /srv/Humanitas-ERP/.env.production.example /srv/Humanitas-ERP/.env.production
+              echo "⚠️  IMPORTANT: Edit /srv/Humanitas-ERP/.env.production with real secrets!"
+            fi
+
+            # Copy to .env so docker compose can read it
+            cp /srv/Humanitas-ERP/.env.production /srv/Humanitas-ERP/.env
+
+            # 4. Build and start containers
+            echo "🐳 Building and starting containers..."
+            docker compose --env-file .env.production build
+            docker compose --env-file .env.production up -d --remove-orphans
+
+            # 5. Wait for admin-api to be ready
+            echo "🔄 Waiting for erp-admin-api to be ready..."
+            for i in $(seq 1 15); do
+              if docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/health > /dev/null 2>&1; then
+                echo "✅ erp-admin-api is ready."
+                break
+              fi
+              echo "   Waiting... ($i/15)"
+              sleep 4
+            done
+
+            # 6. Cleanup dangling images
+            docker image prune -f
+
+            echo "================================================="
+            echo "🎉 Humanitas-ERP Deployment Completed Successfully!"
+            echo "================================================="

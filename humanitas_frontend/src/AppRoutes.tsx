@@ -25,7 +25,7 @@ import PMSReports from "./pages/pms/Reports";
 import MyAttendance from "./pages/attendance/MyAttendance";
 import ReviewQueue from "./pages/pms/ReviewQueue";
 import EnterpriseLayout from "./layouts/EnterpriseLayout";
-import { AppearanceSettings } from "./pages/settings/AppearanceSettings";
+import { AppearanceSettings } from "./components/settings/AppearanceSettings";
 import LeaveRequests from "./pages/leave/LeaveRequests";
 import MyLeaveRequests from "./pages/leave/MyRequests";
 import LeaveBalances from "./pages/leave/LeaveBalances";
