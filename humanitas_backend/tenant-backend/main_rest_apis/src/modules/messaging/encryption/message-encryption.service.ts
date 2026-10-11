@@ -9,9 +9,15 @@ export class MessageEncryptionService {
 
     constructor(private configService: ConfigService) {
         const rawKey = this.configService.get<string>('MESSAGE_ENCRYPTION_KEY')
-            || this.configService.get<string>('ENCRYPTION_SECRET')
-            || this.configService.get<string>('JWT_SECRET')
-            || 'humanitas-default-secure-message-encryption-key-2026';
+            || this.configService.get<string>('ENCRYPTION_SECRET');
+
+        if (!rawKey) {
+            throw new Error(
+                'FATAL: MESSAGE_ENCRYPTION_KEY or ENCRYPTION_SECRET environment variable is not set. '
+                + 'Message encryption cannot start without a secure key. '
+                + 'Please configure this environment variable immediately.',
+            );
+        }
 
         // Always derive a deterministic 32-byte (256-bit) key using SHA-256 hash
         this.key = crypto.createHash('sha256').update(rawKey).digest();

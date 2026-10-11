@@ -17,12 +17,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { PayrollScheduler } from './payroll.scheduler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import * as ExcelJS from 'exceljs';
 
 @ApiTags('Payroll')
 @ApiBearerAuth()
 @Controller('payroll')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
@@ -31,18 +33,21 @@ export class PayrollController {
 
   // ==================== INCOME TYPES ====================
   @Get('income-types')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get all income types' })
   async getIncomeTypes(@Request() req: any) {
     return this.payrollService.getIncomeTypes(req.user.tenantId);
   }
 
   @Post('income-types')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create income type' })
   async createIncomeType(@Request() req: any, @Body() body: any) {
     return this.payrollService.createIncomeType(req.user.tenantId, body);
   }
 
   @Patch('income-types/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update income type' })
   async updateIncomeType(
     @Request() req: any,
@@ -53,12 +58,14 @@ export class PayrollController {
   }
 
   @Delete('income-types/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Delete income type' })
   async deleteIncomeType(@Request() req: any, @Param('id') id: string) {
     return this.payrollService.deleteIncomeType(req.user.tenantId, id);
   }
 
   @Get('income-types/:id/calculate/:userId')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Calculate income amount for a user' })
   async calculateIncomeAmount(
     @Request() req: any,
@@ -74,12 +81,14 @@ export class PayrollController {
 
   // ==================== USER INCOMES ====================
   @Get('user-incomes/:userId')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get user incomes' })
   async getUserIncomes(@Request() req: any, @Param('userId') userId: string) {
     return this.payrollService.getUserIncomes(req.user.tenantId, userId);
   }
 
   @Post('user-incomes/:userId')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Assign income to user' })
   async assignUserIncome(
     @Request() req: any,
@@ -94,6 +103,7 @@ export class PayrollController {
   }
 
   @Patch('user-incomes/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update user income assignment' })
   async updateUserIncome(
     @Request() req: any,
@@ -108,18 +118,21 @@ export class PayrollController {
   }
 
   @Delete('user-incomes/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Remove user income' })
   async removeUserIncome(@Request() req: any, @Param('id') id: string) {
     return this.payrollService.removeUserIncome(req.user.tenantId, id);
   }
 
   @Post('user-incomes/:userId/recalculate')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Recalculate all base income assignments for a user' })
   async recalculateUserIncomes(@Request() req: any, @Param('userId') userId: string) {
     return this.payrollService.recalculateUserBaseIncomes(req.user.tenantId, userId);
   }
 
   @Post('migrate-income-assignments')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Migrate and recalculate all existing income assignments' })
   async migrateIncomeAssignments(@Request() req: any) {
     // This should be protected and only accessible by administrators
@@ -147,12 +160,14 @@ export class PayrollController {
 
   // ==================== EMPLOYEE CATEGORIES ====================
   @Get('employee-categories')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get employee categories' })
   async getEmployeeCategories(@Request() req: any) {
     return this.payrollService.getEmployeeCategories(req.user.tenantId);
   }
 
   @Patch('employee-categories/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update employee category' })
   async updateEmployeeCategory(
     @Request() req: any,
@@ -167,6 +182,7 @@ export class PayrollController {
   }
 
   @Get('category-allowances/:categoryId')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get category allowances' })
   async getCategoryAllowances(
     @Request() req: any,
@@ -180,18 +196,21 @@ export class PayrollController {
 
   // ==================== TAX RULES ====================
   @Get('tax-rules')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get all tax rules' })
   async getTaxRules(@Request() req: any) {
     return this.payrollService.getTaxRules(req.user.tenantId);
   }
 
   @Post('tax-rules')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create tax rule' })
   async createTaxRule(@Request() req: any, @Body() body: any) {
     return this.payrollService.createTaxRule(req.user.tenantId, body);
   }
 
   @Patch('tax-rules/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update tax rule' })
   async updateTaxRule(
     @Request() req: any,
@@ -202,6 +221,7 @@ export class PayrollController {
   }
 
   @Delete('tax-rules/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Delete tax rule' })
   async deleteTaxRule(@Request() req: any, @Param('id') id: string) {
     return this.payrollService.deleteTaxRule(req.user.tenantId, id);
@@ -209,6 +229,7 @@ export class PayrollController {
 
   // ==================== HOLIDAYS ====================
   @Get('holidays')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get all holidays' })
   async getHolidays(@Request() req: any, @Query('year') year?: string) {
     return this.payrollService.getHolidays(
@@ -218,12 +239,14 @@ export class PayrollController {
   }
 
   @Post('holidays')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create holiday' })
   async createHoliday(@Request() req: any, @Body() body: any) {
     return this.payrollService.createHoliday(req.user.tenantId, body);
   }
 
   @Patch('holidays/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update holiday' })
   async updateHoliday(
     @Request() req: any,
@@ -234,12 +257,14 @@ export class PayrollController {
   }
 
   @Delete('holidays/:id')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Delete holiday' })
   async deleteHoliday(@Request() req: any, @Param('id') id: string) {
     return this.payrollService.deleteHoliday(req.user.tenantId, id);
   }
 
   @Post('seed-tax-rules')
+  @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Seed default Ethiopian tax rules' })
   async seedTaxRules(@Request() req: any) {
     return this.payrollService.seedDefaultTaxRules(req.user.tenantId);
@@ -248,12 +273,14 @@ export class PayrollController {
 
   // ==================== PAYSLIPS (USER) ====================
   @Get('my-payslips')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get my payslip history' })
   async getMyPayslips(@Request() req: any) {
     return this.payrollService.getMyPayslips(req.user.tenantId, req.user.sub);
   }
 
   @Get('my-payslips/:id')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get details of a specific payslip' })
   async getMyPayslipDetail(@Request() req: any, @Param('id') id: string) {
     return this.payrollService.getMyPayslipDetail(req.user.tenantId, req.user.sub, id);
@@ -261,12 +288,14 @@ export class PayrollController {
 
   // ==================== PAYROLL ====================
   @Get('history')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get payroll history' })
   async getPayrollHistory(@Request() req: any) {
     return this.payrollService.getPayrollHistory(req.user.tenantId);
   }
 
   @Get('details')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get payroll details for a month' })
   async getPayrollDetails(
     @Request() req: any,
@@ -281,6 +310,7 @@ export class PayrollController {
   }
 
   @Post('run')
+  @RequirePermissions('run_payroll')
   @ApiOperation({ summary: 'Run payroll for a specific month/year' })
   async runPayroll(
     @Request() req: any,
@@ -327,6 +357,7 @@ export class PayrollController {
   }
 
   @Get('status')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Check payroll job status for a specific month/year' })
   async getPayrollStatus(
     @Request() req: any,
@@ -350,12 +381,14 @@ export class PayrollController {
   }
 
   @Post('trigger-auto')
+  @RequirePermissions('run_payroll')
   @ApiOperation({ summary: 'Trigger auto payroll check (for testing)' })
   async triggerAutoPayroll(@Request() req: any) {
     return this.payrollScheduler.triggerAutoPayroll(req.user.tenantId);
   }
 
   @Get('export')
+  @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Export payroll to Excel' })
   async exportPayroll(
     @Request() req: any,

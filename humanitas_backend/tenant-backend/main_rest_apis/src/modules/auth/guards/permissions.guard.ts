@@ -70,7 +70,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const userPermissions: string[] = result[0].permissions || [];
-    console.log(`[PermissionsGuard] User ${user.sub} (Role ${user.role}) has permissions:`, userPermissions);
+    // Permission check — no sensitive data logged
 
     // Check if user has wildcard permission
     if (userPermissions.includes('*')) {
@@ -84,7 +84,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `Access denied. Required permissions: ${requiredPermissions.join(', ')}. Your permissions: ${userPermissions.join(', ')}`,
+        `Access denied. You do not have the required permissions to perform this action.`,
       );
     }
 

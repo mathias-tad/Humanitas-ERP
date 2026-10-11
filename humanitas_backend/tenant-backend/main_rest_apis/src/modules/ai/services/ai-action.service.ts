@@ -1,12 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * SECURITY: Permission-gated AI action tools.
+ *
+ * Each tool is mapped to one or more required RBAC permissions.
+ * Only tools whose required permission exists in the calling user's
+ * permission set are returned to the LangChain agent — the agent
+ * cannot even see (let alone call) tools the user cannot use.
+ */
+const TOOL_PERMISSION_MAP: Record<string, string[]> = {
+  create_user:           ['manage_employees'],
+  update_user:           ['manage_employees'],
+  deactivate_user:       ['manage_employees'],
+  submit_leave_request:  ['request_leave'],
+  approve_leave_request: ['approve_leave'],
+  reject_leave_request:  ['approve_leave'],
+  cancel_leave_request:  ['request_leave'],
+  post_announcement:     ['manage_announcements'],
+  add_loan:              ['manage_payroll'],
+  initiate_payroll_run:  ['run_payroll'],
+  create_project:        ['manage_projects'],
+  create_task:           ['create_tasks'],
+  update_task_status:    ['update_tasks'],
+  create_sprint:         ['manage_projects'],
+  add_project_member:    ['manage_projects'],
+  create_shift:          ['manage_scheduling'],
+  assign_shift:          ['manage_scheduling'],
+  mark_day_off:          ['manage_scheduling'],
+  log_overtime:          ['manage_overtime'],
+  add_holiday:           ['manage_holidays'],
+};
 
 @Injectable()
 export class AiActionService {
+  private readonly logger = new Logger(AiActionService.name);
+
   constructor(private databaseService: DatabaseService) {}
 
   private async getConnection(tenantSlug: string) {
@@ -19,8 +53,20 @@ export class AiActionService {
     return { ds, tenantId: rows[0].id };
   }
 
-  getActionTools(tenantSlug: string, currentUserId: string) {
+  /**
+   * Returns ONLY the action tools the requesting user has RBAC permission to use.
+   * @param tenantSlug - Tenant identifier from JWT
+   * @param currentUserId - The human user's UUID (for audit trail)
+   * @param userPermissions - Array of permission keys from the user's role
+   */
+  getActionTools(tenantSlug: string, currentUserId: string, userPermissions: string[] = []) {
+    const isOwnerOrAdmin = userPermissions.includes('*');
     const getConn = () => this.getConnection(tenantSlug);
+
+    const hasPermission = (required: string[]): boolean => {
+      if (isOwnerOrAdmin) return true;
+      return required.some((p) => userPermissions.includes(p));
+    };
 
     // USERS MODULE
     const createUserTool = tool(
@@ -30,12 +76,17 @@ export class AiActionService {
           const exists = await ds.query('SELECT id FROM users WHERE email = $1', [email]);
           if (exists.length > 0) return `User with email ${email} already exists.`;
           const id = uuidv4();
-          const defaultPassword = await bcrypt.hash('Password123!', 10);
+          // SECURITY: Generate a cryptographically random temporary password.
+          // Never use a hardcoded default password. Never return the password in the response.
+          const tempPassword = crypto.randomBytes(16).toString('base64url');
+          const passwordHash = await bcrypt.hash(tempPassword, 12);
           await ds.query(`
-            INSERT INTO users (id, email, password_hash, full_name, position, department, is_active, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
-          `, [id, email, defaultPassword, full_name, position || null, department || null]);
-          return `Successfully created user ${full_name} (${email}). Default password is 'Password123!'.`;
+            INSERT INTO users (id, email, password_hash, full_name, position, department, is_active, must_change_password, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, true, true, NOW(), NOW())
+          `, [id, email, passwordHash, full_name, position || null, department || null]);
+          this.logger.log(`[AI-ACTION] User created by ${currentUserId} in tenant ${tenantSlug}: ${email}`);
+          // SECURITY: Do NOT return the password in the AI response — instruct the admin to trigger a password reset email.
+          return `Successfully created user ${full_name} (${email}). A password reset email must be sent to the user via the Admin > Users panel so they can set their own password.`;
         } catch (err) {
           return `Failed to create user: ${err.message}`;
         }
@@ -574,15 +625,44 @@ export class AiActionService {
       }
     );
 
-    return [
-      createUserTool, updateUserTool, deactivateUserTool,
-      submitLeaveRequestTool, approveLeaveRequestTool, rejectLeaveRequestTool, cancelLeaveRequestTool,
-      postAnnouncementTool,
-      addLoanTool, initiatePayrollRunTool,
-      createProjectTool, createTaskTool, updateTaskStatusTool, createSprintTool, addProjectMemberTool,
-      createShiftTool, assignShiftTool, markDayOffTool,
-      logOvertimeTool,
-      addHolidayTool,
-    ];
+    // Build the full tool registry (name → tool instance)
+    const allTools: Record<string, any> = {
+      create_user:           createUserTool,
+      update_user:           updateUserTool,
+      deactivate_user:       deactivateUserTool,
+      submit_leave_request:  submitLeaveRequestTool,
+      approve_leave_request: approveLeaveRequestTool,
+      reject_leave_request:  rejectLeaveRequestTool,
+      cancel_leave_request:  cancelLeaveRequestTool,
+      post_announcement:     postAnnouncementTool,
+      add_loan:              addLoanTool,
+      initiate_payroll_run:  initiatePayrollRunTool,
+      create_project:        createProjectTool,
+      create_task:           createTaskTool,
+      update_task_status:    updateTaskStatusTool,
+      create_sprint:         createSprintTool,
+      add_project_member:    addProjectMemberTool,
+      create_shift:          createShiftTool,
+      assign_shift:          assignShiftTool,
+      mark_day_off:          markDayOffTool,
+      log_overtime:          logOvertimeTool,
+      add_holiday:           addHolidayTool,
+    };
+
+    // SECURITY: Return ONLY the tools the user is permitted to invoke.
+    // The AI agent cannot even see — let alone call — tools the user lacks permission for.
+    const permittedTools = Object.entries(allTools)
+      .filter(([toolName]) => {
+        const required = TOOL_PERMISSION_MAP[toolName] ?? [];
+        return hasPermission(required);
+      })
+      .map(([, toolInstance]) => toolInstance);
+
+    this.logger.log(
+      `[AI-ACTION] Tenant: ${tenantSlug}, User: ${currentUserId} — ${permittedTools.length}/${Object.keys(allTools).length} action tools permitted`,
+    );
+
+    return permittedTools;
   }
 }
+

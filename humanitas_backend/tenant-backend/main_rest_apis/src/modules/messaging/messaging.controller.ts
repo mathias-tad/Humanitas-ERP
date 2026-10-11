@@ -13,9 +13,12 @@ import {
     DeleteMessageQueryDto, SearchUsersQueryDto,
 } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('messaging')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequirePermissions('use_messaging')
 export class MessagingController {
     constructor(private readonly messagingService: MessagingService) { }
 

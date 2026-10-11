@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LeaveService } from './leave.service';
 import { LeaveGateway } from './leave.gateway';
 import { LeaveScheduler } from './leave.scheduler';
@@ -18,7 +20,7 @@ import { LeaveScheduler } from './leave.scheduler';
 @ApiTags('Leave')
 @ApiBearerAuth()
 @Controller('leave')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class LeaveController {
   constructor(
     private readonly leaveService: LeaveService,
@@ -29,12 +31,14 @@ export class LeaveController {
   // ============ USER ENDPOINTS ============
 
   @Get('types')
+  @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get available leave types' })
   async getLeaveTypes(@Request() req: any) {
     return this.leaveService.getLeaveTypes(req.user.tenantId);
   }
 
   @Get('my-requests')
+  @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user leave requests' })
   async getMyLeaveRequests(@Request() req: any) {
     return this.leaveService.getMyLeaveRequests(
@@ -44,6 +48,7 @@ export class LeaveController {
   }
 
   @Get('my-balances')
+  @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user leave balances' })
   async getMyLeaveBalances(@Request() req: any) {
     return this.leaveService.getMyLeaveBalances(
@@ -53,6 +58,7 @@ export class LeaveController {
   }
 
   @Post('apply')
+  @RequirePermissions('request_leave')
   @ApiOperation({ summary: 'Apply for leave' })
   async applyForLeave(@Request() req: any, @Body() data: any) {
     const result = await this.leaveService.applyForLeave(
@@ -72,6 +78,7 @@ export class LeaveController {
   }
 
   @Delete('my-requests/:id')
+  @RequirePermissions('request_leave')
   @ApiOperation({ summary: 'Cancel a pending leave request' })
   async cancelLeaveRequest(@Request() req: any, @Param('id') id: string) {
     const result = await this.leaveService.cancelLeaveRequest(
@@ -86,6 +93,7 @@ export class LeaveController {
   // ============ ADMIN ENDPOINTS ============
 
   @Get('requests')
+  @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get all leave requests (admin)' })
   async getAllLeaveRequests(
     @Request() req: any,
@@ -101,18 +109,21 @@ export class LeaveController {
   // ============ WORKFLOW ENDPOINTS ============
 
   @Get('workflow')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get leave approval workflow' })
   async getWorkflow(@Request() req: any) {
     return this.leaveService.getWorkflow(req.user.tenantId);
   }
 
   @Post('workflow')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Set leave approval workflow' })
   async setWorkflow(@Request() req: any, @Body() steps: any[]) {
     return this.leaveService.setWorkflowSteps(req.user.tenantId, steps);
   }
 
   @Get('roles')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get roles for workflow config' })
   async getRoles(@Request() req: any) {
     return this.leaveService.getRoles(req.user.tenantId);
@@ -122,6 +133,7 @@ export class LeaveController {
   // ============ REQUEST ENDPOINTS ============
 
   @Post('requests/:id/approve')
+  @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Approve a leave request' })
   async approveLeaveRequest(
     @Request() req: any,
@@ -143,6 +155,7 @@ export class LeaveController {
   }
 
   @Post('requests/:id/reject')
+  @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Reject a leave request' })
   async rejectLeaveRequest(
     @Request() req: any,
@@ -166,6 +179,7 @@ export class LeaveController {
   // ============ LEAVE ACCRUAL ENDPOINTS (via FastAPI) ============
 
   @Get('status')
+  @RequirePermissions('view_leave')
   @ApiOperation({
     summary: 'Get current user leave status (probation, years of service)',
   })
@@ -177,6 +191,7 @@ export class LeaveController {
   }
 
   @Get('status/:userId')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user leave status (admin)' })
   async getUserLeaveStatus(
     @Request() req: any,
@@ -186,6 +201,7 @@ export class LeaveController {
   }
 
   @Get('calculated-balance')
+  @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user calculated leave balance' })
   async getMyCalculatedBalance(@Request() req: any) {
     return this.leaveService.calculateUserLeaveBalance(
@@ -195,6 +211,7 @@ export class LeaveController {
   }
 
   @Get('calculated-balance/:userId')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user calculated leave balance (admin)' })
   async getUserCalculatedBalance(
     @Request() req: any,
@@ -207,12 +224,14 @@ export class LeaveController {
   }
 
   @Post('accrual/run')
+  @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Run monthly leave accrual for all users (admin)' })
   async runMonthlyAccrual(@Request() req: any) {
     return this.leaveService.runMonthlyLeaveAccrual(req.user.tenantId);
   }
 
   @Post('accrual/trigger')
+  @RequirePermissions('manage_leave')
   @ApiOperation({
     summary: 'Trigger monthly leave accrual manually (for testing)',
   })
@@ -223,6 +242,7 @@ export class LeaveController {
   // ============ INITIAL BALANCE REGISTRATION (for existing employees) ============
 
   @Get('balances/:userId')
+  @RequirePermissions('manage_leave')
   @ApiOperation({
     summary: 'Get user leave balances with calculated annual leave (admin)',
   })
@@ -234,6 +254,7 @@ export class LeaveController {
   }
 
   @Post('balances/:userId')
+  @RequirePermissions('manage_leave')
   @ApiOperation({
     summary: 'Register/update initial leave balance for existing employee',
   })
@@ -256,6 +277,7 @@ export class LeaveController {
   }
 
   @Post('balances/:userId/calculate')
+  @RequirePermissions('manage_leave')
   @ApiOperation({
     summary:
       'Auto-calculate leave balance based on hire date and years of service',

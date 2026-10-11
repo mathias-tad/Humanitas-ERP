@@ -84,11 +84,17 @@ dns.setDefaultResultOrder('ipv4first');
           },
         };
 
+        const sslRejectUnauthorized = configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED') !== 'false';
+        const sslCa = configService.get<string>('DATABASE_SSL_CA');
+        const sslConfig = sslEnabled
+          ? { rejectUnauthorized: sslRejectUnauthorized, ...(sslCa ? { ca: sslCa } : {}) }
+          : false;
+
         if (dbUrl) {
           return {
             ...baseConfig,
             url: dbUrl,
-            ssl: (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) ? false : (sslEnabled ? { rejectUnauthorized: false } : false),
+            ssl: (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) ? false : sslConfig,
           };
         }
 
@@ -99,7 +105,7 @@ dns.setDefaultResultOrder('ipv4first');
           username: configService.get<string>('DATABASE_USERNAME'),
           password: configService.get<string>('DATABASE_PASSWORD'),
           database: configService.get<string>('DATABASE_NAME'),
-          ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+          ssl: sslConfig,
         };
       },
       inject: [ConfigService],

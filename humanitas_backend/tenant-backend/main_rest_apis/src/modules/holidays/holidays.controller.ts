@@ -2,12 +2,13 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request }
 import { HolidaysService } from './holidays.service';
 import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Holidays')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('holidays')
 export class HolidaysController {
     constructor(private readonly holidaysService: HolidaysService) { }

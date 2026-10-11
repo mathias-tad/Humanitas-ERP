@@ -56,8 +56,9 @@ export class AiService {
       };
     }
 
-    // 2. Build role context
+    // 2. Build role context AND fetch permissions array for tool RBAC enforcement
     const roleContext = await this.roleContextBuilder.buildContext(tenantSlug, userId, userRole);
+    const userPermissions = await this.roleContextBuilder.getPermissions(tenantSlug, userId, userRole);
 
     // 3. Setup Conversation History
     let convoId = conversationId;
@@ -91,6 +92,7 @@ export class AiService {
         modelName,
         temperature,
         userId,
+        userPermissions,
       );
 
       // Save AI response
@@ -192,6 +194,7 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     modelName: string,
     temperature: number,
     userId: string,
+    userPermissions: string[] = [],
   ): Promise<string> {
     let llm: any;
 
@@ -251,7 +254,8 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     const uiTools = this.toolRouter.getTools(tenantSlug, roleContext);
     const dbTools = [this.dbQueryService.getDbTool(tenantSlug, roleContext)];
     const analyticsTools = this.analyticsService.getAnalyticsTools(tenantSlug);
-    const actionTools = this.actionService.getActionTools(tenantSlug, userId);
+    // SECURITY: Pass userPermissions so only RBAC-permitted action tools are returned
+    const actionTools = this.actionService.getActionTools(tenantSlug, userId, userPermissions);
 
     const tools = [...uiTools, ...dbTools, ...analyticsTools, ...actionTools];
 

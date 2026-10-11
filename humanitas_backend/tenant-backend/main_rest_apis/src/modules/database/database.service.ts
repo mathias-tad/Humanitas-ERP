@@ -266,12 +266,21 @@ export class DatabaseService implements OnModuleDestroy {
     };
   }
 
-  private buildSslConfig(): false | { rejectUnauthorized: boolean } {
+  private buildSslConfig(): false | { rejectUnauthorized: boolean; ca?: string } {
     const dbUrl = this.configService.get<string>('DATABASE_URL', '');
     const isLocalhost = dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1');
     const sslEnabled = this.configService.get<string>('DATABASE_SSL') === 'true';
 
-    if (isLocalhost) return false;
-    return sslEnabled ? { rejectUnauthorized: false } : false;
+    if (isLocalhost || !sslEnabled) return false;
+
+    const ca = this.configService.get<string>('DATABASE_SSL_CA');
+    const explicitReject = this.configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED');
+    // Default to true for secure TLS against MITM attacks, unless explicitly set to 'false'
+    const rejectUnauthorized = explicitReject === 'false' ? false : true;
+
+    return {
+      rejectUnauthorized,
+      ...(ca ? { ca } : {}),
+    };
   }
 }

@@ -9,6 +9,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { Tenant } from './entities/tenant.entity';
 import { DatabaseModule } from '../database/database.module';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { ModuleSubscriptionGuard } from './guards/module-subscription.guard';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     DatabaseModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PermissionsGuard],
-  exports: [AuthService, PermissionsGuard],
+  providers: [AuthService, JwtStrategy, PermissionsGuard, ModuleSubscriptionGuard],
+  exports: [AuthService, PermissionsGuard, ModuleSubscriptionGuard],
 })
 export class AuthModule {}

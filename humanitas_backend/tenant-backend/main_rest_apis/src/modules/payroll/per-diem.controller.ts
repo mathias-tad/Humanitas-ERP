@@ -14,6 +14,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagg
 import { PerDiemService } from './per-diem.service';
 import { AssignPerDiemDto, SubmitPerDiemChoiceDto, ReviewPerDiemClaimDto, UpdatePerDiemClaimDto } from './dto/per-diem-claim.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -29,7 +30,7 @@ interface AuthenticatedRequest extends Request {
 @ApiTags('Per Diem')
 @ApiBearerAuth()
 @Controller('per-diem')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PerDiemController {
     constructor(private perDiemService: PerDiemService) { }
 

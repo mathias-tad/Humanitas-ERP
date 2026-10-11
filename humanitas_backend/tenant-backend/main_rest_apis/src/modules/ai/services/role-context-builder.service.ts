@@ -52,4 +52,31 @@ export class RoleContextBuilderService {
 
     return `User Role: ${roleName}\nUser Permissions: ${permissions.join(', ')}\nIMPORTANT: You must only perform actions or return data that the user has permission for based on the permissions list above.`;
   }
+
+  /**
+   * Returns the user's RBAC permission array for programmatic enforcement.
+   * Owners and admins receive ['*'] (wildcard = all permissions).
+   */
+  async getPermissions(tenantSlug: string, userId: string, userRoleName: string): Promise<string[]> {
+    if (userRoleName === 'owner' || userRoleName === 'admin') {
+      return ['*'];
+    }
+
+    const tenant = await this.tenantRepository.findOne({
+      where: { slug: tenantSlug },
+    });
+
+    if (!tenant) return [];
+
+    const connection = await this.databaseService.getTenantConnection(tenant.database_name);
+
+    const result = await connection.query(
+      `SELECT r.permissions FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = $1`,
+      [userId],
+    );
+
+    return result?.[0]?.permissions ?? [];
+  }
 }

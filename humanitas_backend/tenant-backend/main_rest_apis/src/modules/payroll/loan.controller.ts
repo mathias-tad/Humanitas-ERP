@@ -1,10 +1,11 @@
 import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LoanService } from './loan.service';
 
 @Controller('payroll/loans')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class LoanController {
     constructor(private loanService: LoanService) { }
 
