@@ -8,8 +8,6 @@ import { DataSource } from 'typeorm';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
-import { RolesService } from '../roles/roles.service';
-
 @ApiTags('System Logs')
 @Controller('system/logs')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -18,7 +16,6 @@ export class SystemLogsController implements OnModuleInit {
     constructor(
         private readonly logsService: SystemLogsService,
         private readonly databaseService: DatabaseService,
-        private readonly rolesService: RolesService,
         private readonly dataSource: DataSource
     ) { }
 
@@ -48,14 +45,6 @@ export class SystemLogsController implements OnModuleInit {
         } catch (e) {
             console.error('[SystemLogs] Table creation failed:', e);
         }
-    }
-
-    @Post('migrate')
-    @ApiOperation({ summary: 'Run manual database migration' })
-    // @RequirePermissions('manage_logs')
-    async migrate() {
-        console.log('MIGRATE ENDPOINT HIT');
-        return this.databaseService.runManualMigration();
     }
 
     @Get('debug-permissions/:userId')

@@ -1,13 +1,14 @@
 import {
   Injectable,
   OnModuleDestroy,
+  OnApplicationBootstrap,
   NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
-import { TenantMigrationService } from './tenant-migration.service';
+import { TenantMigrationService, TenantMigrationStatus } from './tenant-migration.service';
 
 // TypeORM entities (used by the tenant connection pool for type-safe queries in
 // modules that opt in to repository injection via getTenantConnection())
@@ -70,7 +71,7 @@ const TENANT_ENTITIES = [
 ];
 
 @Injectable()
-export class DatabaseService implements OnModuleDestroy {
+export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseService.name);
 
   /** Live tenant DataSource pool — keyed by database name */
@@ -84,6 +85,31 @@ export class DatabaseService implements OnModuleDestroy {
     private readonly migrationService: TenantMigrationService,
     @InjectDataSource() private readonly masterDataSource: DataSource,
   ) {}
+
+  /**
+   * Automatically sweeps all registered tenants upon application startup
+   * to ensure all pending migrations and seeds are eagerly applied.
+   */
+  async onApplicationBootstrap() {
+    const autoMigrate = this.configService.get<string>('AUTO_MIGRATE_TENANTS_ON_BOOT', 'true') !== 'false';
+    if (!autoMigrate) {
+      this.logger.log('AUTO_MIGRATE_TENANTS_ON_BOOT disabled — skipping startup migration sweep');
+      return;
+    }
+
+    this.logger.log('Executing automated on-boot tenant migration sweep...');
+    setTimeout(() => {
+      this.runManualMigration()
+        .then((result) => {
+          this.logger.log(
+            `Boot migration sweep finished: ${result.migrated.length} tenant(s) verified, ${result.errors.length} error(s).`,
+          );
+        })
+        .catch((err) => {
+          this.logger.error(`Boot migration sweep encountered error: ${err.message}`);
+        });
+    }, 2000); // 2-second deferral so HTTP server port binds first
+  }
 
   // ─────────────────────────────────────────────────────────
   // PUBLIC API
@@ -193,16 +219,65 @@ export class DatabaseService implements OnModuleDestroy {
   }
 
   /**
-   * Admin endpoint helper — runs any pending migrations across ALL tenant DBs.
-   * Called by POST /system/migrate-all.
+   * Admin endpoint helper — runs any pending migrations across ALL tenant DBs (or a specific tenant if slug provided).
    */
-  async runManualMigration(): Promise<{ migrated: string[]; errors: Array<{ tenant: string; error: string }> }> {
+  async runManualMigration(targetTenantSlug?: string): Promise<{
+    migrated: Array<{ slug: string; applied: string[] }>;
+    errors: Array<{ tenant: string; error: string }>;
+  }> {
+    if (targetTenantSlug) {
+      this.logger.log(`Starting targeted manual migration for tenant: ${targetTenantSlug}`);
+      const rows = await this.masterDataSource.query(
+        `SELECT id, slug, database_name FROM tenants WHERE slug = $1`,
+        [targetTenantSlug],
+      );
+      if (!rows.length) {
+        throw new NotFoundException(`Tenant not found: ${targetTenantSlug}`);
+      }
+      return this.migrationService.migrateAllTenants(
+        rows,
+        (dbName) => this.getTenantConnection(dbName),
+      );
+    }
+
     this.logger.log('Starting manual migration sweep across all tenants');
     const tenants = await this.getAllTenants();
     return this.migrationService.migrateAllTenants(
       tenants,
       (dbName) => this.getTenantConnection(dbName),
     );
+  }
+
+  /**
+   * Retrieves migration status (total, applied, pending) for all tenants or a specific tenant.
+   */
+  async getMigrationStatus(targetTenantSlug?: string): Promise<TenantMigrationStatus[]> {
+    const tenants = targetTenantSlug
+      ? await this.masterDataSource.query(
+          `SELECT id, slug, database_name FROM tenants WHERE slug = $1`,
+          [targetTenantSlug],
+        )
+      : await this.getAllTenants();
+
+    const statuses: TenantMigrationStatus[] = [];
+    for (const tenant of tenants) {
+      try {
+        const ds = await this.getTenantConnection(tenant.database_name);
+        const status = await this.migrationService.getTenantMigrationStatus(ds, tenant.database_name);
+        statuses.push(status);
+      } catch (err) {
+        this.logger.error(`Failed to get migration status for ${tenant.slug}: ${err.message}`);
+        statuses.push({
+          database: tenant.database_name,
+          totalFiles: 0,
+          appliedCount: 0,
+          pendingCount: 0,
+          applied: [],
+          pending: [`ERROR: ${err.message}`],
+        });
+      }
+    }
+    return statuses;
   }
 
   async closeConnection(databaseName: string): Promise<void> {

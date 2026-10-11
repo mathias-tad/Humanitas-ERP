@@ -51,7 +51,7 @@ export class RolesService {
     }
   }
 
-  private async migrateNewPermissions(connection: any): Promise<void> {
+  public async migrateNewPermissions(connection: any): Promise<void> {
     // Create migration tracking table if not exists
     await connection.query(`
       CREATE TABLE IF NOT EXISTS _permission_migrations (

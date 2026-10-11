@@ -82,7 +82,6 @@ export function SystemLogs() {
     const fetchServerLogs = async () => {
         try {
             setLoading(true);
-            // Use fetch directly for text response
             const response = await fetch('/api/v1/system/logs/server?lines=200');
             if (response.ok) {
                 const text = await response.text();
@@ -101,10 +100,11 @@ export function SystemLogs() {
     useEffect(() => {
         if (activeTab === 'calculations') {
             fetchLogs();
-        } else {
+        } else if (activeTab === 'server') {
             fetchServerLogs();
         }
     }, [tenant?.id, activeTab]);
+
 
     const fetchLogs = async () => {
         try {
@@ -378,7 +378,7 @@ export function SystemLogs() {
                         )}
                     </CardContent>
                 </Card>
-            ) : (
+            ) : activeTab === 'server' ? (
                 <Card className="h-full">
                     <CardHeader>
                         <div className="flex items-center justify-between">
@@ -406,8 +406,7 @@ export function SystemLogs() {
                         )}
                     </CardContent>
                 </Card>
-            )
-            }
-        </div >
+            )}
+        </div>
     );
 }
