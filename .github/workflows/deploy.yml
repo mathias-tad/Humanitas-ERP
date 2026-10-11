@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Backend Dependencies
         working-directory: humanitas_backend/tenant-backend/main_rest_apis
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run Backend Unit & Integration Tests
         working-directory: humanitas_backend/tenant-backend/main_rest_apis
