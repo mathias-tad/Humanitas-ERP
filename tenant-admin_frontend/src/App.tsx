@@ -14,6 +14,7 @@ import Login from '@/pages/Login';
 import AiConfiguration from '@/pages/AiConfiguration';
 import BillingPackages from '@/pages/BillingPackages';
 import TenantUsage from '@/pages/TenantUsage';
+import Migrations from '@/pages/Migrations';
 import { useAuth } from '@/context/AuthContext';
 import './index.css';
 
@@ -61,6 +62,7 @@ function App() {
             <Route path="/ai-configuration" element={<AiConfiguration />} />
             <Route path="/billing-packages" element={<BillingPackages />} />
             <Route path="/tenant-usage" element={<TenantUsage />} />
+            <Route path="/migrations" element={<Migrations />} />
           </Route>
         </Routes>
       </BrowserRouter>

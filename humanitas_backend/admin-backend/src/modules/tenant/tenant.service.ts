@@ -15,6 +15,7 @@ import { Tenant, SubscriptionStatus, SubscriptionPlan } from './entities/tenant.
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { EmailService } from '../email/email.service';
+import { TenantMigrationService } from './tenant-migration.service';
 
 @Injectable()
 export class TenantService implements OnModuleInit {
@@ -24,6 +25,7 @@ export class TenantService implements OnModuleInit {
     private readonly emailService: EmailService,
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
+    private readonly tenantMigrationService: TenantMigrationService,
   ) { }
 
   async onModuleInit() {
@@ -158,6 +160,14 @@ export class TenantService implements OnModuleInit {
       `);
 
       console.log(`✅ Tables created in database ${databaseName}:`, tableCheck.map((t: { table_name: string }) => t.table_name).join(', '));
+
+      // Automatically execute all pending migrations and seeds for newly initialized tenant
+      try {
+        const applied = await this.tenantMigrationService.runMigrations(tenantDataSource, databaseName);
+        console.log(`✅ Automatically applied ${applied.length} initial migration(s)/seed(s) for ${databaseName}`);
+      } catch (migError) {
+        console.warn(`⚠️ Warning: Initial migration sweep encountered an issue for ${databaseName}:`, migError.message);
+      }
 
       await tenantDataSource.destroy();
 

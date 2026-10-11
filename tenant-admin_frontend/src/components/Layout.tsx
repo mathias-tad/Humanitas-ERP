@@ -13,6 +13,7 @@ import {
   Zap,
   BarChart3,
   Package,
+  GitBranch,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'AI Configuration', href: '/ai-configuration', icon: Zap },
   { name: 'AI Usage', href: '/tenant-usage', icon: BarChart3 },
   { name: 'System Logs', href: '/logs', icon: ScrollText },
+  { name: 'Migrations & Seeds', href: '/migrations', icon: GitBranch },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

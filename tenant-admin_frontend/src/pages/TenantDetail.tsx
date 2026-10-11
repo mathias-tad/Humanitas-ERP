@@ -17,6 +17,11 @@ import {
   CheckCircle,
   Ban,
   Loader2,
+  Database,
+  Play,
+  RefreshCw,
+  GitBranch,
+  ShieldCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +54,65 @@ export default function TenantDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Migration status state
+  const [migrationStatus, setMigrationStatus] = useState<{
+    database: string;
+    totalFiles: number;
+    appliedCount: number;
+    pendingCount: number;
+    applied: string[];
+    pending: string[];
+  } | null>(null);
+  const [isLoadingMigrations, setIsLoadingMigrations] = useState(false);
+  const [isRunningMigration, setIsRunningMigration] = useState(false);
+  const [isSyncingPermissions, setIsSyncingPermissions] = useState(false);
+
+  const fetchTenantMigrations = async (slug: string) => {
+    try {
+      setIsLoadingMigrations(true);
+      const data = await api.get<any[]>(`/tenants/migrations/status?tenantSlug=${slug}`);
+      if (Array.isArray(data) && data.length > 0) {
+        setMigrationStatus(data[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load migration status:', err);
+    } finally {
+      setIsLoadingMigrations(false);
+    }
+  };
+
+  const handleRunTenantMigration = async () => {
+    if (!tenant?.slug) return;
+    try {
+      setIsRunningMigration(true);
+      const res: any = await api.post(`/tenants/migrations/run?tenantSlug=${tenant.slug}`);
+      const appliedCount = res.migrated?.[0]?.applied?.length || 0;
+      alert(appliedCount > 0 
+        ? `Successfully applied ${appliedCount} migration(s) for ${tenant.company_name}!`
+        : `Database is already up to date for ${tenant.company_name}.`
+      );
+      await fetchTenantMigrations(tenant.slug);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to run migration');
+    } finally {
+      setIsRunningMigration(false);
+    }
+  };
+
+  const handleSyncTenantPermissions = async () => {
+    if (!tenant?.slug) return;
+    try {
+      setIsSyncingPermissions(true);
+      await api.post(`/tenants/migrations/sync-permissions?tenantSlug=${tenant.slug}`);
+      alert(`Permissions synced successfully for ${tenant.company_name}!`);
+      await fetchTenantMigrations(tenant.slug);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to sync permissions');
+    } finally {
+      setIsSyncingPermissions(false);
+    }
+  };
+
   useEffect(() => {
     const fetchTenant = async () => {
       if (!id) return;
@@ -57,6 +121,9 @@ export default function TenantDetail() {
         setIsLoading(true);
         const data = await api.get<Tenant>(`/tenants/${id}`);
         setTenant(data);
+        if (data?.slug) {
+          fetchTenantMigrations(data.slug);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load tenant');
       } finally {
@@ -165,6 +232,7 @@ export default function TenantDetail() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="migrations">Migrations & Seeds</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -379,6 +447,170 @@ export default function TenantDetail() {
                   <p className="text-xl font-bold">{tenant.storage_limit_gb} GB</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="migrations" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Database className="h-4 w-4 text-blue-600" />
+                  Database Migrations & Seeds for {tenant.company_name}
+                </CardTitle>
+                <p className="text-xs text-gray-500 mt-1 font-mono">Database: {tenant.database_name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => tenant.slug && fetchTenantMigrations(tenant.slug)}
+                  disabled={isLoadingMigrations}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingMigrations ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncTenantPermissions}
+                  disabled={isSyncingPermissions || isLoadingMigrations}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                >
+                  {isSyncingPermissions ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                  )}
+                  Sync Permissions
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleRunTenantMigration}
+                  disabled={isRunningMigration || isLoadingMigrations || (migrationStatus?.pendingCount === 0)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isRunningMigration ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
+                  Run Pending Migrations
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoadingMigrations ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                </div>
+              ) : migrationStatus ? (
+                <>
+                  {/* Status Banner */}
+                  <div className={`p-4 rounded-lg flex items-center justify-between ${
+                    migrationStatus.pendingCount === 0
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : 'bg-amber-50 border border-amber-200 text-amber-800'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {migrationStatus.pendingCount === 0 ? (
+                        <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                      )}
+                      <div>
+                        <p className="font-semibold text-sm">
+                          {migrationStatus.pendingCount === 0
+                            ? 'All Migrations & Seeds Up to Date'
+                            : `${migrationStatus.pendingCount} Migration(s) Pending Execution`}
+                        </p>
+                        <p className="text-xs opacity-80">
+                          {migrationStatus.pendingCount === 0
+                            ? `All ${migrationStatus.appliedCount} schema and seed migrations are applied to ${tenant.database_name}.`
+                            : `New changes exist that need to be manually applied to this tenant database.`}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={migrationStatus.pendingCount === 0 ? 'secondary' : 'default'} className={
+                      migrationStatus.pendingCount === 0
+                        ? 'bg-green-100 text-green-700 border-green-200'
+                        : 'bg-amber-600 text-white'
+                    }>
+                      {migrationStatus.pendingCount === 0 ? '✓ Current' : `${migrationStatus.pendingCount} Pending`}
+                    </Badge>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium">Total Migrations</p>
+                      <p className="text-xl font-bold mt-1">{migrationStatus.totalFiles}</p>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <p className="text-xs text-green-700 font-medium">Applied Migrations</p>
+                      <p className="text-xl font-bold text-green-700 mt-1">{migrationStatus.appliedCount}</p>
+                    </div>
+                    <div className="p-4 bg-amber-50 rounded-lg">
+                      <p className="text-xs text-amber-700 font-medium">Pending Migrations</p>
+                      <p className="text-xl font-bold text-amber-700 mt-1">{migrationStatus.pendingCount}</p>
+                    </div>
+                  </div>
+
+                  {/* Pending Migrations List */}
+                  {migrationStatus.pendingCount > 0 && (
+                    <div className="border border-amber-200 rounded-lg p-4 bg-amber-50/40">
+                      <h4 className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-3 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        Pending Migration Files to be Applied
+                      </h4>
+                      <div className="space-y-1.5">
+                        {migrationStatus.pending.map((file) => (
+                          <div
+                            key={file}
+                            className="flex items-center justify-between text-xs font-mono bg-white border border-amber-200 rounded p-2 text-amber-900"
+                          >
+                            <span>{file}</span>
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300">
+                              PENDING
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Applied Migrations List */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <GitBranch className="h-4 w-4 text-gray-500" />
+                      Applied Migrations History ({migrationStatus.appliedCount})
+                    </h4>
+                    <div className="max-h-60 overflow-y-auto space-y-1 rounded-lg border bg-gray-50 p-2">
+                      {migrationStatus.applied.length > 0 ? (
+                        migrationStatus.applied.map((file) => (
+                          <div
+                            key={file}
+                            className="flex items-center justify-between text-xs font-mono bg-white rounded p-2 border border-gray-200 text-gray-800"
+                          >
+                            <span className="truncate">{file}</span>
+                            <span className="text-[10px] text-green-600 font-sans font-semibold">APPLIED</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-500 text-center py-4">No migrations recorded in schema_migrations yet</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Could not retrieve migration status for this tenant database.</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => tenant.slug && fetchTenantMigrations(tenant.slug)}>
+                    Retry
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
