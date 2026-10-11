@@ -1,12 +1,94 @@
-name: Deploy Humanitas-ERP to VPS
+name: CI & Deployment Pipeline (Humanitas-ERP)
 
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
+  # =========================================================================
+  # 1. Backend Testing Suite
+  # =========================================================================
+  test-backend:
+    name: Backend Tests & Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: humanitas_backend/tenant-backend/main_rest_apis/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: humanitas_backend/tenant-backend/main_rest_apis
+        run: npm ci
+
+      - name: Run Backend Unit & Integration Tests
+        working-directory: humanitas_backend/tenant-backend/main_rest_apis
+        run: npm test -- --ci --coverage=false
+
+  # =========================================================================
+  # 2. Frontend Build & Typecheck Suite
+  # =========================================================================
+  test-frontend:
+    name: Frontend Build & Typecheck Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: humanitas_frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: humanitas_frontend
+        run: npm ci
+
+      - name: Build & Typecheck Frontend
+        working-directory: humanitas_frontend
+        run: npm run build
+
+  # =========================================================================
+  # 3. Mobile Testing Suite
+  # =========================================================================
+  test-mobile:
+    name: Mobile (Flutter) Tests & Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Mobile Dependencies
+        working-directory: humanitas-ERP_mobile
+        run: flutter pub get
+
+      - name: Run Mobile Widget & Unit Tests
+        working-directory: humanitas-ERP_mobile
+        run: flutter test
+
+  # =========================================================================
+  # 4. Deployment (GATED: Only runs if ALL test suites succeed on push to main/master)
+  # =========================================================================
   deploy:
+    name: Deploy to Production VPS
+    needs: [test-backend, test-frontend, test-mobile]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

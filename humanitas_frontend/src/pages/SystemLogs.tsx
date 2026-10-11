@@ -378,7 +378,7 @@ export function SystemLogs() {
                         )}
                     </CardContent>
                 </Card>
-            ) : activeTab === 'server' ? (
+            ) : (
                 <Card className="h-full">
                     <CardHeader>
                         <div className="flex items-center justify-between">

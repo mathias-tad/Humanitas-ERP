@@ -1,4 +1,4 @@
-﻿# Humanitas Global Engineering & Architecture Directives
+# Humanitas Global Engineering & Architecture Directives
 
 ## ðŸ“ Repository Structure & Dual-Folder Separation
 
@@ -128,4 +128,26 @@ The workspace contains two distinct, purposefully separated folder trees:
 
 - **Never skip this step.** A completed feature that is not marked in `featureslist.md` is considered incomplete.
 - Both `Humanitas-ERP/featureslist.md` and `Humanitas/featureslist.md` must be updated simultaneously when a shared module feature is completed.
+
+### 15. MANDATORY INDUSTRY-STANDARD TESTING & ZERO-REGRESSION POLICY (CI/CD GATED)
+- **Universal Testing Mandate for ALL AI Assistants (Gemini, Claude, GPT, Antigravity) & Developers**:
+  - Every single feature, endpoint, service, UI screen, or mobile capability MUST be accompanied by comprehensive tests written in the exact same implementation pass.
+  - **No feature is considered complete without passing tests.** An untested feature must never be marked `[x]` in `featureslist.md`.
+- **Full-Stack Test Coverage Requirements**:
+  1. **Backend Unit & Integration Tests**:
+     - Every service, helper, and guard must have unit tests (`*.spec.ts`) covering happy paths, edge cases, RBAC permission denies, and null/error conditions.
+     - Controllers and business workflows must have E2E integration tests (`*.e2e-spec.ts` with Supertest) verifying HTTP status codes, headers (`x-tenant-id`, JWT Bearer), and response payloads.
+  2. **Frontend UI & Component Tests**:
+     - Web frontends must maintain typecheck integrity (`tsc -b`) and component tests.
+     - Forms, data tables, and permission gates (`hasPermission`, `isModuleSubscribed`) must have test coverage.
+  3. **Mobile (Flutter) Tests**:
+     - Mobile screens must have widget tests (`test/*_test.dart`) verifying rendering, state management (Riverpod/Provider), and user interactions.
+     - `flutter test` and `flutter analyze` must pass with 0 errors.
+  4. **Python Calculation Engine Tests**:
+     - Every mathematical formula (tax rates, loan amortizations, payroll brackets, inventory costing) must have Pytest unit tests.
+- **Mandatory GitHub Actions Pre-Deployment Gate**:
+  - All CI test suites (backend Jest tests, frontend build/test, mobile Flutter tests, Python pytest) MUST automatically execute and pass in GitHub Actions BEFORE any VPS or production deployment.
+  - If ANY test fails, deployment is automatically blocked. Bypassing CI tests for deployment is strictly prohibited.
+- **Zero-Regression Rule**:
+  - Existing tests must never be commented out, skipped (`it.skip`), or deleted without an explicit replacement.
 

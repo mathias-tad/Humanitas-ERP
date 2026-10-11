@@ -1,25 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+const request = require('supertest');
+import { HealthModule } from '../src/modules/health/health.module';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+describe('HealthController (E2E Test)', () => {
+  let app: INestApplication;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [HealthModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+    }
+  });
+
+  it('verifies /health returns 200 OK with service identifier', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/health')
+      .expect(200);
+
+    expect(res.body).toBeDefined();
+    expect(res.body.status).toBe('ok');
+    expect(res.body.service).toBe('tenant-api');
+    expect(res.body.timestamp).toBeDefined();
   });
 });

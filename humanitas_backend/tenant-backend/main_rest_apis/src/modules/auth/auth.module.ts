@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -11,6 +11,7 @@ import { DatabaseModule } from '../database/database.module';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { ModuleSubscriptionGuard } from './guards/module-subscription.guard';
 
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([Tenant]),
@@ -29,6 +30,6 @@ import { ModuleSubscriptionGuard } from './guards/module-subscription.guard';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, PermissionsGuard, ModuleSubscriptionGuard],
-  exports: [AuthService, PermissionsGuard, ModuleSubscriptionGuard],
+  exports: [AuthService, PermissionsGuard, ModuleSubscriptionGuard, TypeOrmModule],
 })
 export class AuthModule {}
