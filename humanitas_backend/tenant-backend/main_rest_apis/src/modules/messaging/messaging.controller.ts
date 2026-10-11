@@ -12,6 +12,7 @@ import {
     UpdateGroupDto, AddMembersDto, UpdateMemberRoleDto,
     DeleteMessageQueryDto, SearchUsersQueryDto,
 } from './dto/send-message.dto';
+import { UpdateMessagingSettingsDto } from './dto/update-messaging-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
@@ -172,7 +173,7 @@ export class MessagingController {
     }
 
     @Patch('settings')
-    updateSettings(@Request() req, @Body() dto: any) {
+    updateSettings(@Request() req, @Body() dto: UpdateMessagingSettingsDto) {
         return this.messagingService.updateSettings(req.user.tenantId, req.user.sub, dto);
     }
 }

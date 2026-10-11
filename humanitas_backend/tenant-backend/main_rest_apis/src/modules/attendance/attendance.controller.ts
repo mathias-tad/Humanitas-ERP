@@ -19,12 +19,17 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { AttendanceService } from './attendance.service';
 import { AttendanceGateway } from './attendance.gateway';
 import { CorrectAttendanceDto } from './dto/correct-attendance.dto';
+import { RecordAttendanceDto } from './dto/record-attendance.dto';
 import { SchedulingService } from '../scheduling/scheduling.service';
+import { CreateShiftDto, UpdateShiftDto } from '../scheduling/dto/create-shift.dto';
+import { CreateShiftPatternDto, UpdateShiftPatternDto } from '../scheduling/dto/create-pattern.dto';
+import { AssignPatternDto } from '../scheduling/dto/assign-pattern.dto';
+import { AssignScheduleDto } from '../scheduling/dto/assign-schedule.dto';
 
 @ApiTags('Attendance')
 @ApiBearerAuth()
 @Controller('attendance')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AttendanceController {
   constructor(
     private readonly attendanceService: AttendanceService,
@@ -65,7 +70,7 @@ export class AttendanceController {
   @Post('shifts')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new shift' })
-  async createShift(@Request() req: any, @Body() data: any) {
+  async createShift(@Request() req: any, @Body() data: CreateShiftDto) {
     return this.schedulingService.createShift(req.user.tenantId, data, req.user.sub);
   }
 
@@ -75,7 +80,7 @@ export class AttendanceController {
   async updateShift(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() data: UpdateShiftDto,
   ) {
     return this.schedulingService.updateShift(req.user.tenantId, id, data, req.user.sub);
   }
@@ -97,7 +102,7 @@ export class AttendanceController {
   @Post('patterns')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new schedule pattern' })
-  async createSchedulePattern(@Request() req: any, @Body() data: any) {
+  async createSchedulePattern(@Request() req: any, @Body() data: CreateShiftPatternDto) {
     return this.schedulingService.createPattern(
       req.user.tenantId,
       data,
@@ -117,7 +122,7 @@ export class AttendanceController {
   async updateSchedulePattern(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() data: UpdateShiftPatternDto,
   ) {
     return this.schedulingService.updatePattern(
       req.user.tenantId,
@@ -142,7 +147,7 @@ export class AttendanceController {
   @Post('assignments')
   @RequirePermissions('manage_shift_assignments')
   @ApiOperation({ summary: 'Assign shift to user' })
-  async assignShift(@Request() req: any, @Body() data: any) {
+  async assignShift(@Request() req: any, @Body() data: AssignPatternDto) {
     return this.schedulingService.assignPattern(req.user.tenantId, data, req.user.sub);
   }
 
@@ -172,7 +177,7 @@ export class AttendanceController {
   @Post('assign-pattern')
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign pattern to user (Flexible)' })
-  async assignPattern(@Request() req: any, @Body() data: any) {
+  async assignPattern(@Request() req: any, @Body() data: AssignPatternDto) {
     return this.schedulingService.assignPattern(
       req.user.tenantId,
       data,
@@ -183,7 +188,7 @@ export class AttendanceController {
   @Post('assign-schedule')
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign/Override specific day schedule' })
-  async assignSchedule(@Request() req: any, @Body() data: any) {
+  async assignSchedule(@Request() req: any, @Body() data: AssignScheduleDto) {
     return this.attendanceService.assignSchedule(
       req.user.tenantId,
       data,
@@ -320,7 +325,7 @@ export class AttendanceController {
 
   @Post('records')
   @ApiOperation({ summary: 'Create/update attendance record' })
-  async recordAttendance(@Request() req: any, @Body() data: any) {
+  async recordAttendance(@Request() req: any, @Body() data: RecordAttendanceDto) {
     return this.attendanceService.recordAttendance(req.user.tenantId, data);
   }
 

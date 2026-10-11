@@ -29,7 +29,7 @@ export class AdmsController {
     async receiveData(
         @Query('SN') sn: string,
         @Query('table') table: string,
-        @Body() body: any, // Body is often plain text
+        @Body() body: string | Record<string, any>,
         @Req() req: Request
     ) {
         // Note: ZKTeco sends data as text/plain sometimes, but NestJS might try to parse JSON.
@@ -43,7 +43,7 @@ export class AdmsController {
         // We'll rely on string body if content-type is correct.
 
         // Workaround: If body is an object (parsed), we might need to stringify or check format.
-        const rawData = typeof body === 'object' ? JSON.stringify(body) : body;
+        const rawData = typeof body === 'object' ? JSON.stringify(body) : String(body || '');
 
         const result = await this.admsService.receiveData(sn, table, rawData);
         return result;
@@ -63,8 +63,8 @@ export class AdmsController {
      * Endpoint: /iclock/devicecmd
      */
     @Post('devicecmd')
-    async deviceCmd(@Query('SN') sn: string, @Body() body: any) {
-        const rawData = typeof body === 'object' ? JSON.stringify(body) : body;
+    async deviceCmd(@Query('SN') sn: string, @Body() body: string | Record<string, any>) {
+        const rawData = typeof body === 'object' ? JSON.stringify(body) : String(body || '');
         return this.admsService.receiveCmdResult(sn, rawData);
     }
 }

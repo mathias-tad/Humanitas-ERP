@@ -18,6 +18,18 @@ import { RecruitmentService } from './recruitment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import {
+  CreateJobDto,
+  UpdateJobDto,
+  RerankCandidatesDto,
+  BulkShortlistDto,
+  StartExportDto,
+  UpdateFormDto,
+  CreateApplicationLinkDto,
+  ManageJobLinksDto,
+  SubmitApplicationDto,
+  RecruitmentWebhookDto,
+} from './dto/recruitment.dto';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -88,7 +100,7 @@ export class RecruitmentController {
   async updateForm(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: UpdateFormDto,
   ) {
     return this.recruitmentService.updateForm(req.user.tenantSlug, jobId, data);
   }
@@ -113,7 +125,7 @@ export class RecruitmentController {
   async rerankCandidates(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: RerankCandidatesDto,
   ) {
     return this.recruitmentService.rerankCandidates(req.user.tenantSlug, jobId, data);
   }
@@ -126,7 +138,7 @@ export class RecruitmentController {
   async bulkShortlist(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: BulkShortlistDto,
   ) {
     return this.recruitmentService.bulkShortlist(req.user.tenantSlug, jobId, data);
   }
@@ -139,7 +151,7 @@ export class RecruitmentController {
   async startExport(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: StartExportDto,
   ) {
     return this.recruitmentService.startExport(req.user.tenantSlug, jobId, data);
   }
@@ -172,14 +184,13 @@ export class RecruitmentController {
   }
 
   @Post('jobs')
-
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @ApiBearerAuth()
   @RequirePermissions('manage_recruitment')
   @ApiOperation({ summary: 'Create a new job in Krinai' })
   async createJob(
     @Req() req: AuthenticatedRequest,
-    @Body() jobData: any,
+    @Body() jobData: CreateJobDto,
   ) {
     return this.recruitmentService.createJob(req.user.tenantSlug, jobData);
   }
@@ -192,7 +203,7 @@ export class RecruitmentController {
   async updateJob(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() jobData: any,
+    @Body() jobData: UpdateJobDto,
   ) {
     return this.recruitmentService.updateJob(req.user.tenantSlug, jobId, jobData);
   }
@@ -247,7 +258,7 @@ export class RecruitmentController {
   @ApiOperation({ summary: 'Receive webhooks from Krinai AI Screening' })
   async receiveWebhook(
     @Param('tenantSlug') tenantSlug: string,
-    @Body() payload: any,
+    @Body() payload: RecruitmentWebhookDto,
   ) {
     this.logger.log(`Received webhook for tenant ${tenantSlug}:`, payload);
     // Here we can dispatch notifications or update local states based on payload.event_type
@@ -280,7 +291,7 @@ export class RecruitmentController {
   async createApplicationLink(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: CreateApplicationLinkDto,
   ) {
     return this.recruitmentService.createApplicationLink(req.user.tenantSlug, jobId, data);
   }
@@ -305,7 +316,7 @@ export class RecruitmentController {
   async expireJobLinks(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: ManageJobLinksDto,
   ) {
     return this.recruitmentService.expireJobLinks(req.user.tenantSlug, jobId, data);
   }
@@ -318,7 +329,7 @@ export class RecruitmentController {
   async reopenJobLinks(
     @Req() req: AuthenticatedRequest,
     @Param('jobId') jobId: string,
-    @Body() data: any,
+    @Body() data: ManageJobLinksDto,
   ) {
     return this.recruitmentService.reopenJobLinks(req.user.tenantSlug, jobId, data);
   }
@@ -336,7 +347,7 @@ export class RecruitmentController {
   @ApiOperation({ summary: 'Submit application by token (Public)' })
   async submitApplicationByToken(
     @Param('token') token: string,
-    @Body() payload: any
+    @Body() payload: SubmitApplicationDto
   ) {
     return this.recruitmentService.submitApplicationByToken(token, payload);
   }

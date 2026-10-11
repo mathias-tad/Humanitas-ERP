@@ -5,7 +5,7 @@ import {
   IsOptional,
   Matches,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 
 export class CreateShiftDto {
   @ApiProperty()
@@ -55,3 +55,6 @@ export class CreateShiftDto {
   @IsOptional()
   wait_for_absent_minutes?: number;
 }
+
+export class UpdateShiftDto extends PartialType(CreateShiftDto) {}
+

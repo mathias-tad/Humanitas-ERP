@@ -20,6 +20,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import * as ExcelJS from 'exceljs';
+import {
+  CreateIncomeTypeDto,
+  UpdateIncomeTypeDto,
+  AssignUserIncomeDto,
+  UpdateUserIncomeDto,
+  UpdateEmployeeCategoryDto,
+  CreateTaxRuleDto,
+  UpdateTaxRuleDto,
+  CreateHolidayDto,
+  UpdateHolidayDto,
+} from './dto/payroll.dto';
 
 @ApiTags('Payroll')
 @ApiBearerAuth()
@@ -42,7 +53,7 @@ export class PayrollController {
   @Post('income-types')
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create income type' })
-  async createIncomeType(@Request() req: any, @Body() body: any) {
+  async createIncomeType(@Request() req: any, @Body() body: CreateIncomeTypeDto) {
     return this.payrollService.createIncomeType(req.user.tenantId, body);
   }
 
@@ -52,7 +63,7 @@ export class PayrollController {
   async updateIncomeType(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateIncomeTypeDto,
   ) {
     return this.payrollService.updateIncomeType(req.user.tenantId, id, body);
   }
@@ -93,7 +104,7 @@ export class PayrollController {
   async assignUserIncome(
     @Request() req: any,
     @Param('userId') userId: string,
-    @Body() body: any,
+    @Body() body: AssignUserIncomeDto,
   ) {
     return this.payrollService.assignUserIncome(
       req.user.tenantId,
@@ -108,7 +119,7 @@ export class PayrollController {
   async updateUserIncome(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateUserIncomeDto,
   ) {
     return this.payrollService.updateUserIncome(
       req.user.tenantId,
@@ -172,7 +183,7 @@ export class PayrollController {
   async updateEmployeeCategory(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateEmployeeCategoryDto,
   ) {
     return this.payrollService.updateEmployeeCategory(
       req.user.tenantId,
@@ -205,7 +216,7 @@ export class PayrollController {
   @Post('tax-rules')
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create tax rule' })
-  async createTaxRule(@Request() req: any, @Body() body: any) {
+  async createTaxRule(@Request() req: any, @Body() body: CreateTaxRuleDto) {
     return this.payrollService.createTaxRule(req.user.tenantId, body);
   }
 
@@ -215,7 +226,7 @@ export class PayrollController {
   async updateTaxRule(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateTaxRuleDto,
   ) {
     return this.payrollService.updateTaxRule(req.user.tenantId, id, body);
   }
@@ -241,7 +252,7 @@ export class PayrollController {
   @Post('holidays')
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Create holiday' })
-  async createHoliday(@Request() req: any, @Body() body: any) {
+  async createHoliday(@Request() req: any, @Body() body: CreateHolidayDto) {
     return this.payrollService.createHoliday(req.user.tenantId, body);
   }
 
@@ -251,7 +262,7 @@ export class PayrollController {
   async updateHoliday(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: UpdateHolidayDto,
   ) {
     return this.payrollService.updateHoliday(req.user.tenantId, id, body);
   }

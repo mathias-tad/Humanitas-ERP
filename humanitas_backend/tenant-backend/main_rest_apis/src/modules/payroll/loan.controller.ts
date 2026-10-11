@@ -3,6 +3,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LoanService } from './loan.service';
+import { CreateLoanDto } from './dto/create-loan.dto';
+import { UpdateLoanDto, ApproveLoanDto, RejectLoanDto, SetLoanWorkflowDto } from './dto/loan.dto';
 
 @Controller('payroll/loans')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -15,7 +17,7 @@ export class LoanController {
     async createLoan(
         @Request() req,
         @Param('userId') userId: string,
-        @Body() body: any,
+        @Body() body: CreateLoanDto,
     ) {
         const { total_amount, term_months, start_month, start_year } = body;
         if (!total_amount || !term_months || !start_month || !start_year) {
@@ -53,7 +55,7 @@ export class LoanController {
 
     // USER: Request a loan (self-service)
     @Post('my-requests')
-    async requestMyLoan(@Request() req, @Body() body: any) {
+    async requestMyLoan(@Request() req, @Body() body: CreateLoanDto) {
         const { total_amount, term_months, start_month, start_year } = body;
         if (!total_amount || !term_months || !start_month || !start_year) {
             throw new BadRequestException("Missing required loan fields");
@@ -80,7 +82,7 @@ export class LoanController {
 
     // USER: Update my pending loan
     @Put('my-requests/:id')
-    async updateMyLoan(@Request() req, @Param('id') id: string, @Body() body: any) {
+    async updateMyLoan(@Request() req, @Param('id') id: string, @Body() body: UpdateLoanDto) {
         return this.loanService.updateLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -92,7 +94,7 @@ export class LoanController {
     // ADMIN: Approve loan
     @Post(':id/approve')
     @RequirePermissions('approve_loans')
-    async approveLoan(@Request() req, @Param('id') id: string, @Body() body: any) {
+    async approveLoan(@Request() req, @Param('id') id: string, @Body() body: ApproveLoanDto) {
         return this.loanService.approveLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -104,7 +106,7 @@ export class LoanController {
     // ADMIN: Reject loan
     @Post(':id/reject')
     @RequirePermissions('approve_loans')
-    async rejectLoan(@Request() req, @Param('id') id: string, @Body() body: any) {
+    async rejectLoan(@Request() req, @Param('id') id: string, @Body() body: RejectLoanDto) {
         return this.loanService.rejectLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -129,8 +131,12 @@ export class LoanController {
 
     @Post('workflow/config')
     @RequirePermissions('manage_payroll')
-    async setWorkflow(@Request() req, @Body() body: any) {
-        return this.loanService.setWorkflowSteps(req.user.tenantSlug, body.steps);
+    async setWorkflow(@Request() req, @Body() body: SetLoanWorkflowDto) {
+        const steps = (body.steps || []).map((s) => ({
+            role_required: s.role_required,
+            is_final: Boolean(s.is_final),
+        }));
+        return this.loanService.setWorkflowSteps(req.user.tenantSlug, steps);
     }
 
     @Delete('workflow/config')

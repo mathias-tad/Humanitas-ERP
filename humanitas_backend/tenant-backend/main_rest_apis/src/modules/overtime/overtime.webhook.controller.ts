@@ -2,6 +2,7 @@ import { Controller, Post, Body, Inject, forwardRef, BadRequestException } from 
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SystemLogsService } from '../system-logs/system-logs.service';
 import { CalculationStatus } from '../system-logs/entities/calculation-log.entity';
+import { OvertimeWebhookDto } from './dto/overtime-webhook.dto';
 
 @Controller('overtime/webhook')
 export class OvertimeWebhookController {
@@ -12,7 +13,7 @@ export class OvertimeWebhookController {
     ) { }
 
     @Post('notification')
-    async handleNotification(@Body() body: any) {
+    async handleNotification(@Body() body: OvertimeWebhookDto) {
         // body: { tenantId, type, payload, userId?, logId?, status? }
         console.log('[Webhook] Received notification:', body);
 

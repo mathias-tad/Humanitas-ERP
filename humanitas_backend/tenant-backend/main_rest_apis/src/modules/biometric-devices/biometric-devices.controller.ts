@@ -16,6 +16,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 import { DeviceConnectorService } from './device-connector.service';
+import { CreateDeviceDto, UpdateDeviceDto } from './dto/device.dto';
 
 @Controller('biometric-devices')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -52,12 +53,8 @@ export class BiometricDevicesController {
 
     @Post()
     @RequirePermissions('manage_devices')
-    async createDevice(@Req() req: any, @Body() body: any) {
+    async createDevice(@Req() req: any, @Body() body: CreateDeviceDto) {
         const tenantId = req.user.tenantId;
-        // Basic validation
-        if (!body.name || !body.protocol || !body.serial_number) {
-            throw new BadRequestException('Name, Protocol, and Serial Number are required');
-        }
         return this.biometricDevicesService.createDevice(tenantId, {
             ...body,
             created_by: req.user.userId,
@@ -69,7 +66,7 @@ export class BiometricDevicesController {
     async updateDevice(
         @Req() req: any,
         @Param('id') id: string,
-        @Body() body: any,
+        @Body() body: UpdateDeviceDto,
     ) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.updateDevice(tenantId, id, body);

@@ -1,5 +1,5 @@
-import { CreateShiftDto } from './dto/create-shift.dto';
-import { CreateShiftPatternDto } from './dto/create-pattern.dto';
+import { CreateShiftDto, UpdateShiftDto } from './dto/create-shift.dto';
+import { CreateShiftPatternDto, UpdateShiftPatternDto } from './dto/create-pattern.dto';
 import {
   Injectable,
   NotFoundException,
@@ -273,7 +273,7 @@ export class SchedulingService {
     return await connection.query(`SELECT * FROM shifts WHERE is_active = true ORDER BY name`);
   }
 
-  async updateShift(tenantId: string, shiftId: string, dto: CreateShiftDto, userId: string) {
+  async updateShift(tenantId: string, shiftId: string, dto: UpdateShiftDto, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureSchedulingTables(connection);
 
@@ -397,7 +397,7 @@ export class SchedulingService {
   async updatePattern(
     tenantId: string,
     patternId: string,
-    dto: CreateShiftPatternDto,
+    dto: UpdateShiftPatternDto,
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);

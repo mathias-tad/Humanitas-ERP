@@ -16,6 +16,8 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LeaveService } from './leave.service';
 import { LeaveGateway } from './leave.gateway';
 import { LeaveScheduler } from './leave.scheduler';
+import { ApplyLeaveDto } from './dto/apply-leave.dto';
+import { SetLeaveWorkflowDto } from './dto/set-leave-workflow.dto';
 
 @ApiTags('Leave')
 @ApiBearerAuth()
@@ -60,7 +62,7 @@ export class LeaveController {
   @Post('apply')
   @RequirePermissions('request_leave')
   @ApiOperation({ summary: 'Apply for leave' })
-  async applyForLeave(@Request() req: any, @Body() data: any) {
+  async applyForLeave(@Request() req: any, @Body() data: ApplyLeaveDto) {
     const result = await this.leaveService.applyForLeave(
       req.user.tenantId,
       req.user.sub,
@@ -118,8 +120,8 @@ export class LeaveController {
   @Post('workflow')
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Set leave approval workflow' })
-  async setWorkflow(@Request() req: any, @Body() steps: any[]) {
-    return this.leaveService.setWorkflowSteps(req.user.tenantId, steps);
+  async setWorkflow(@Request() req: any, @Body() dto: SetLeaveWorkflowDto) {
+    return this.leaveService.setWorkflowSteps(req.user.tenantId, dto.steps);
   }
 
   @Get('roles')

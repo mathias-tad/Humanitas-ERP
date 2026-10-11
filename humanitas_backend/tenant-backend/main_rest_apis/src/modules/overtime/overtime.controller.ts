@@ -5,6 +5,7 @@ import { OvertimeService } from './overtime.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UpdateOvertimeDto } from './dto/update-overtime.dto';
 
 @Controller('overtime')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -34,7 +35,7 @@ export class OvertimeController {
     async update(
         @Request() req,
         @Param('id') id: string,
-        @Body() updateDto: any
+        @Body() updateDto: UpdateOvertimeDto
     ) {
         return this.overtimeService.update(req.user.tenantId, id, req.user.userId, updateDto);
     }

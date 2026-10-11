@@ -4,6 +4,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SystemLogsService } from '../system-logs/system-logs.service';
 import { CalculationType } from '../system-logs/entities/calculation-log.entity';
+import { UpdateOvertimeDto } from './dto/update-overtime.dto';
 
 @Injectable()
 export class OvertimeService {
@@ -167,7 +168,7 @@ export class OvertimeService {
         return result;
     }
 
-    async update(tenantId: string, id: string, userId: string, updateDto: any) {
+    async update(tenantId: string, id: string, userId: string, updateDto: UpdateOvertimeDto) {
         // Check period phase - block updates during FROZEN phase
         const phaseInfo = await this.getPeriodPhase(tenantId);
         if (!phaseInfo.canAdjust) {

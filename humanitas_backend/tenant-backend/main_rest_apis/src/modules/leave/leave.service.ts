@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { ApplyLeaveDto } from './dto/apply-leave.dto';
 
 @Injectable()
 export class LeaveService {
@@ -298,7 +299,7 @@ export class LeaveService {
   }
 
   // Apply for leave
-  async applyForLeave(tenantId: string, userId: string, data: any) {
+  async applyForLeave(tenantId: string, userId: string, data: ApplyLeaveDto) {
     try {
       console.log('Applying for leave:', { tenantId, userId, data });
       const connection =

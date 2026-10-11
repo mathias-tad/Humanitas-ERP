@@ -9,7 +9,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 
 export class PatternDayDto {
   @ApiProperty()
@@ -57,3 +57,6 @@ export class CreateShiftPatternDto {
   @IsOptional()
   enable_dayoff_rotation?: boolean;
 }
+
+export class UpdateShiftPatternDto extends PartialType(CreateShiftPatternDto) {}
+
