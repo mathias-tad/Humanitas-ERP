@@ -85,62 +85,32 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-import { useERPModules, type ERPModuleKey } from "./context/ModuleContext";
-import { ShieldOff, Lock } from "lucide-react";
+import { type ERPModuleKey } from "./context/ModuleContext";
+import { PageGuard } from "./components/PageGuard";
 
 // Permission & Module Subscription-based Route wrapper
 function PermissionRoute({
   children,
+  module,
   moduleKey,
-  permissions = [],
+  permission,
+  permissions,
 }: {
   children: React.ReactNode;
-  moduleKey?: ERPModuleKey;
+  module?: ERPModuleKey | string;
+  moduleKey?: ERPModuleKey | string;
+  permission?: string;
   permissions?: string[];
 }) {
-  const { hasAnyPermission, isLoading } = useAuth();
-  const { isModuleSubscribed } = useERPModules();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
-  // Check module subscription if moduleKey is specified
-  if (moduleKey && !isModuleSubscribed(moduleKey)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
-        <ShieldOff className="w-10 h-10 text-orange-400" />
-        <p className="font-medium text-lg text-foreground">Module Not Available</p>
-        <p className="text-sm text-center max-w-sm text-muted-foreground">
-          The <strong>{moduleKey.toUpperCase()}</strong> module is not included in your organization's subscription. Contact your administrator to enable it.
-        </p>
-      </div>
-    );
-  }
-
-  // If no permissions required, allow access
-  if (permissions.length === 0) {
-    return <>{children}</>;
-  }
-
-  // Check if user has any of the required permissions
-  if (!hasAnyPermission(permissions)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
-        <Lock className="w-10 h-10 text-red-400" />
-        <p className="font-medium text-lg text-foreground">Access Denied</p>
-        <p className="text-sm text-center max-w-sm text-muted-foreground">
-          You do not have the required permissions to view this page. Contact your administrator.
-        </p>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <PageGuard
+      module={module || moduleKey}
+      permission={permission}
+      permissions={permissions}
+    >
+      {children}
+    </PageGuard>
+  );
 }
 
 import Leaderboard from "./pages/Leaderboard";
@@ -172,107 +142,107 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Home />} />
         <Route path="/settings/appearance" element={<AppearanceSettings />} />
         <Route path="/recruitment" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_recruitment", "view_hrm_settings"]}>
+          <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
             <Recruitment />
           </PermissionRoute>
         } />
         <Route path="/recruitment/jobs/:jobId/leaderboard" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_recruitment", "view_hrm_settings"]}>
+          <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
             <Leaderboard />
           </PermissionRoute>
         } />
         <Route path="/recruitment/jobs/:jobId/form-builder" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_recruitment", "view_hrm_settings"]}>
+          <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
             <FormBuilder />
           </PermissionRoute>
         } />
         <Route path="/accounts" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_users", "edit_users", "create_users", "delete_users"]}>
+          <PermissionRoute module="hrms" permissions={["view_users", "edit_users", "create_users", "delete_users"]}>
             <Accounts />
           </PermissionRoute>
         } />
         <Route path="/accesscontrol" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_roles", "edit_roles", "create_roles", "delete_roles"]}>
+          <PermissionRoute module="hrms" permissions={["view_roles", "edit_roles", "create_roles", "delete_roles"]}>
             <AccessControl />
           </PermissionRoute>
         } />
         <Route path="/attendance/view" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_attendance"]}>
+          <PermissionRoute module="attendance" permissions={["view_attendance"]}>
             <Attendance />
           </PermissionRoute>
         } />
         <Route path="/attendance/my-attendance" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_my_attendance", "view_attendance"]}>
+          <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
             <MyAttendance />
           </PermissionRoute>
         } />
         <Route path="/attendance/qr-display" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_qr_display", "view_attendance"]}>
+          <PermissionRoute module="attendance" permissions={["view_qr_display", "view_attendance"]}>
             <QRDisplay />
           </PermissionRoute>
         } />
         <Route path="/attendance/clock-in" element={
-          <PermissionRoute moduleKey="hrms" permissions={["clock_in_out", "view_my_attendance"]}>
+          <PermissionRoute module="attendance" permissions={["clock_in_out", "view_my_attendance"]}>
             <ClockIn />
           </PermissionRoute>
         } />
         <Route path="/attendance/overtime-monitor" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_overtime_workers"]}>
+          <PermissionRoute module="attendance" permissions={["view_overtime_workers"]}>
             <OvertimeMonitor />
           </PermissionRoute>
         } />
         <Route path="/leave/requests" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_leave", "approve_leave"]}>
+          <PermissionRoute module="leave" permissions={["view_leave", "approve_leave"]}>
             <LeaveRequests />
           </PermissionRoute>
         } />
         <Route path="/leave/my-requests" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_my_leave", "request_leave"]}>
+          <PermissionRoute module="leave" permissions={["view_my_leave", "request_leave"]}>
             <MyLeaveRequests />
           </PermissionRoute>
         } />
         <Route path="/leave/balances" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_leave", "view_leave"]}>
+          <PermissionRoute module="leave" permissions={["manage_leave", "view_leave"]}>
             <LeaveBalances />
           </PermissionRoute>
         } />
         <Route path="/leave/workflow" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_leave", "approve_leave"]}>
+          <PermissionRoute module="leave" permissions={["manage_leave", "approve_leave"]}>
             <LeaveWorkflowSettings />
           </PermissionRoute>
         } />
         <Route path="/calendar" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_roster", "manage_roster"]}>
+          <PermissionRoute module="scheduling" permissions={["view_roster", "manage_roster"]}>
             <Calendar />
           </PermissionRoute>
         } />
         <Route path="/scheduling" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_roster", "view_roster"]}>
+          <PermissionRoute module="scheduling" permissions={["manage_roster", "view_roster"]}>
             <SchedulingDashboard />
           </PermissionRoute>
         } />
         <Route path="/devices" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_devices", "manage_devices"]}>
+          <PermissionRoute module="attendance" permissions={["view_devices", "manage_devices"]}>
             <Devices />
           </PermissionRoute>
         } />
         <Route path="/settings" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_general_settings", "edit_general_settings"]}>
+          <PermissionRoute module="hrms" permissions={["view_general_settings", "edit_general_settings"]}>
             <Settings />
           </PermissionRoute>
         } />
         <Route path="/payroll/dashboard" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_payroll_dashboard", "view_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["view_payroll_dashboard", "view_payroll"]}>
             <PayrollDashboard />
           </PermissionRoute>
         } />
         <Route path="/payroll/my-payslip" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_my_payslip", "view_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["view_my_payslip", "view_payroll"]}>
             <MyPayslip />
           </PermissionRoute>
         } />
         <Route path="/payroll/run" element={
-          <PermissionRoute moduleKey="hrms" permissions={["run_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["run_payroll"]}>
             <RunPayroll />
           </PermissionRoute>
         } />
@@ -342,27 +312,27 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/per-diem-claims" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_my_payslip", "view_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["view_my_payslip", "view_payroll"]}>
             <PerDiemClaims />
           </PermissionRoute>
         } />
         <Route path="/admin/per-diem-claims" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["manage_payroll"]}>
             <AdminPerDiemClaims />
           </PermissionRoute>
         } />
         <Route path="/payroll/loans" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["manage_payroll"]}>
             <LoanManagement />
           </PermissionRoute>
         } />
         <Route path="/payroll/loan-workflow" element={
-          <PermissionRoute moduleKey="hrms" permissions={["manage_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["manage_payroll"]}>
             <LoanWorkflowSettings />
           </PermissionRoute>
         } />
         <Route path="/my-loans" element={
-          <PermissionRoute moduleKey="hrms" permissions={["view_payroll"]}>
+          <PermissionRoute module="payroll" permissions={["view_payroll"]}>
             <MyLoans />
           </PermissionRoute>
         } />

@@ -22,10 +22,12 @@ import { UpdateManualMetricDto } from './dto/update-manual-metric.dto';
 import { LogTimeDto } from './dto/log-time.dto';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('pms')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('pms')
 export class PmsController {
     constructor(private readonly pmsService: PmsService) { }
 

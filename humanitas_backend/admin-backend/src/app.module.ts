@@ -13,6 +13,8 @@ import { LoggerModule } from './modules/logger/logger.module';
 import { BillingModule } from './modules/billing/billing.module';
 import * as dns from 'dns';
 
+import { buildAdminSslConfig } from './database/ssl-config.helper';
+
 // Force IPv4 for DNS resolution (fixes Supabase IPv6 issues)
 dns.setDefaultResultOrder('ipv4first');
 
@@ -38,11 +40,18 @@ dns.setDefaultResultOrder('ipv4first');
           logging: configService.get<string>('NODE_ENV') === 'development',
         };
 
+        const sslConfig = buildAdminSslConfig({
+          dbUrl,
+          sslEnabled,
+          ca: configService.get<string>('DATABASE_SSL_CA'),
+          explicitReject: configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+        });
+
         if (dbUrl) {
           return {
             ...baseConfig,
             url: dbUrl,
-            ssl: (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1')) ? false : (sslEnabled ? { rejectUnauthorized: false } : false),
+            ssl: sslConfig,
           };
         }
 
@@ -53,7 +62,7 @@ dns.setDefaultResultOrder('ipv4first');
           username: configService.get<string>('DATABASE_USERNAME'),
           password: configService.get<string>('DATABASE_PASSWORD'),
           database: configService.get<string>('DATABASE_NAME'),
-          ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+          ssl: sslConfig,
         };
       },
       inject: [ConfigService],

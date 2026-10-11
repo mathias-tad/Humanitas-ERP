@@ -1,55 +1,76 @@
 import { useAuth } from '@/context/AuthContext';
 import { useERPModules, type ERPModuleKey } from '@/context/ModuleContext';
 import { ShieldOff, Lock } from 'lucide-react';
+import React from 'react';
 
-interface PageGuardProps {
+export interface PageGuardProps {
   /** Module that must be subscribed for this page to render */
-  moduleKey: ERPModuleKey;
-  /** Permission key the current user must have */
-  permission: string;
+  module?: ERPModuleKey | string;
+  moduleKey?: ERPModuleKey | string;
+  /** Permission key(s) the current user must have */
+  permission?: string;
+  permissions?: string[];
   children: React.ReactNode;
 }
 
 /**
  * PageGuard — wraps a page with module subscription AND RBAC permission checks.
+ * Blocks direct URL navigation if module is disabled or permissions are missing.
  *
  * Usage:
- *   <PageGuard moduleKey="payroll" permission="view_payroll">
- *     <MyPage />
+ *   <PageGuard module="payroll" permission="view_payroll">
+ *     <RunPayroll />
  *   </PageGuard>
- *
- * Or inside a functional component:
- *   const guard = usePageGuard('payroll', 'view_payroll');
- *   if (guard) return guard;
  */
-export function PageGuard({ moduleKey, permission, children }: PageGuardProps) {
+export function PageGuard({
+  module,
+  moduleKey,
+  permission,
+  permissions,
+  children,
+}: PageGuardProps) {
   const { isModuleSubscribed } = useERPModules();
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasAnyPermission, isLoading } = useAuth();
 
-  if (!isModuleSubscribed(moduleKey)) {
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  const targetModule = module || moduleKey;
+  if (targetModule && !isModuleSubscribed(targetModule as any)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
         <ShieldOff className="w-10 h-10 text-orange-400" />
-        <p className="font-medium text-lg">Module Not Available</p>
-        <p className="text-sm text-center max-w-xs">
-          The <strong>{moduleKey.toUpperCase()}</strong> module is not included in your current
-          subscription. Contact your administrator to enable it.
+        <p className="font-medium text-lg text-foreground">Module Not Available</p>
+        <p className="text-sm text-center max-w-sm text-muted-foreground">
+          The <strong>{targetModule.toUpperCase()}</strong> module is not included in your organization's subscription. Contact your administrator to enable it.
         </p>
       </div>
     );
   }
 
-  if (!hasPermission(permission)) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
-        <Lock className="w-10 h-10 text-red-400" />
-        <p className="font-medium text-lg">Access Denied</p>
-        <p className="text-sm text-center max-w-xs">
-          You do not have permission to view this page. Contact your administrator if you believe
-          this is an error.
-        </p>
-      </div>
-    );
+  // Permission check
+  const requiredPermissions = permissions || (permission ? [permission] : []);
+  if (requiredPermissions.length > 0) {
+    const authorized = permission
+      ? hasPermission(permission)
+      : hasAnyPermission(requiredPermissions);
+
+    if (!authorized) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
+          <Lock className="w-10 h-10 text-red-400" />
+          <p className="font-medium text-lg text-foreground">Access Denied</p>
+          <p className="text-sm text-center max-w-sm text-muted-foreground">
+            You do not have the required permissions to view this page. Contact your administrator.
+          </p>
+        </div>
+      );
+    }
   }
 
   return <>{children}</>;
@@ -57,36 +78,34 @@ export function PageGuard({ moduleKey, permission, children }: PageGuardProps) {
 
 /**
  * Hook version — returns a guard element if the user is not authorized,
- * or null if they can proceed. Use at the top of a page component:
- *
- *   const guard = usePageGuard('payroll', 'view_payroll');
- *   if (guard) return guard;
+ * or null if they can proceed.
  */
-export function usePageGuard(moduleKey: ERPModuleKey, permission: string): React.ReactElement | null {
+export function usePageGuard(
+  module: ERPModuleKey | string,
+  permission?: string,
+): React.ReactElement | null {
   const { isModuleSubscribed } = useERPModules();
   const { hasPermission } = useAuth();
 
-  if (!isModuleSubscribed(moduleKey)) {
+  if (!isModuleSubscribed(module as any)) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
         <ShieldOff className="w-10 h-10 text-orange-400" />
-        <p className="font-medium text-lg">Module Not Available</p>
-        <p className="text-sm text-center max-w-xs">
-          The <strong>{moduleKey.toUpperCase()}</strong> module is not included in your current
-          subscription. Contact your administrator to enable it.
+        <p className="font-medium text-lg text-foreground">Module Not Available</p>
+        <p className="text-sm text-center max-w-sm text-muted-foreground">
+          The <strong>{module.toUpperCase()}</strong> module is not included in your organization's subscription. Contact your administrator to enable it.
         </p>
       </div>
     );
   }
 
-  if (!hasPermission(permission)) {
+  if (permission && !hasPermission(permission)) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground p-6">
         <Lock className="w-10 h-10 text-red-400" />
-        <p className="font-medium text-lg">Access Denied</p>
-        <p className="text-sm text-center max-w-xs">
-          You do not have permission to view this page. Contact your administrator if you believe
-          this is an error.
+        <p className="font-medium text-lg text-foreground">Access Denied</p>
+        <p className="text-sm text-center max-w-sm text-muted-foreground">
+          You do not have permission to view this page. Contact your administrator.
         </p>
       </div>
     );
@@ -94,3 +113,5 @@ export function usePageGuard(moduleKey: ERPModuleKey, permission: string): React
 
   return null;
 }
+
+export default PageGuard;

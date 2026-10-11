@@ -1,13 +1,15 @@
 import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto, ApproveLoanDto, RejectLoanDto, SetLoanWorkflowDto } from './dto/loan.dto';
 
 @Controller('payroll/loans')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('payroll')
 export class LoanController {
     constructor(private loanService: LoanService) { }
 

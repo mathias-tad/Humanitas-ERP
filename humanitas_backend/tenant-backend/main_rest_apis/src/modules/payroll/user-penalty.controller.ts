@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagg
 import { UserPenaltyService } from './user-penalty.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 interface AuthenticatedRequest extends Request {
@@ -24,7 +25,8 @@ interface AuthenticatedRequest extends Request {
 @ApiTags('Payroll')
 @ApiBearerAuth()
 @Controller('payroll/penalties')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('payroll')
 export class UserPenaltyController {
     constructor(private userPenaltyService: UserPenaltyService) { }
 

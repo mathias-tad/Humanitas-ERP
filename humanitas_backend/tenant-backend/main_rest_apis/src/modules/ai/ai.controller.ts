@@ -3,6 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
@@ -20,7 +21,8 @@ export class ChatRequestDto {
 }
 
 @Controller('ai')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 

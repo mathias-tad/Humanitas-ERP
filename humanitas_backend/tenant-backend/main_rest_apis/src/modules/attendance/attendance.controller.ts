@@ -15,6 +15,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { AttendanceService } from './attendance.service';
 import { AttendanceGateway } from './attendance.gateway';
@@ -29,7 +30,8 @@ import { AssignScheduleDto } from '../scheduling/dto/assign-schedule.dto';
 @ApiTags('Attendance')
 @ApiBearerAuth()
 @Controller('attendance')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('attendance')
 export class AttendanceController {
   constructor(
     private readonly attendanceService: AttendanceService,

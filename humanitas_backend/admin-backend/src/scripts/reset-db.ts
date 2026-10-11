@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { buildAdminSslConfig } from '../database/ssl-config.helper';
 
 dotenv.config();
 
@@ -10,7 +11,7 @@ const dataSource = new DataSource({
   username: process.env.DATABASE_USERNAME,
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME,
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: buildAdminSslConfig(),
 });
 
 async function resetDatabase() {

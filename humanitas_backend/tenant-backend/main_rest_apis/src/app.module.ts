@@ -33,6 +33,7 @@ import { BiometricDevicesModule } from './modules/biometric-devices/biometric-de
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { AiModule } from './modules/ai/ai.module';
+import { ModuleSubscriptionGuard } from './modules/auth/guards/module-subscription.guard';
 import * as dns from 'dns';
 
 // Force IPv4 for DNS resolution
@@ -144,6 +145,8 @@ dns.setDefaultResultOrder('ipv4first');
     // Individual controllers/routes can override with @Throttle({ default: { limit, ttl } })
     // or opt out with @SkipThrottle() for internal/health endpoints.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Global Module Subscription gating — enforces tenant package entitlements
+    { provide: APP_GUARD, useClass: ModuleSubscriptionGuard },
   ],
 })
 export class AppModule implements OnModuleInit {

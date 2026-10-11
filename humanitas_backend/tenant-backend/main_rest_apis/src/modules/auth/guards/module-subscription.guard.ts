@@ -41,9 +41,26 @@ export class ModuleSubscriptionGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    let user = request.user;
 
-    if (!user) {
+    // Fallback: If running globally before controller-level JwtAuthGuard, extract user from Bearer token
+    if (!user && request.headers?.authorization) {
+      const [type, token] = request.headers.authorization.split(' ');
+      if (type === 'Bearer' && token) {
+        try {
+          const base64Payload = token.split('.')[1];
+          if (base64Payload) {
+            const normalized = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+            user = JSON.parse(Buffer.from(normalized, 'base64').toString('utf8'));
+            request.user = user;
+          }
+        } catch {
+          // ignore parsing error, will fail on user validation below
+        }
+      }
+    }
+
+    if (!user || !user.tenantSlug) {
       throw new ForbiddenException('User not authenticated');
     }
 

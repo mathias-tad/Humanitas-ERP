@@ -16,6 +16,7 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { EmailService } from '../email/email.service';
 import { TenantMigrationService } from './tenant-migration.service';
+import { buildAdminSslConfig } from '../../database/ssl-config.helper';
 
 @Injectable()
 export class TenantService implements OnModuleInit {
@@ -71,7 +72,11 @@ export class TenantService implements OnModuleInit {
       username,
       password,
       database: 'postgres',
-      ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+      ssl: buildAdminSslConfig({
+        sslEnabled,
+        ca: this.configService.get<string>('DATABASE_SSL_CA'),
+        explicitReject: this.configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+      }),
     });
 
     try {
@@ -143,7 +148,11 @@ export class TenantService implements OnModuleInit {
       username,
       password,
       database: databaseName,
-      ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+      ssl: buildAdminSslConfig({
+        sslEnabled,
+        ca: this.configService.get<string>('DATABASE_SSL_CA'),
+        explicitReject: this.configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+      }),
     });
 
     try {
@@ -323,7 +332,11 @@ export class TenantService implements OnModuleInit {
       username,
       password,
       database: databaseName,
-      ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+      ssl: buildAdminSslConfig({
+        sslEnabled,
+        ca: this.configService.get<string>('DATABASE_SSL_CA'),
+        explicitReject: this.configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+      }),
     });
 
     try {

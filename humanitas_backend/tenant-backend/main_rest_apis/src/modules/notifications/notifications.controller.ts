@@ -2,9 +2,11 @@ import { Controller, Get, Post, Param, Request, UseGuards } from '@nestjs/common
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 
 @Controller('notifications')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('notifications')
 export class NotificationsController {
     constructor(private readonly notificationsService: NotificationsService) { }
 

@@ -15,10 +15,12 @@ import {
 import { UpdateMessagingSettingsDto } from './dto/update-messaging-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('messaging')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('messaging')
 @RequirePermissions('use_messaging')
 export class MessagingController {
     constructor(private readonly messagingService: MessagingService) { }

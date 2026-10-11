@@ -11,12 +11,15 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../../auth/decorators/permissions.decorator';
 import { ActingAssignmentsService } from './acting-assignments.service';
+import { CreateActingAssignmentDto } from '../dto/create-acting-assignment.dto';
 
 @ApiTags('Payroll')
 @Controller('payroll/acting-assignments')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('payroll')
 @ApiBearerAuth()
 export class ActingAssignmentsController {
     constructor(private readonly actingService: ActingAssignmentsService) { }
@@ -24,7 +27,7 @@ export class ActingAssignmentsController {
     @Post()
     @ApiOperation({ summary: 'Create Acting Assignment' })
     @RequirePermissions('edit_payroll_settings')
-    async create(@Req() req: any, @Body() body: any) {
+    async create(@Req() req: any, @Body() body: CreateActingAssignmentDto) {
         return this.actingService.create(req.user.tenantSlug, body);
     }
 

@@ -3,12 +3,14 @@ import { HolidaysService } from './holidays.service';
 import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Holidays')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('leave')
 @Controller('holidays')
 export class HolidaysController {
     constructor(private readonly holidaysService: HolidaysService) { }

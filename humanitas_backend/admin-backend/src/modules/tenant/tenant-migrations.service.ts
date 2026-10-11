@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Tenant } from './entities/tenant.entity';
 import { TenantMigrationService, TenantMigrationStatus } from './tenant-migration.service';
+import { buildAdminSslConfig } from '../../database/ssl-config.helper';
 
 /**
  * TenantMigrationsService (admin-backend)
@@ -57,7 +58,11 @@ export class TenantMigrationsService {
       username,
       password,
       database: databaseName,
-      ssl: sslEnabled ? { rejectUnauthorized: false } : false,
+      ssl: buildAdminSslConfig({
+        sslEnabled,
+        ca: this.configService.get<string>('DATABASE_SSL_CA'),
+        explicitReject: this.configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+      }),
     });
 
     await ds.initialize();

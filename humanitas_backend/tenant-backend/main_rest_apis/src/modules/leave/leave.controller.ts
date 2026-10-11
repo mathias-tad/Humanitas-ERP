@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { LeaveService } from './leave.service';
 import { LeaveGateway } from './leave.gateway';
@@ -22,7 +23,8 @@ import { SetLeaveWorkflowDto } from './dto/set-leave-workflow.dto';
 @ApiTags('Leave')
 @ApiBearerAuth()
 @Controller('leave')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('leave')
 export class LeaveController {
   constructor(
     private readonly leaveService: LeaveService,

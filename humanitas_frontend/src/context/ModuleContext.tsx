@@ -155,7 +155,7 @@ interface ModuleContextType {
   isMobileSidebarOpen: boolean;
   setIsMobileSidebarOpen: (open: boolean) => void;
   subscribedModules: ERPModuleKey[];
-  isModuleSubscribed: (moduleKey: ERPModuleKey) => boolean;
+  isModuleSubscribed: (moduleKey: ERPModuleKey | string) => boolean;
   switchModule: (moduleKey: ERPModuleKey) => void;
 }
 
@@ -249,8 +249,14 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const isModuleSubscribed = (key: ERPModuleKey): boolean => {
-    return subscribedModules.includes(key);
+  const isModuleSubscribed = (key: ERPModuleKey | string): boolean => {
+    const k = String(key).toLowerCase();
+    // HRMS sub-modules inherit access from hrms package subscription
+    if (["payroll", "attendance", "leave", "scheduling", "recruitment", "messaging"].includes(k)) {
+      if (subscribedModules.includes(k as ERPModuleKey)) return true;
+      return subscribedModules.includes("hrms");
+    }
+    return subscribedModules.includes(k as ERPModuleKey);
   };
 
   const switchModule = (key: ERPModuleKey) => {

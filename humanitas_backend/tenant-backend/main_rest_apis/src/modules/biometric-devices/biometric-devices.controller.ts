@@ -13,13 +13,15 @@ import {
 import { BiometricDevicesService } from './biometric-devices.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 import { DeviceConnectorService } from './device-connector.service';
 import { CreateDeviceDto, UpdateDeviceDto } from './dto/device.dto';
 
 @Controller('biometric-devices')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('attendance')
 export class BiometricDevicesController {
     constructor(
         private readonly biometricDevicesService: BiometricDevicesService,

@@ -3,12 +3,14 @@ import {
 } from '@nestjs/common';
 import { OvertimeService } from './overtime.service';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateOvertimeDto } from './dto/update-overtime.dto';
 
 @Controller('overtime')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('attendance')
 export class OvertimeController {
     constructor(private readonly overtimeService: OvertimeService) { }
 

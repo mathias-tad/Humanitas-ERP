@@ -18,6 +18,7 @@ import { PayrollService } from './payroll.service';
 import { PayrollScheduler } from './payroll.scheduler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import * as ExcelJS from 'exceljs';
 import {
@@ -35,7 +36,8 @@ import {
 @ApiTags('Payroll')
 @ApiBearerAuth()
 @Controller('payroll')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('payroll')
 export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
