@@ -33,6 +33,7 @@ class ApiConstants {
   static const String homeDashboard = '/users/home-dashboard';
   static const String myAttachments = '/users/me/attachments';
   static const String userList = '/users/list';
+  static const String orgChartTree = '/users/org-chart';
 
   // Attendance Endpoints
   static const String myAttendance = '/attendance/my-records';

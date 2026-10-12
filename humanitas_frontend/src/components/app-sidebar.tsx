@@ -1,4 +1,4 @@
-import { Calendar, Home, Settings, Computer, Key, CalendarClock, Megaphone, CalendarDays, Users, FileText } from "lucide-react";
+import { Calendar, Home, Settings, Computer, Key, CalendarClock, Megaphone, CalendarDays, Users, FileText, GitBranch } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import humanitas_logo from "../assets/humanitas_logo.png";
 import { MySidebarHeader } from "./sidebar-header";
@@ -42,6 +42,13 @@ const items = [
     icon: Users,
     id: 2,
     permissions: ["view_users", "edit_users", "create_users", "delete_users"],
+  },
+  {
+    title: "Org Chart",
+    url: "/hrms/org-chart",
+    icon: GitBranch,
+    id: 201,
+    permissions: ["view_users"],
   },
   {
     title: "Calendar",

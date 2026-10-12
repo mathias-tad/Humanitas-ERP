@@ -30,9 +30,11 @@ import {
   CreateUserDto,
   UpdateUserDto,
 } from './dto/update-profile.dto';
+import { UpdateManagerDto } from './dto/update-manager.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { RequireModule } from '../auth/guards/module-subscription.guard';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -45,6 +47,7 @@ interface AuthenticatedRequest extends FastifyRequest {
 
 @ApiTags('Users')
 @Controller('users')
+@RequireModule('hrms')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class UsersController {
@@ -208,6 +211,43 @@ export class UsersController {
   @ApiOperation({ summary: 'Get home dashboard data' })
   async getHomeDashboard(@Req() req: AuthenticatedRequest) {
     return this.usersService.getHomeDashboardData(req.user.tenantSlug);
+  }
+
+  @Get('org-chart')
+  @ApiOperation({ summary: 'Get organizational chart hierarchy' })
+  @ApiQuery({
+    name: 'department',
+    required: false,
+    type: String,
+    description: 'Filter by department',
+  })
+  @RequirePermissions('view_users')
+  async getOrgChart(
+    @Req() req: AuthenticatedRequest,
+    @Query('department') department?: string,
+  ) {
+    return this.usersService.getOrgChartTree(req.user.tenantSlug, department);
+  }
+
+  @Get(':id/reporting-chain')
+  @ApiOperation({ summary: 'Get user reporting chain and direct reports' })
+  @RequirePermissions('view_users')
+  async getReportingChain(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.usersService.getReportingChain(id, req.user.tenantSlug);
+  }
+
+  @Patch(':id/manager')
+  @ApiOperation({ summary: 'Update user reporting manager' })
+  @RequirePermissions('edit_users')
+  async updateManager(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: UpdateManagerDto,
+  ) {
+    return this.usersService.updateManager(id, dto.managerId, req.user.tenantSlug);
   }
 
   @Get(':id')

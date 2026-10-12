@@ -20,7 +20,8 @@ import {
   UpdateUserDto,
 } from './dto/update-profile.dto';
 import { SettingsService } from '../settings/settings.service';
-import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
+const uuidv4 = () => crypto.randomUUID();
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 
@@ -80,6 +81,7 @@ export class UsersService {
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS hardship_allowance_override VARCHAR(20) DEFAULT NULL',
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS transport_allowance_override VARCHAR(20) DEFAULT NULL',
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS per_diem_allowance_override VARCHAR(20) DEFAULT NULL',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id UUID',
     ];
     for (const sql of columns) {
       try {
@@ -1683,6 +1685,218 @@ export class UsersService {
       },
       pmsMetrics,
       payrollMetrics
+    };
+  }
+
+  /**
+   * Builds the hierarchical organizational chart tree for the tenant.
+   * Supports optional department filtering.
+   */
+  async getOrgChartTree(tenantSlug: string, department?: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureUserColumns(connection);
+
+    let query = `
+      SELECT 
+        u.id, 
+        u.full_name, 
+        u.email, 
+        u.phone, 
+        u.role, 
+        u.department, 
+        u.position, 
+        u.avatar_url, 
+        u.manager_id, 
+        u.is_active,
+        m.full_name as manager_name
+      FROM users u
+      LEFT JOIN users m ON u.manager_id = m.id
+      WHERE u.is_active = true
+    `;
+    const params: any[] = [];
+    if (department && department.trim() !== '') {
+      query += ` AND LOWER(u.department) = LOWER($1)`;
+      params.push(department.trim());
+    }
+    query += ` ORDER BY u.full_name ASC`;
+
+    const rawUsers = await connection.query(query, params);
+
+    // Map of id -> user with children array and direct report counts
+    const userMap = new Map<string, any>();
+    rawUsers.forEach((u: any) => {
+      userMap.set(u.id, {
+        ...u,
+        direct_reports_count: 0,
+        team_count: 0,
+        children: [],
+      });
+    });
+
+    const rootNodes: any[] = [];
+
+    // Link children to their managers
+    userMap.forEach((user) => {
+      if (user.manager_id && userMap.has(user.manager_id)) {
+        const manager = userMap.get(user.manager_id);
+        manager.children.push(user);
+        manager.direct_reports_count += 1;
+      } else {
+        rootNodes.push(user);
+      }
+    });
+
+    // Helper to compute recursive team_count
+    const computeTeamCount = (node: any): number => {
+      let count = node.children.length;
+      for (const child of node.children) {
+        count += computeTeamCount(child);
+      }
+      node.team_count = count;
+      return count;
+    };
+
+    rootNodes.forEach((root) => computeTeamCount(root));
+
+    // Get list of unique departments for filtering
+    const departmentsRes = await connection.query(`
+      SELECT DISTINCT department FROM users 
+      WHERE department IS NOT NULL AND department != '' AND is_active = true
+      ORDER BY department ASC
+    `);
+    const departments = departmentsRes.map((d: any) => d.department);
+
+    return {
+      totalEmployees: rawUsers.length,
+      rootCount: rootNodes.length,
+      departments,
+      rootNodes,
+    };
+  }
+
+  /**
+   * Retrieves the reporting chain (supervisors up to root leader),
+   * immediate direct reports, and peer colleagues.
+   */
+  async getReportingChain(userId: string, tenantSlug: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureUserColumns(connection);
+
+    const targetUserRes = await connection.query(`
+      SELECT u.id, u.full_name, u.email, u.phone, u.position, u.department, u.avatar_url, u.manager_id
+      FROM users u
+      WHERE u.id = $1
+    `, [userId]);
+
+    if (!targetUserRes || targetUserRes.length === 0) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const targetUser = targetUserRes[0];
+
+    // 1. Ancestors chain (upwards to root leader)
+    const ancestors: any[] = [];
+    let currentManagerId = targetUser.manager_id;
+    const visited = new Set<string>([targetUser.id]);
+
+    while (currentManagerId) {
+      if (visited.has(currentManagerId)) {
+        // safeguard against corrupt circular refs
+        break;
+      }
+      visited.add(currentManagerId);
+
+      const managerRes = await connection.query(`
+        SELECT id, full_name, email, phone, position, department, avatar_url, manager_id
+        FROM users WHERE id = $1
+      `, [currentManagerId]);
+
+      if (!managerRes || managerRes.length === 0) break;
+      ancestors.unshift(managerRes[0]); // top leader first
+      currentManagerId = managerRes[0].manager_id;
+    }
+
+    // 2. Direct reports
+    const directReports = await connection.query(`
+      SELECT id, full_name, email, phone, position, department, avatar_url
+      FROM users WHERE manager_id = $1 AND is_active = true
+      ORDER BY full_name ASC
+    `, [userId]);
+
+    // 3. Peers (employees with same manager)
+    let peers: any[] = [];
+    if (targetUser.manager_id) {
+      peers = await connection.query(`
+        SELECT id, full_name, email, phone, position, department, avatar_url
+        FROM users WHERE manager_id = $1 AND id != $2 AND is_active = true
+        ORDER BY full_name ASC
+      `, [targetUser.manager_id, userId]);
+    }
+
+    return {
+      user: targetUser,
+      ancestors,
+      directReports,
+      peers,
+    };
+  }
+
+  /**
+   * Updates an employee's reporting manager.
+   * Includes strict cycle-detection to prevent self-assignment and circular loops.
+   */
+  async updateManager(employeeId: string, newManagerId: string | null | undefined, tenantSlug: string) {
+    if (newManagerId === employeeId) {
+      throw new BadRequestException('An employee cannot report to themselves.');
+    }
+
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureUserColumns(connection);
+
+    // Verify employee exists
+    const employeeRes = await connection.query(`SELECT id, full_name FROM users WHERE id = $1`, [employeeId]);
+    if (!employeeRes || employeeRes.length === 0) {
+      throw new NotFoundException(`Employee ${employeeId} not found`);
+    }
+
+    if (newManagerId) {
+      // Verify manager exists
+      const managerRes = await connection.query(`SELECT id, full_name FROM users WHERE id = $1`, [newManagerId]);
+      if (!managerRes || managerRes.length === 0) {
+        throw new NotFoundException(`Manager with ID ${newManagerId} not found`);
+      }
+
+      // Check for cycles: traverse newManager's chain upwards. If employeeId is in newManager's management chain, that would create a cycle!
+      let curr = newManagerId;
+      const visited = new Set<string>();
+      while (curr) {
+        if (curr === employeeId) {
+          throw new BadRequestException(
+            'Circular reporting hierarchy detected. An employee cannot report to their own direct or indirect subordinate.'
+          );
+        }
+        if (visited.has(curr)) break;
+        visited.add(curr);
+
+        const mRes = await connection.query(`SELECT manager_id FROM users WHERE id = $1`, [curr]);
+        if (!mRes || mRes.length === 0) break;
+        curr = mRes[0].manager_id;
+      }
+    }
+
+    await connection.query(
+      `UPDATE users SET manager_id = $1, updated_at = NOW() WHERE id = $2`,
+      [newManagerId || null, employeeId]
+    );
+
+    return {
+      success: true,
+      message: newManagerId ? 'Reporting manager updated successfully' : 'Manager unassigned successfully',
+      employeeId,
+      managerId: newManagerId || null,
     };
   }
 }

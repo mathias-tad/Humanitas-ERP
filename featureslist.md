@@ -14,7 +14,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Sales, CRM & E-Invoicing | 34 | 0 | 34 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 0 | 54 | 0% |
-| HRMS & Recruitment | 41 | 28 | 13 | 68% |
+| HRMS & Recruitment | 41 | 29 | 12 | 71% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
 | Dynamic Approval Engine | 12 | 0 | 12 | 0% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
@@ -34,7 +34,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 0 | 13 | 0% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **634** | **65** | **569** | **10%** |
+| **TOTAL** | **634** | **66** | **568** | **10%** |
 
 ---
 
@@ -286,7 +286,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 - [x] **Employee Lifecycle & Profiles**:
   - [x] Comprehensive digital employee profile: Personal info, emergency contacts, employment contracts, salary grade, bank details, and compliance documents.
-  - [ ] Visual Organizational Chart with reporting manager hierarchy.
+  - [x] Visual Organizational Chart with reporting manager hierarchy.
   - [ ] Onboarding & Offboarding task checklists.
 - [x] **Recruitment & Applicant Tracking System (ATS) (`/hrms/recruitment`)**:
   - [x] Job Requisition creation with budget approval workflow.

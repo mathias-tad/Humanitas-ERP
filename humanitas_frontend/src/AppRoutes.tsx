@@ -117,6 +117,7 @@ import Leaderboard from "./pages/Leaderboard";
 import FormBuilder from "./pages/FormBuilder";
 import Recruitment from "./pages/Recruitment";
 import Apply from "./pages/Apply";
+import OrgChart from "./pages/hrms/OrgChart";
 
 function AppRoutes() {
   return (
@@ -159,6 +160,16 @@ function AppRoutes() {
         <Route path="/accounts" element={
           <PermissionRoute module="hrms" permissions={["view_users", "edit_users", "create_users", "delete_users"]}>
             <Accounts />
+          </PermissionRoute>
+        } />
+        <Route path="/hrms/org-chart" element={
+          <PermissionRoute module="hrms" permissions={["view_users"]}>
+            <OrgChart />
+          </PermissionRoute>
+        } />
+        <Route path="/org-chart" element={
+          <PermissionRoute module="hrms" permissions={["view_users"]}>
+            <OrgChart />
           </PermissionRoute>
         } />
         <Route path="/accesscontrol" element={

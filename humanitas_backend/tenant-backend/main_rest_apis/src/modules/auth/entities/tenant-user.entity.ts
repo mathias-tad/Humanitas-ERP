@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 
@@ -80,6 +81,19 @@ export class TenantUser {
   @ManyToOne('EmployeeCategory', { nullable: true })
   @JoinColumn({ name: 'employee_category_id' })
   category: any; // Using any to avoid circular import issues temporarily
+
+  @Column({ nullable: true })
+  manager_id: string;
+
+  @ManyToOne(() => TenantUser, (user) => user.direct_reports, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'manager_id' })
+  manager: TenantUser;
+
+  @OneToMany(() => TenantUser, (user) => user.manager)
+  direct_reports: TenantUser[];
 
   @CreateDateColumn()
   created_at: Date;
