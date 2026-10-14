@@ -1736,9 +1736,29 @@ export class UsersService {
 
     const rootNodes: any[] = [];
 
-    // Link children to their managers
+    // Helper to check if potentialChild is an ancestor of potentialParent
+    const isAncestor = (ancestorId: string, startId: string): boolean => {
+      let curr = startId;
+      const seen = new Set<string>();
+      while (curr && userMap.has(curr)) {
+        if (curr === ancestorId) return true;
+        if (seen.has(curr)) break;
+        seen.add(curr);
+        const node = userMap.get(curr);
+        curr = node?.manager_id;
+      }
+      return false;
+    };
+
+    // Link children to their managers while strictly preventing cycles
     userMap.forEach((user) => {
-      if (user.manager_id && userMap.has(user.manager_id)) {
+      const isValidManager =
+        user.manager_id &&
+        user.manager_id !== user.id &&
+        userMap.has(user.manager_id) &&
+        !isAncestor(user.id, user.manager_id);
+
+      if (isValidManager) {
         const manager = userMap.get(user.manager_id);
         manager.children.push(user);
         manager.direct_reports_count += 1;
@@ -1747,11 +1767,35 @@ export class UsersService {
       }
     });
 
-    // Helper to compute recursive team_count
-    const computeTeamCount = (node: any): number => {
-      let count = node.children.length;
+    // Handle any orphan / disconnected cycles: ensure every user is reachable from rootNodes
+    const reachable = new Set<string>();
+    const markReachable = (node: any) => {
+      if (!node || reachable.has(node.id)) return;
+      reachable.add(node.id);
       for (const child of node.children) {
-        count += computeTeamCount(child);
+        markReachable(child);
+      }
+    };
+    rootNodes.forEach(markReachable);
+
+    // Any user not reachable from rootNodes was in a disconnected cycle; promote them to root
+    userMap.forEach((user) => {
+      if (!reachable.has(user.id)) {
+        user.manager_id = null;
+        rootNodes.push(user);
+        markReachable(user);
+      }
+    });
+
+    // Helper to compute recursive team_count safely with visited set
+    const computeTeamCount = (node: any, visited = new Set<string>()): number => {
+      if (visited.has(node.id)) return 0;
+      visited.add(node.id);
+      let count = 0;
+      for (const child of node.children) {
+        if (!visited.has(child.id)) {
+          count += 1 + computeTeamCount(child, visited);
+        }
       }
       node.team_count = count;
       return count;

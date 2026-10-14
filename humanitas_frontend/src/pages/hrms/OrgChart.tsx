@@ -92,10 +92,13 @@ export default function OrgChart() {
       setTotalEmployees(data.totalEmployees || 0);
       setDepartments(data.departments || []);
 
-      // Flatten list for re-assignment candidate dropdown
+      // Flatten list for re-assignment candidate dropdown with cycle guard
       const flatList: OrgNode[] = [];
+      const visitedIds = new Set<string>();
       const collect = (nodes: OrgNode[]) => {
         nodes.forEach((n) => {
+          if (!n || !n.id || visitedIds.has(n.id)) return;
+          visitedIds.add(n.id);
           flatList.push(n);
           if (n.children && n.children.length > 0) collect(n.children);
         });
@@ -188,7 +191,10 @@ export default function OrgChart() {
   const eligibleManagers = useMemo(() => {
     if (!selectedEmployee) return [];
     const descendantIds = new Set<string>([selectedEmployee.id]);
+    const visited = new Set<string>();
     const collectDescendants = (node: OrgNode) => {
+      if (!node || !node.id || visited.has(node.id)) return;
+      visited.add(node.id);
       if (node.children) {
         node.children.forEach((c) => {
           descendantIds.add(c.id);
@@ -216,10 +222,17 @@ export default function OrgChart() {
     return colors[hash % colors.length];
   };
 
-  // Recursive Tree Node Renderer
-  const renderNode = (node: OrgNode, level = 0) => {
+  // Recursive Tree Node Renderer with strict cycle detection and max-depth guard
+  const renderNode = (node: OrgNode, level = 0, ancestorIds = new Set<string>()) => {
+    if (!node || !node.id || level > 25 || ancestorIds.has(node.id)) {
+      return null;
+    }
+    const nextAncestors = new Set(ancestorIds).add(node.id);
     const isCollapsed = collapsedNodes[node.id];
-    const hasChildren = node.children && node.children.length > 0;
+    const validChildren = (node.children || []).filter(
+      (child) => child && child.id && !nextAncestors.has(child.id)
+    );
+    const hasChildren = validChildren.length > 0;
     const isMatched =
       searchQuery.trim() !== '' &&
       (node.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -330,7 +343,7 @@ export default function OrgChart() {
             {/* Children container with connector lines */}
             <div className="flex items-start gap-8 relative pt-6">
               {/* Horizontal line across children */}
-              {node.children.length > 1 && (
+              {validChildren.length > 1 && (
                 <div
                   className="absolute top-0 h-px bg-border"
                   style={{
@@ -340,11 +353,11 @@ export default function OrgChart() {
                 />
               )}
 
-              {node.children.map((child) => (
+              {validChildren.map((child) => (
                 <div key={child.id} className="relative flex flex-col items-center">
                   {/* Vertical drop line from horizontal rail to child */}
                   <div className="w-px h-6 bg-border -mt-6" />
-                  {renderNode(child, level + 1)}
+                  {renderNode(child, level + 1, nextAncestors)}
                 </div>
               ))}
             </div>
@@ -487,7 +500,7 @@ export default function OrgChart() {
             }}
           >
             <div className="flex items-start gap-16">
-              {rootNodes.map((root) => renderNode(root))}
+              {rootNodes.map((root) => renderNode(root, 0, new Set<string>()))}
             </div>
           </div>
         )}

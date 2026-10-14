@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
 
@@ -25,7 +26,7 @@ async function fetcher<T>(url: string): Promise<T> {
 export function useGlobalPrefetch() {
     const queryClient = useQueryClient();
 
-    const prefetchAll = async () => {
+    const prefetchAll = useCallback(async () => {
         const staleTime = 10 * 60 * 1000; // 10 minutes
 
         // === USERS & ROLES ===
@@ -97,7 +98,7 @@ export function useGlobalPrefetch() {
             queryFn: () => fetcher(`${API_BASE_URL}/payroll/history`),
             staleTime,
         });
-    };
+    }, [queryClient]);
 
     return prefetchAll;
 }
