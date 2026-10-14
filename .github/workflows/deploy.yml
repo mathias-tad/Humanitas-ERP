@@ -101,6 +101,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          timeout: 60s
+          command_timeout: 30m
           script: |
             set -e
             echo "🚀 Starting Humanitas-ERP Deployment..."

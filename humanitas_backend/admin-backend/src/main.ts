@@ -13,6 +13,9 @@ async function bootstrap() {
     new FastifyAdapter({ logger: true }),
   );
 
+  // Enable graceful shutdown on SIGTERM / SIGINT for Docker containers
+  app.enableShutdownHooks();
+
   const configService = app.get(ConfigService);
 
   // Register cookie plugin for HttpOnly cookies

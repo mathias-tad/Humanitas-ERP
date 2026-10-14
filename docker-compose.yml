@@ -6,6 +6,7 @@ services:
     build: ./humanitas_backend/admin-backend
     container_name: erp-admin-api
     restart: always
+    stop_grace_period: 5s
     ports:
       - "127.0.0.1:5001:3000"
     extra_hosts:
@@ -37,6 +38,7 @@ services:
     build: ./humanitas_backend/tenant-backend/main_rest_apis
     container_name: erp-tenant-api
     restart: always
+    stop_grace_period: 5s
     ports:
       - "127.0.0.1:5002:3001"
     extra_hosts:
@@ -71,6 +73,7 @@ services:
     build: ./humanitas_backend/tenant-backend/main_rest_apis
     container_name: erp-tenant-worker
     restart: always
+    stop_grace_period: 5s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -102,6 +105,7 @@ services:
     build: ./humanitas_backend/tenant-backend/calculation_service
     container_name: erp-python-api
     restart: always
+    stop_grace_period: 5s
     ports:
       - "127.0.0.1:5003:8000"
     environment:
@@ -116,6 +120,7 @@ services:
     build: ./humanitas_backend/tenant-backend/calculation_service
     container_name: erp-python-worker
     restart: always
+    stop_grace_period: 5s
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -136,6 +141,7 @@ services:
         VITE_API_URL: ${ADMIN_API_URL:-https://api-admin.humanitas-erp.ziontech.tech/api/v1}
     container_name: erp-admin-frontend
     restart: always
+    stop_grace_period: 5s
     ports:
       - "127.0.0.1:5010:80"
     depends_on:
@@ -153,6 +159,7 @@ services:
         VITE_SOCKET_URL: ${SOCKET_URL:-https://api.humanitas-erp.ziontech.tech}
     container_name: erp-tenant-frontend
     restart: always
+    stop_grace_period: 5s
     ports:
       - "127.0.0.1:5011:80"
     depends_on:

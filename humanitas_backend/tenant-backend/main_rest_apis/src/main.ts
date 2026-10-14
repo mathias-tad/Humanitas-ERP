@@ -27,6 +27,9 @@ async function bootstrap() {
     new FastifyAdapter({ logger: false }), // Fastify's own logger disabled — Winston handles everything
   );
 
+  // Enable graceful shutdown on SIGTERM / SIGINT for Docker containers
+  app.enableShutdownHooks();
+
   // Wire ALL NestJS Logger calls (in every module) through our Winston LoggerService
   const logger = app.get(LoggerService);
   app.useLogger(logger);
