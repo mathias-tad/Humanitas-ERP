@@ -95,19 +95,14 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
     setFormData({ ...formData, company_name: name, slug });
   };
 
-  const toggleService = (serviceId: string) => {
-    const current = formData.enabled_features;
-    if (current.includes(serviceId)) {
-      setFormData({
-        ...formData,
-        enabled_features: current.filter((id) => id !== serviceId),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        enabled_features: [...current, serviceId],
-      });
-    }
+  const handleServiceChange = (serviceId: string, checked: boolean) => {
+    setFormData((prev) => {
+      const current = prev.enabled_features;
+      const nextFeatures = checked
+        ? Array.from(new Set([...current, serviceId]))
+        : current.filter((id) => id !== serviceId);
+      return { ...prev, enabled_features: nextFeatures };
+    });
   };
 
   return (
@@ -277,26 +272,27 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
                           ? 'bg-blue-50 border-blue-200'
                           : 'hover:bg-gray-50 cursor-pointer'
                       }`}
-                      onClick={() => !isDisabled && toggleService(service.id)}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return;
+                        if (!isDisabled) handleServiceChange(service.id, !isChecked);
+                      }}
                     >
                       <Checkbox
-                        id={service.id}
                         checked={isChecked}
                         disabled={isDisabled}
-                        onCheckedChange={() => toggleService(service.id)}
+                        onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
                         className="mt-0.5"
                       />
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 ${isChecked ? 'text-blue-600' : 'text-gray-500'}`} />
-                          <label
-                            htmlFor={service.id}
+                          <span
                             className={`text-sm font-medium leading-none cursor-pointer ${
                               isChecked ? 'text-blue-900' : ''
                             }`}
                           >
                             {service.name}
-                          </label>
+                          </span>
                           {service.comingSoon && (
                             <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
                               Soon

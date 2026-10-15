@@ -103,19 +103,14 @@ export default function TenantEdit() {
     }
   };
 
-  const toggleService = (serviceId: string) => {
-    const current = formData.enabled_features;
-    if (current.includes(serviceId)) {
-      setFormData({
-        ...formData,
-        enabled_features: current.filter((id) => id !== serviceId),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        enabled_features: [...current, serviceId],
-      });
-    }
+  const handleServiceChange = (serviceId: string, checked: boolean) => {
+    setFormData((prev) => {
+      const current = prev.enabled_features;
+      const nextFeatures = checked
+        ? Array.from(new Set([...current, serviceId]))
+        : current.filter((id) => id !== serviceId);
+      return { ...prev, enabled_features: nextFeatures };
+    });
   };
 
   if (isLoading) {
@@ -295,11 +290,14 @@ export default function TenantEdit() {
                           ? 'bg-primary/10 border-primary text-foreground shadow-sm'
                           : 'bg-card border-border text-foreground hover:bg-muted/50'
                       }`}
-                      onClick={() => toggleService(service.id)}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return;
+                        handleServiceChange(service.id, !isChecked);
+                      }}
                     >
                       <Checkbox
                         checked={isChecked}
-                        onCheckedChange={() => toggleService(service.id)}
+                        onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
                         className="mt-0.5"
                       />
                       <div className="flex-1 space-y-1">
