@@ -13,12 +13,12 @@ import {
   Package,
   FileText,
   Briefcase,
+  Check,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -285,21 +285,31 @@ export default function TenantEdit() {
                   return (
                     <div
                       key={service.id}
-                      className={`flex items-start space-x-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          handleServiceChange(service.id, !isChecked);
+                        }
+                      }}
+                      onClick={() => handleServiceChange(service.id, !isChecked)}
+                      className={`flex items-start space-x-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
                         isChecked
                           ? 'bg-primary/10 border-primary text-foreground shadow-sm'
                           : 'bg-card border-border text-foreground hover:bg-muted/50'
                       }`}
-                      onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return;
-                        handleServiceChange(service.id, !isChecked);
-                      }}
                     >
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
-                        className="mt-0.5"
-                      />
+                      <div
+                        className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                          isChecked
+                            ? 'bg-primary border-primary text-primary-foreground'
+                            : 'border-input bg-background'
+                        }`}
+                      >
+                        {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 ${isChecked ? 'text-primary' : 'text-muted-foreground'}`} />

@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -27,6 +26,7 @@ import {
   Package,
   FileText,
   Briefcase,
+  Check,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 
@@ -260,35 +260,52 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
                   const isChecked = formData.enabled_features.includes(service.id);
-                  const isDisabled = service.comingSoon;
+                  const isDisabled = !!service.comingSoon;
                   
                   return (
                     <div
                       key={service.id}
-                      className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                      role="checkbox"
+                      aria-checked={isChecked}
+                      aria-disabled={isDisabled}
+                      tabIndex={isDisabled ? -1 : 0}
+                      onKeyDown={(e) => {
+                        if (isDisabled) return;
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          handleServiceChange(service.id, !isChecked);
+                        }
+                      }}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          handleServiceChange(service.id, !isChecked);
+                        }
+                      }}
+                      className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors select-none ${
                         isDisabled
                           ? 'bg-gray-50 opacity-60 cursor-not-allowed'
                           : isChecked
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'hover:bg-gray-50 cursor-pointer'
+                          ? 'bg-blue-50 border-blue-200 cursor-pointer'
+                          : 'hover:bg-gray-50 border-gray-200 cursor-pointer'
                       }`}
-                      onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return;
-                        if (!isDisabled) handleServiceChange(service.id, !isChecked);
-                      }}
                     >
-                      <Checkbox
-                        checked={isChecked}
-                        disabled={isDisabled}
-                        onCheckedChange={(checked) => handleServiceChange(service.id, checked === true)}
-                        className="mt-0.5"
-                      />
+                      <div
+                        className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                          isDisabled
+                            ? 'border-gray-300 bg-gray-100'
+                            : isChecked
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'border-gray-300 bg-white'
+                        }`}
+                      >
+                        {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <Icon className={`h-4 w-4 ${isChecked ? 'text-blue-600' : 'text-gray-500'}`} />
                           <span
-                            className={`text-sm font-medium leading-none cursor-pointer ${
-                              isChecked ? 'text-blue-900' : ''
+                            className={`text-sm font-medium leading-none ${
+                              isChecked ? 'text-blue-900' : 'text-gray-900'
                             }`}
                           >
                             {service.name}
