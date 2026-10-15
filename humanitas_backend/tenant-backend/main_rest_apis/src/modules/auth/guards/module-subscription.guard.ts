@@ -75,9 +75,15 @@ export class ModuleSubscriptionGuard implements CanActivate {
 
     // 1. Check if tenant in master DB has explicit enabled_features
     if (tenant.enabled_features && tenant.enabled_features.length > 0) {
+      const feats = tenant.enabled_features.map((f: string) => f.toLowerCase());
+      const req = requiredModule.toLowerCase();
       if (
-        tenant.enabled_features.includes('*') ||
-        tenant.enabled_features.includes(requiredModule)
+        feats.includes('*') ||
+        feats.includes(req) ||
+        (req === 'hrms' && feats.includes('hr')) ||
+        (req === 'hr' && feats.includes('hrms')) ||
+        ((feats.includes('hrms') || feats.includes('hr')) &&
+          ['payroll', 'attendance', 'leave', 'scheduling', 'recruitment', 'messaging'].includes(req))
       ) {
         return true;
       }
