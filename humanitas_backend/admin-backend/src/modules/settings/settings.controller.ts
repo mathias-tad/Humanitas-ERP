@@ -15,6 +15,7 @@ import {
   UpdateSecuritySettingsDto,
   UpdateServicesSettingsDto,
   TestRedisDto,
+  TestEmailDto,
 } from './dto/update-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -57,9 +58,9 @@ export class SettingsController {
   }
 
   @Post('email/test')
-  @ApiOperation({ summary: 'Test email connection' })
-  testEmailConnection() {
-    return this.settingsService.testEmailConnection();
+  @ApiOperation({ summary: 'Test email connection by sending a test email' })
+  testEmailConnection(@Body() dto: TestEmailDto) {
+    return this.settingsService.testEmailConnection(dto);
   }
 
   @Get('database')

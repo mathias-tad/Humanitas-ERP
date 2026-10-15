@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PlatformSettings } from './entities/settings.entity';
@@ -8,15 +8,28 @@ import {
   UpdateDatabaseSettingsDto,
   UpdateSecuritySettingsDto,
   UpdateServicesSettingsDto,
+  TestEmailDto,
 } from './dto/update-settings.dto';
 import Redis from 'ioredis';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
-export class SettingsService {
+export class SettingsService implements OnModuleInit {
   constructor(
     @InjectRepository(PlatformSettings)
     private readonly settingsRepository: Repository<PlatformSettings>,
   ) {}
+
+  async onModuleInit() {
+    try {
+      await this.settingsRepository.query(`
+        ALTER TABLE platform_settings ADD COLUMN IF NOT EXISTS from_name VARCHAR;
+        ALTER TABLE platform_settings ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN DEFAULT true;
+      `);
+    } catch (err) {
+      // Table might not exist yet or columns already exist
+    }
+  }
 
   async getSettings(): Promise<PlatformSettings> {
     let settings = await this.settingsRepository.findOne({ where: {} });
@@ -55,6 +68,8 @@ export class SettingsService {
       smtp_username: settings.smtp_username,
       smtp_password: settings.smtp_password ? '********' : undefined,
       from_email: settings.from_email,
+      from_name: settings.from_name,
+      smtp_secure: settings.smtp_secure ?? true,
     };
   }
 
@@ -97,8 +112,8 @@ export class SettingsService {
       settings = this.settingsRepository.create({});
     }
     
-    // Only update password if it's not the masked value
-    if (dto.smtp_password === '********') {
+    // Only update password if provided and not masked
+    if (!dto.smtp_password || dto.smtp_password === '********' || dto.smtp_password.trim() === '') {
       delete dto.smtp_password;
     }
     
@@ -132,16 +147,105 @@ export class SettingsService {
     return this.getSecuritySettings();
   }
 
-  async testEmailConnection(): Promise<{ success: boolean; message: string }> {
+  async testEmailConnection(dto?: TestEmailDto): Promise<{ success: boolean; message: string }> {
     const settings = await this.settingsRepository.findOne({ where: {} });
-    
-    if (!settings?.smtp_host || !settings?.smtp_port) {
-      return { success: false, message: 'SMTP settings not configured' };
+
+    const host = dto?.smtp_host || settings?.smtp_host;
+    const port = dto?.smtp_port || settings?.smtp_port;
+    const username = dto?.smtp_username || settings?.smtp_username;
+    let password = dto?.smtp_password;
+    if (!password || password === '********') {
+      password = settings?.smtp_password;
+    }
+    const fromEmail = dto?.from_email || settings?.from_email || username;
+    const fromName = dto?.from_name || settings?.from_name || 'Humanitas Admin';
+    const isTls = dto?.smtp_secure !== undefined ? dto.smtp_secure : (settings?.smtp_secure ?? true);
+
+    if (!host || !port) {
+      return { success: false, message: 'SMTP Host and Port must be configured.' };
     }
 
-    // In production, you would actually test the connection here
-    // For now, just return success if settings exist
-    return { success: true, message: 'Email settings are configured (test not implemented)' };
+    if (!username || !password) {
+      return { success: false, message: 'SMTP Username and Password must be configured.' };
+    }
+
+    const recipient = dto?.to_email || fromEmail || username;
+
+    if (!recipient) {
+      return { success: false, message: 'Recipient email address is required.' };
+    }
+
+    try {
+      const isPort465 = Number(port) === 465;
+      const transporter = nodemailer.createTransport({
+        host,
+        port: Number(port),
+        secure: isPort465, // true for port 465, false for other ports
+        requireTLS: Boolean(isTls) && !isPort465,
+        auth: {
+          user: username,
+          pass: password,
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
+
+      await transporter.verify();
+
+      const info = await transporter.sendMail({
+        from: `"${fromName}" <${fromEmail}>`,
+        to: recipient,
+        subject: '✅ Humanitas SMTP Test Email',
+        text: `Humanitas SMTP Connection Test\n\nYour SMTP settings have been verified and an email was sent successfully to ${recipient}.\n\nHost: ${host}:${port}\nFrom: ${fromEmail}\nTLS: ${isTls ? 'Enabled' : 'Disabled'}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+            <div style="margin-bottom: 20px;">
+              <h2 style="color: #0f172a; margin: 0; font-size: 20px; font-weight: 600;">SMTP Connection Verified</h2>
+            </div>
+            <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-top: 0;">
+              Congratulations! Your SMTP configuration is working properly and ready to deliver transactional emails for your platform.
+            </p>
+            <div style="background-color: #f8fafc; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #e2e8f0;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 13px; color: #475569;">
+                <tr>
+                  <td style="padding: 6px 0; font-weight: 600; width: 110px;">SMTP Host:</td>
+                  <td style="padding: 6px 0; font-family: monospace; color: #0f172a;">${host}:${port}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-weight: 600;">Sender:</td>
+                  <td style="padding: 6px 0; font-family: monospace; color: #0f172a;">"${fromName}" &lt;${fromEmail}&gt;</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-weight: 600;">Security:</td>
+                  <td style="padding: 6px 0; color: #0f172a;">${isPort465 ? 'SSL (Port 465)' : (isTls ? 'STARTTLS (Port 587)' : 'Plain / Non-TLS')}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; font-weight: 600;">Delivered To:</td>
+                  <td style="padding: 6px 0; font-family: monospace; color: #0f172a;">${recipient}</td>
+                </tr>
+              </table>
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">
+              This is an automated test email sent from the Humanitas Admin Console.
+            </p>
+          </div>
+        `,
+      });
+
+      return {
+        success: true,
+        message: `Test email sent successfully to ${recipient}! (Message ID: ${info.messageId})`,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `SMTP error: ${error.message || 'Connection failed'}`,
+      };
+    }
   }
 
   async getServicesSettings(): Promise<Partial<PlatformSettings>> {

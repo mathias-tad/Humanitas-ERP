@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Globe, Mail, Database, Shield, Loader2, Save, TestTube, Server } from 'lucide-react';
+import { Globe, Database, Shield, Loader2, Save, TestTube, Server, Check, Send, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ interface EmailSettings {
   smtp_username: string | null;
   smtp_password: string | null;
   from_email: string | null;
+  from_name: string | null;
+  smtp_secure: boolean;
 }
 
 interface DatabaseSettings {
@@ -48,6 +50,10 @@ interface ServicesSettings {
 export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [hasPasswordConfigured, setHasPasswordConfigured] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   
   const [general, setGeneral] = useState<GeneralSettings>({
@@ -64,6 +70,8 @@ export default function Settings() {
     smtp_username: '',
     smtp_password: '',
     from_email: '',
+    from_name: '',
+    smtp_secure: true,
   });
 
   const [database, setDatabase] = useState<DatabaseSettings>({
@@ -104,11 +112,16 @@ export default function Settings() {
       });
       setEmail({
         smtp_host: data.smtp_host || '',
-        smtp_port: data.smtp_port || 587,
+        smtp_port: data.smtp_port !== undefined && data.smtp_port !== null ? Number(data.smtp_port) : 587,
         smtp_username: data.smtp_username || '',
         smtp_password: data.smtp_password || '',
         from_email: data.from_email || '',
+        from_name: data.from_name || '',
+        smtp_secure: data.smtp_secure !== undefined ? Boolean(data.smtp_secure) : true,
       });
+      if (data.smtp_password) {
+        setHasPasswordConfigured(true);
+      }
       setDatabase({
         db_host: data.db_host || 'localhost',
         db_port: data.db_port || 5432,
@@ -150,6 +163,9 @@ export default function Settings() {
     setIsSaving(true);
     try {
       await api.patch('/settings/email', email);
+      if (email.smtp_password) {
+        setHasPasswordConfigured(true);
+      }
       alert('Email settings saved successfully');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save settings');
@@ -159,11 +175,32 @@ export default function Settings() {
   };
 
   const handleTestEmail = async () => {
+    const targetEmail = testEmailAddress.trim() || email.from_email?.trim() || email.smtp_username?.trim();
+    if (!targetEmail) {
+      alert('Please enter a recipient email address to send the test email to.');
+      return;
+    }
+    setIsTesting(true);
+    setTestResult(null);
     try {
-      const result = await api.post<{ success: boolean; message: string }>('/settings/email/test');
-      alert(result.message);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to test connection');
+      const result = await api.post<{ success: boolean; message: string }>('/settings/email/test', {
+        to_email: targetEmail,
+        smtp_host: email.smtp_host,
+        smtp_port: email.smtp_port,
+        smtp_username: email.smtp_username,
+        smtp_password: email.smtp_password,
+        from_email: email.from_email,
+        from_name: email.from_name,
+        smtp_secure: email.smtp_secure,
+      });
+      setTestResult(result);
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err.message || 'Failed to send test email',
+      });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -310,79 +347,176 @@ export default function Settings() {
 
         <TabsContent value="email" className="space-y-6 mt-6">
           <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Mail className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle>Email Configuration</CardTitle>
-                  <CardDescription>Configure email settings for notifications</CardDescription>
-                </div>
-              </div>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-bold text-gray-900">SMTP Configuration</CardTitle>
+              <CardDescription className="text-sm text-gray-500">Configure your SMTP server settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>SMTP Host</Label>
+                  <Label htmlFor="smtp_host" className="text-sm font-semibold text-gray-900">SMTP Host</Label>
                   <Input
-                    placeholder="smtp.example.com"
+                    id="smtp_host"
+                    placeholder="mail.ziontech.tech"
                     value={email.smtp_host || ''}
                     onChange={(e) => setEmail({ ...email, smtp_host: e.target.value })}
+                    className="bg-white border-gray-200"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>SMTP Port</Label>
+                  <Label htmlFor="smtp_port" className="text-sm font-semibold text-gray-900">SMTP Port</Label>
                   <Input
+                    id="smtp_port"
                     type="number"
                     placeholder="587"
-                    value={email.smtp_port || ''}
-                    onChange={(e) => setEmail({ ...email, smtp_port: parseInt(e.target.value) || 587 })}
+                    value={email.smtp_port ?? ''}
+                    onChange={(e) => setEmail({ ...email, smtp_port: e.target.value ? parseInt(e.target.value, 10) : null })}
+                    className="bg-white border-gray-200"
                   />
+                  <p className="text-xs text-gray-400">587 for TLS, 465 for SSL</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>SMTP Username</Label>
-                  <Input
-                    placeholder="username"
-                    value={email.smtp_username || ''}
-                    onChange={(e) => setEmail({ ...email, smtp_username: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>SMTP Password</Label>
-                  <Input
-                    type="password"
-                    placeholder="********"
-                    value={email.smtp_password || ''}
-                    onChange={(e) => setEmail({ ...email, smtp_password: e.target.value })}
-                  />
-                </div>
-              </div>
+
               <div className="space-y-2">
-                <Label>From Email</Label>
+                <Label htmlFor="smtp_username" className="text-sm font-semibold text-gray-900">SMTP Username</Label>
                 <Input
-                  type="email"
-                  placeholder="noreply@yoursaas.com"
-                  value={email.from_email || ''}
-                  onChange={(e) => setEmail({ ...email, from_email: e.target.value })}
+                  id="smtp_username"
+                  placeholder="noreply@mybookingspot.com"
+                  value={email.smtp_username || ''}
+                  onChange={(e) => setEmail({ ...email, smtp_username: e.target.value })}
+                  className="bg-white border-gray-200"
                 />
               </div>
-              <Separator />
-              <div className="flex gap-3">
+
+              <div className="space-y-2">
+                <Label htmlFor="smtp_password" className="text-sm font-semibold text-gray-900">SMTP Password</Label>
+                <Input
+                  id="smtp_password"
+                  type="password"
+                  placeholder="••••••••••••"
+                  value={email.smtp_password || ''}
+                  onChange={(e) => {
+                    setEmail({ ...email, smtp_password: e.target.value });
+                    if (e.target.value) {
+                      setHasPasswordConfigured(true);
+                    }
+                  }}
+                  className="bg-white border-gray-200"
+                />
+                {hasPasswordConfigured && (
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5 pt-0.5">
+                    <Check className="h-3.5 w-3.5 text-gray-500" />
+                    <span>Password is configured</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="from_email" className="text-sm font-semibold text-gray-900">From Email</Label>
+                  <Input
+                    id="from_email"
+                    type="email"
+                    placeholder="noreply@mybookingspot.com"
+                    value={email.from_email || ''}
+                    onChange={(e) => setEmail({ ...email, from_email: e.target.value })}
+                    className="bg-white border-gray-200"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="from_name" className="text-sm font-semibold text-gray-900">From Name</Label>
+                  <Input
+                    id="from_name"
+                    placeholder="MyBookingSpot"
+                    value={email.from_name || ''}
+                    onChange={(e) => setEmail({ ...email, from_name: e.target.value })}
+                    className="bg-white border-gray-200"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2.5 pt-1">
+                <input
+                  type="checkbox"
+                  id="smtp_secure"
+                  checked={email.smtp_secure}
+                  onChange={(e) => setEmail({ ...email, smtp_secure: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <Label htmlFor="smtp_secure" className="text-sm font-normal text-gray-900 cursor-pointer select-none">
+                  Use TLS (recommended for port 587)
+                </Label>
+              </div>
+
+              <div className="pt-2">
                 <Button
                   onClick={handleSaveEmail}
                   disabled={isSaving}
                   style={{ backgroundColor: '#2563eb', color: 'white' }}
+                  className="hover:bg-blue-700"
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                   Save Changes
                 </Button>
-                <Button variant="outline" onClick={handleTestEmail}>
-                  <TestTube className="h-4 w-4 mr-2" />
-                  Test Connection
-                </Button>
+              </div>
+
+              <Separator className="my-6" />
+
+              <div className="space-y-3 pt-2">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <TestTube className="h-4 w-4 text-blue-600" />
+                    Test Connection
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Send a test email to verify your SMTP server configuration and delivery.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center max-w-xl">
+                  <Input
+                    type="email"
+                    placeholder="Enter recipient email (e.g. test@example.com)"
+                    value={testEmailAddress}
+                    onChange={(e) => setTestEmailAddress(e.target.value)}
+                    className="bg-white border-gray-200 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestEmail}
+                    disabled={isTesting}
+                    className="shrink-0"
+                  >
+                    {isTesting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin text-blue-600" />
+                        Testing & Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2 text-blue-600" />
+                        Send Test Email
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {testResult && (
+                  <div
+                    className={`p-3.5 rounded-lg text-sm border flex items-start gap-2.5 max-w-xl ${
+                      testResult.success
+                        ? 'bg-green-50 text-green-800 border-green-200'
+                        : 'bg-red-50 text-red-800 border-red-200'
+                    }`}
+                  >
+                    {testResult.success ? (
+                      <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                    )}
+                    <div className="flex-1 font-medium">{testResult.message}</div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

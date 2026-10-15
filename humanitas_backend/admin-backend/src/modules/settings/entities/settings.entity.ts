@@ -43,6 +43,12 @@ export class PlatformSettings {
   @Column({ nullable: true })
   from_email: string;
 
+  @Column({ nullable: true })
+  from_name: string;
+
+  @Column({ default: true })
+  smtp_secure: boolean;
+
   // Database Settings
   @Column({ default: 'localhost' })
   db_host: string;

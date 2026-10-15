@@ -64,6 +64,58 @@ export class UpdateEmailSettingsDto {
   @IsOptional()
   @IsEmail()
   from_email?: string;
+
+  @ApiPropertyOptional({ example: 'Humanitas' })
+  @IsOptional()
+  @IsString()
+  from_name?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  smtp_secure?: boolean;
+}
+
+export class TestEmailDto {
+  @ApiPropertyOptional({ example: 'admin@example.com' })
+  @IsOptional()
+  @IsEmail()
+  to_email?: string;
+
+  @ApiPropertyOptional({ example: 'mail.ziontech.tech' })
+  @IsOptional()
+  @IsString()
+  smtp_host?: string;
+
+  @ApiPropertyOptional({ example: 587 })
+  @IsOptional()
+  @IsNumber()
+  smtp_port?: number;
+
+  @ApiPropertyOptional({ example: 'noreply@mybookingspot.com' })
+  @IsOptional()
+  @IsString()
+  smtp_username?: string;
+
+  @ApiPropertyOptional({ example: 'password' })
+  @IsOptional()
+  @IsString()
+  smtp_password?: string;
+
+  @ApiPropertyOptional({ example: 'noreply@mybookingspot.com' })
+  @IsOptional()
+  @IsEmail()
+  from_email?: string;
+
+  @ApiPropertyOptional({ example: 'MyBookingSpot' })
+  @IsOptional()
+  @IsString()
+  from_name?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  smtp_secure?: boolean;
 }
 
 export class UpdateDatabaseSettingsDto {

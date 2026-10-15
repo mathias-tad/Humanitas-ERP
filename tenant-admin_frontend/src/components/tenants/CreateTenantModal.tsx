@@ -30,8 +30,16 @@ import {
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 
+interface ServiceItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: any;
+  comingSoon?: boolean;
+}
+
 // Available services/modules for tenants
-const AVAILABLE_SERVICES = [
+const AVAILABLE_SERVICES: ServiceItem[] = [
   { id: 'hr', name: 'HRMS & Workforce Directory', description: 'Employee records, departments, positions & org chart', icon: Users },
   { id: 'attendance', name: 'Attendance & Biometrics', description: 'Time tracking, shift schedules & biometric hardware sync', icon: Calendar },
   { id: 'leave', name: 'Leave Management', description: 'Leave requests, multi-tier approvals & balances', icon: Briefcase },
