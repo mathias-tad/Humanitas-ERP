@@ -1544,7 +1544,7 @@ export class AttendanceService {
     // Generate scheduled entries for all days
     const scheduledDays: any[] = [];
     for (let day = 1; day <= lastDay; day++) {
-      const dateStr = `${year} -${month.toString().padStart(2, '0')} -${day.toString().padStart(2, '0')} `;
+      const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
       const date = new Date(dateStr + 'T00:00:00.000Z');
 
       // Check for Manual Override FIRST
@@ -1639,7 +1639,7 @@ export class AttendanceService {
 
         if (!existingRecord) {
           scheduledDays.push({
-            id: `scheduled - ${dateStr} `,
+            id: `scheduled-${dateStr}`,
             user_id: userId,
             date: dateStr,
             shift_id: finalShiftId,
