@@ -17,11 +17,18 @@ interface AttendanceCollapsibleProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { useModules } from "@/context/ModuleContext";
+
 export function AttendanceCollapsible({
   isOpen,
   onOpenChange,
 }: AttendanceCollapsibleProps) {
   const { hasAnyPermission } = useAuth();
+  const { isModuleSubscribed } = useModules();
+
+  if (!isModuleSubscribed("attendance")) {
+    return null;
+  }
 
   const canViewAttendance = hasAnyPermission(["view_attendance", "edit_attendance", "correct_attendance"]);
   const canViewMyAttendance = hasAnyPermission(["view_my_attendance", "view_attendance"]);

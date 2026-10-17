@@ -38,6 +38,7 @@ import { AttendanceCollapsible } from "./AttendanceCollapsible";
 import { LeaveCollapsible } from "./LeaveCollapsible";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useModules } from "@/context/ModuleContext";
 
 interface HRCollapsibleProps {
   isOpen: boolean;
@@ -91,11 +92,26 @@ export function HRCollapsible({
     { to: "/recruitment", icon: Sparkles, label: "AI Screening", permissions: ["manage_recruitment", "view_hrm_settings", "view_dashboard"] },
   ];
 
-  // Filter items based on permissions
-  const payrollItems = allPayrollItems.filter(item => item.permissions.length === 0 || hasAnyPermission(item.permissions));
-  const attendanceItems = allAttendanceItems.filter(item => hasAnyPermission(item.permissions));
-  const leaveItems = allLeaveItems.filter(item => hasAnyPermission(item.permissions));
-  const recruitmentItems = allRecruitmentItems.filter(item => hasAnyPermission(item.permissions));
+  const { isModuleSubscribed } = useModules();
+
+  const isPayrollSubscribed = isModuleSubscribed("payroll");
+  const isAttendanceSubscribed = isModuleSubscribed("attendance");
+  const isLeaveSubscribed = isModuleSubscribed("leave");
+  const isRecruitmentSubscribed = isModuleSubscribed("recruitment");
+
+  // Filter items based on permissions AND module subscription
+  const payrollItems = isPayrollSubscribed
+    ? allPayrollItems.filter(item => item.permissions.length === 0 || hasAnyPermission(item.permissions))
+    : [];
+  const attendanceItems = isAttendanceSubscribed
+    ? allAttendanceItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const leaveItems = isLeaveSubscribed
+    ? allLeaveItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const recruitmentItems = isRecruitmentSubscribed
+    ? allRecruitmentItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
 
   // Check if any HR section is accessible
   const hasAnyHRAccess = payrollItems.length > 0 || attendanceItems.length > 0 || leaveItems.length > 0 || recruitmentItems.length > 0;
@@ -136,66 +152,70 @@ export function HRCollapsible({
             </div>
 
             {/* Attendance Section */}
-            <div className="border-b pb-1 mb-1">
-              <button
-                onClick={() => setPopoverAttendanceOpen(!popoverAttendanceOpen)}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground w-full"
-              >
-                <Clock className="h-4 w-4" />
-                <span className="flex-1 text-left">Attendance</span>
-                <ChevronRight className={`h-3 w-3 transition-transform ${popoverAttendanceOpen ? 'rotate-90' : ''}`} />
-              </button>
-              {popoverAttendanceOpen && (
-                <div className="ml-4 mt-1 space-y-1">
-                  {attendanceItems.map((item) => (
-                    <NavLink key={item.to} to={item.to}>
-                      {({ isActive }) => (
-                        <div
-                          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            }`}
-                        >
-                          <item.icon className="h-3 w-3" />
-                          <span>{item.label}</span>
-                        </div>
-                      )}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
+            {attendanceItems.length > 0 && (
+              <div className="border-b pb-1 mb-1">
+                <button
+                  onClick={() => setPopoverAttendanceOpen(!popoverAttendanceOpen)}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground w-full"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span className="flex-1 text-left">Attendance</span>
+                  <ChevronRight className={`h-3 w-3 transition-transform ${popoverAttendanceOpen ? 'rotate-90' : ''}`} />
+                </button>
+                {popoverAttendanceOpen && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {attendanceItems.map((item) => (
+                      <NavLink key={item.to} to={item.to}>
+                        {({ isActive }) => (
+                          <div
+                            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              }`}
+                          >
+                            <item.icon className="h-3 w-3" />
+                            <span>{item.label}</span>
+                          </div>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Leave Section */}
-            <div className="border-b pb-1 mb-1">
-              <button
-                onClick={() => setPopoverLeaveOpen(!popoverLeaveOpen)}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground w-full"
-              >
-                <CalendarCheck className="h-4 w-4" />
-                <span className="flex-1 text-left">Leave</span>
-                <ChevronRight className={`h-3 w-3 transition-transform ${popoverLeaveOpen ? 'rotate-90' : ''}`} />
-              </button>
-              {popoverLeaveOpen && (
-                <div className="ml-4 mt-1 space-y-1">
-                  {leaveItems.map((item) => (
-                    <NavLink key={item.to} to={item.to}>
-                      {({ isActive }) => (
-                        <div
-                          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
-                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            }`}
-                        >
-                          <item.icon className="h-3 w-3" />
-                          <span>{item.label}</span>
-                        </div>
-                      )}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
+            {leaveItems.length > 0 && (
+              <div className="border-b pb-1 mb-1">
+                <button
+                  onClick={() => setPopoverLeaveOpen(!popoverLeaveOpen)}
+                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground hover:bg-accent hover:text-accent-foreground w-full"
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                  <span className="flex-1 text-left">Leave</span>
+                  <ChevronRight className={`h-3 w-3 transition-transform ${popoverLeaveOpen ? 'rotate-90' : ''}`} />
+                </button>
+                {popoverLeaveOpen && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    {leaveItems.map((item) => (
+                      <NavLink key={item.to} to={item.to}>
+                        {({ isActive }) => (
+                          <div
+                            className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              }`}
+                          >
+                            <item.icon className="h-3 w-3" />
+                            <span>{item.label}</span>
+                          </div>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Payroll Items */}
             {payrollItems.map((item) => (
@@ -274,14 +294,18 @@ export function HRCollapsible({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
-            <AttendanceCollapsible
-              isOpen={isAttendanceOpen}
-              onOpenChange={onAttendanceOpenChange}
-            />
-            <LeaveCollapsible
-              isOpen={isLeaveOpen}
-              onOpenChange={onLeaveOpenChange}
-            />
+            {isAttendanceSubscribed && (
+              <AttendanceCollapsible
+                isOpen={isAttendanceOpen}
+                onOpenChange={onAttendanceOpenChange}
+              />
+            )}
+            {isLeaveSubscribed && (
+              <LeaveCollapsible
+                isOpen={isLeaveOpen}
+                onOpenChange={onLeaveOpenChange}
+              />
+            )}
 
             {/* Payroll Items */}
             {payrollItems.map((item) => (

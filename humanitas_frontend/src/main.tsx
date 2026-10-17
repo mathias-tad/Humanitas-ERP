@@ -9,19 +9,23 @@ import { PresenceProvider } from "./context/PresenceContext";
 import { MessagingProvider } from "./context/MessagingContext";
 import { ThemeProvider } from "@/components/theme-provider";
 
+import { ModuleProvider } from "./context/ModuleContext";
+
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <StrictMode>
       <AuthProvider>
-        <PresenceProvider>
-          <MessagingProvider>
-            <TenantProvider>
-              <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-                <App />
-              </ThemeProvider>
-            </TenantProvider>
-          </MessagingProvider>
-        </PresenceProvider>
+        <ModuleProvider>
+          <PresenceProvider>
+            <MessagingProvider>
+              <TenantProvider>
+                <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+                  <App />
+                </ThemeProvider>
+              </TenantProvider>
+            </MessagingProvider>
+          </PresenceProvider>
+        </ModuleProvider>
       </AuthProvider>
     </StrictMode>
   </BrowserRouter>

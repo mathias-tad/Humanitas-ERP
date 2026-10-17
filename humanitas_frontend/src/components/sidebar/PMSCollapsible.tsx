@@ -33,10 +33,17 @@ interface PMSCollapsibleProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { useModules } from "@/context/ModuleContext";
+
 export function PMSCollapsible({ isOpen, onOpenChange }: PMSCollapsibleProps) {
   const { state, isMobile, openMobile } = useSidebar();
   const isCollapsed = state === "collapsed" && !(isMobile && openMobile);
   const { hasAnyPermission } = useAuth();
+  const { isModuleSubscribed } = useModules();
+
+  if (!isModuleSubscribed("pms")) {
+    return null;
+  }
 
   const allMenuItems = [
     { to: "/pms/dashboard", icon: LayoutDashboard, label: "Dashboard", permissions: ["view_pms_dashboard", "view_pms"] },

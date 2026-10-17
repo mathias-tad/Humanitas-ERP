@@ -1,23 +1,18 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import React, { createContext, useContext, useMemo } from "react";
 import {
-  Users,
-  Briefcase,
   Package,
   Boxes,
   ShoppingCart,
   TrendingUp,
-  CreditCard,
-  Calculator,
-  Bot,
-  Activity,
-  type LucideIcon,
+  Store,
+  Landmark,
+  Sparkles,
+  Users,
+  FolderKanban,
+  Server,
 } from "lucide-react";
 
 export type ERPModuleKey =
-  | "hrms"
-  | "pms"
   | "products"
   | "inventory"
   | "purchasing"
@@ -25,274 +20,221 @@ export type ERPModuleKey =
   | "pos"
   | "accounting"
   | "ai"
+  | "hrms"
+  | "pms"
   | "system";
 
 export interface ERPModuleInfo {
-  key: ERPModuleKey;
   label: string;
   shortLabel: string;
   description: string;
-  icon: LucideIcon;
-  defaultRoute: string;
+  icon: React.ComponentType<any>;
   color: string;
-  badge?: string;
   bgLight: string;
-  isCommon?: boolean;
 }
 
 export const ALL_ERP_MODULES: Record<ERPModuleKey, ERPModuleInfo> = {
-  hrms: {
-    key: "hrms",
-    label: "Human Capital (HRMS)",
-    shortLabel: "HRMS",
-    description: "Employees, Attendance, Leave, Shifts & Payroll",
-    icon: Users,
-    defaultRoute: "/dashboard",
-    color: "text-blue-600 dark:text-blue-400",
-    bgLight: "bg-blue-500/10 dark:bg-blue-500/20",
-  },
-  pms: {
-    key: "pms",
-    label: "Projects & Tasks (PMS)",
-    shortLabel: "PMS",
-    description: "Sprints, Kanban Boards, Time Tracking & KPIs",
-    icon: Briefcase,
-    defaultRoute: "/pms/dashboard",
-    color: "text-indigo-600 dark:text-indigo-400",
-    bgLight: "bg-indigo-500/10 dark:bg-indigo-500/20",
-  },
   products: {
-    key: "products",
-    label: "Products & Catalog",
+    label: "Product Catalog & Matrix",
     shortLabel: "Products",
-    description: "Variants, Price Lists & Automated QR Codes",
+    description: "Multi-level categories, variant matrix generator, and barcode lifecycle engine.",
     icon: Package,
-    defaultRoute: "/products",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgLight: "bg-emerald-500/10 dark:bg-emerald-500/20",
+    color: "text-amber-500",
+    bgLight: "bg-amber-500/10",
   },
   inventory: {
-    key: "inventory",
-    label: "Inventory & Warehouses",
+    label: "Warehouse & Stock Management",
     shortLabel: "Inventory",
-    description: "Multi-Location Stock, Batches & FIFO Valuation",
+    description: "Multi-warehouse hierarchy, stock quants, FIFO/AVCO valuations, and serial/lot tracking.",
     icon: Boxes,
-    defaultRoute: "/inventory",
-    color: "text-amber-600 dark:text-amber-400",
-    bgLight: "bg-amber-500/10 dark:bg-amber-500/20",
+    color: "text-blue-500",
+    bgLight: "bg-blue-500/10",
   },
   purchasing: {
-    key: "purchasing",
-    label: "Purchasing & Vendors",
+    label: "Procurement & Vendor Portal",
     shortLabel: "Purchasing",
-    description: "Vendor RFQs, Purchase Orders & 3-Way Match",
+    description: "Purchase requisitions, RFQs, 3-way matching, landed cost distribution, and vendor scorecards.",
     icon: ShoppingCart,
-    defaultRoute: "/purchasing",
-    color: "text-purple-600 dark:text-purple-400",
-    bgLight: "bg-purple-500/10 dark:bg-purple-500/20",
+    color: "text-emerald-500",
+    bgLight: "bg-emerald-500/10",
   },
   sales: {
-    key: "sales",
-    label: "Sales, CRM & Invoicing",
+    label: "Sales CRM & Order Pipeline",
     shortLabel: "Sales",
-    description: "Leads, Quotations, Sales Orders & Deliveries",
+    description: "Opportunity Kanban pipeline, quotation builder, stock reservation, and e-invoicing.",
     icon: TrendingUp,
-    defaultRoute: "/sales",
-    color: "text-teal-600 dark:text-teal-400",
-    bgLight: "bg-teal-500/10 dark:bg-teal-500/20",
+    color: "text-purple-500",
+    bgLight: "bg-purple-500/10",
   },
   pos: {
-    key: "pos",
-    label: "Point of Sale (POS)",
+    label: "Point of Sale & Retail Registers",
     shortLabel: "POS",
-    description: "Rapid QR/Barcode Checkout, Shifts & Z-Reports",
-    icon: CreditCard,
-    defaultRoute: "/pos",
-    color: "text-rose-600 dark:text-rose-400",
-    bgLight: "bg-rose-500/10 dark:bg-rose-500/20",
+    description: "High-speed cashier touchscreen, Telebirr dynamic QR payments, offline sync, and ESC/POS receipts.",
+    icon: Store,
+    color: "text-rose-500",
+    bgLight: "bg-rose-500/10",
   },
   accounting: {
-    key: "accounting",
-    label: "Financials & Accounting",
+    label: "Financial Ledger & Double-Entry",
     shortLabel: "Accounting",
-    description: "Double-Entry General Ledger, AR/AP & Reports",
-    icon: Calculator,
-    defaultRoute: "/accounting",
-    color: "text-cyan-600 dark:text-cyan-400",
-    bgLight: "bg-cyan-500/10 dark:bg-cyan-500/20",
+    description: "Multi-tier chart of accounts, automated journal entries, bank reconciliations, and financial statements.",
+    icon: Landmark,
+    color: "text-cyan-500",
+    bgLight: "bg-cyan-500/10",
   },
   ai: {
-    key: "ai",
-    label: "AI Intelligence Suite",
-    shortLabel: "AI Suite",
-    description: "AI Document Engine, Help & Automated Actions",
-    icon: Bot,
-    defaultRoute: "/ai",
-    color: "text-violet-600 dark:text-violet-400",
-    bgLight: "bg-violet-500/10 dark:bg-violet-500/20",
-    badge: "AI Powered",
+    label: "Enterprise AI Copilot",
+    shortLabel: "AI Copilot",
+    description: "Operational knowledge engine, document template cloning, attrition prediction, and anomaly detection.",
+    icon: Sparkles,
+    color: "text-yellow-500",
+    bgLight: "bg-yellow-500/10",
+  },
+  hrms: {
+    label: "Human Resource Management",
+    shortLabel: "HRMS",
+    description: "End-to-end employee lifecycle, biometric integrations, payroll processing, and leave workflows.",
+    icon: Users,
+    color: "text-indigo-500",
+    bgLight: "bg-indigo-500/10",
+  },
+  pms: {
+    label: "Project Management & Velocity",
+    shortLabel: "PMS",
+    description: "Agile sprints, backlog planning, Gantt timelines, billable task timers, and KPI scorecards.",
+    icon: FolderKanban,
+    color: "text-teal-500",
+    bgLight: "bg-teal-500/10",
   },
   system: {
-    key: "system",
-    label: "System Health & Logs",
+    label: "System Health & Audit Logs",
     shortLabel: "System",
-    description: "Microservice Status, Failed Queues & Diagnostics",
-    icon: Activity,
-    defaultRoute: "/system-logs",
-    color: "text-slate-600 dark:text-slate-400",
-    bgLight: "bg-slate-500/10 dark:bg-slate-500/20",
-    isCommon: true,
+    description: "Microservice diagnostics, Celery job retry queues, API error traces, and tamper-proof audit trails.",
+    icon: Server,
+    color: "text-slate-400",
+    bgLight: "bg-slate-500/10",
   },
 };
 
-interface ModuleContextType {
-  activeModule: ERPModuleKey;
-  setActiveModule: (moduleKey: ERPModuleKey) => void;
-  isAppLauncherOpen: boolean;
-  setIsAppLauncherOpen: (open: boolean) => void;
-  isCommandPaletteOpen: boolean;
-  setIsCommandPaletteOpen: (open: boolean) => void;
-  isMobileSidebarOpen: boolean;
-  setIsMobileSidebarOpen: (open: boolean) => void;
-  subscribedModules: ERPModuleKey[];
-  isModuleSubscribed: (moduleKey: ERPModuleKey | string) => boolean;
-  switchModule: (moduleKey: ERPModuleKey) => void;
+import { useAuth } from "./AuthContext";
+
+export interface ModuleContextValue {
+  enabledModules: Record<ERPModuleKey, boolean>;
+  isModuleEnabled: (key: ERPModuleKey | string) => boolean;
+  isModuleSubscribed: (key: ERPModuleKey | string) => boolean;
 }
 
-const ModuleContext = createContext<ModuleContextType | undefined>(undefined);
+const ModuleContext = createContext<ModuleContextValue>({
+  enabledModules: {
+    hrms: false,
+    pms: false,
+    products: false,
+    inventory: false,
+    purchasing: false,
+    sales: false,
+    pos: false,
+    accounting: false,
+    ai: false,
+    system: true,
+  },
+  isModuleEnabled: () => false,
+  isModuleSubscribed: () => false,
+});
 
 export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { tenant } = useAuth();
-
-  // Active module state
-  const [activeModule, setActiveModule] = useState<ERPModuleKey>("hrms");
-  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Subscribed modules for current tenant dynamically derived from tenant settings/package
-  const subscribedModules = useMemo<ERPModuleKey[]>(() => {
-    // If no features configured yet, enable all modules for dev/admin onboarding
-    if (!tenant || !tenant.enabled_features || tenant.enabled_features.length === 0) {
-      return [
-        "hrms",
-        "pms",
-        "products",
-        "inventory",
-        "purchasing",
-        "sales",
-        "pos",
-        "accounting",
-        "ai",
-        "system",
-      ];
-    }
-
-    const feats = tenant.enabled_features.map((f) => f.toLowerCase());
-    const result: ERPModuleKey[] = [];
-
-    if (feats.some((f) => f === "hr" || f === "hrms" || f === "*")) result.push("hrms");
-    if (feats.some((f) => f === "pms" || f === "*")) result.push("pms");
-    if (feats.some((f) => f === "products" || f === "*")) result.push("products");
-    if (feats.some((f) => f === "inventory" || f === "*")) result.push("inventory");
-    if (feats.some((f) => f === "purchasing" || f === "*")) result.push("purchasing");
-    if (feats.some((f) => f === "sales" || f === "*")) result.push("sales");
-    if (feats.some((f) => f === "pos" || f === "*")) result.push("pos");
-    if (feats.some((f) => f === "accounting" || f === "*")) result.push("accounting");
-    if (feats.some((f) => f.startsWith("ai") || f === "*")) result.push("ai");
-    result.push("system"); // System logs always accessible
-
-    return result.length > 0
-      ? result
-      : ["hrms", "system"];
-  }, [tenant]);
-
-  // Synchronize active module based on current URL path
-  useEffect(() => {
-    const path = location.pathname.toLowerCase();
-
-    if (path.startsWith("/pms")) {
-      setActiveModule("pms");
-    } else if (path.startsWith("/products")) {
-      setActiveModule("products");
-    } else if (path.startsWith("/inventory")) {
-      setActiveModule("inventory");
-    } else if (path.startsWith("/purchasing")) {
-      setActiveModule("purchasing");
-    } else if (path.startsWith("/sales")) {
-      setActiveModule("sales");
-    } else if (path.startsWith("/pos")) {
-      setActiveModule("pos");
-    } else if (path.startsWith("/accounting")) {
-      setActiveModule("accounting");
-    } else if (path.startsWith("/ai")) {
-      setActiveModule("ai");
-    } else if (path.startsWith("/system") || path.startsWith("/system-logs")) {
-      setActiveModule("system");
-    } else {
-      setActiveModule("hrms");
-    }
-  }, [location.pathname]);
-
-  // Keyboard shortcut Ctrl/Cmd + K for Global Command Palette
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  let authContext: any = null;
+  try {
+    authContext = useAuth();
+  } catch {
+    // Outside AuthProvider
+  }
+  const tenant = authContext?.tenant;
 
   const isModuleSubscribed = (key: ERPModuleKey | string): boolean => {
-    const k = String(key).toLowerCase();
-    // HRMS sub-modules inherit access from hrms package subscription
-    if (["payroll", "attendance", "leave", "scheduling", "recruitment", "messaging"].includes(k)) {
-      if (subscribedModules.includes(k as ERPModuleKey)) return true;
-      return subscribedModules.includes("hrms");
+    const k = String(key || "").toLowerCase().trim();
+    if (!k) return false;
+
+    // Core identity & infrastructure modules are always enabled
+    const CORE_PLATFORM_MODULES = [
+      "users",
+      "system",
+      "notifications",
+      "auth",
+      "settings",
+      "presence",
+      "announcements",
+      "events",
+    ];
+    if (CORE_PLATFORM_MODULES.includes(k)) {
+      return true;
     }
-    return subscribedModules.includes(k as ERPModuleKey);
+
+    const feats = tenant?.enabled_features?.map((f: string) => f.toLowerCase().trim()) || [];
+
+    // Master wildcard allows all features
+    if (feats.includes("*")) {
+      return true;
+    }
+
+    // Direct match against tenant package subscription
+    if (feats.includes(k)) {
+      return true;
+    }
+
+    // HRMS parent bundle access
+    if (k === "hrms" && feats.some((f: string) => ["hrms", "hr", "attendance", "leave", "payroll"].includes(f))) {
+      return true;
+    }
+    if (k === "hr" && feats.some((f: string) => ["hrms", "hr"].includes(f))) {
+      return true;
+    }
+
+    // Full HRMS bundle unlocks standard HR workflows
+    if (feats.includes("hrms") && ["attendance", "leave", "scheduling", "recruitment", "messaging"].includes(k)) {
+      return true;
+    }
+
+    return false;
   };
 
-  const switchModule = (key: ERPModuleKey) => {
-    setActiveModule(key);
-    setIsAppLauncherOpen(false);
-    const targetModule = ALL_ERP_MODULES[key];
-    if (targetModule) {
-      navigate(targetModule.defaultRoute);
-    }
-  };
+  const isModuleEnabled = isModuleSubscribed;
+
+  const enabledModules = useMemo(
+    () => ({
+      hrms: isModuleSubscribed("hrms"),
+      pms: isModuleSubscribed("pms"),
+      payroll: isModuleSubscribed("payroll"),
+      attendance: isModuleSubscribed("attendance"),
+      leave: isModuleSubscribed("leave"),
+      scheduling: isModuleSubscribed("scheduling"),
+      recruitment: isModuleSubscribed("recruitment"),
+      ai: isModuleSubscribed("ai"),
+      messaging: isModuleSubscribed("messaging"),
+      system: true,
+      products: false,
+      inventory: false,
+      purchasing: false,
+      sales: false,
+      pos: false,
+      accounting: false,
+    } as any),
+    [tenant?.enabled_features],
+  );
 
   return (
-    <ModuleContext.Provider
-      value={{
-        activeModule,
-        setActiveModule,
-        isAppLauncherOpen,
-        setIsAppLauncherOpen,
-        isCommandPaletteOpen,
-        setIsCommandPaletteOpen,
-        isMobileSidebarOpen,
-        setIsMobileSidebarOpen,
-        subscribedModules,
-        isModuleSubscribed,
-        switchModule,
-      }}
-    >
+    <ModuleContext.Provider value={{ enabledModules, isModuleEnabled, isModuleSubscribed }}>
       {children}
     </ModuleContext.Provider>
   );
 };
 
-export const useERPModules = (): ModuleContextType => {
-  const context = useContext(ModuleContext);
-  if (!context) {
-    throw new Error("useERPModules must be used within a ModuleProvider");
-  }
-  return context;
+export const useModules = () => {
+  const ctx = useContext(ModuleContext);
+  return {
+    ...ctx,
+    isModuleSubscribed: ctx.isModuleSubscribed || ctx.isModuleEnabled,
+  };
 };
+
+export const useERPModules = useModules;
+

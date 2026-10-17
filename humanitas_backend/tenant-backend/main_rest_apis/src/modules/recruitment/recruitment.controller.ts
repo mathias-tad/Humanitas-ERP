@@ -40,8 +40,11 @@ interface AuthenticatedRequest extends FastifyRequest {
   };
 }
 
+import { RequireModule } from '../auth/guards/module-subscription.guard';
+
 @ApiTags('Recruitment')
 @Controller('recruitment')
+@RequireModule('recruitment')
 export class RecruitmentController {
   private readonly logger = new Logger(RecruitmentController.name);
 

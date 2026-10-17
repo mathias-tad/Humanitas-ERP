@@ -23,11 +23,18 @@ interface LeaveCollapsibleProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { useModules } from "@/context/ModuleContext";
+
 export function LeaveCollapsible({
   isOpen,
   onOpenChange,
 }: LeaveCollapsibleProps) {
   const { hasAnyPermission, user } = useAuth();
+  const { isModuleSubscribed } = useModules();
+
+  if (!isModuleSubscribed("leave")) {
+    return null;
+  }
 
   const canViewLeaveRequests = hasAnyPermission(["view_leave", "approve_leave"]);
   const canViewMyRequests = hasAnyPermission(["view_my_leave", "request_leave"]);

@@ -27,6 +27,8 @@ import { FooterCombobox } from "./sidebar-footer-combo";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { ModeToggle } from "@/components/mode-toggle";
 
+import { useModules } from "@/context/ModuleContext";
+
 // Menu items with permission requirements (matching backend permission names)
 const items = [
   {
@@ -41,6 +43,7 @@ const items = [
     url: "/accounts",
     icon: Users,
     id: 2,
+    module: "hrms",
     permissions: ["view_users", "edit_users", "create_users", "delete_users"],
   },
   {
@@ -48,6 +51,7 @@ const items = [
     url: "/hrms/org-chart",
     icon: GitBranch,
     id: 201,
+    module: "hrms",
     permissions: ["view_users"],
   },
   {
@@ -55,13 +59,15 @@ const items = [
     url: "/calendar",
     icon: Calendar,
     id: 3,
-    permissions: [], // Everyone can see calendar
+    module: "attendance",
+    permissions: [], // Requires attendance module
   },
   {
     title: "Scheduling",
     url: "/scheduling",
     icon: CalendarClock,
     id: 99,
+    module: "scheduling",
     permissions: ["manage_schedules", "view_roster", "manage_roster"],
   },
   {
@@ -83,6 +89,7 @@ const items = [
     url: "/devices",
     icon: Computer,
     id: 4,
+    module: "attendance",
     permissions: ["view_devices", "manage_devices"],
   },
   {
@@ -113,14 +120,18 @@ export function AppSidebar() {
 
   const location = useLocation();
   const { hasAnyPermission } = useAuth();
+  const { isModuleSubscribed } = useModules();
   const { state, isMobile, openMobile } = useSidebar();
   const [isPMSOpen, setIsPMSOpen] = useState(false);
   const [isHROpen, setIsHROpen] = useState(false);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
 
-  // Filter menu items based on permissions
+  // Filter menu items based on permissions and module subscription
   const canAccessItem = (item: typeof items[0]) => {
+    if ((item as any).module && !isModuleSubscribed((item as any).module)) {
+      return false;
+    }
     if (item.permissions.length === 0) return true;
     return hasAnyPermission(item.permissions);
   };

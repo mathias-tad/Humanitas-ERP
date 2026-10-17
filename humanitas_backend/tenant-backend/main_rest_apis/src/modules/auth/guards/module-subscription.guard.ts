@@ -71,27 +71,19 @@ export class ModuleSubscriptionGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Core HRMS & identity modules are always accessible to authenticated users
+    // Core identity & infrastructure modules are always accessible to authenticated users
     const CORE_MODULES = [
-      'users',
-      'hrms',
-      'hr',
-      'notifications',
-      'auth',
-      'settings',
-      'roles',
-      'presence',
-      'messaging',
-    ];
-    const req = requiredModule.toLowerCase();
-    if (CORE_MODULES.includes(req)) {
-      return true;
-    }
-
-    // Tenant owners and administrators have full module access within their subscription
-    if (user.role === 'owner' || user.role === 'admin') {
-      return true;
-    }
+       'users',
+       'notifications',
+       'auth',
+       'settings',
+       'roles',
+       'presence',
+     ];
+     const req = requiredModule.toLowerCase().trim();
+     if (CORE_MODULES.includes(req)) {
+       return true;
+     }
 
     // Look up the tenant in master DB
     const tenant = await this.tenantRepository.findOne({
@@ -104,14 +96,13 @@ export class ModuleSubscriptionGuard implements CanActivate {
 
     // 1. Check if tenant in master DB has explicit enabled_features
     if (tenant.enabled_features && tenant.enabled_features.length > 0) {
-      const feats = tenant.enabled_features.map((f: string) => f.toLowerCase());
+      const feats = tenant.enabled_features.map((f: string) => f.toLowerCase().trim());
       if (
         feats.includes('*') ||
         feats.includes(req) ||
-        (req === 'hrms' && (feats.includes('hr') || feats.includes('attendance') || feats.includes('leave') || feats.includes('pms') || feats.includes('payroll'))) ||
-        (req === 'hr' && (feats.includes('hrms') || feats.includes('attendance') || feats.includes('leave'))) ||
-        ((feats.includes('hrms') || feats.includes('hr') || feats.includes('attendance')) &&
-          ['payroll', 'attendance', 'leave', 'scheduling', 'recruitment', 'messaging', 'notifications'].includes(req))
+        (req === 'hrms' && (feats.includes('hr') || feats.includes('hrms') || feats.includes('attendance') || feats.includes('leave') || feats.includes('payroll'))) ||
+        (req === 'hr' && (feats.includes('hr') || feats.includes('hrms'))) ||
+        (feats.includes('hrms') && ['attendance', 'leave', 'scheduling', 'messaging'].includes(req))
       ) {
         return true;
       }
@@ -137,7 +128,7 @@ export class ModuleSubscriptionGuard implements CanActivate {
 
     const result = await connection.query(
       `SELECT is_active FROM tenant_modules WHERE module_key = $1 LIMIT 1`,
-      [requiredModule],
+      [req],
     );
 
     if (result && result.length > 0) {
@@ -160,20 +151,20 @@ export class ModuleSubscriptionGuard implements CanActivate {
       );
     }
 
-    // Default active core HRMS modules for standard/trial installations
+    // Default active core HRMS modules only for empty configuration
     const defaultCoreModules = [
+      'users',
+      'notifications',
+      'auth',
+      'settings',
+      'roles',
+      'presence',
       'hrms',
       'attendance',
       'leave',
-      'payroll',
-      'scheduling',
-      'pms',
-      'messaging',
-      'notifications',
-      'ai',
     ];
 
-    if (defaultCoreModules.includes(requiredModule)) {
+    if (defaultCoreModules.includes(req)) {
       return true;
     }
 
