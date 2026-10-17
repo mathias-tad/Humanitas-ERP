@@ -210,9 +210,11 @@ export class AttendanceService {
       )
     `);
 
-    // Schema Patch: Add is_corrected and corrected_by if missing
+    // Schema Patch: Add missing columns to attendance_records
     await connection.query(`
       ALTER TABLE attendance_records 
+      ADD COLUMN IF NOT EXISTS scheduled_in TIME,
+      ADD COLUMN IF NOT EXISTS scheduled_out TIME,
       ADD COLUMN IF NOT EXISTS is_corrected BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS corrected_by UUID REFERENCES users(id),
       ADD COLUMN IF NOT EXISTS ot_duration_normal INTERVAL DEFAULT '0',
