@@ -4,7 +4,7 @@
  */
 
 // Main tenant API base URL - use environment variable or fallback to VPS IP
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://161.97.124.164:3001/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
 
 // Socket.IO connection URL (for real-time features)
 export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';

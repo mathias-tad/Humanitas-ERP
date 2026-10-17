@@ -175,7 +175,7 @@ export class EmailService implements OnModuleInit {
     setupToken: string,
   ): Promise<boolean> {
     const settings = await this.getSettings();
-    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'http://161.97.124.164');
+    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'https://humanitas-erp.ziontech.tech');
     const setupLink = `${frontendUrl}/setup?token=${setupToken}`;
     const platformName = settings?.from_name || settings?.platform_name || 'Humanitas';
 
@@ -249,7 +249,7 @@ If you have any questions, please contact our support team.
     tenantSlug: string,
   ): Promise<boolean> {
     const settings = await this.getSettings();
-    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'http://161.97.124.164');
+    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'https://humanitas-erp.ziontech.tech');
     const resetLink = `${frontendUrl}/reset-password?token=${resetToken}&tenant=${tenantSlug}`;
     const platformName = settings?.from_name || settings?.platform_name || 'Humanitas';
 

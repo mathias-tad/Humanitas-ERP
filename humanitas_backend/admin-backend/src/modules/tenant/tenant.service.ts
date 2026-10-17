@@ -690,7 +690,7 @@ export class TenantService implements OnModuleInit {
       setup_token,
     );
 
-    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'http://161.97.124.164');
+    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'https://humanitas-erp.ziontech.tech');
     const setupLink = `${frontendUrl}/setup?token=${setup_token}`;
 
     if (!emailSent) {

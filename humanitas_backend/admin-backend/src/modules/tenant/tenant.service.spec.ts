@@ -31,7 +31,7 @@ describe('TenantService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string, defaultValue?: any) => {
-      if (key === 'TENANT_FRONTEND_URL') return 'http://161.97.124.164';
+      if (key === 'TENANT_FRONTEND_URL') return 'https://humanitas-erp.ziontech.tech';
       return defaultValue;
     }),
   };
@@ -110,7 +110,7 @@ describe('TenantService', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('Setup email sent successfully to admin@acme.com');
-      expect(result.setup_link).toContain('http://161.97.124.164/setup?token=');
+      expect(result.setup_link).toContain('https://humanitas-erp.ziontech.tech/setup?token=');
       expect(mockTenant.setup_token).toBeDefined();
       expect(mockTenant.setup_token_expires_at).toBeDefined();
       expect(mockTenantRepo.save).toHaveBeenCalledWith(mockTenant);
@@ -137,7 +137,7 @@ describe('TenantService', () => {
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Setup link generated, but email delivery failed');
-      expect(result.setup_link).toContain('http://161.97.124.164/setup?token=');
+      expect(result.setup_link).toContain('https://humanitas-erp.ziontech.tech/setup?token=');
       expect(mockTenantRepo.save).toHaveBeenCalled();
     });
   });

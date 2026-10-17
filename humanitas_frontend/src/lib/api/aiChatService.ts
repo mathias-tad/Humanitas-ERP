@@ -41,7 +41,7 @@ export const aiChatService = {
     formData.append('file', file);
     if (conversationId) formData.append('conversationId', conversationId);
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://161.97.124.164:3001/api/v1';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
     const tenantSlug = getCurrentTenantSlug() || '';
 
     let res = await fetch(`${baseUrl}/ai/chat-with-file`, {
@@ -71,7 +71,7 @@ export const aiChatService = {
   },
 
   async generateDocument(prompt: string, format: 'pdf' | 'docx' | 'excel', referenceText?: string): Promise<void> {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://161.97.124.164:3001/api/v1';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
     const tenantSlug = getCurrentTenantSlug() || '';
 
     let res = await fetch(`${baseUrl}/ai/document/generate`, {

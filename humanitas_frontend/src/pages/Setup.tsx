@@ -21,6 +21,24 @@ interface TenantInfo {
   subscription_plan?: string;
 }
 
+// Shared Layout Wrapper (defined outside to prevent remounting and input focus loss)
+function PageLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
+      {/* Top Navigation */}
+      <div className="absolute top-4 right-4">
+        <ModeToggle />
+      </div>
+
+      <div className="flex flex-col items-center mb-8">
+        <img src={humanitasLogo} alt="Humanitas Logo" width={200} className="mb-4" />
+        <h1 className="text-2xl font-bold text-brand-blue tracking-tight">HUMANITAS</h1>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function Setup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -127,22 +145,6 @@ function Setup() {
       setIsSubmitting(false);
     }
   };
-
-  // Shared Layout Wrapper
-  const PageLayout = ({ children }: { children: React.ReactNode }) => (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative">
-      {/* Top Navigation */}
-      <div className="absolute top-4 right-4">
-        <ModeToggle />
-      </div>
-
-      <div className="flex flex-col items-center mb-8">
-        <img src={humanitasLogo} alt="Humanitas Logo" width={200} className="mb-4" />
-        <h1 className="text-2xl font-bold text-brand-blue tracking-tight">HUMANITAS</h1>
-      </div>
-      {children}
-    </div>
-  );
 
   if (isVerifying) {
     return (
