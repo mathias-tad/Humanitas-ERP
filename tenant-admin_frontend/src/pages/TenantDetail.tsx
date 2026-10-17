@@ -79,6 +79,20 @@ export default function TenantDetail() {
   const [isRunningMigration, setIsRunningMigration] = useState(false);
   const [isSyncingPermissions, setIsSyncingPermissions] = useState(false);
 
+  // Setup email resend state (must be at top level before early returns)
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [setupEmailModal, setSetupEmailModal] = useState<{
+    isOpen: boolean;
+    success: boolean;
+    message: string;
+    setup_link?: string;
+  }>({
+    isOpen: false,
+    success: false,
+    message: '',
+  });
+  const [isCopied, setIsCopied] = useState(false);
+
   const fetchTenantMigrations = async (slug: string) => {
     try {
       setIsLoadingMigrations(true);
@@ -193,19 +207,6 @@ export default function TenantDetail() {
       alert(err instanceof Error ? err.message : 'Failed to reactivate tenant');
     }
   };
-
-  const [isResendingEmail, setIsResendingEmail] = useState(false);
-  const [setupEmailModal, setSetupEmailModal] = useState<{
-    isOpen: boolean;
-    success: boolean;
-    message: string;
-    setup_link?: string;
-  }>({
-    isOpen: false,
-    success: false,
-    message: '',
-  });
-  const [isCopied, setIsCopied] = useState(false);
 
   const handleResendSetupEmail = async () => {
     if (!tenant?.id) return;

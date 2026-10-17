@@ -96,6 +96,20 @@ export default function Tenants() {
   const [deleteModalTenant, setDeleteModalTenant] = useState<Tenant | null>(null);
   const [suspendModalTenant, setSuspendModalTenant] = useState<Tenant | null>(null);
   const [reactivateModalTenant, setReactivateModalTenant] = useState<Tenant | null>(null);
+  const [resendingTenantId, setResendingTenantId] = useState<string | null>(null);
+  const [setupEmailModal, setSetupEmailModal] = useState<{
+    isOpen: boolean;
+    tenant: Tenant | null;
+    success: boolean;
+    message: string;
+    setup_link?: string;
+  }>({
+    isOpen: false,
+    tenant: null,
+    success: false,
+    message: '',
+  });
+  const [isCopied, setIsCopied] = useState(false);
 
   const fetchTenants = async () => {
     setIsLoading(true);
@@ -198,21 +212,6 @@ export default function Tenants() {
       });
     }
   };
-
-  const [resendingTenantId, setResendingTenantId] = useState<string | null>(null);
-  const [setupEmailModal, setSetupEmailModal] = useState<{
-    isOpen: boolean;
-    tenant: Tenant | null;
-    success: boolean;
-    message: string;
-    setup_link?: string;
-  }>({
-    isOpen: false,
-    tenant: null,
-    success: false,
-    message: '',
-  });
-  const [isCopied, setIsCopied] = useState(false);
 
   const handleResendSetupEmail = async (tenant: Tenant) => {
     try {
