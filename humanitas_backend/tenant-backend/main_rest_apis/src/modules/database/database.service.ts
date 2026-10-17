@@ -170,10 +170,25 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
    * migrations so the schema is fully initialised before the first request.
    */
   async createTenantDatabase(databaseName: string): Promise<void> {
-    this.logger.log(`Creating tenant database: ${databaseName}`);
-    const { host, port, username, password } = this.parseConnectionCredentials();
+    this.logger.log(`Checking/creating tenant database: ${databaseName}`);
 
-    // Connect to the default 'postgres' database to issue CREATE DATABASE
+    // 1. If database already exists and is accessible directly, skip CREATE DATABASE
+    try {
+      const testDs = new DataSource(this.buildConnectionOptions(databaseName));
+      await testDs.initialize();
+      await testDs.destroy();
+      this.logger.log(`Tenant database "${databaseName}" already exists and is connectable.`);
+      await this.getTenantConnection(databaseName);
+      this.logger.log(`Tenant database ready: ${databaseName}`);
+      return;
+    } catch (testErr) {
+      this.logger.log(
+        `Tenant database "${databaseName}" not directly accessible (${testErr.message}). Attempting database creation...`,
+      );
+    }
+
+    // 2. If not connectable, attempt creation via postgres administrative connection
+    const { host, port, username, password } = this.parseConnectionCredentials();
     const adminDs = new DataSource({
       type: 'postgres',
       host, port, username, password,
@@ -195,11 +210,15 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
       } else {
         this.logger.log(`Database already exists: ${databaseName}`);
       }
+    } catch (adminErr) {
+      this.logger.warn(
+        `Administrative database creation query failed (${adminErr.message}). Proceeding with connection attempt...`,
+      );
     } finally {
       if (adminDs.isInitialized) await adminDs.destroy();
     }
 
-    // Open a connection to the new DB and run migrations immediately
+    // 3. Open a connection to the DB and run migrations immediately
     // (ensures schema is ready before the first tenant request arrives)
     await this.getTenantConnection(databaseName);
     this.logger.log(`Tenant database ready: ${databaseName}`);

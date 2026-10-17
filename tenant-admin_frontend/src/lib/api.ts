@@ -2,7 +2,7 @@
 // This does NOT include tenant headers as admin panel manages all tenants
 // Uses HttpOnly cookies for authentication (secure - not accessible by JavaScript)
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-admin.humanitas-erp.ziontech.tech/api/v1';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;

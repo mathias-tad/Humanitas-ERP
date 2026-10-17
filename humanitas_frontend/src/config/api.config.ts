@@ -3,11 +3,11 @@
  * All API endpoints should use these URLs from environment variables
  */
 
-// Main tenant API base URL - use environment variable or fallback to VPS IP
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
+// Main tenant API base URL - use environment variable or fallback to DNS domain
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.humanitas-erp.ziontech.tech/api/v1';
 
 // Socket.IO connection URL (for real-time features)
-export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || '';
+export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://api.humanitas-erp.ziontech.tech';
 
 // File uploads base URL (proxied through Vercel for same-origin)
 export const UPLOADS_URL = '/api/uploads';
