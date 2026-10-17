@@ -165,18 +165,42 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  status VARCHAR(20) DEFAULT 'Present',
-  check_in TIMESTAMP,
-  check_out TIMESTAMP,
-  actual_in TIME,
+  shift_id UUID,
   scheduled_in TIME,
-  work_hours DECIMAL(5, 2),
-  notes TEXT,
-  source VARCHAR(50) DEFAULT 'manual',
+  scheduled_out TIME,
+  actual_in TIMESTAMP,
+  actual_out TIMESTAMP,
+  status VARCHAR(20) DEFAULT 'Pending',
+  work_hours INTERVAL,
+  remarks TEXT,
+  is_corrected BOOLEAN DEFAULT false,
+  corrected_by UUID REFERENCES users(id),
+  ot_duration_normal INTERVAL DEFAULT '0',
+  ot_duration_night INTERVAL DEFAULT '0',
+  ot_duration_holiday INTERVAL DEFAULT '0',
+  ot_duration_dayoff INTERVAL DEFAULT '0',
+  forced_clock_out_by UUID REFERENCES users(id),
+  forced_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, date)
 );
+
+-- Patch: add any columns that may be missing from older schema versions
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS shift_id UUID;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS scheduled_in TIME;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS scheduled_out TIME;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS actual_in TIMESTAMP;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS actual_out TIMESTAMP;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS remarks TEXT;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS is_corrected BOOLEAN DEFAULT false;
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS corrected_by UUID REFERENCES users(id);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS ot_duration_normal INTERVAL DEFAULT '0';
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS ot_duration_night INTERVAL DEFAULT '0';
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS ot_duration_holiday INTERVAL DEFAULT '0';
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS ot_duration_dayoff INTERVAL DEFAULT '0';
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS forced_clock_out_by UUID REFERENCES users(id);
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS forced_at TIMESTAMP;
 
 CREATE INDEX IF NOT EXISTS idx_attendance_records_user_date ON attendance_records(user_id, date);
 
