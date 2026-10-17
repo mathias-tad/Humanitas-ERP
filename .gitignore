@@ -1,1 +1,8 @@
 .gemini
+
+# Environment files — managed per-environment, NOT tracked in git
+.env
+.env.local
+.env.*.local
+# Keep the example template committed for reference
+!.env.production.example

@@ -116,25 +116,44 @@ jobs:
 
             cd /srv/Humanitas-ERP
 
-            # 2. Pull latest code
+            # 2. Pull latest code — detect branch automatically
             echo "📥 Pulling latest code..."
             git fetch origin
-            git checkout main || git checkout master
-            git pull origin main || git pull origin master
 
-            # 3. Ensure .env.production exists (if not present or contains CHANGE_ME, replace with template)
-            if [ ! -f "/srv/Humanitas-ERP/.env.production" ] || grep -q "CHANGE_ME" /srv/Humanitas-ERP/.env.production 2>/dev/null; then
-              echo "📝 Refreshing .env.production with production database settings..."
-              cp /srv/Humanitas-ERP/.env.production.example /srv/Humanitas-ERP/.env.production
-            fi
+            # Detect the remote default branch (avoids hardcoding main vs master)
+            BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+            echo "   Detected default branch: $BRANCH"
 
-            # Copy to .env so docker compose can read it
-            cp /srv/Humanitas-ERP/.env.production /srv/Humanitas-ERP/.env
+            # Discard any local .env (not tracked in git — safe to discard)
+            git checkout -- .env 2>/dev/null || true
+
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+
+            # 3. Write .env from environment (injected by GitHub Actions secrets)
+            echo "📝 Writing production .env..."
+            cat > /srv/Humanitas-ERP/.env << 'ENVEOF'
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            COOKIE_SECRET=${{ secrets.COOKIE_SECRET }}
+            ENCRYPTION_SECRET=${{ secrets.ENCRYPTION_SECRET }}
+            MESSAGE_ENCRYPTION_KEY=${{ secrets.MESSAGE_ENCRYPTION_KEY }}
+            ADMIN_API_URL=https://api-admin.humanitas-erp.ziontech.tech/api/v1
+            TENANT_API_URL=https://api.humanitas-erp.ziontech.tech/api/v1
+            SOCKET_URL=https://api.humanitas-erp.ziontech.tech
+            ADMIN_FRONTEND_URL=https://admin.humanitas-erp.ziontech.tech
+            TENANT_FRONTEND_URL=https://humanitas-erp.ziontech.tech
+            ADMIN_BACKEND_URL=http://admin-api:3000/api/v1
+            CORS_ORIGINS=https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech
+            BCRYPT_SALT_ROUNDS=12
+            TURN_SERVER_URL=stun:stun.l.google.com:19302
+            ENVEOF
 
             # 4. Build and start containers with force-recreate
             echo "🐳 Building and starting containers..."
-            docker compose --env-file .env.production build
-            docker compose --env-file .env.production up -d --force-recreate --remove-orphans
+            docker compose --env-file .env build
+            docker compose --env-file .env up -d --force-recreate --remove-orphans
 
             # 5. Wait for admin-api to be ready
             echo "🔄 Waiting for erp-admin-api to be ready..."
