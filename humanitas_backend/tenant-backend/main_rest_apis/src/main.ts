@@ -93,6 +93,12 @@ async function bootstrap() {
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+      if (origin.endsWith('.ziontech.tech') || origin === 'https://ziontech.tech') {
+        return callback(null, true);
+      }
+      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        return callback(null, true);
+      }
       return callback(new Error(`Origin '${origin}' not allowed by CORS policy`), false);
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

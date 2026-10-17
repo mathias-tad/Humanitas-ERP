@@ -41,8 +41,19 @@ async function bootstrap() {
 
   // CORS
   const corsOrigins = configService.get<string>('CORS_ORIGINS', '');
+  const parsedOrigins = corsOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: corsOrigins.split(',').map((origin) => origin.trim()),
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (parsedOrigins.includes(origin)) return callback(null, true);
+      if (origin.endsWith('.ziontech.tech') || origin === 'https://ziontech.tech') return callback(null, true);
+      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return callback(null, true);
+      return callback(new Error(`Origin '${origin}' not allowed by CORS policy`), false);
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
     credentials: true,

@@ -26,7 +26,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - THROTTLE_LIMIT=100
       - THROTTLE_TTL=60
-      - CORS_ORIGINS=${CORS_ORIGINS}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:5173,http://localhost:1300}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
     volumes:
       - ./uploads:/app/uploads
@@ -60,7 +60,7 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_REFRESH_EXPIRES_IN=7d
       - CALCULATION_SERVICE_URL=http://python-api:8000
-      - CORS_ORIGINS=${CORS_ORIGINS}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:1300}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
     depends_on:

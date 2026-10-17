@@ -59,7 +59,7 @@ jobs:
         run: npm run build
 
   # =========================================================================
-  # 3. Mobile Testing Suite (non-blocking: failures warn but don't block deploy)
+  # 3. Mobile Testing Suite (non-blocking)
   # =========================================================================
   test-mobile:
     name: Mobile (Flutter) Tests & Quality Gate
@@ -84,7 +84,7 @@ jobs:
         run: flutter test
 
   # =========================================================================
-  # 4. Deployment (GATED: Only runs if backend + frontend tests pass on push)
+  # 4. Deployment (GATED: Only runs if backend + frontend tests pass)
   # =========================================================================
   deploy:
     name: Deploy to Production VPS
@@ -104,86 +104,28 @@ jobs:
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
           timeout: 60s
           command_timeout: 30m
-          envs: DATABASE_URL,JWT_SECRET,JWT_REFRESH_SECRET,COOKIE_SECRET,ENCRYPTION_SECRET,MESSAGE_ENCRYPTION_KEY
           script: |
             set -e
             echo "🚀 Starting Humanitas-ERP Deployment..."
-
-            # 1. Initialize directory and clone if not present
-            if [ ! -d "/srv/Humanitas-ERP" ]; then
-              echo "📁 /srv/Humanitas-ERP not found. Cloning..."
-              mkdir -p /srv/Humanitas-ERP
-              git clone https://github.com/mathias-tad/Humanitas-ERP.git /srv/Humanitas-ERP
-            fi
-
             cd /srv/Humanitas-ERP
 
-            # 2. Detect active branch and pull latest code
-            echo "📥 Pulling latest code..."
+            # Safely preserve existing VPS .env so git pull never conflicts
+            if [ -f .env ]; then
+              cp .env .env.backup
+              git checkout -- .env 2>/dev/null || true
+            fi
+
             git fetch origin
-
             BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
-            echo "   Detected default branch: $BRANCH"
-
-            # .env is not tracked by git — safe to discard any local copy before pull
-            git restore --staged .env 2>/dev/null || true
-            git checkout -- .env 2>/dev/null || true
-
             git checkout "$BRANCH"
             git pull origin "$BRANCH"
 
-            # 3. Write .env from GitHub Actions environment variables (no leading spaces)
-            echo "📝 Writing production .env..."
-            printf '%s\n' \
-              "DATABASE_URL=${DATABASE_URL}" \
-              "JWT_SECRET=${JWT_SECRET}" \
-              "JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}" \
-              "COOKIE_SECRET=${COOKIE_SECRET}" \
-              "ENCRYPTION_SECRET=${ENCRYPTION_SECRET}" \
-              "MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}" \
-              "ADMIN_API_URL=https://api-admin.humanitas-erp.ziontech.tech/api/v1" \
-              "TENANT_API_URL=https://api.humanitas-erp.ziontech.tech/api/v1" \
-              "SOCKET_URL=https://api.humanitas-erp.ziontech.tech" \
-              "ADMIN_FRONTEND_URL=https://admin.humanitas-erp.ziontech.tech" \
-              "TENANT_FRONTEND_URL=https://humanitas-erp.ziontech.tech" \
-              "ADMIN_BACKEND_URL=http://admin-api:3000/api/v1" \
-              "CORS_ORIGINS=https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech" \
-              "BCRYPT_SALT_ROUNDS=12" \
-              "TURN_SERVER_URL=stun:stun.l.google.com:19302" \
-              > /srv/Humanitas-ERP/.env
+            # Restore original VPS .env
+            if [ -f .env.backup ]; then
+              mv .env.backup .env
+            fi
 
-            echo "✅ .env written"
-
-            # 4. Build and start containers with force-recreate
-            echo "🐳 Building and starting containers..."
-            docker compose --env-file .env build
-            docker compose --env-file .env up -d --force-recreate --remove-orphans
-
-            # 5. Wait for admin-api to be ready
-            echo "🔄 Waiting for erp-admin-api to be ready..."
-            for i in $(seq 1 20); do
-              if docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/health > /dev/null 2>&1 || \
-                 docker compose exec -T admin-api wget -q --spider http://localhost:3000/api/v1/docs > /dev/null 2>&1; then
-                echo "✅ erp-admin-api is ready."
-                break
-              fi
-              echo "   Waiting for erp-admin-api... ($i/20)"
-              sleep 3
-            done
-
-            # 6. Auto-seed admin user
-            echo "🌱 Running admin database seeder..."
-            docker compose exec -T admin-api wget -qO- --post-data="" http://localhost:3000/api/v1/users/admins/seed 2>/dev/null || \
-            curl -s -X POST http://127.0.0.1:5001/api/v1/users/admins/seed || true
-
+            docker compose build
+            docker compose up -d --remove-orphans
             docker image prune -f
-            echo "================================================="
-            echo "🎉 Humanitas-ERP Deployment Completed Successfully!"
-            echo "================================================="
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
-          ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET }}
-          MESSAGE_ENCRYPTION_KEY: ${{ secrets.MESSAGE_ENCRYPTION_KEY }}
+            echo "✅ Humanitas-ERP Deployed Successfully!"
