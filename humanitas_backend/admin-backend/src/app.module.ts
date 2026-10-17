@@ -30,13 +30,52 @@ dns.setDefaultResultOrder('ipv4first');
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        let dbUrl = configService.get<string>('DATABASE_URL');
+        const rawDbUrl = configService.get<string>('DATABASE_URL');
         const sslEnabled = configService.get<string>('DATABASE_SSL') === 'true';
 
-        // Auto-heal: in Docker containers, localhost refers to the container itself.
-        // Map localhost/127.0.0.1 to host.docker.internal so it connects to VPS host PostgreSQL.
-        if (dbUrl && (dbUrl.includes('@localhost:') || dbUrl.includes('@127.0.0.1:'))) {
-          dbUrl = dbUrl.replace('@localhost:', '@host.docker.internal:').replace('@127.0.0.1:', '@host.docker.internal:');
+        let dbHost = configService.get<string>('DATABASE_HOST', 'host.docker.internal');
+        let dbPort = Number(configService.get<string | number>('DATABASE_PORT', 5432));
+        let dbUser = configService.get<string>('DATABASE_USERNAME', 'postgres');
+        let dbPassword = configService.get<string>('DATABASE_PASSWORD', '');
+        let dbName = configService.get<string>('DATABASE_NAME', 'tenant');
+
+        if (rawDbUrl) {
+          try {
+            // URL or connection string parser
+            const cleanUrl = rawDbUrl.startsWith('postgresql://') || rawDbUrl.startsWith('postgres://')
+              ? rawDbUrl
+              : `postgresql://${rawDbUrl}`;
+            const parsed = new URL(cleanUrl);
+            if (parsed.hostname) dbHost = parsed.hostname;
+            if (parsed.port) dbPort = parseInt(parsed.port, 10);
+            if (parsed.username) dbUser = decodeURIComponent(parsed.username);
+            if (parsed.password) dbPassword = decodeURIComponent(parsed.password);
+            if (parsed.pathname && parsed.pathname.length > 1) {
+              dbName = parsed.pathname.slice(1).split('?')[0];
+            }
+          } catch {
+            // Fallback for non-standard formats
+            try {
+              const parsePg = require('pg-connection-string').parse;
+              const parsed = parsePg(rawDbUrl);
+              if (parsed.host) dbHost = parsed.host;
+              if (parsed.port) dbPort = parseInt(parsed.port, 10);
+              if (parsed.user) dbUser = parsed.user;
+              if (parsed.password) dbPassword = parsed.password;
+              if (parsed.database) dbName = parsed.database;
+            } catch {
+              // keep defaults
+            }
+          }
+        }
+
+        // Auto-heal: map localhost/127.0.0.1 to host.docker.internal in Docker
+        if (dbHost === 'localhost' || dbHost === '127.0.0.1') {
+          dbHost = 'host.docker.internal';
+        }
+        // Guarantee username is never empty (prevents: "no PostgreSQL user name specified in startup packet")
+        if (!dbUser) {
+          dbUser = 'postgres';
         }
 
         const baseConfig = {
@@ -47,32 +86,19 @@ dns.setDefaultResultOrder('ipv4first');
         };
 
         const sslConfig = buildAdminSslConfig({
-          dbUrl,
+          dbUrl: rawDbUrl,
           sslEnabled,
           ca: configService.get<string>('DATABASE_SSL_CA'),
           explicitReject: configService.get<string>('DATABASE_SSL_REJECT_UNAUTHORIZED'),
         });
 
-        if (dbUrl) {
-          return {
-            ...baseConfig,
-            url: dbUrl,
-            ssl: sslConfig,
-          };
-        }
-
-        let dbHost = configService.get<string>('DATABASE_HOST');
-        if (!dbHost || dbHost === 'localhost' || dbHost === '127.0.0.1') {
-          dbHost = 'host.docker.internal';
-        }
-
         return {
           ...baseConfig,
           host: dbHost,
-          port: configService.get<number>('DATABASE_PORT', 5432),
-          username: configService.get<string>('DATABASE_USERNAME'),
-          password: configService.get<string>('DATABASE_PASSWORD'),
-          database: configService.get<string>('DATABASE_NAME'),
+          port: dbPort,
+          username: dbUser,
+          password: dbPassword,
+          database: dbName,
           ssl: sslConfig,
         };
       },
