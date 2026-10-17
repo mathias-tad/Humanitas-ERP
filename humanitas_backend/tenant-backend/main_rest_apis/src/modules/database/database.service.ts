@@ -172,6 +172,9 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
   async createTenantDatabase(databaseName: string): Promise<void> {
     this.logger.log(`Checking/creating tenant database: ${databaseName}`);
 
+    // Evict any stale cached connection so fresh migrations are guaranteed
+    await this.resetConnection(databaseName);
+
     // 1. If database already exists and is accessible directly, skip CREATE DATABASE
     try {
       const testDs = new DataSource(this.buildConnectionOptions(databaseName));
@@ -220,6 +223,7 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
 
     // 3. Open a connection to the DB and run migrations immediately
     // (ensures schema is ready before the first tenant request arrives)
+    await this.resetConnection(databaseName);
     await this.getTenantConnection(databaseName);
     this.logger.log(`Tenant database ready: ${databaseName}`);
   }
