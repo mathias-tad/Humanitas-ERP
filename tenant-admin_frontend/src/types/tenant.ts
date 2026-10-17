@@ -30,6 +30,9 @@ export interface Tenant {
   date_format: string;
   currency: string;
   is_active: boolean;
+  is_setup_complete?: boolean;
+  setup_token?: string;
+  setup_token_expires_at?: string;
   created_at: string;
   updated_at: string;
 }

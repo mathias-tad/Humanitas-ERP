@@ -22,12 +22,24 @@ import {
   RefreshCw,
   GitBranch,
   ShieldCheck,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Tenant } from '@/types/tenant';
 
@@ -182,6 +194,67 @@ export default function TenantDetail() {
     }
   };
 
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [setupEmailModal, setSetupEmailModal] = useState<{
+    isOpen: boolean;
+    success: boolean;
+    message: string;
+    setup_link?: string;
+  }>({
+    isOpen: false,
+    success: false,
+    message: '',
+  });
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleResendSetupEmail = async () => {
+    if (!tenant?.id) return;
+    try {
+      setIsResendingEmail(true);
+      const res = await api.post<{ success: boolean; message: string; setup_link?: string }>(
+        `/tenants/${tenant.id}/resend-setup-email`
+      );
+
+      if (res.success) {
+        toast.success('Setup email sent!', {
+          description: res.message,
+        });
+      } else {
+        toast.error('Email delivery warning', {
+          description: res.message,
+        });
+      }
+
+      setSetupEmailModal({
+        isOpen: true,
+        success: res.success,
+        message: res.message,
+        setup_link: res.setup_link,
+      });
+    } catch (err: unknown) {
+      console.error('Failed to resend setup email:', err);
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            'Failed to resend setup email';
+      toast.error('Failed to resend setup email', {
+        description: errorMessage,
+      });
+    } finally {
+      setIsResendingEmail(false);
+    }
+  };
+
+  const copySetupLink = () => {
+    if (setupEmailModal.setup_link) {
+      navigator.clipboard.writeText(setupEmailModal.setup_link);
+      setIsCopied(true);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -195,7 +268,18 @@ export default function TenantDetail() {
               <Building2 className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{tenant.company_name}</h1>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-bold text-gray-900">{tenant.company_name}</h1>
+                {tenant.is_setup_complete === false ? (
+                  <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-300 text-xs">
+                    Setup Pending
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-green-700 bg-green-50 border-green-300 text-xs">
+                    Setup Complete
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-2 text-gray-500">
                 <Globe className="h-4 w-4" />
                 <span>{tenant.slug}</span>
@@ -204,6 +288,21 @@ export default function TenantDetail() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {!tenant.is_setup_complete && (
+            <Button
+              variant="outline"
+              className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+              onClick={handleResendSetupEmail}
+              disabled={isResendingEmail}
+            >
+              {isResendingEmail ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
+              Resend Setup Email
+            </Button>
+          )}
           <Badge variant={statusColors[tenant.subscription_status]} className="capitalize text-sm px-3 py-1">
             {tenant.subscription_status}
           </Badge>
@@ -268,6 +367,31 @@ export default function TenantDetail() {
                 <div className="flex items-center gap-3">
                   <CreditCard className="h-4 w-4 text-gray-400" />
                   <span className="text-sm">{tenant.currency}</span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Setup Status:</span>
+                  {tenant.is_setup_complete ? (
+                    <span className="inline-flex items-center gap-1.5 text-green-600 font-medium text-xs">
+                      <CheckCircle className="h-4 w-4" /> Complete
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 text-amber-600 font-medium text-xs">
+                        <Clock className="h-3.5 w-3.5" /> Pending
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={handleResendSetupEmail}
+                        disabled={isResendingEmail}
+                      >
+                        {isResendingEmail ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                        Resend
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -669,6 +793,86 @@ export default function TenantDetail() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Setup Link Modal */}
+      <Dialog
+        open={setupEmailModal.isOpen}
+        onOpenChange={(open) => setSetupEmailModal((prev) => ({ ...prev, isOpen: open }))}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-blue-600" />
+              Tenant Setup Link
+            </DialogTitle>
+            <DialogDescription>
+              Setup link for <span className="font-semibold text-gray-900">{tenant.company_name}</span> ({tenant.contact_email})
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div
+              className={`p-3.5 rounded-lg text-sm border flex items-start gap-2.5 ${
+                setupEmailModal.success
+                  ? 'bg-green-50 text-green-800 border-green-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              {setupEmailModal.success ? (
+                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+              ) : (
+                <Clock className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              )}
+              <div className="text-xs leading-relaxed">{setupEmailModal.message}</div>
+            </div>
+
+            {setupEmailModal.setup_link && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-700">Setup URL (Valid for 7 days):</label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={setupEmailModal.setup_link}
+                    className="font-mono text-xs bg-gray-50 select-all"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                    onClick={copySetupLink}
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-green-600" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  You can copy this link and share it directly with the tenant admin.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setSetupEmailModal((prev) => ({ ...prev, isOpen: false }))}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

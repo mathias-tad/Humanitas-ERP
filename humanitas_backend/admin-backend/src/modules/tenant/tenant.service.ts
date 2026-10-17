@@ -664,4 +664,47 @@ export class TenantService implements OnModuleInit {
 
     return limits[plan] || limits[SubscriptionPlan.BASIC];
   }
+
+  async resendSetupEmail(id: string): Promise<{ success: boolean; message: string; setup_link?: string }> {
+    const tenant = await this.tenantRepository.findOne({ where: { id } });
+    if (!tenant) {
+      throw new NotFoundException(`Tenant with ID ${id} not found`);
+    }
+
+    if (!tenant.contact_email) {
+      throw new BadRequestException(`Tenant "${tenant.company_name}" does not have a contact email configured`);
+    }
+
+    // Generate fresh setup token expiring in 7 days
+    const setup_token = uuidv4();
+    const setup_token_expires_at = new Date();
+    setup_token_expires_at.setDate(setup_token_expires_at.getDate() + 7);
+
+    tenant.setup_token = setup_token;
+    tenant.setup_token_expires_at = setup_token_expires_at;
+    await this.tenantRepository.save(tenant);
+
+    const emailSent = await this.emailService.sendTenantWelcomeEmail(
+      tenant.contact_email,
+      tenant.company_name,
+      setup_token,
+    );
+
+    const frontendUrl = this.configService.get<string>('TENANT_FRONTEND_URL', 'http://161.97.124.164');
+    const setupLink = `${frontendUrl}/setup?token=${setup_token}`;
+
+    if (!emailSent) {
+      return {
+        success: false,
+        message: `Setup link generated, but email delivery failed. Please check SMTP settings in Settings tab.`,
+        setup_link: setupLink,
+      };
+    }
+
+    return {
+      success: true,
+      message: `Setup email sent successfully to ${tenant.contact_email}!`,
+      setup_link: setupLink,
+    };
+  }
 }

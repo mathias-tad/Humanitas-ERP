@@ -112,6 +112,16 @@ export class TenantController {
     return this.tenantService.reactivate(id);
   }
 
+  @Post(':id/resend-setup-email')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resend tenant setup / welcome email' })
+  @ApiResponse({ status: 200, description: 'Setup email sent' })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  resendSetupEmail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tenantService.resendSetupEmail(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiBearerAuth()
