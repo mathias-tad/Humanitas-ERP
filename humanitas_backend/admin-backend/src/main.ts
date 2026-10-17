@@ -1,3 +1,7 @@
+import * as dns from 'dns';
+// Force IPv4 for DNS resolution (prevents ECONNREFUSED ::1:5432 in Docker containers)
+dns.setDefaultResultOrder('ipv4first');
+
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';

@@ -342,8 +342,12 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
     if (dbUrl) {
       try {
         const parsed = new URL(dbUrl);
+        let host = parsed.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+          host = 'host.docker.internal';
+        }
         return {
-          host: parsed.hostname,
+          host,
           port: parseInt(parsed.port || '5432', 10),
           username: decodeURIComponent(parsed.username),
           password: decodeURIComponent(parsed.password),
@@ -352,8 +356,12 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
         this.logger.warn('Invalid DATABASE_URL — falling back to individual env vars');
       }
     }
+    let host = this.configService.get<string>('DATABASE_HOST', 'host.docker.internal');
+    if (host === 'localhost' || host === '127.0.0.1') {
+      host = 'host.docker.internal';
+    }
     return {
-      host: this.configService.get<string>('DATABASE_HOST', 'localhost'),
+      host,
       port: this.configService.get<number>('DATABASE_PORT', 5432),
       username: this.configService.get<string>('DATABASE_USERNAME'),
       password: this.configService.get<string>('DATABASE_PASSWORD'),

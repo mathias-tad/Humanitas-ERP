@@ -30,8 +30,14 @@ dns.setDefaultResultOrder('ipv4first');
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        const dbUrl = configService.get<string>('DATABASE_URL');
+        let dbUrl = configService.get<string>('DATABASE_URL');
         const sslEnabled = configService.get<string>('DATABASE_SSL') === 'true';
+
+        // Auto-heal: in Docker containers, localhost refers to the container itself.
+        // Map localhost/127.0.0.1 to host.docker.internal so it connects to VPS host PostgreSQL.
+        if (dbUrl && (dbUrl.includes('@localhost:') || dbUrl.includes('@127.0.0.1:'))) {
+          dbUrl = dbUrl.replace('@localhost:', '@host.docker.internal:').replace('@127.0.0.1:', '@host.docker.internal:');
+        }
 
         const baseConfig = {
           type: 'postgres' as const,
@@ -55,9 +61,14 @@ dns.setDefaultResultOrder('ipv4first');
           };
         }
 
+        let dbHost = configService.get<string>('DATABASE_HOST');
+        if (!dbHost || dbHost === 'localhost' || dbHost === '127.0.0.1') {
+          dbHost = 'host.docker.internal';
+        }
+
         return {
           ...baseConfig,
-          host: configService.get<string>('DATABASE_HOST'),
+          host: dbHost,
           port: configService.get<number>('DATABASE_PORT', 5432),
           username: configService.get<string>('DATABASE_USERNAME'),
           password: configService.get<string>('DATABASE_PASSWORD'),
