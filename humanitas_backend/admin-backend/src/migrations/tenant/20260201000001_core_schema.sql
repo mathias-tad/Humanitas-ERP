@@ -98,6 +98,29 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure all columns exist even if users table was pre-existing
+ALTER TABLE users ADD COLUMN IF NOT EXISTS employee_category_id UUID REFERENCES employee_categories(id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id UUID REFERENCES roles(id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'employee';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_password_set BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS setup_token VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS setup_token_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS basic_salary DECIMAL(15, 2) DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS desert_allowance_percent DECIMAL(5, 2) DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS hardship_allowance_percent DECIMAL(5, 2) DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS desert_allowance_override VARCHAR(10);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS hardship_allowance_override VARCHAR(10);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS transport_allowance_override VARCHAR(10);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS per_diem_allowance_override VARCHAR(10);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tin VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_number VARCHAR(100);
+
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_category ON users(employee_category_id);
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
