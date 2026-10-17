@@ -310,6 +310,23 @@ export class AttendanceController {
     );
   }
 
+  @Get('my-monthly-calendar')
+  @ApiOperation({ summary: 'Get current user monthly attendance calendar (alias for my-records)' })
+  async getMyMonthlyCalendar(
+    @Request() req: any,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+  ) {
+    return this.attendanceService.getUserAttendanceRecords(
+      req.user.tenantId,
+      req.user.sub,
+      {
+        month: month ? parseInt(month) : undefined,
+        year: year ? parseInt(year) : undefined,
+      },
+    );
+  }
+
   @Get('records')
   @ApiOperation({ summary: 'Get attendance records' })
   async getAttendanceRecords(
