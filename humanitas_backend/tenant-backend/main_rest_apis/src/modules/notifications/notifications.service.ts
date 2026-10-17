@@ -4,29 +4,44 @@ import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
+    private ensuredDatabases = new Set<string>();
+
     constructor(
         private readonly databaseService: DatabaseService,
         private readonly notificationsGateway: NotificationsGateway
     ) { }
 
-    // ... (ensureNotificationsTables, tables setup omitted for brevity if unchanged, but I need to keep them or not replace them. 
-    // Wait, replace_file_content replaces lines. I should target constructor and create methods)
-
     async ensureNotificationsTables(connection: any) {
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS notifications (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                reference_id UUID,
-                title VARCHAR(255) NOT NULL,
-                message TEXT,
-                is_read BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT NOW()
-            );
-            CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-            CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read);
-        `);
+        const dbName = connection.options?.database || 'default';
+        if (this.ensuredDatabases.has(dbName)) return;
+
+        try {
+            await connection.query(`
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL,
+                    type VARCHAR(50) NOT NULL,
+                    reference_id UUID,
+                    title VARCHAR(255) NOT NULL,
+                    message TEXT,
+                    is_read BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+                CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read);
+            `);
+            this.ensuredDatabases.add(dbName);
+        } catch (err: any) {
+            if (
+                err.message?.includes('pg_type_typname_nsp_index') ||
+                err.message?.includes('already exists') ||
+                err.code === '23505'
+            ) {
+                this.ensuredDatabases.add(dbName);
+                return;
+            }
+            throw err;
+        }
     }
 
     async getUserNotifications(tenantId: string, userId: string, limit = 20) {
