@@ -213,8 +213,12 @@ export class AttendanceService {
     // Schema Patch: Add missing columns to attendance_records
     await connection.query(`
       ALTER TABLE attendance_records 
+      ADD COLUMN IF NOT EXISTS shift_id UUID,
       ADD COLUMN IF NOT EXISTS scheduled_in TIME,
       ADD COLUMN IF NOT EXISTS scheduled_out TIME,
+      ADD COLUMN IF NOT EXISTS actual_in TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS actual_out TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS remarks TEXT,
       ADD COLUMN IF NOT EXISTS is_corrected BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS corrected_by UUID REFERENCES users(id),
       ADD COLUMN IF NOT EXISTS ot_duration_normal INTERVAL DEFAULT '0',
@@ -224,6 +228,36 @@ export class AttendanceService {
       ADD COLUMN IF NOT EXISTS forced_clock_out_by UUID REFERENCES users(id),
       ADD COLUMN IF NOT EXISTS forced_at TIMESTAMP;
     `);
+
+    try {
+      await connection.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'attendance_records' 
+              AND column_name = 'actual_in' 
+              AND data_type = 'time without time zone'
+          ) THEN
+            ALTER TABLE attendance_records ALTER COLUMN actual_in TYPE TIMESTAMP USING (date + actual_in);
+          END IF;
+
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'attendance_records' 
+              AND column_name = 'work_hours' 
+              AND data_type IN ('numeric', 'decimal')
+          ) THEN
+            ALTER TABLE attendance_records ALTER COLUMN work_hours TYPE INTERVAL USING (work_hours || ' hours')::interval;
+          END IF;
+        EXCEPTION WHEN OTHERS THEN
+          NULL;
+        END $$;
+      `);
+    } catch (_) {
+      // Ignore type conversion errors if column already converted or incompatible
+    }
+
 
     // Overtime Entires for Approval
     await connection.query(`
