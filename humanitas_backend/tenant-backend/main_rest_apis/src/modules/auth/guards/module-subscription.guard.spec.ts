@@ -57,6 +57,15 @@ describe('ModuleSubscriptionGuard', () => {
     expect(tenantRepository.findOne).not.toHaveBeenCalled();
   });
 
+  it('should allow common collaboration modules (messaging, announcements) as core modules', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('messaging');
+    const context = createMockContext({ tenantSlug: 'test-tenant' });
+
+    const result = await guard.canActivate(context);
+    expect(result).toBe(true);
+    expect(tenantRepository.findOne).not.toHaveBeenCalled();
+  });
+
   it('should allow all modules if tenant has wildcard * feature', async () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('accounting');
     (tenantRepository.findOne as jest.Mock).mockResolvedValue({

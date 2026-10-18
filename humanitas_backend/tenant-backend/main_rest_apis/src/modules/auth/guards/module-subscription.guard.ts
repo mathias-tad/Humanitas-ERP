@@ -79,6 +79,8 @@ export class ModuleSubscriptionGuard implements CanActivate {
       'settings',
       'roles',
       'presence',
+      'messaging',
+      'announcements',
     ];
     const req = requiredModule.toLowerCase().trim();
     if (CORE_MODULES.includes(req)) {
