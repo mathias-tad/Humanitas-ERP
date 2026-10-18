@@ -16,6 +16,22 @@ export interface AiConversation {
   messages?: AiMessage[];
 }
 
+export interface AiDocumentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'HRMS' | 'Payroll' | 'PMS' | 'Attendance' | 'General';
+  supportedFormats: ('pdf' | 'docx' | 'excel')[];
+  defaultPrompt: string;
+  parameters: {
+    key: string;
+    label: string;
+    type: 'string' | 'number' | 'boolean' | 'date';
+    required: boolean;
+    description?: string;
+  }[];
+}
+
 export const aiChatService = {
   async getConversations(): Promise<AiConversation[]> {
     const response = await api.get<AiConversation[]>('/ai/history');
@@ -41,7 +57,7 @@ export const aiChatService = {
     formData.append('file', file);
     if (conversationId) formData.append('conversationId', conversationId);
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas.ziontech.tech/api/v1';
     const tenantSlug = getCurrentTenantSlug() || '';
 
     let res = await fetch(`${baseUrl}/ai/chat-with-file`, {
@@ -70,8 +86,107 @@ export const aiChatService = {
     return res.json();
   },
 
+  async getTemplates(): Promise<AiDocumentTemplate[]> {
+    const response = await api.get<AiDocumentTemplate[]>('/ai/document/templates');
+    return response;
+  },
+
+  async generateFromTemplate(
+    templateId: string,
+    format: 'pdf' | 'docx' | 'excel',
+    parameters?: Record<string, any>,
+    customNotes?: string,
+  ): Promise<void> {
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas.ziontech.tech/api/v1';
+    const tenantSlug = getCurrentTenantSlug() || '';
+
+    let res = await fetch(`${baseUrl}/ai/document/generate-from-template`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-tenant-slug': tenantSlug,
+      },
+      credentials: 'include',
+      body: JSON.stringify({ templateId, format, parameters, customNotes }),
+    });
+
+    if (res.status === 401) {
+      const refreshed = await tryRefreshToken();
+      if (refreshed) {
+        res = await fetch(`${baseUrl}/ai/document/generate-from-template`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-slug': tenantSlug,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ templateId, format, parameters, customNotes }),
+        });
+      }
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+    const blob = await res.blob();
+    const ext = format === 'excel' ? 'xlsx' : format;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${templateId}_${Date.now()}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  async generateWithReferenceFile(
+    file: File,
+    prompt: string,
+    format: 'pdf' | 'docx' | 'excel',
+  ): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('prompt', prompt);
+    formData.append('format', format);
+
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas.ziontech.tech/api/v1';
+    const tenantSlug = getCurrentTenantSlug() || '';
+
+    let res = await fetch(`${baseUrl}/ai/document/generate-with-reference`, {
+      method: 'POST',
+      headers: { 'x-tenant-slug': tenantSlug },
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (res.status === 401) {
+      const refreshed = await tryRefreshToken();
+      if (refreshed) {
+        res = await fetch(`${baseUrl}/ai/document/generate-with-reference`, {
+          method: 'POST',
+          headers: { 'x-tenant-slug': tenantSlug },
+          credentials: 'include',
+          body: formData,
+        });
+      }
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+    const blob = await res.blob();
+    const ext = format === 'excel' ? 'xlsx' : format;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `custom_template_doc_${Date.now()}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   async generateDocument(prompt: string, format: 'pdf' | 'docx' | 'excel', referenceText?: string): Promise<void> {
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas-erp.ziontech.tech/api/v1';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas.ziontech.tech/api/v1';
     const tenantSlug = getCurrentTenantSlug() || '';
 
     let res = await fetch(`${baseUrl}/ai/document/generate`, {
@@ -113,4 +228,3 @@ export const aiChatService = {
     URL.revokeObjectURL(url);
   },
 };
-

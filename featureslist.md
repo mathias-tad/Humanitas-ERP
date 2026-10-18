@@ -20,7 +20,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
 | Enterprise UI/UX | 18 | 13 | 5 | 72% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 38 | 5 | 33 | 13% |
+| AI Intelligence Module | 38 | 6 | 32 | 16% |
 | Employee Self-Service Portal | 21 | 0 | 21 | 0% |
 | Document Vault & Letters | 19 | 0 | 19 | 0% |
 | Onboarding & Offboarding | 22 | 0 | 22 | 0% |
@@ -34,7 +34,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 0 | 13 | 0% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **634** | **66** | **568** | **10%** |
+| **TOTAL** | **634** | **67** | **567** | **11%** |
 
 ---
 
@@ -454,7 +454,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **AI Help (`ai.help`)**: Conversational assistant that answers questions about how to use Humanitas. Knows every page, route, button, and action in the system via the AI Knowledge Base.
 - [x] **AI Document Creation (`ai.documents`)**: Generates formatted PDF and DOCX documents from database data. Supports user-uploaded sample/template documents — AI extracts the format structure and produces output in that exact layout.
 - [x] **AI Actions (`ai.actions`)**: Executes system actions on behalf of the user if the user has the required permissions. Examples: "Approve all pending leave requests", "Create a purchase order for 500 units of Product X", "Run payroll for July 2026".
-- [ ] **Full AI Module (`ai.full`)**: All AI capabilities unlocked (Help + Documents + Actions).
+- [x] **Full AI Module (`ai.full`)**: All AI capabilities unlocked (Help + Documents + Actions).
 
 ### AI Knowledge Base (Always Up-to-Date)
 - [x] Every page, route, button, and action in the system is registered in the `ai_knowledge_entries` table.

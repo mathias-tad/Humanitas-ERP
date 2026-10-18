@@ -1,10 +1,22 @@
-import { Controller, Post, Body, UseGuards, Req, Res, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Res,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFile,
+  SetMetadata,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiDocumentService } from './services/ai-document.service';
 import { RoleContextBuilderService } from './services/role-context-builder.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
-import { SetMetadata } from '@nestjs/common';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
 import type { FastifyReply } from 'fastify';
 
@@ -24,14 +36,94 @@ export class GenerateDocumentDto {
   referenceText?: string;
 }
 
+export class GenerateFromTemplateDto {
+  @IsString()
+  @IsNotEmpty()
+  templateId: string;
+
+  @IsEnum(['pdf', 'docx', 'excel'])
+  format: 'pdf' | 'docx' | 'excel';
+
+  @IsOptional()
+  parameters?: Record<string, any>;
+
+  @IsString()
+  @IsOptional()
+  customNotes?: string;
+}
+
 @Controller('ai/document')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+@RequireModule('ai.documents')
 export class AiDocumentController {
   constructor(
     private readonly aiDocumentService: AiDocumentService,
     private readonly roleContextBuilder: RoleContextBuilderService,
   ) {}
 
+  /**
+   * List available built-in enterprise templates.
+   */
+  @Get('templates')
+  @Permissions('use_ai')
+  getTemplates() {
+    return this.aiDocumentService.getBuiltinTemplates();
+  }
+
+  /**
+   * Generate document using one of AI's built-in enterprise templates.
+   */
+  @Post('generate-from-template')
+  @Permissions('use_ai')
+  async generateFromTemplate(
+    @Req() req,
+    @Body() body: GenerateFromTemplateDto,
+    @Res() res: FastifyReply,
+  ) {
+    const user = req.user;
+    const roleContext = await this.roleContextBuilder.buildContext(
+      user.tenantSlug,
+      user.sub,
+      user.role,
+    );
+
+    try {
+      const { buffer, filename } = await this.aiDocumentService.generateFromTemplate(
+        user.tenantSlug,
+        roleContext,
+        body.templateId,
+        body.format,
+        body.parameters,
+        body.customNotes,
+      );
+
+      if (body.format === 'pdf') {
+        res.header('Content-Type', 'application/pdf');
+        res.header('Content-Disposition', `attachment; filename="${filename}.pdf"`);
+      } else if (body.format === 'docx') {
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        );
+        res.header('Content-Disposition', `attachment; filename="${filename}.docx"`);
+      } else if (body.format === 'excel') {
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+        res.header('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+      }
+      res.header('Content-Length', buffer.length.toString());
+      res.send(buffer);
+    } catch (error) {
+      console.error('ERROR GENERATING FROM TEMPLATE:', error);
+      throw new BadRequestException('Failed to generate template document: ' + error.message);
+    }
+  }
+
+  /**
+   * Generate document directly from free-form prompt.
+   */
   @Post('generate')
   @Permissions('use_ai')
   async generateDocument(
@@ -40,24 +132,48 @@ export class AiDocumentController {
     @Res() res: FastifyReply,
   ) {
     const user = req.user;
-    const roleContext = await this.roleContextBuilder.buildContext(user.tenantSlug, user.sub, user.role);
+    const roleContext = await this.roleContextBuilder.buildContext(
+      user.tenantSlug,
+      user.sub,
+      user.role,
+    );
 
     try {
       if (body.format === 'pdf') {
-        const { buffer: pdfBuffer, filename } = await this.aiDocumentService.generatePdf(user.tenantSlug, roleContext, body.prompt, body.referenceText);
+        const { buffer: pdfBuffer, filename } = await this.aiDocumentService.generatePdf(
+          user.tenantSlug,
+          roleContext,
+          body.prompt,
+          body.referenceText,
+        );
         res.header('Content-Type', 'application/pdf');
         res.header('Content-Disposition', `attachment; filename="${filename}.pdf"`);
         res.header('Content-Length', pdfBuffer.length.toString());
         res.send(pdfBuffer);
       } else if (body.format === 'docx') {
-        const { buffer: docxBuffer, filename } = await this.aiDocumentService.generateDocx(user.tenantSlug, roleContext, body.prompt, body.referenceText);
-        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        const { buffer: docxBuffer, filename } = await this.aiDocumentService.generateDocx(
+          user.tenantSlug,
+          roleContext,
+          body.prompt,
+          body.referenceText,
+        );
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        );
         res.header('Content-Disposition', `attachment; filename="${filename}.docx"`);
         res.header('Content-Length', docxBuffer.length.toString());
         res.send(docxBuffer);
       } else if (body.format === 'excel') {
-        const { buffer: excelBuffer, filename } = await this.aiDocumentService.generateExcel(user.tenantSlug, roleContext, body.prompt);
-        res.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        const { buffer: excelBuffer, filename } = await this.aiDocumentService.generateExcel(
+          user.tenantSlug,
+          roleContext,
+          body.prompt,
+        );
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
         res.header('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
         res.header('Content-Length', excelBuffer.length.toString());
         res.send(excelBuffer);
@@ -68,6 +184,9 @@ export class AiDocumentController {
     }
   }
 
+  /**
+   * Generate document using a user-uploaded reference file (user template).
+   */
   @Post('generate-with-reference')
   @Permissions('use_ai')
   @UseInterceptors(FileInterceptor('file'))
@@ -77,9 +196,6 @@ export class AiDocumentController {
     @Body() body: { prompt: string; format: 'pdf' | 'docx' | 'excel' },
     @Res() res: FastifyReply,
   ) {
-    const user = req.user;
-    const roleContext = await this.roleContextBuilder.buildContext(user.tenantSlug, user.sub, user.role);
-
     let referenceText = '';
     if (file) {
       try {
@@ -91,12 +207,22 @@ export class AiDocumentController {
           const pdfParse = require('pdf-parse');
           const parsed = await pdfParse(file.buffer);
           referenceText = parsed.text?.substring(0, 8000) || '';
+        } else if (file.mimetype.startsWith('text/')) {
+          referenceText = file.buffer.toString('utf-8').substring(0, 8000);
         }
-      } catch (e) {
+      } catch {
         referenceText = '';
       }
     }
 
-    return this.generateDocument(req, { prompt: body.prompt, format: body.format || 'pdf', referenceText }, res);
+    return this.generateDocument(
+      req,
+      {
+        prompt: body.prompt || 'Generate document adhering to the provided reference structure.',
+        format: body.format || 'pdf',
+        referenceText,
+      },
+      res,
+    );
   }
 }

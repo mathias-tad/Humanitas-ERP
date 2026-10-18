@@ -73,17 +73,17 @@ export class ModuleSubscriptionGuard implements CanActivate {
 
     // Core identity & infrastructure modules are always accessible to authenticated users
     const CORE_MODULES = [
-       'users',
-       'notifications',
-       'auth',
-       'settings',
-       'roles',
-       'presence',
-     ];
-     const req = requiredModule.toLowerCase().trim();
-     if (CORE_MODULES.includes(req)) {
-       return true;
-     }
+      'users',
+      'notifications',
+      'auth',
+      'settings',
+      'roles',
+      'presence',
+    ];
+    const req = requiredModule.toLowerCase().trim();
+    if (CORE_MODULES.includes(req)) {
+      return true;
+    }
 
     // Look up the tenant in master DB
     const tenant = await this.tenantRepository.findOne({
@@ -97,8 +97,58 @@ export class ModuleSubscriptionGuard implements CanActivate {
     // 1. Check if tenant in master DB has explicit enabled_features
     if (tenant.enabled_features && tenant.enabled_features.length > 0) {
       const feats = tenant.enabled_features.map((f: string) => f.toLowerCase().trim());
+      if (feats.includes('*')) {
+        return true;
+      }
+
+      // AI Capability Sub-Gating (ai.help, ai.actions, ai.documents, ai.full)
+      if (req.startsWith('ai')) {
+        const isSubscribedToAi =
+          feats.includes('ai') ||
+          feats.includes('ai.full') ||
+          feats.includes('ai.help') ||
+          feats.includes('ai.actions') ||
+          feats.includes('ai.documents');
+
+        if (!isSubscribedToAi) {
+          throw new ForbiddenException(
+            `Module "ai" is not subscribed in your tenant package.`,
+          );
+        }
+
+        if (req === 'ai' || req === 'ai.help') {
+          return true;
+        }
+
+        if (req === 'ai.actions') {
+          if (feats.includes('ai') || feats.includes('ai.full') || feats.includes('ai.actions')) {
+            return true;
+          }
+          throw new ForbiddenException(
+            `AI Actions capability ("ai.actions") is not included in your subscription package.`,
+          );
+        }
+
+        if (req === 'ai.documents') {
+          if (feats.includes('ai') || feats.includes('ai.full') || feats.includes('ai.documents')) {
+            return true;
+          }
+          throw new ForbiddenException(
+            `AI Document Generation capability ("ai.documents") is not included in your subscription package.`,
+          );
+        }
+
+        if (req === 'ai.full') {
+          if (feats.includes('ai') || feats.includes('ai.full')) {
+            return true;
+          }
+          throw new ForbiddenException(
+            `Full AI suite ("ai.full") is not included in your subscription package.`,
+          );
+        }
+      }
+
       if (
-        feats.includes('*') ||
         feats.includes(req) ||
         (req === 'hrms' && (feats.includes('hr') || feats.includes('hrms') || feats.includes('attendance') || feats.includes('leave') || feats.includes('payroll'))) ||
         (req === 'hr' && (feats.includes('hr') || feats.includes('hrms'))) ||
@@ -125,6 +175,25 @@ export class ModuleSubscriptionGuard implements CanActivate {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Check AI module keys in tenant_modules if applicable
+    if (req.startsWith('ai')) {
+      const aiRows = await connection.query(
+        `SELECT module_key, is_active FROM tenant_modules WHERE module_key LIKE 'ai%' AND is_active = true`,
+      );
+      if (aiRows && aiRows.length > 0) {
+        const activeAiKeys = aiRows.map((r: any) => r.module_key.toLowerCase().trim());
+        if (req === 'ai' || req === 'ai.help') {
+          return true;
+        }
+        if (req === 'ai.actions' && (activeAiKeys.includes('ai') || activeAiKeys.includes('ai.full') || activeAiKeys.includes('ai.actions'))) {
+          return true;
+        }
+        if (req === 'ai.documents' && (activeAiKeys.includes('ai') || activeAiKeys.includes('ai.full') || activeAiKeys.includes('ai.documents'))) {
+          return true;
+        }
+      }
+    }
 
     const result = await connection.query(
       `SELECT is_active FROM tenant_modules WHERE module_key = $1 LIMIT 1`,

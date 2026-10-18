@@ -122,6 +122,7 @@ export interface ModuleContextValue {
   enabledModules: Record<ERPModuleKey, boolean>;
   isModuleEnabled: (key: ERPModuleKey | string) => boolean;
   isModuleSubscribed: (key: ERPModuleKey | string) => boolean;
+  isAiFeatureEnabled: (feature: 'help' | 'actions' | 'documents' | 'full') => boolean;
 }
 
 const ModuleContext = createContext<ModuleContextValue>({
@@ -139,6 +140,7 @@ const ModuleContext = createContext<ModuleContextValue>({
   },
   isModuleEnabled: () => false,
   isModuleSubscribed: () => false,
+  isAiFeatureEnabled: () => false,
 });
 
 export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -149,6 +151,26 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Outside AuthProvider
   }
   const tenant = authContext?.tenant;
+
+  const isAiFeatureEnabled = (feature: 'help' | 'actions' | 'documents' | 'full'): boolean => {
+    const feats = tenant?.enabled_features?.map((f: string) => f.toLowerCase().trim()) || [];
+    if (feats.includes('*') || feats.includes('ai') || feats.includes('ai.full')) {
+      return true;
+    }
+    if (feature === 'help') {
+      return feats.includes('ai.help') || feats.includes('ai.actions') || feats.includes('ai.documents');
+    }
+    if (feature === 'actions') {
+      return feats.includes('ai.actions');
+    }
+    if (feature === 'documents') {
+      return feats.includes('ai.documents');
+    }
+    if (feature === 'full') {
+      return feats.includes('ai.full') || feats.includes('ai');
+    }
+    return false;
+  };
 
   const isModuleSubscribed = (key: ERPModuleKey | string): boolean => {
     const k = String(key || "").toLowerCase().trim();
@@ -174,6 +196,22 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Master wildcard allows all features
     if (feats.includes("*")) {
       return true;
+    }
+
+    // AI sub-feature capability check
+    if (k.startsWith("ai")) {
+      if (k === "ai" || k === "ai.help") {
+        return isAiFeatureEnabled("help");
+      }
+      if (k === "ai.actions") {
+        return isAiFeatureEnabled("actions");
+      }
+      if (k === "ai.documents") {
+        return isAiFeatureEnabled("documents");
+      }
+      if (k === "ai.full") {
+        return isAiFeatureEnabled("full");
+      }
     }
 
     // Direct match against tenant package subscription
@@ -222,7 +260,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   return (
-    <ModuleContext.Provider value={{ enabledModules, isModuleEnabled, isModuleSubscribed }}>
+    <ModuleContext.Provider value={{ enabledModules, isModuleEnabled, isModuleSubscribed, isAiFeatureEnabled }}>
       {children}
     </ModuleContext.Provider>
   );
@@ -233,6 +271,7 @@ export const useModules = () => {
   return {
     ...ctx,
     isModuleSubscribed: ctx.isModuleSubscribed || ctx.isModuleEnabled,
+    isAiFeatureEnabled: ctx.isAiFeatureEnabled,
   };
 };
 

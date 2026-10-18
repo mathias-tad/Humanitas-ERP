@@ -18,6 +18,8 @@ function EnterpriseLayoutContent() {
     prefetchAll();
   }, [prefetchAll]);
 
+  const { isModuleSubscribed } = useERPModules();
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* Contextual Left Rail Navigation Dock (Dynamics 365 style) */}
@@ -48,7 +50,7 @@ function EnterpriseLayoutContent() {
 
       {/* Universal Floating Foundation Drawers */}
       <ChatWidget />
-      <AiAssistantWidget ref={aiWidgetRef} />
+      {isModuleSubscribed("ai") && <AiAssistantWidget ref={aiWidgetRef} />}
     </div>
   );
 }

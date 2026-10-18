@@ -15,6 +15,11 @@ import { ChatOllama } from '@langchain/ollama';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
 
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from '../auth/entities/tenant.entity';
+import { DatabaseService } from '../database/database.service';
+
 @Injectable()
 export class AiService {
   constructor(
@@ -27,7 +32,71 @@ export class AiService {
     private analyticsService: AiAnalyticsService,
     private actionService: AiActionService,
     private fileParserService: AiFileParserService,
+    @InjectRepository(Tenant)
+    private tenantRepository: Repository<Tenant>,
+    private databaseService: DatabaseService,
   ) {}
+
+  /**
+   * Evaluates the tenant's AI feature capabilities:
+   * - ai.help: Chat assistance, answering questions, navigation guidance.
+   * - ai.actions: Autonomous tool execution on behalf of user.
+   * - ai.documents: Document and report generation from DB / templates.
+   * - ai.full / ai / *: All capabilities enabled.
+   */
+  async getAiCapabilities(tenantSlug: string): Promise<{
+    canHelp: boolean;
+    canPerformActions: boolean;
+    canGenerateDocs: boolean;
+  }> {
+    const tenant = await this.tenantRepository.findOne({
+      where: { slug: tenantSlug },
+    });
+
+    if (tenant?.enabled_features && tenant.enabled_features.length > 0) {
+      const feats = tenant.enabled_features.map((f: string) => f.toLowerCase().trim());
+      if (feats.includes('*') || feats.includes('ai') || feats.includes('ai.full')) {
+        return { canHelp: true, canPerformActions: true, canGenerateDocs: true };
+      }
+      return {
+        canHelp:
+          feats.includes('ai.help') ||
+          feats.includes('ai.actions') ||
+          feats.includes('ai.documents'),
+        canPerformActions: feats.includes('ai.actions'),
+        canGenerateDocs: feats.includes('ai.documents'),
+      };
+    }
+
+    if (tenant?.database_name) {
+      try {
+        const connection = await this.databaseService.getTenantConnection(
+          tenant.database_name,
+        );
+        const rows = await connection.query(
+          `SELECT module_key FROM tenant_modules WHERE module_key LIKE 'ai%' AND is_active = true`,
+        );
+        if (rows && rows.length > 0) {
+          const keys = rows.map((r: any) => r.module_key.toLowerCase().trim());
+          if (keys.includes('ai') || keys.includes('ai.full')) {
+            return { canHelp: true, canPerformActions: true, canGenerateDocs: true };
+          }
+          return {
+            canHelp:
+              keys.includes('ai.help') ||
+              keys.includes('ai.actions') ||
+              keys.includes('ai.documents'),
+            canPerformActions: keys.includes('ai.actions'),
+            canGenerateDocs: keys.includes('ai.documents'),
+          };
+        }
+      } catch {
+        // Fallback default
+      }
+    }
+
+    return { canHelp: true, canPerformActions: true, canGenerateDocs: true };
+  }
 
   async processRequest(
     tenantId: string,
@@ -59,6 +128,7 @@ export class AiService {
     // 2. Build role context AND fetch permissions array for tool RBAC enforcement
     const roleContext = await this.roleContextBuilder.buildContext(tenantSlug, userId, userRole);
     const userPermissions = await this.roleContextBuilder.getPermissions(tenantSlug, userId, userRole);
+    const aiCapabilities = await this.getAiCapabilities(tenantSlug);
 
     // 3. Setup Conversation History
     let convoId = conversationId;
@@ -93,6 +163,7 @@ export class AiService {
         temperature,
         userId,
         userPermissions,
+        aiCapabilities,
       );
 
       // Save AI response
@@ -195,6 +266,7 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     temperature: number,
     userId: string,
     userPermissions: string[] = [],
+    aiCapabilities: { canHelp: boolean; canPerformActions: boolean; canGenerateDocs: boolean } = { canHelp: true, canPerformActions: true, canGenerateDocs: true },
   ): Promise<string> {
     let llm: any;
 
@@ -254,12 +326,63 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     const uiTools = this.toolRouter.getTools(tenantSlug, roleContext);
     const dbTools = [this.dbQueryService.getDbTool(tenantSlug, roleContext)];
     const analyticsTools = this.analyticsService.getAnalyticsTools(tenantSlug);
-    // SECURITY: Pass userPermissions so only RBAC-permitted action tools are returned
-    const actionTools = this.actionService.getActionTools(tenantSlug, userId, userPermissions);
+    // SECURITY: Pass userPermissions so only RBAC-permitted action tools are returned.
+    // GATING: Only equip action tools if tenant package includes 'ai.actions' or 'ai.full'
+    const actionTools = aiCapabilities.canPerformActions
+      ? this.actionService.getActionTools(tenantSlug, userId, userPermissions)
+      : [];
 
     const tools = [...uiTools, ...dbTools, ...analyticsTools, ...actionTools];
 
     const agent = createReactAgent({ llm, tools });
+
+    const actionDirectives = aiCapabilities.canPerformActions
+      ? `=== DATABASE QUERY & SYSTEM ACTION TOOLS ===
+You have full tool calling capabilities to query tenant data and perform permitted actions:
+- \`query_tenant_database\`: Execute custom SQL queries on the active tenant's schema for data analytics.
+- \`create_user\`, \`update_user\`, \`deactivate_user\`: Manage employee directory records.
+- \`submit_leave_request\`, \`approve_leave_request\`, \`reject_leave_request\`: Handle leave workflows.
+- \`post_announcement\`: Broadcast company news.
+- \`initiate_payroll_run\`, \`add_loan\`: Execute payroll actions.
+- \`create_project\`, \`create_task\`, \`update_task_status\`: PMS project and task actions.
+- \`analyze_task_distribution\`, \`suggest_task_allocation\`, \`get_all_users_kpi\`: Automated team analytics.
+- \`create_sprint\`: Create a sprint inside a project.
+- \`add_project_member\`: Add a user to a project.
+- \`cancel_leave_request\`: Cancel a leave request.
+- \`create_shift\`: Create a new shift definition.
+- \`assign_shift\`: Assign an employee to a shift.
+- \`mark_day_off\`: Mark a day off for an employee.
+- \`log_overtime\`: Log overtime hours.
+- \`add_holiday\`: Add a public/company holiday.`
+      : `=== AI ACTIONS RESTRICTION: CHAT HELP & GUIDANCE ONLY ===
+Action execution capability ("ai.actions") is NOT included in this organization's subscription tier.
+You DO NOT have tools to mutate database records, submit leaves, create tasks, or create shifts on behalf of the user.
+If the user asks you to perform an action on their behalf (e.g. "create a task", "submit my leave", "approve this request", "add an employee"), DO NOT pretend to execute it.
+Politely inform them:
+"Your organization's current AI subscription tier is set to Chat Help only, so I cannot perform system modifications on your behalf. However, you can easily perform this yourself by following these steps:"
+Then provide clear step-by-step guidance specifying the exact page path and button to use.`;
+
+    const documentDirectives = aiCapabilities.canGenerateDocs
+      ? `==== GENERATING DOCUMENTS ===
+CRITICAL: When a user asks you to create, generate, produce, prepare, or export ANY document, report, file, PDF, Word document, or Excel spreadsheet — you MUST ALWAYS output the special document tag below. NEVER tell the user to call an API or use a different endpoint. NEVER say "I cannot send binary files". NEVER say "use the dedicated endpoint". Just output the tag and a short friendly message.
+
+The tag format is:
+[DOCUMENT:format:detailed_prompt]
+
+Rules:
+- 'format' must be exactly one of: pdf, docx, excel
+- 'detailed_prompt' must be a detailed description of the document to generate (include what data to fetch, how to structure it, what columns/sections to include)
+- Always pick the format the user asked for. If they say "Word" use docx. If they say "spreadsheet" or "Excel" use excel. Default to pdf.
+- You can include multiple document tags in one response (e.g. both PDF and DOCX versions).
+- ALWAYS output the tag. Do not ask the user to do it themselves.
+
+Examples:
+- User says "give me a user list PDF" → respond with: "Here is your user list! [DOCUMENT:pdf:Generate a comprehensive user list report. Include all users with their full name, email, department, position, and status. Format as a professional table.]"
+- User says "export employees to Excel" → respond with: "Exporting your employee data! [DOCUMENT:excel:Export all employees data including name, email, department, position, hire date, and status as an Excel spreadsheet.]"
+- User says "create a leave report Word doc" → respond with: "Generating your leave report! [DOCUMENT:docx:Generate a leave report showing all leave requests including employee name, leave type, start date, end date, days taken, and approval status.]"`
+      : `==== AI DOCUMENT GENERATION RESTRICTION ====
+Document generation capability ("ai.documents") is NOT included in this organization's subscription package.
+Do NOT output [DOCUMENT:...] tags. If the user asks for a document, report, or export, politely inform them that automated document generation requires the "ai.documents" capability tier in their package subscription.`;
 
     const systemMessage = new SystemMessage(`You are Humanitas AI — the intelligent co-pilot and enterprise assistant for the Humanitas Enterprise ERP platform.
 You are powered by the AI Provider: ${settings.provider.toUpperCase()}, using Model: ${modelName}.
@@ -336,53 +459,9 @@ Humanitas ERP is organized into dedicated subscribable suites. You know every pa
 - Tenant access to modules is strictly governed by the tenant's assigned package tier configured in the SaaS Admin Portal.
 - If a user asks to access an unsubscribed module, guide them with clarity and inform them that their administrator can upgrade their subscription package in the Admin Portal under **Billing Packages**.
 
-=== DATABASE QUERY & SYSTEM ACTION TOOLS ===
-You have full tool calling capabilities to query tenant data and perform permitted actions:
-- \`query_tenant_database\`: Execute custom SQL queries on the active tenant's schema for data analytics.
-- \`create_user\`, \`update_user\`, \`deactivate_user\`: Manage employee directory records.
-- \`submit_leave_request\`, \`approve_leave_request\`, \`reject_leave_request\`: Handle leave workflows.
-- \`post_announcement\`: Broadcast company news.
-- \`initiate_payroll_run\`, \`add_loan\`: Execute payroll actions.
-- \`create_project\`, \`create_task\`, \`update_task_status\`: PMS project and task actions.
-- \`analyze_task_distribution\`, \`suggest_task_allocation\`, \`get_all_users_kpi\`: Automated team analytics.
+${actionDirectives}
 
-Always be polite, structured, professional, and precise when answering questions about how to use any page or button in Humanitas ERP.
-- \`create_sprint\`: Create a sprint inside a project. Ask for project_id, name, start_date, end_date.
-- \`add_project_member\`: Add a user to a project. Ask for project_id and user_id.
-
-**Leave Module (additional):**
-- \`cancel_leave_request\`: Cancel a leave request. Ask for leave_request_id.
-
-**Scheduling Module:**
-- \`create_shift\`: Create a new shift definition (name, start/end time). Ask for name, start_time, end_time.
-- \`assign_shift\`: Assign an employee to a shift on a given date. Ask for user_id, shift_id, date.
-- \`mark_day_off\`: Mark a day off for an employee. Ask for user_id and date.
-
-**Overtime Module:**
-- \`log_overtime\`: Log overtime hours for an employee. Ask for date and hours breakdown.
-
-**Holidays Module:**
-- \`add_holiday\`: Add a public/company holiday to the calendar. Ask for name and date.
-
-==== GENERATING DOCUMENTS ===
-CRITICAL: When a user asks you to create, generate, produce, prepare, or export ANY document, report, file, PDF, Word document, or Excel spreadsheet — you MUST ALWAYS output the special document tag below. NEVER tell the user to call an API or use a different endpoint. NEVER say "I cannot send binary files". NEVER say "use the dedicated endpoint". Just output the tag and a short friendly message.
-
-The tag format is:
-[DOCUMENT:format:detailed_prompt]
-
-Rules:
-- 'format' must be exactly one of: pdf, docx, excel
-- 'detailed_prompt' must be a detailed description of the document to generate (include what data to fetch, how to structure it, what columns/sections to include)
-- Always pick the format the user asked for. If they say "Word" use docx. If they say "spreadsheet" or "Excel" use excel. Default to pdf.
-- You can include multiple document tags in one response (e.g. both PDF and DOCX versions).
-- ALWAYS output the tag. Do not ask the user to do it themselves.
-
-Examples:
-- User says "give me a user list PDF" → respond with: "Here is your user list! [DOCUMENT:pdf:Generate a comprehensive user list report. Include all users with their full name, email, department, position, and status. Format as a professional table.]"
-- User says "export employees to Excel" → respond with: "Exporting your employee data! [DOCUMENT:excel:Export all employees data including name, email, department, position, hire date, and status as an Excel spreadsheet.]"
-- User says "create a leave report Word doc" → respond with: "Generating your leave report! [DOCUMENT:docx:Generate a leave report showing all leave requests including employee name, leave type, start date, end date, days taken, and approval status.]"
-
-Always be concise. If you don't know the answer, say you don't know. When the user asks you to do any of the above actions, always gather required fields first by asking the user, then call the appropriate tool. Never tell the user "I cannot do that" for any of these actions.
+${documentDirectives}
 
 === HOW TO HELP USERS ===
 When a user asks "how do I add users?" → tell them to go to **Accounts** (/accounts) in the sidebar. There they can click the "Add User" or "New User" button. They need the create_users permission.

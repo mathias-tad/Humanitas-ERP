@@ -48,39 +48,142 @@ describe('ModuleSubscriptionGuard', () => {
     await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
   });
 
-  it('should allow access when module is active in tenant_modules table', async () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('payroll');
+  it('should allow core modules without DB lookup', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('notifications');
+    const context = createMockContext({ tenantSlug: 'test-tenant' });
 
+    const result = await guard.canActivate(context);
+    expect(result).toBe(true);
+    expect(tenantRepository.findOne).not.toHaveBeenCalled();
+  });
+
+  it('should allow all modules if tenant has wildcard * feature', async () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('accounting');
     (tenantRepository.findOne as jest.Mock).mockResolvedValue({
       database_name: 'test_tenant_db',
-      enabled_features: [],
+      enabled_features: ['*'],
     });
-
-    const mockConnection = {
-      query: jest.fn().mockImplementation((query: string) => {
-        if (query.includes('CREATE TABLE')) return [];
-        if (query.includes('SELECT is_active FROM tenant_modules')) {
-          return [{ is_active: true }];
-        }
-        return [];
-      }),
-    };
-    (databaseService.getTenantConnection as jest.Mock).mockResolvedValue(mockConnection);
 
     const context = createMockContext({ tenantSlug: 'test-tenant' });
     const result = await guard.canActivate(context);
     expect(result).toBe(true);
   });
 
-  it('should reject access when module is disabled or not in subscription', async () => {
-    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('custom_erp_module');
+  describe('AI Feature Sub-Gating', () => {
+    it('should throw when tenant has no AI in subscription', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai');
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['hrms', 'payroll'],
+      });
 
-    (tenantRepository.findOne as jest.Mock).mockResolvedValue({
-      database_name: 'test_tenant_db',
-      enabled_features: ['hrms'], // explicit subscription excluding custom_erp_module
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
     });
 
-    const context = createMockContext({ tenantSlug: 'test-tenant' });
-    await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    it('should allow ai.help when tenant has ai.help', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.help');
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['ai.help'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      const result = await guard.canActivate(context);
+      expect(result).toBe(true);
+    });
+
+    it('should reject ai.actions when tenant only has ai.help', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.actions');
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['ai.help'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should reject ai.documents when tenant only has ai.help', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.documents');
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['ai.help'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow ai.documents when tenant has ai.documents', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.documents');
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['ai.documents'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      const result = await guard.canActivate(context);
+      expect(result).toBe(true);
+    });
+
+    it('should allow all AI features when tenant has ai.full', async () => {
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['ai.full'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai');
+      expect(await guard.canActivate(context)).toBe(true);
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.help');
+      expect(await guard.canActivate(context)).toBe(true);
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.actions');
+      expect(await guard.canActivate(context)).toBe(true);
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('ai.documents');
+      expect(await guard.canActivate(context)).toBe(true);
+    });
+  });
+
+  describe('Database fallback (tenant_modules table)', () => {
+    it('should allow access when module is active in tenant_modules table', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('payroll');
+
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: [],
+      });
+
+      const mockConnection = {
+        query: jest.fn().mockImplementation((query: string) => {
+          if (query.includes('CREATE TABLE')) return [];
+          if (query.includes('SELECT is_active FROM tenant_modules')) {
+            return [{ is_active: true }];
+          }
+          return [];
+        }),
+      };
+      (databaseService.getTenantConnection as jest.Mock).mockResolvedValue(mockConnection);
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      const result = await guard.canActivate(context);
+      expect(result).toBe(true);
+    });
+
+    it('should reject access when module is disabled or not in subscription', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('custom_erp_module');
+
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({
+        database_name: 'test_tenant_db',
+        enabled_features: ['hrms'],
+      });
+
+      const context = createMockContext({ tenantSlug: 'test-tenant' });
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
   });
 });

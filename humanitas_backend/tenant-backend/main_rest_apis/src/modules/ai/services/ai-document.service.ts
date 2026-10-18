@@ -8,12 +8,136 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { HumanMessage } from '@langchain/core/messages';
 
+export interface AiDocumentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'HRMS' | 'Payroll' | 'PMS' | 'Attendance' | 'General';
+  supportedFormats: ('pdf' | 'docx' | 'excel')[];
+  defaultPrompt: string;
+  parameters: {
+    key: string;
+    label: string;
+    type: 'string' | 'number' | 'boolean' | 'date';
+    required: boolean;
+    description?: string;
+  }[];
+}
+
 @Injectable()
 export class AiDocumentService {
+  private readonly BUILTIN_TEMPLATES: AiDocumentTemplate[] = [
+    {
+      id: 'employment_verification',
+      name: 'Employment Verification Letter',
+      description: 'Formal verification letter confirming employee designation, department, hire date, and employment status.',
+      category: 'HRMS',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate a formal Employment Verification Letter for the employee. Include official company header, date, employee full name, job title, department, date of hire, employment status (active/full-time), and official verification signature block.',
+      parameters: [
+        { key: 'employee_identifier', label: 'Employee Name or Email', type: 'string', required: true, description: 'Target employee to verify' },
+        { key: 'recipient_organization', label: 'Addressed To (e.g., Embassy, Bank)', type: 'string', required: false, description: 'Organization requesting verification' },
+      ],
+    },
+    {
+      id: 'salary_certificate',
+      name: 'Salary & Compensation Certificate',
+      description: 'Certified breakdown of employee basic salary, allowances, statutory deductions, net monthly salary, and bank details.',
+      category: 'Payroll',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate an official Salary and Compensation Certificate. Detail basic salary, fixed allowances, statutory deductions, monthly net pay, and bank account details for the employee.',
+      parameters: [
+        { key: 'employee_identifier', label: 'Employee Name or Email', type: 'string', required: true, description: 'Target employee' },
+        { key: 'purpose', label: 'Purpose (e.g., Bank Loan, Visa Application)', type: 'string', required: false, description: 'Certificate purpose' },
+      ],
+    },
+    {
+      id: 'performance_evaluation',
+      name: 'PMS Performance Evaluation Summary',
+      description: 'Executive performance appraisal report compiling employee KPI scores, sprint completion velocity, completed deliverables, and manager ratings.',
+      category: 'PMS',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate a comprehensive Performance Evaluation Summary report. Include employee name, department, role, overall KPI score, completed tasks vs assigned, sprint velocity, and manager recommendations.',
+      parameters: [
+        { key: 'employee_identifier', label: 'Employee Name or Email', type: 'string', required: false, description: 'Optional specific employee' },
+        { key: 'review_period', label: 'Review Period (e.g., Q3 2026)', type: 'string', required: false, description: 'Performance period' },
+      ],
+    },
+    {
+      id: 'attendance_monthly_report',
+      name: 'Monthly Attendance & Timesheet Summary',
+      description: 'Detailed workforce attendance summary aggregating clock-in/out records, total working hours, overtime, late arrival counts, and leaves taken.',
+      category: 'Attendance',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate a Monthly Attendance and Timesheet Summary report. Include total scheduled shifts, days present, days absent, late clock-ins, approved leaves, and overtime hours worked.',
+      parameters: [
+        { key: 'month', label: 'Month (1-12)', type: 'number', required: false, description: 'Target month' },
+        { key: 'year', label: 'Year (e.g., 2026)', type: 'number', required: false, description: 'Target year' },
+        { key: 'department', label: 'Department Name', type: 'string', required: false, description: 'Filter by department' },
+      ],
+    },
+    {
+      id: 'project_status_report',
+      name: 'Project Executive Status Brief',
+      description: 'High-level project status briefing detailing active milestones, task burn-down, velocity, team members, and open blockers.',
+      category: 'PMS',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate a Project Executive Status Brief. Include project title, description, status, start/end dates, active milestone progress, sprint deliverables, task counts by status (To Do, In Progress, Done, Blocked), and project team members.',
+      parameters: [
+        { key: 'project_name', label: 'Project Name', type: 'string', required: false, description: 'Target project name' },
+      ],
+    },
+  ];
+
   constructor(
     private databaseService: DatabaseService,
     private aiSettingsFetch: AiSettingsFetchService,
   ) {}
+
+  getBuiltinTemplates(): AiDocumentTemplate[] {
+    return this.BUILTIN_TEMPLATES;
+  }
+
+  async generateFromTemplate(
+    tenantSlug: string,
+    userRoleContext: string,
+    templateId: string,
+    format: 'pdf' | 'docx' | 'excel',
+    parameters?: Record<string, any>,
+    customNotes?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const template = this.BUILTIN_TEMPLATES.find(t => t.id === templateId);
+    if (!template) {
+      throw new BadRequestException(`Unknown template ID: ${templateId}`);
+    }
+
+    if (!template.supportedFormats.includes(format)) {
+      throw new BadRequestException(
+        `Format "${format}" is not supported for template "${template.name}". Supported formats: ${template.supportedFormats.join(', ')}`,
+      );
+    }
+
+    let paramDetails = '';
+    if (parameters && Object.keys(parameters).length > 0) {
+      paramDetails = Object.entries(parameters)
+        .filter(([_, val]) => val !== undefined && val !== null && val !== '')
+        .map(([k, v]) => `- ${k.replace(/_/g, ' ')}: ${v}`)
+        .join('\n');
+    }
+
+    let combinedPrompt = `${template.defaultPrompt}\n\nTEMPLATE PARAMETERS:\n${paramDetails || 'None specified'}`;
+    if (customNotes) {
+      combinedPrompt += `\n\nADDITIONAL USER INSTRUCTIONS:\n${customNotes}`;
+    }
+
+    if (format === 'pdf') {
+      return this.generatePdf(tenantSlug, userRoleContext, combinedPrompt);
+    } else if (format === 'docx') {
+      return this.generateDocx(tenantSlug, userRoleContext, combinedPrompt);
+    } else {
+      return this.generateExcel(tenantSlug, userRoleContext, combinedPrompt);
+    }
+  }
 
   /**
    * Fetch real data from the tenant database based on the user prompt.
@@ -64,7 +188,7 @@ export class AiDocumentService {
           );
         }
       } else if (settings.provider === 'openai') {
-        llm = new ChatOpenAI({ model: modelName, temperature: 0, apiKey: settings.api_key });
+        llm = new ChatOpenAI({ model: modelName, temperature: 0, apiKey: settings.api_key, configuration: settings.endpoint_url ? { baseURL: settings.endpoint_url } : undefined });
       } else if (settings.provider === 'anthropic') {
         llm = new ChatAnthropic({ model: modelName, temperature: 0, apiKey: settings.api_key });
       } else {
@@ -160,7 +284,12 @@ SELECT id, name FROM departments`
     }
 
     const refSection = referenceText
-      ? `\n\nThe user also provided a reference document to use as additional context:\n---\n${referenceText.substring(0, 4000)}\n---\n`
+      ? `\n\n=== USER-PROVIDED REFERENCE TEMPLATE STRUCTURE ===
+The user has provided a custom reference template below. You MUST strictly mirror its structure, sections, table layouts, tone, and formatting style.
+Replace any placeholder tokens (such as {{name}}, [Employee Name], {{salary}}, [Date], etc.) or example rows with the real database records provided above.
+--- TEMPLATE CONTENT ---
+${referenceText.substring(0, 6000)}
+--- END TEMPLATE CONTENT ---\n`
       : '';
 
     const systemPrompt = `You are a professional business document writer for the Humanitas ERP platform.
