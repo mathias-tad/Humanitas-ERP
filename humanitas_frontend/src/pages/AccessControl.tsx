@@ -33,6 +33,9 @@ const permissions: Permission[] = [
   // Devices
   { id: "view_devices", name: "view", label: "View Devices", module: "Devices" },
   { id: "manage_devices", name: "manage", label: "Manage Devices", module: "Devices" },
+  { id: "authorize_devices", name: "authorize", label: "Authorize / Revoke Devices", module: "Devices" },
+  { id: "sync_devices", name: "sync", label: "Sync Device Templates & Users", module: "Devices" },
+  { id: "view_device_logs", name: "logs", label: "View Device Logs", module: "Devices" },
 
   // Attendance
   { id: "view_attendance", name: "view", label: "View All Attendance", module: "Attendance" },

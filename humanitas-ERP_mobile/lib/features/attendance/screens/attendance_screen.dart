@@ -162,9 +162,73 @@ class AttendanceScreen extends ConsumerWidget {
                             ),
                           ),
                           title: Text(item.date, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                          subtitle: Text(
-                            'In: ${item.clockInTime ?? '--:--'}  •  Out: ${item.clockOutTime ?? '--:--'}',
-                            style: GoogleFonts.inter(fontSize: 12),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 2),
+                              Text(
+                                'In: ${item.clockInTime ?? '--:--'}  •  Out: ${item.clockOutTime ?? '--:--'}',
+                                style: GoogleFonts.inter(fontSize: 12),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  if (item.clockMethod == 'biometric')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.fingerprint, size: 12, color: Colors.purple),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            item.deviceName ?? 'Biometric Terminal',
+                                            style: GoogleFonts.inter(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (item.clockMethod == 'qr_code' || item.clockMethod == 'qr')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.qr_code, size: 12, color: Colors.blue),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'QR Code Scan',
+                                            style: GoogleFonts.inter(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        'Manual',
+                                        style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[700], fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
                           ),
                           trailing: Text(
                             item.workHours != null ? '${item.workHours!.toStringAsFixed(1)} hrs' : '',

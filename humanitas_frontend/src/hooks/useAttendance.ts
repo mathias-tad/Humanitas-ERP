@@ -23,6 +23,9 @@ export interface AttendanceRecord {
     is_corrected?: boolean;
     corrected_by_name?: string;
     late_minutes?: number;
+    clock_method?: string;
+    device_id?: string;
+    device_name?: string;
 }
 
 export interface UserWithAssignment {

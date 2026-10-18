@@ -54,10 +54,15 @@ class ApiConstants {
   static const String applyLeave = '/leave/apply';
   static const String leaveStatus = '/leave/status';
 
+  // Admin Attendance Endpoints
+  static const String allAttendanceRecords = '/attendance/records';
+
   // Payroll Endpoints
   static const String myPayslips = '/payroll/my-payslips';
   static const String myLoans = '/payroll/loans/my-requests';
   static const String loanConfig = '/payroll/loans/config';
+  static const String payrollRuns = '/payroll/runs';
+  static const String runPayroll = '/payroll/run';
 
   // Per Diem Endpoints
   static const String myPerDiemClaims = '/per-diem/my-claims';
@@ -95,4 +100,16 @@ class ApiConstants {
   // AI Endpoint
   static const String aiChat = '/ai/chat';
   static const String aiChatWithFile = '/ai/chat-with-file';
+
+  // Biometric Devices Endpoints
+  static const String biometricDevices = '/biometric-devices';
+  static const String biometricDeviceServerInfo = '/biometric-devices/server-info';
+  static String biometricDeviceAuthorize(String id) => '/biometric-devices/$id/authorize';
+  static String biometricDeviceSyncUsers(String id) => '/biometric-devices/$id/sync-users';
+  static String biometricDeviceDelete(String id) => '/biometric-devices/$id';
+  static String biometricDeviceUserStatus(String userId) => '/biometric-devices/users/$userId/biometric-status';
+
+  // Additional Admin Endpoints
+  static const String attendanceCorrections = '/attendance/corrections';
+  static const String allPayslips = '/payroll/all-payslips';
 }

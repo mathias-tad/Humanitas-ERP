@@ -46,6 +46,9 @@ interface HRSettingsData {
   // Notification settings
   absent_notification_enabled?: boolean;
   absent_notification_roles?: string[];
+  // Attendance methods & Biometric verification
+  allowed_attendance_methods?: string[];
+  biometric_verification_mode?: 'optional' | 'strict_finger_face' | 'strict_all';
   // Payroll settings
   payroll_run_day: number;
   auto_payroll_enabled: boolean;
@@ -68,6 +71,8 @@ export function HRMSettings({ disabled: _disabled = false }: HRMSettingsProps) {
     early_punch_in_minutes: 30,
     wait_for_absent_minutes: 0,
     mark_late_instead_of_absent: false,
+    allowed_attendance_methods: ["biometric", "qr"],
+    biometric_verification_mode: "optional",
     work_hours_per_month: 192,
     work_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
     days_in_month_mode: "FIXED_30",
@@ -152,6 +157,10 @@ export function HRMSettings({ disabled: _disabled = false }: HRMSettingsProps) {
             probation_period_days: data.probation_period_days || 90,
             leave_calculation_day: data.leave_calculation_day || 1,
             leave_increase_per_year: data.leave_increase_per_year || 1,
+            allowed_attendance_methods: Array.isArray(data.allowed_attendance_methods)
+              ? data.allowed_attendance_methods
+              : ["biometric", "qr"],
+            biometric_verification_mode: data.biometric_verification_mode || "optional",
           });
         }
       }
@@ -485,6 +494,81 @@ export function HRMSettings({ disabled: _disabled = false }: HRMSettingsProps) {
               <p className="text-sm text-gray-500">
                 How many minutes before shift start can employees clock in
               </p>
+            </div>
+
+            {/* Attendance Check-in Methods & Biometric Policy */}
+            <div className="rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-4 space-y-4">
+              <div>
+                <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-1">Accepted Attendance Verification Methods</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Choose which check-in methods your organization accepts (Biometric Terminals, Mobile QR Code Scan, or both).
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="methodBiometric"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                    checked={(settings.allowed_attendance_methods || ['biometric', 'qr']).includes('biometric')}
+                    onChange={(e) => {
+                      const current = settings.allowed_attendance_methods || ['biometric', 'qr'];
+                      const next = e.target.checked
+                        ? Array.from(new Set([...current, 'biometric']))
+                        : current.filter((m) => m !== 'biometric');
+                      setSettings({ ...settings, allowed_attendance_methods: next });
+                    }}
+                  />
+                  <Label htmlFor="methodBiometric" className="text-sm font-medium cursor-pointer">
+                    Accept Biometric Hardware Devices (Fingerprint / Face / Palm Terminals)
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="methodQR"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                    checked={
+                      (settings.allowed_attendance_methods || ['biometric', 'qr']).includes('qr') ||
+                      (settings.allowed_attendance_methods || []).includes('qr_code')
+                    }
+                    onChange={(e) => {
+                      const current = settings.allowed_attendance_methods || ['biometric', 'qr'];
+                      const next = e.target.checked
+                        ? Array.from(new Set([...current, 'qr']))
+                        : current.filter((m) => m !== 'qr' && m !== 'qr_code');
+                      setSettings({ ...settings, allowed_attendance_methods: next });
+                    }}
+                  />
+                  <Label htmlFor="methodQR" className="text-sm font-medium cursor-pointer">
+                    Accept Mobile Dynamic QR Code Scanning
+                  </Label>
+                </div>
+              </div>
+
+              <div className="grid gap-2 pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+                <Label htmlFor="biometricMode">Biometric Terminal Verification Mode</Label>
+                <select
+                  id="biometricMode"
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={settings.biometric_verification_mode || 'optional'}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      biometric_verification_mode: e.target.value as any,
+                    })
+                  }
+                >
+                  <option value="optional">Optional: Any Modality (Fingerprint, Face, or Palm)</option>
+                  <option value="strict_finger_face">Strict: Requires both Fingerprint & Face Enrolled</option>
+                  <option value="strict_all">Strict: Requires All Modalities (Fingerprint, Face, and Palm)</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Controls whether employee attendance is recognized by any single enrolled biometric or strictly requires multi-modal enrollment on employee record.
+                </p>
+              </div>
             </div>
           </div>
         </CardContent >

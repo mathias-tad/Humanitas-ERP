@@ -19,6 +19,11 @@ import '../../scheduling/screens/scheduling_screen.dart';
 import '../../recruitment/screens/recruitment_screen.dart';
 import '../../announcements/screens/announcements_list_screen.dart';
 import '../../events/screens/events_list_screen.dart';
+import '../../attendance/screens/admin_attendance_screen.dart';
+import '../../users/screens/users_screen.dart';
+import '../../payroll/screens/admin_payroll_screen.dart';
+import '../../devices/screens/devices_screen.dart';
+import '../../leave/screens/admin_leave_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -265,8 +270,45 @@ class HomeScreen extends ConsumerWidget {
                 _QuickActionItem(icon: Icons.settings_suggest_outlined, color: AppColors.teal, label: 'Settings', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SystemSettingsScreen()));
                 }),
+                _QuickActionItem(icon: Icons.fingerprint_rounded, color: AppColors.primaryDark, label: 'Devices', onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DevicesScreen()));
+                }),
               ],
             ),
+
+            if (user?.role == 'admin' || user?.role == 'hr_manager' || user?.role == 'hr' || user?.role == 'super_admin') ...[
+              const SizedBox(height: 24),
+              Text(
+                'Admin Management',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                children: [
+                  _QuickActionItem(icon: Icons.people_alt_rounded, color: AppColors.primary, label: 'Team', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UsersScreen()));
+                  }),
+                  _QuickActionItem(icon: Icons.how_to_reg_rounded, color: AppColors.teal, label: 'Attendance', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAttendanceScreen()));
+                  }),
+                  _QuickActionItem(icon: Icons.beach_access_rounded, color: AppColors.warning, label: 'Leaves', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminLeaveScreen()));
+                  }),
+                  _QuickActionItem(icon: Icons.account_balance_wallet_rounded, color: AppColors.success, label: 'Payroll', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPayrollScreen()));
+                  }),
+                ],
+              ),
+            ],
 
             const SizedBox(height: 24),
 

@@ -61,9 +61,22 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // Global prefix
+  // Register Fastify content type parsers for ADMS biometric terminals (text/plain, octet-stream)
+  const fastifyInstance = app.getHttpAdapter().getInstance();
+  if (fastifyInstance && typeof fastifyInstance.addContentTypeParser === 'function') {
+    fastifyInstance.addContentTypeParser('text/plain', { parseAs: 'string' }, (_req: any, body: any, done: any) => {
+      done(null, body);
+    });
+    fastifyInstance.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req: any, body: any, done: any) => {
+      done(null, body ? body.toString('utf-8') : '');
+    });
+  }
+
+  // Global prefix (excluding /iclock routes so firmware root requests connect directly)
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
-  app.setGlobalPrefix(apiPrefix);
+  app.setGlobalPrefix(apiPrefix, {
+    exclude: ['iclock/(.*)', 'iclock'],
+  });
 
   // Validation pipe
   app.useGlobalPipes(

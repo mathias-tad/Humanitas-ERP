@@ -35,6 +35,27 @@ export class BiometricDevicesController {
         return this.biometricDevicesService.getAllDevices(tenantId);
     }
 
+    @Get('server-info')
+    @RequirePermissions('view_devices', 'manage_devices')
+    async getServerInfo(@Req() req: any) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.getServerInfo(tenantId);
+    }
+
+    @Get('pending')
+    @RequirePermissions('view_devices', 'manage_devices')
+    async getPendingDevices(@Req() req: any) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.getPendingDevices(tenantId);
+    }
+
+    @Get('users/:userId/biometric-status')
+    @RequirePermissions('view_devices', 'view_users')
+    async getUserBiometricStatus(@Req() req: any, @Param('userId') userId: string) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.getUserBiometricStatus(tenantId, userId);
+    }
+
     @Get('protocols')
     @RequirePermissions('view_devices', 'manage_devices')
     async getProtocols(@Req() req: any) {
@@ -51,6 +72,20 @@ export class BiometricDevicesController {
             throw new BadRequestException('Device not found');
         }
         return device;
+    }
+
+    @Patch(':id/authorize')
+    @RequirePermissions('authorize_devices')
+    async authorizeDevice(@Req() req: any, @Param('id') id: string) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.authorizeDevice(tenantId, id, req.user.userId);
+    }
+
+    @Patch(':id/revoke')
+    @RequirePermissions('authorize_devices')
+    async revokeDevice(@Req() req: any, @Param('id') id: string) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.revokeDevice(tenantId, id);
     }
 
     @Post()
@@ -93,5 +128,12 @@ export class BiometricDevicesController {
     async syncDevice(@Req() req: any, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.deviceConnectorService.syncDeviceLogs(tenantId, id);
+    }
+
+    @Post(':id/sync-users')
+    @RequirePermissions('sync_devices', 'manage_devices')
+    async syncUsers(@Req() req: any, @Param('id') id: string) {
+        const tenantId = req.user.tenantId;
+        return this.biometricDevicesService.syncUsersToDevice(tenantId, id);
     }
 }

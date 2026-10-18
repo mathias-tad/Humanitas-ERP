@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
@@ -495,6 +495,8 @@ class _HRTabState extends State<_HRTab> {
   List<String> _workDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   List<Map<String, dynamic>> _leaveTypes = [];
   static const List<String> _allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  List<String> _allowedAttendanceMethods = ['biometric', 'qr_code'];
+  String _biometricVerificationMode = 'optional';
 
   @override void initState() { super.initState(); _load(); }
   @override void dispose() { for (final c in [_startCtrl, _endCtrl, _lateToleranceCtrl, _otThresholdCtrl, _earlyPunchInCtrl, _waitForAbsentCtrl, _probationDaysCtrl, _leaveCalcDayCtrl, _leaveIncreaseCtrl]) c.dispose(); super.dispose(); }
@@ -518,6 +520,10 @@ class _HRTabState extends State<_HRTab> {
         _leaveIncreaseCtrl.text = (d['leave_increase_per_year'] ?? 1).toString();
         if (d['work_days'] is List) _workDays = (d['work_days'] as List).map((e) => e.toString()).toList();
         if (d['leave_types'] is List) _leaveTypes = (d['leave_types'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (d['allowed_attendance_methods'] is List) {
+          _allowedAttendanceMethods = (d['allowed_attendance_methods'] as List).map((e) => e.toString()).toList();
+        }
+        _biometricVerificationMode = d['biometric_verification_mode']?.toString() ?? 'optional';
         _loading = false;
       });
     } catch (_) { setState(() => _loading = false); }
@@ -538,6 +544,8 @@ class _HRTabState extends State<_HRTab> {
         'probation_period_days': int.tryParse(_probationDaysCtrl.text) ?? 90,
         'leave_calculation_day': int.tryParse(_leaveCalcDayCtrl.text) ?? 1,
         'leave_increase_per_year': int.tryParse(_leaveIncreaseCtrl.text) ?? 1,
+        'allowed_attendance_methods': _allowedAttendanceMethods,
+        'biometric_verification_mode': _biometricVerificationMode,
       });
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('HR settings saved!'), backgroundColor: Colors.green));
     } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); }
@@ -631,6 +639,44 @@ class _HRTabState extends State<_HRTab> {
           ]),
         ))),
       OutlinedButton.icon(icon: const Icon(Icons.add), label: const Text('Add Leave Type'), onPressed: () => _showLeaveModal()),
+      _sectionHeader('Attendance Methods'),
+      CheckboxListTile(
+        title: const Text('Allow Biometric (Fingerprint/Face/Palm)'),
+        value: _allowedAttendanceMethods.contains('biometric'),
+        activeColor: AppColors.primary,
+        onChanged: (v) => setState(() {
+          if (v == true) {
+            if (!_allowedAttendanceMethods.contains('biometric')) _allowedAttendanceMethods.add('biometric');
+          } else {
+            _allowedAttendanceMethods.remove('biometric');
+          }
+        }),
+      ),
+      CheckboxListTile(
+        title: const Text('Allow QR Code Scan'),
+        value: _allowedAttendanceMethods.contains('qr_code'),
+        activeColor: AppColors.primary,
+        onChanged: (v) => setState(() {
+          if (v == true) {
+            if (!_allowedAttendanceMethods.contains('qr_code')) _allowedAttendanceMethods.add('qr_code');
+          } else {
+            _allowedAttendanceMethods.remove('qr_code');
+          }
+        }),
+      ),
+      _sectionHeader('Biometric Verification Mode'),
+      DropdownButtonFormField<String>(
+        value: ['optional', 'strict_finger_face', 'strict_all'].contains(_biometricVerificationMode)
+            ? _biometricVerificationMode
+            : 'optional',
+        decoration: _inputDec('Verification Mode'),
+        items: const [
+          DropdownMenuItem(value: 'optional', child: Text('Optional (Any method)')),
+          DropdownMenuItem(value: 'strict_finger_face', child: Text('Strict: Finger or Face only')),
+          DropdownMenuItem(value: 'strict_all', child: Text('Strict: All biometrics required')),
+        ],
+        onChanged: (v) => setState(() => _biometricVerificationMode = v ?? 'optional'),
+      ),
       const SizedBox(height: 20), _saveButton('Save HR Settings', _saving, _save),
       const SizedBox(height: 20),
     ]);

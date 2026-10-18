@@ -52,6 +52,7 @@ import {
   Edit2,
   ScrollText,
   RefreshCw,
+  QrCode,
 } from "lucide-react";
 import { CorrectionLogDialog } from "./CorrectionLogDialog";
 import { OvertimeManagement } from "./OvertimeManagement";
@@ -694,6 +695,7 @@ export default function Attendance() {
                   <TableHead>Scheduled</TableHead>
                   <TableHead>Actual</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Method</TableHead>
                   <TableHead>Work Hours</TableHead>
                   <TableHead>Remarks</TableHead>
                   <TableHead>S. Actions</TableHead>
@@ -703,7 +705,7 @@ export default function Attendance() {
               <TableBody>
                 {filteredRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                       No attendance records found for this date
                     </TableCell>
                   </TableRow>
@@ -756,6 +758,23 @@ export default function Attendance() {
                           {record.status}
                           {record.status === 'Late' && record.late_minutes ? ` (${Math.round(record.late_minutes)}m)` : ''}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {record.clock_method === 'biometric' ? (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200">
+                            <Fingerprint className="h-3 w-3" />
+                            {record.device_name ? record.device_name : 'Biometric'}
+                          </Badge>
+                        ) : record.clock_method === 'qr_code' || record.clock_method === 'qr' ? (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200">
+                            <QrCode className="h-3 w-3" />
+                            QR Scan
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] text-muted-foreground border-border">
+                            Manual
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{formatWorkHours(record.work_hours)}</TableCell>
                       <TableCell className="text-sm text-gray-500">{record.remarks || "-"}</TableCell>

@@ -216,7 +216,16 @@ export class HRSettingsDto {
   @IsString()
   days_in_month_mode?: 'FIXED_30' | 'ACTUAL';
 
+  @ApiPropertyOptional({ description: 'Allowed attendance check-in methods (biometric, qr, manual)' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowed_attendance_methods?: string[];
 
+  @ApiPropertyOptional({ description: 'Biometric verification mode: optional, strict_finger_face, strict_all' })
+  @IsOptional()
+  @IsString()
+  biometric_verification_mode?: 'optional' | 'strict_finger_face' | 'strict_all';
 }
 
 export class CategoryRule {

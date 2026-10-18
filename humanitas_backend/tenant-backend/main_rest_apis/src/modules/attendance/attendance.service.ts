@@ -378,6 +378,8 @@ export class AttendanceService {
         ALTER TABLE shifts ADD COLUMN IF NOT EXISTS wait_for_absent_minutes INTEGER DEFAULT NULL;
         ALTER TABLE shifts ADD COLUMN IF NOT EXISTS grace_minutes INTEGER DEFAULT 15;
         ALTER TABLE shifts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+        ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS clock_method VARCHAR(20) DEFAULT 'manual';
+        ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS device_id UUID REFERENCES biometric_devices(id);
     `);
     } catch (e) {
       console.log('Columns might already exist or error adding them');
@@ -1487,10 +1489,13 @@ export class AttendanceService {
       ar.scheduled_in, ar.scheduled_out, ar.actual_in, ar.actual_out,
       ar.status, ar.work_hours, ar.remarks,
       ar.is_corrected, ar.corrected_by, ar.updated_at,
+      ar.clock_method, ar.device_id,
+      bd.name as device_name,
       s.name as shift_name, s.color as shift_color,
       corrector.full_name as corrected_by_name
       FROM attendance_records ar
       LEFT JOIN shifts s ON ar.shift_id = s.id
+      LEFT JOIN biometric_devices bd ON ar.device_id = bd.id
       LEFT JOIN users corrector ON ar.corrected_by = corrector.id
       WHERE ar.user_id = $1 
         AND ar.date >= $2 
@@ -1721,11 +1726,13 @@ export class AttendanceService {
       SELECT ar.*,
       u.full_name, u.email, u.department, u.avatar_url,
       s.name as shift_name, s.color as shift_color,
+      bd.name as device_name,
       corrector.full_name as corrected_by_name,
       lms.late_minutes
       FROM attendance_records ar
       JOIN users u ON ar.user_id = u.id
       LEFT JOIN shifts s ON ar.shift_id = s.id
+      LEFT JOIN biometric_devices bd ON ar.device_id = bd.id
       LEFT JOIN users corrector ON ar.corrected_by = corrector.id
       LEFT JOIN late_minutes_summary lms ON ar.user_id = lms.user_id AND ar.date = lms.date
       WHERE 1 = 1
@@ -1813,7 +1820,12 @@ export class AttendanceService {
     return result[0];
   }
 
-  async clockIn(tenantId: string, userId: string) {
+  async clockIn(
+    tenantId: string,
+    userId: string,
+    clockMethod: string = 'manual',
+    deviceId: string | null = null,
+  ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureAttendanceTables(connection);
@@ -1945,16 +1957,20 @@ export class AttendanceService {
 
     const result = await connection.query(
       `
-      INSERT INTO attendance_records(user_id, date, shift_id, scheduled_in, scheduled_out, actual_in, status, remarks)
-    VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO attendance_records(
+        user_id, date, shift_id, scheduled_in, scheduled_out, actual_in, status, remarks, clock_method, device_id
+      )
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT(user_id, date) DO UPDATE SET
-    actual_in = $6,
-      status = $7,
-      remarks = COALESCE($8, attendance_records.remarks),
-      updated_at = NOW()
-    RETURNING *
+        actual_in = $6,
+        status = $7,
+        remarks = COALESCE($8, attendance_records.remarks),
+        clock_method = COALESCE($9, attendance_records.clock_method),
+        device_id = COALESCE($10, attendance_records.device_id),
+        updated_at = NOW()
+      RETURNING *
       `,
-      [userId, today, shiftId, scheduledIn, scheduledOut, now, status, remarks],
+      [userId, today, shiftId, scheduledIn, scheduledOut, now, status, remarks, clockMethod, deviceId],
     );
 
     const record = result[0];
@@ -1987,7 +2003,12 @@ export class AttendanceService {
     return record;
   }
 
-  async clockOut(tenantId: string, userId: string) {
+  async clockOut(
+    tenantId: string,
+    userId: string,
+    clockMethod?: string,
+    deviceId?: string,
+  ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
 
@@ -2055,14 +2076,16 @@ export class AttendanceService {
     const result = await connection.query(
       `
       UPDATE attendance_records SET
-    actual_out = $1,
-      work_hours = $2:: interval,
+        actual_out = $1,
+        work_hours = $2::interval,
         status = CASE WHEN status = 'Late' THEN 'Late' ELSE $3 END,
-          updated_at = NOW()
+        clock_method = COALESCE($5, clock_method),
+        device_id = COALESCE($6, device_id),
+        updated_at = NOW()
       WHERE id = $4
-    RETURNING *
+      RETURNING *
       `,
-      [now, workInterval, status, attendance.id],
+      [now, workInterval, status, attendance.id, clockMethod || null, deviceId || null],
     );
 
     const updatedRecord = result[0];
@@ -2642,8 +2665,17 @@ export class AttendanceService {
       [userId, deviceId],
     );
 
+    // Check allowed attendance methods from HR settings
+    const hrSettings = await this.getHRSettings(connection);
+    const allowedMethods = Array.isArray(hrSettings?.allowed_attendance_methods)
+      ? hrSettings.allowed_attendance_methods
+      : ['biometric', 'qr'];
+    if (!allowedMethods.includes('qr') && !allowedMethods.includes('qr_code')) {
+      throw new BadRequestException('QR code attendance check-in is disabled by company policy.');
+    }
+
     // Proceed with clock in
-    return this.clockIn(tenantId, userId);
+    return this.clockIn(tenantId, userId, 'qr_code');
   }
 
   // Secure clock out with QR code, device, and network validation
@@ -2693,8 +2725,17 @@ export class AttendanceService {
       [userId, deviceId],
     );
 
+    // Check allowed attendance methods from HR settings
+    const hrSettings = await this.getHRSettings(connection);
+    const allowedMethods = Array.isArray(hrSettings?.allowed_attendance_methods)
+      ? hrSettings.allowed_attendance_methods
+      : ['biometric', 'qr'];
+    if (!allowedMethods.includes('qr') && !allowedMethods.includes('qr_code')) {
+      throw new BadRequestException('QR code attendance check-out is disabled by company policy.');
+    }
+
     // Proceed with clock out
-    return this.clockOut(tenantId, userId);
+    return this.clockOut(tenantId, userId, 'qr_code');
   }
 
   // Admin: Get all registered devices

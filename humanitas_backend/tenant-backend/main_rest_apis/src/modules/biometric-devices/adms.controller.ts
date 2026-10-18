@@ -16,10 +16,13 @@ export class AdmsController {
     async handshake(
         @Query('SN') sn: string,
         @Query('options') options: string,
+        @Req() req: Request,
         @Res() res: Response
     ) {
+        const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || '';
+        const tenantInfo = await this.admsService.resolveTenant(req, sn);
         if (options && options === 'all') {
-            const response = await this.admsService.handleHandshake(sn);
+            const response = await this.admsService.handleHandshake(sn, clientIp, tenantInfo, options);
             return res.status(200).send(response);
         }
         return res.status(200).send('OK');
@@ -30,41 +33,42 @@ export class AdmsController {
         @Query('SN') sn: string,
         @Query('table') table: string,
         @Body() body: string | Record<string, any>,
-        @Req() req: Request
+        @Req() req: Request,
+        @Res() res: Response
     ) {
-        // Note: ZKTeco sends data as text/plain sometimes, but NestJS might try to parse JSON.
-        // We access raw body if needed, or rely on body parser.
-        // For simplicity, assuming text handling is configured or body is string.
-
-        // Check if body is empty but data is in query or other format (common in some firmwares)
-        // Actually, body is usually the POST payload.
-
-        // In NestJS, extracting raw body text can be tricky if global JSON middleware is on.
-        // We'll rely on string body if content-type is correct.
-
-        // Workaround: If body is an object (parsed), we might need to stringify or check format.
+        const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || '';
+        const tenantInfo = await this.admsService.resolveTenant(req, sn);
         const rawData = typeof body === 'object' ? JSON.stringify(body) : String(body || '');
 
-        const result = await this.admsService.receiveData(sn, table, rawData);
-        return result;
+        const result = await this.admsService.receiveData(sn, table, rawData, clientIp, tenantInfo);
+        return res.status(200).send(result);
     }
 
     /**
      * Device Command Polling
-     * Endpoint: /iclock/getrequest
+     * Endpoint: /iclock/getrequest?SN={sn}
      */
     @Get('getrequest')
-    async getRequest(@Query('SN') sn: string) {
-        return this.admsService.getCommands(sn);
+    async getRequest(@Query('SN') sn: string, @Req() req: Request, @Res() res: Response) {
+        const tenantInfo = await this.admsService.resolveTenant(req, sn);
+        const result = await this.admsService.getCommands(sn, tenantInfo);
+        return res.status(200).send(result);
     }
 
     /**
      * Command Result Reporting
-     * Endpoint: /iclock/devicecmd
+     * Endpoint: /iclock/devicecmd?SN={sn}
      */
     @Post('devicecmd')
-    async deviceCmd(@Query('SN') sn: string, @Body() body: string | Record<string, any>) {
+    async deviceCmd(
+        @Query('SN') sn: string,
+        @Body() body: string | Record<string, any>,
+        @Req() req: Request,
+        @Res() res: Response
+    ) {
+        const tenantInfo = await this.admsService.resolveTenant(req, sn);
         const rawData = typeof body === 'object' ? JSON.stringify(body) : String(body || '');
-        return this.admsService.receiveCmdResult(sn, rawData);
+        const result = await this.admsService.receiveCmdResult(sn, rawData, tenantInfo);
+        return res.status(200).send(result);
     }
 }

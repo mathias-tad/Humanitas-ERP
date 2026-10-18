@@ -103,12 +103,18 @@ export class RolesService {
 
       // Recruitment Permissions
       'manage_recruitment',
+
+      // Biometric & Hardware Permissions
+      'authorize_devices',
+      'sync_devices',
+      'view_device_logs',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
     const adminOnlyPermissions = [
       'delete_any_message', 'bypass_privacy_mode', 'export_chat_history',
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
+      'authorize_devices',
     ];
 
     // Permissions allowed for Employee role
@@ -189,6 +195,9 @@ export class RolesService {
       // Devices
       'view_devices',
       'manage_devices',
+      'authorize_devices',
+      'sync_devices',
+      'view_device_logs',
 
       // Attendance
       'view_attendance',

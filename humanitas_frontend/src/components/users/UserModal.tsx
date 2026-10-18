@@ -10,7 +10,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, MapPin, UserCircle, Phone, Briefcase } from "lucide-react";
+import {
+  Loader2,
+  User,
+  MapPin,
+  UserCircle,
+  Phone,
+  Briefcase,
+  Fingerprint,
+  Smile,
+  Hand,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+} from "lucide-react";
 import { API_BASE_URL } from "@/config/api.config";
 
 interface Role {
@@ -65,7 +79,7 @@ interface UserModalProps {
   roles: Role[];
 }
 
-type TabType = "basic" | "address" | "personal" | "emergency" | "employment";
+type TabType = "basic" | "address" | "personal" | "emergency" | "employment" | "biometrics";
 
 export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("basic");
@@ -103,10 +117,34 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
   const [categories, setCategories] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [biometricStatus, setBiometricStatus] = useState<any>(null);
+  const [isLoadingBiometrics, setIsLoadingBiometrics] = useState(false);
   const isEditMode = !!user?.id;
+
+  const fetchBiometricStatus = async (userId: string) => {
+    setIsLoadingBiometrics(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/biometric-devices/users/${userId}/biometric-status`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBiometricStatus(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch biometric status:", e);
+    } finally {
+      setIsLoadingBiometrics(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
+      if (user.id) {
+        fetchBiometricStatus(user.id);
+      } else {
+        setBiometricStatus(null);
+      }
       setFormData({
         full_name: user.full_name || "",
         email: user.email || "",
@@ -254,6 +292,7 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     { id: "personal" as TabType, label: "Personal", icon: UserCircle },
     { id: "emergency" as TabType, label: "Emergency", icon: Phone },
     { id: "employment" as TabType, label: "Employment", icon: Briefcase },
+    ...(isEditMode ? [{ id: "biometrics" as TabType, label: "Biometrics", icon: Fingerprint }] : []),
   ];
 
 
@@ -792,6 +831,191 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
 
                 </div>
               )} */}
+            </div>
+          )}
+
+          {/* Biometrics Tab */}
+          {activeTab === "biometrics" && (
+            <div className="space-y-4">
+              {isLoadingBiometrics ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin mb-2 text-primary" />
+                  <p className="text-sm">Loading biometric enrollment records...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Top Bar with PIN and Info */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-surface-2 border border-border">
+                    <div className="space-y-0.5">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                        Terminal Biometric PIN
+                      </p>
+                      <p className="text-lg font-mono font-bold text-foreground">
+                        {biometricStatus?.biometricPin || "Auto-assigned on Sync"}
+                      </p>
+                    </div>
+                    {user?.id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fetchBiometricStatus(user.id!)}
+                        className="gap-1.5 text-xs"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Refresh
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* 4 Modalities Cards */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Fingerprint */}
+                    <div className="p-3.5 rounded-lg border bg-surface-1/50 border-border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-600">
+                            <Fingerprint className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm font-medium">Fingerprint</span>
+                        </div>
+                        {biometricStatus?.hasFingerprint ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" /> Enrolled
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground bg-surface-2 px-2 py-0.5 rounded border border-border">
+                            <XCircle className="h-3 w-3" /> Not Enrolled
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {biometricStatus?.templatesSummary?.fingerprints || 0} registered template(s)
+                      </p>
+                    </div>
+
+                    {/* Face Recognition */}
+                    <div className="p-3.5 rounded-lg border bg-surface-1/50 border-border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-600">
+                            <Smile className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm font-medium">Facial Recognition</span>
+                        </div>
+                        {biometricStatus?.hasFace ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" /> Enrolled
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground bg-surface-2 px-2 py-0.5 rounded border border-border">
+                            <XCircle className="h-3 w-3" /> Not Enrolled
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {biometricStatus?.templatesSummary?.faces || 0} facial template(s)
+                      </p>
+                    </div>
+
+                    {/* Palm Recognition */}
+                    <div className="p-3.5 rounded-lg border bg-surface-1/50 border-border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-600">
+                            <Hand className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm font-medium">Palm Print</span>
+                        </div>
+                        {biometricStatus?.hasPalm ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" /> Enrolled
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground bg-surface-2 px-2 py-0.5 rounded border border-border">
+                            <XCircle className="h-3 w-3" /> Not Enrolled
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {biometricStatus?.templatesSummary?.palms || 0} palm template(s)
+                      </p>
+                    </div>
+
+                    {/* RFID / NFC Card */}
+                    <div className="p-3.5 rounded-lg border bg-surface-1/50 border-border space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-md bg-teal-500/10 text-teal-600">
+                            <CreditCard className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm font-medium">RFID Card</span>
+                        </div>
+                        {biometricStatus?.hasCard ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <CheckCircle2 className="h-3 w-3" /> Assigned
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-[11px] text-muted-foreground bg-surface-2 px-2 py-0.5 rounded border border-border">
+                            <XCircle className="h-3 w-3" /> None
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {biometricStatus?.cardNumber || "No card bound"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Terminal Synchronization Status */}
+                  <div className="space-y-2 pt-1">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Hardware Terminal Sync & Deployment
+                    </Label>
+                    {biometricStatus?.deviceRegistrations && biometricStatus.deviceRegistrations.length > 0 ? (
+                      <div className="border rounded-md overflow-hidden text-xs">
+                        <table className="w-full">
+                          <thead className="bg-surface-2 border-b">
+                            <tr>
+                              <th className="text-left p-2 font-medium">Terminal</th>
+                              <th className="text-left p-2 font-medium">Serial No</th>
+                              <th className="text-left p-2 font-medium">Sync State</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {biometricStatus.deviceRegistrations.map((dev: any) => (
+                              <tr key={dev.id} className="border-b last:border-none">
+                                <td className="p-2 font-medium">{dev.device_name}</td>
+                                <td className="p-2 font-mono text-muted-foreground">{dev.serial_number}</td>
+                                <td className="p-2">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                    dev.sync_status === 'synced'
+                                      ? 'bg-emerald-500/10 text-emerald-600'
+                                      : 'bg-amber-500/10 text-amber-600'
+                                  }`}>
+                                    {dev.sync_status || 'pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded border text-xs text-muted-foreground text-center bg-surface-2/40">
+                        Employee not synced to any physical terminal yet. Go to <span className="font-semibold text-foreground">Devices</span> and click <span className="font-semibold text-foreground">Sync Employees to Terminal</span>.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Educational Information Note */}
+                  <div className="p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-300">
+                    <p className="font-semibold mb-0.5">Physical Terminal Enrollment Workflow:</p>
+                    <p>
+                      Employees are created and managed on the system first. Push this employee to your hardware device via the <strong>Sync Employees</strong> button on the Devices page. Once synced, have the employee place their finger, face, or palm on the device to register their biometric template. The device will automatically push the template back here.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

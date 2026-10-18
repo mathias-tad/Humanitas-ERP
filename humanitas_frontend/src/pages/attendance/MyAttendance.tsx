@@ -23,6 +23,7 @@ import {
   ArrowUpDown,
   Timer,
   QrCode,
+  Fingerprint,
   Loader2,
   AlertCircle,
   XCircle,
@@ -322,13 +323,14 @@ export default function MyAttendance() {
                   <TableHead>Clock Out</TableHead>
                   <TableHead>Work Hours</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Method</TableHead>
                   <TableHead>Remarks</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                       No attendance records found for {months[selectedMonth]} {selectedYear}
                     </TableCell>
                   </TableRow>
@@ -377,6 +379,23 @@ export default function MyAttendance() {
                         <Badge className={getStatusColor(getDisplayStatus(record))}>
                           {getDisplayStatus(record)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {record.clock_method === 'biometric' ? (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] bg-purple-50 text-purple-700 border-purple-200">
+                            <Fingerprint className="h-3 w-3" />
+                            {record.device_name ? record.device_name : 'Biometric'}
+                          </Badge>
+                        ) : record.clock_method === 'qr_code' || record.clock_method === 'qr' ? (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] bg-blue-50 text-blue-700 border-blue-200">
+                            <QrCode className="h-3 w-3" />
+                            QR Scan
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 font-mono text-[11px] text-gray-500 border-gray-200">
+                            Manual
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-gray-500 text-sm max-w-[200px] truncate">
                         {record.remarks || "-"}
