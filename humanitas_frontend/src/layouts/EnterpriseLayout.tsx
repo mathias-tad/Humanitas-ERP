@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
-import { ModuleProvider } from "@/context/ModuleContext";
+import { ModuleProvider, useERPModules } from "@/context/ModuleContext";
 import { EnterpriseTopHeader } from "@/components/navigation/EnterpriseTopHeader";
 import { ContextualModuleDock } from "@/components/navigation/ContextualModuleDock";
 import { AppLauncherModal } from "@/components/navigation/AppLauncherModal";

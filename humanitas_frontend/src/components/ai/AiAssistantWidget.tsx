@@ -19,7 +19,6 @@ import {
   ChevronRight,
   UploadCloud,
   FileCheck,
-  Layers,
   ArrowLeft,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
