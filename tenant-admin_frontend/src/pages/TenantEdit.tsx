@@ -14,6 +14,10 @@ import {
   FileText,
   Briefcase,
   Check,
+  Sparkles,
+  MessageSquare,
+  Zap,
+  ScrollText,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,9 +54,41 @@ const AVAILABLE_SERVICES: ServiceItem[] = [
   { id: 'sales', name: 'Sales & CRM Invoicing', description: 'CRM leads, sales quotations, orders & deliveries', icon: BarChart3 },
   { id: 'pos', name: 'Point of Sale (POS)', description: 'Offline POS checkout, barcode scanning & cash shifts', icon: DollarSign },
   { id: 'accounting', name: 'General Ledger & Financials', description: 'Double-entry journals, chart of accounts & balance sheet', icon: FileText },
-  { id: 'ai', name: 'AI Intelligence Suite', description: 'AI contextual help, document generator & autonomous actions', icon: BarChart3 },
   { id: 'reports', name: 'Advanced Reports & Export', description: 'Executive summary dashboards & per-module analytics', icon: BarChart3 },
 ];
+
+// AI capability tiers
+const AI_TIERS = [
+  {
+    id: 'ai.help',
+    name: 'AI Chat Help',
+    description: 'Conversational assistant for navigation, how-to guidance, and read-only ERP knowledge base queries.',
+    icon: MessageSquare,
+  },
+  {
+    id: 'ai.actions',
+    name: 'AI Action Executor',
+    description: 'Executes ERP actions on behalf of the user (approve requests, run payroll, create records) — gated by user RBAC.',
+    icon: Zap,
+  },
+  {
+    id: 'ai.documents',
+    name: 'AI Document Studio',
+    description: 'Generates formatted PDF/DOCX documents from DB data. Supports built-in templates & user-uploaded reference files.',
+    icon: ScrollText,
+  },
+] as const;
+
+const AI_TIER_IDS = AI_TIERS.map((t) => t.id);
+const AI_FULL_ID = 'ai.full';
+
+function getAiTierState(features: string[]): { isFull: boolean; selected: string[] } {
+  if (features.includes(AI_FULL_ID)) {
+    return { isFull: true, selected: [AI_FULL_ID, ...AI_TIER_IDS] };
+  }
+  const selected = AI_TIER_IDS.filter((id) => features.includes(id));
+  return { isFull: false, selected };
+}
 
 export default function TenantEdit() {
   const { id } = useParams();
@@ -118,6 +154,32 @@ export default function TenantEdit() {
         ? Array.from(new Set([...current, serviceId]))
         : current.filter((id) => id !== serviceId);
       return { ...prev, enabled_features: nextFeatures };
+    });
+  };
+
+  const handleAiTierChange = (tierId: string, checked: boolean) => {
+    setFormData((prev) => {
+      let features = prev.enabled_features.filter(
+        (f) => f !== AI_FULL_ID && !AI_TIER_IDS.includes(f as any),
+      );
+      if (tierId === AI_FULL_ID) {
+        if (checked) {
+          features = [...features, AI_FULL_ID, ...AI_TIER_IDS];
+        }
+      } else {
+        const currentTiers = prev.enabled_features.filter((f) =>
+          AI_TIER_IDS.includes(f as any),
+        );
+        const nextTiers = checked
+          ? Array.from(new Set([...currentTiers, tierId]))
+          : currentTiers.filter((id) => id !== tierId);
+        if (nextTiers.length === AI_TIER_IDS.length) {
+          features = [...features, AI_FULL_ID, ...AI_TIER_IDS];
+        } else {
+          features = [...features, ...nextTiers];
+        }
+      }
+      return { ...prev, enabled_features: features };
     });
   };
 
@@ -284,7 +346,7 @@ export default function TenantEdit() {
             <CardHeader>
               <CardTitle>Enabled Services & Modules</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
@@ -331,8 +393,127 @@ export default function TenantEdit() {
                   );
                 })}
               </div>
+
+              {/* ─── AI Intelligence Module ─── */}
+              {(() => {
+                const aiState = getAiTierState(formData.enabled_features);
+                const hasAnyAi = aiState.selected.length > 0;
+                return (
+                  <div className="space-y-3 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-violet-600" />
+                      <span className="text-sm font-semibold">AI Intelligence Module</span>
+                      {hasAnyAi && (
+                        <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">
+                          {aiState.isFull ? 'Full Copilot' : `${aiState.selected.length} tier${aiState.selected.length !== 1 ? 's' : ''}`}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Select AI capability tiers. Selecting all 3 auto-upgrades to <strong>ai.full</strong>.
+                    </p>
+
+                    {/* ai.full shortcut */}
+                    <div
+                      role="checkbox"
+                      aria-checked={aiState.isFull}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAiTierChange(AI_FULL_ID, !aiState.isFull);
+                        }
+                      }}
+                      onClick={() => handleAiTierChange(AI_FULL_ID, !aiState.isFull)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-colors cursor-pointer select-none ${
+                        aiState.isFull
+                          ? 'bg-violet-50 border-violet-400'
+                          : 'bg-white border-dashed border-gray-300 hover:border-violet-300'
+                      }`}
+                    >
+                      <div
+                        className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${
+                          aiState.isFull ? 'bg-violet-600 border-violet-600 text-white' : 'border-gray-300 bg-white'
+                        }`}
+                      >
+                        {aiState.isFull && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <Sparkles className={`h-4 w-4 ${aiState.isFull ? 'text-violet-600' : 'text-gray-400'}`} />
+                      <div>
+                        <span className={`text-sm font-semibold ${aiState.isFull ? 'text-violet-900' : 'text-gray-700'}`}>
+                          Full AI Copilot (ai.full)
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">— unlocks all capabilities</span>
+                      </div>
+                    </div>
+
+                    {/* Individual AI tiers */}
+                    <div className="grid grid-cols-1 gap-2 pl-2">
+                      {AI_TIERS.map((tier) => {
+                        const Icon = tier.icon;
+                        const isSelected = aiState.selected.includes(tier.id);
+                        const colorCls = isSelected
+                          ? tier.id === 'ai.help'
+                            ? 'bg-blue-50 border-blue-200 text-blue-900'
+                            : tier.id === 'ai.actions'
+                            ? 'bg-amber-50 border-amber-200 text-amber-900'
+                            : 'bg-violet-50 border-violet-200 text-violet-900'
+                          : 'bg-card border-border hover:bg-muted/50 text-foreground';
+                        const checkCls = isSelected
+                          ? tier.id === 'ai.help'
+                            ? 'bg-blue-600 border-blue-600'
+                            : tier.id === 'ai.actions'
+                            ? 'bg-amber-500 border-amber-500'
+                            : 'bg-violet-600 border-violet-600'
+                          : 'border-input bg-background';
+                        const iconCls = isSelected
+                          ? tier.id === 'ai.help'
+                            ? 'text-blue-600'
+                            : tier.id === 'ai.actions'
+                            ? 'text-amber-500'
+                            : 'text-violet-600'
+                          : 'text-muted-foreground';
+
+                        return (
+                          <div
+                            key={tier.id}
+                            role="checkbox"
+                            aria-checked={isSelected}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAiTierChange(tier.id, !isSelected);
+                              }
+                            }}
+                            onClick={() => handleAiTierChange(tier.id, !isSelected)}
+                            className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer select-none transition-colors ${colorCls}`}
+                          >
+                            <div
+                              className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center text-white transition-colors ${checkCls}`}
+                            >
+                              {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                            </div>
+                            <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${iconCls}`} />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{tier.name}</span>
+                                <code className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-mono">
+                                  {tier.id}
+                                </code>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{tier.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
+
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
