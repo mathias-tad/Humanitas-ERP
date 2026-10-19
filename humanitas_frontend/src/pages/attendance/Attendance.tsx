@@ -203,6 +203,8 @@ export default function Attendance() {
     pattern_id: "",
     start_date: new Date().toISOString().split("T")[0],
     current_week_in_rotation: 1,
+    day_off_days: [] as number[],
+    auto_rotate_dayoff: true,
   });
 
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -422,6 +424,8 @@ export default function Attendance() {
       pattern_id: (!assignmentData.pattern_id || assignmentData.pattern_id === "standard") ? null : assignmentData.pattern_id,
       start_date: assignmentData.start_date || new Date().toISOString().split("T")[0],
       current_week_in_rotation: assignmentData.current_week_in_rotation || 1,
+      day_off_days: assignmentData.day_off_days,
+      auto_rotate_dayoff: assignmentData.auto_rotate_dayoff,
     };
     assignShiftMutation.mutate(payload, {
       onSuccess: () => {
@@ -431,7 +435,9 @@ export default function Attendance() {
           user_id: "",
           pattern_id: "",
           start_date: new Date().toISOString().split("T")[0],
-          current_week_in_rotation: 1
+          current_week_in_rotation: 1,
+          day_off_days: [],
+          auto_rotate_dayoff: true,
         });
       }
     });
@@ -449,6 +455,8 @@ export default function Attendance() {
       pattern_id: user.pattern_id || "",
       start_date: new Date().toISOString().split("T")[0],
       current_week_in_rotation: user.current_week_in_rotation || 1,
+      day_off_days: (user as any).day_off_days || [],
+      auto_rotate_dayoff: (user as any).auto_rotate_dayoff ?? true,
     });
     setIsAssignModalOpen(true);
   };
@@ -1255,6 +1263,54 @@ export default function Attendance() {
                   value={assignmentData.current_week_in_rotation}
                   onChange={(e) => setAssignmentData({ ...assignmentData, current_week_in_rotation: parseInt(e.target.value) || 1 })}
                 />
+              </div>
+
+              {/* Day-Off Selection & Automatic Rotation */}
+              <div className="grid gap-3 p-3 border rounded-md bg-muted/40">
+                <Label className="font-medium text-xs">Day-Off & Rotation Settings</Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="modal_auto_rotate_dayoff"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    checked={assignmentData.auto_rotate_dayoff}
+                    onChange={(e) => setAssignmentData({ ...assignmentData, auto_rotate_dayoff: e.target.checked })}
+                  />
+                  <Label htmlFor="modal_auto_rotate_dayoff" className="cursor-pointer text-xs font-normal">Rotate Day-Offs Automatically</Label>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">Select Days Off</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                      const isSelected = assignmentData.day_off_days.includes(index);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          className={`cursor-pointer px-2.5 py-1 rounded-md border text-xs transition-colors select-none ${
+                            isSelected
+                              ? 'bg-primary text-primary-foreground border-primary font-medium shadow-xs'
+                              : 'bg-background hover:bg-muted border-border text-foreground'
+                          }`}
+                          onClick={() => {
+                            const current = assignmentData.day_off_days;
+                            const updated = current.includes(index)
+                              ? current.filter((d: number) => d !== index)
+                              : [...current, index];
+                            setAssignmentData({ ...assignmentData, day_off_days: updated });
+                          }}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {assignmentData.auto_rotate_dayoff
+                    ? "Selected days off shift forward by 1 day every week (e.g. Mon → Tue)."
+                    : "Selected days off will repeat every week."}
+                </p>
               </div>
 
               <div className="flex justify-end gap-2">

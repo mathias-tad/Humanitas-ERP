@@ -317,7 +317,7 @@ export function SchedulerView() {
                     <CardDescription>Manage weekly schedules and assignments</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                    {hasPermission('manage_shift_assignment') && (
+                    {(hasPermission('manage_shift_assignments') || hasPermission('manage_shift_assignment') || hasPermission('manage_roster') || hasPermission('manage_schedules')) && (
                         <Button
                             variant="default"
                             size="sm"
