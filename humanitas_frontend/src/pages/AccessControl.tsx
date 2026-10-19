@@ -23,6 +23,9 @@ const permissions: Permission[] = [
   { id: "delete_users", name: "delete", label: "Delete Users", module: "Users" },
   { id: "view_user_attachments", name: "view_attachments", label: "View User Attachments", module: "Users" },
   { id: "manage_user_attachments", name: "manage_attachments", label: "Manage User Attachments", module: "Users" },
+  { id: "view_departments", name: "view_departments", label: "View Departments", module: "Users" },
+  { id: "manage_departments", name: "manage_departments", label: "Manage Departments", module: "Users" },
+  { id: "view_all_departments", name: "view_all_departments", label: "View All Departments (Org-Wide Scope)", module: "Users" },
 
   // Roles & Access Control
   { id: "view_roles", name: "view", label: "View Roles", module: "Access Control" },

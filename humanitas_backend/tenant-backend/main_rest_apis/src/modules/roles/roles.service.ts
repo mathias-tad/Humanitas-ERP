@@ -107,6 +107,7 @@ export class RolesService {
       // Department Permissions
       'view_departments',
       'manage_departments',
+      'view_all_departments',
 
       // Biometric & Hardware Permissions
       'authorize_devices',
@@ -118,7 +119,7 @@ export class RolesService {
     const adminOnlyPermissions = [
       'delete_any_message', 'bypass_privacy_mode', 'export_chat_history',
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
-      'authorize_devices',
+      'authorize_devices', 'view_all_departments',
     ];
 
     // Permissions allowed for Employee role
@@ -191,6 +192,7 @@ export class RolesService {
       'manage_user_attachments',
       'view_departments',
       'manage_departments',
+      'view_all_departments',
 
       // Roles & Access Control
       'view_roles',

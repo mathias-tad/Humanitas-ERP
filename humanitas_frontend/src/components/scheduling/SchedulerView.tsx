@@ -128,15 +128,18 @@ export function SchedulerView() {
     const isOwnerOrAdmin = currentUser?.role?.toLowerCase() === 'owner' || 
                            currentUser?.role?.toLowerCase() === 'admin' || 
                            currentUser?.role?.toLowerCase() === 'administrator';
+    const canViewAllDepartments = isOwnerOrAdmin || hasPermission('view_all_departments');
+    const userDept = currentUser?.department?.trim();
+    const isDepartmentLocked = !canViewAllDepartments && !!userDept;
 
     const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
 
-    // Automatically set default department if manager has a department
+    // Automatically set default department if user lacks view_all_departments
     useEffect(() => {
-        if (!isOwnerOrAdmin && currentUser?.department && currentUser.department.trim()) {
-            setSelectedDepartment(currentUser.department.trim());
+        if (isDepartmentLocked) {
+            setSelectedDepartment(userDept!);
         }
-    }, [currentUser, isOwnerOrAdmin]);
+    }, [isDepartmentLocked, userDept]);
 
     // Available departments from user list
     const availableDepartments = useMemo(() => {
@@ -149,6 +152,9 @@ export function SchedulerView() {
         return Array.from(set).sort();
     }, [users]);
 
+    // Effective department for filtering
+    const effectiveDepartment = isDepartmentLocked ? userDept! : selectedDepartment;
+
     // Derived state for filtered users
     const filteredUsers = users.filter(user => {
         const matchesSearch =
@@ -157,8 +163,8 @@ export function SchedulerView() {
             (user.department && user.department.toLowerCase().includes(searchQuery.toLowerCase()));
 
         const matchesDepartment =
-            selectedDepartment === "all" ||
-            (user.department && user.department.toLowerCase() === selectedDepartment.toLowerCase());
+            effectiveDepartment === "all" ||
+            (user.department && user.department.toLowerCase() === effectiveDepartment.toLowerCase());
 
         return matchesSearch && matchesDepartment;
     });
@@ -369,17 +375,25 @@ export function SchedulerView() {
                             className="pl-8 h-9"
                         />
                     </div>
-                    <div className="w-48 mr-2">
-                        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <div className="w-52 mr-2">
+                        <Select 
+                            value={effectiveDepartment} 
+                            onValueChange={setSelectedDepartment}
+                            disabled={isDepartmentLocked}
+                        >
                             <SelectTrigger className="h-9">
                                 <Building2 className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
                                 <SelectValue placeholder="All Departments" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Departments</SelectItem>
-                                {availableDepartments.map((dept) => (
-                                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                                ))}
+                                {!isDepartmentLocked && <SelectItem value="all">All Departments</SelectItem>}
+                                {isDepartmentLocked ? (
+                                    <SelectItem value={userDept!}>{userDept}</SelectItem>
+                                ) : (
+                                    availableDepartments.map((dept) => (
+                                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                    ))
+                                )}
                             </SelectContent>
                         </Select>
                     </div>

@@ -153,7 +153,7 @@ const formatDateTime = (dateStr: string | null | undefined): string => {
 };
 
 export default function Attendance() {
-  const { isAuthenticated, isLoading: authLoading, hasPermission } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, hasPermission, user: currentUser } = useAuth();
   const queryClient = useQueryClient();
 
   // Defensive check for hasPermission
@@ -164,6 +164,13 @@ export default function Attendance() {
       return false;
     }
   };
+
+  const isOwnerOrAdmin = currentUser?.role?.toLowerCase() === 'owner' || 
+                         currentUser?.role?.toLowerCase() === 'admin' || 
+                         currentUser?.role?.toLowerCase() === 'administrator';
+  const canViewAllDepartments = isOwnerOrAdmin || checkPermission('view_all_departments');
+  const userDept = currentUser?.department?.trim();
+  const isDepartmentLocked = !canViewAllDepartments && !!userDept;
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -197,6 +204,12 @@ export default function Attendance() {
 
   const [selectedAssignmentDepartment, setSelectedAssignmentDepartment] = useState<string>("all");
 
+  useEffect(() => {
+    if (isDepartmentLocked) {
+      setSelectedAssignmentDepartment(userDept!);
+    }
+  }, [isDepartmentLocked, userDept]);
+
   const assignmentDepartments = useMemo(() => {
     const set = new Set<string>();
     users.forEach((u: any) => {
@@ -205,14 +218,16 @@ export default function Attendance() {
     return Array.from(set).sort();
   }, [users]);
 
+  const effectiveAssignmentDepartment = isDepartmentLocked ? userDept! : selectedAssignmentDepartment;
+
   const filteredAssignmentUsers = useMemo(() => {
     return users.filter((u: any) => {
       return (
-        selectedAssignmentDepartment === "all" ||
-        (u.department && u.department.toLowerCase() === selectedAssignmentDepartment.toLowerCase())
+        effectiveAssignmentDepartment === "all" ||
+        (u.department && u.department.toLowerCase() === effectiveAssignmentDepartment.toLowerCase())
       );
     });
-  }, [users, selectedAssignmentDepartment]);
+  }, [users, effectiveAssignmentDepartment]);
 
   const isLoading = attendanceQuery.isLoading || isLoadingShifts || isLoadingPatterns || assignmentsQuery.isLoading;
 
@@ -891,16 +906,24 @@ export default function Attendance() {
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Shift Assignments</CardTitle>
                 <div className="w-52">
-                  <Select value={selectedAssignmentDepartment} onValueChange={setSelectedAssignmentDepartment}>
+                  <Select 
+                    value={effectiveAssignmentDepartment} 
+                    onValueChange={setSelectedAssignmentDepartment}
+                    disabled={isDepartmentLocked}
+                  >
                     <SelectTrigger className="h-9">
                       <Building2 className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
                       <SelectValue placeholder="All Departments" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {assignmentDepartments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
+                      {!isDepartmentLocked && <SelectItem value="all">All Departments</SelectItem>}
+                      {isDepartmentLocked ? (
+                        <SelectItem value={userDept!}>{userDept}</SelectItem>
+                      ) : (
+                        assignmentDepartments.map((dept) => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

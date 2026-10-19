@@ -27,10 +27,10 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
   void initState() {
     super.initState();
     final authState = ref.read(authProvider);
-    final role = authState.user?.role.toLowerCase() ?? '';
-    final isPrivileged = role == 'owner' || role == 'admin' || role == 'administrator';
-    if (!isPrivileged && authState.user?.department != null && authState.user!.department!.isNotEmpty) {
-      _selectedDept = authState.user!.department!;
+    final canViewAll = authState.hasPermission('view_all_departments');
+    final userDept = authState.user?.department?.trim();
+    if (!canViewAll && userDept != null && userDept.isNotEmpty) {
+      _selectedDept = userDept;
     }
   }
 
@@ -135,6 +135,12 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
       return _buildPermissionDenied(isDark);
     }
 
+    final authState = ref.watch(authProvider);
+    final canViewAll = authState.hasPermission('view_all_departments');
+    final userDept = authState.user?.department?.trim();
+    final isDepartmentLocked = !canViewAll && userDept != null && userDept.isNotEmpty;
+    final effectiveDept = isDepartmentLocked ? userDept! : _selectedDept;
+
     final rosterAsync = ref.watch(rosterUsersProvider);
 
     return Scaffold(
@@ -200,6 +206,28 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
           // ── Department filter chips ──────────────────────────────────────
           rosterAsync.maybeWhen(
             data: (users) {
+              if (isDepartmentLocked) {
+                return Container(
+                  height: 38,
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.centerLeft,
+                  child: Chip(
+                    avatar: const Icon(Icons.lock_outline_rounded, size: 14, color: AppColors.primary),
+                    label: Text(
+                      'Department: $userDept',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                );
+              }
+
               final depts = <String>{'All'};
               for (final u in users) {
                 if (u.department != null && u.department!.trim().isNotEmpty) {
@@ -214,7 +242,7 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: depts.map((dept) {
-                    final isSelected = _selectedDept.toLowerCase() == dept.toLowerCase();
+                    final isSelected = effectiveDept.toLowerCase() == dept.toLowerCase();
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
@@ -282,8 +310,8 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
                       (u.position?.toLowerCase().contains(_searchQuery) ?? false) ||
                       (u.email?.toLowerCase().contains(_searchQuery) ?? false);
 
-                  final matchesDept = _selectedDept == 'All' ||
-                      (u.department?.toLowerCase() == _selectedDept.toLowerCase());
+                  final matchesDept = effectiveDept == 'All' ||
+                      (u.department?.toLowerCase() == effectiveDept.toLowerCase());
 
                   return matchesQuery && matchesDept;
                 }).toList();
