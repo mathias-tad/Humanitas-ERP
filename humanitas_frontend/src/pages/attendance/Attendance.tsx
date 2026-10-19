@@ -201,6 +201,7 @@ export default function Attendance() {
   const [assignmentData, setAssignmentData] = useState({
     user_id: "",
     pattern_id: "",
+    start_date: new Date().toISOString().split("T")[0],
     current_week_in_rotation: 1,
   });
 
@@ -417,14 +418,21 @@ export default function Attendance() {
   // ASSIGNMENT CRUD
   const handleAssignShift = () => {
     const payload = {
-      ...assignmentData,
-      pattern_id: assignmentData.pattern_id === "standard" ? null : assignmentData.pattern_id
+      user_id: assignmentData.user_id,
+      pattern_id: (!assignmentData.pattern_id || assignmentData.pattern_id === "standard") ? null : assignmentData.pattern_id,
+      start_date: assignmentData.start_date || new Date().toISOString().split("T")[0],
+      current_week_in_rotation: assignmentData.current_week_in_rotation || 1,
     };
     assignShiftMutation.mutate(payload, {
       onSuccess: () => {
         setIsAssignModalOpen(false);
         setSelectedUser(null);
-        setAssignmentData({ user_id: "", pattern_id: "", current_week_in_rotation: 1 });
+        setAssignmentData({
+          user_id: "",
+          pattern_id: "",
+          start_date: new Date().toISOString().split("T")[0],
+          current_week_in_rotation: 1
+        });
       }
     });
   };
@@ -439,6 +447,7 @@ export default function Attendance() {
     setAssignmentData({
       user_id: user.id,
       pattern_id: user.pattern_id || "",
+      start_date: new Date().toISOString().split("T")[0],
       current_week_in_rotation: user.current_week_in_rotation || 1,
     });
     setIsAssignModalOpen(true);
@@ -1227,6 +1236,15 @@ export default function Attendance() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label>Effective Start Date</Label>
+                <Input
+                  type="date"
+                  value={assignmentData.start_date}
+                  onChange={(e) => setAssignmentData({ ...assignmentData, start_date: e.target.value })}
+                />
               </div>
 
               <div>

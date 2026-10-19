@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsBoolean,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AssignPatternDto {
@@ -16,18 +17,25 @@ export class AssignPatternDto {
   user_id: string;
 
   @ApiPropertyOptional()
+  @Transform(({ value }) => (!value || value === '' || value === 'standard' ? null : value))
   @IsUUID()
   @IsOptional()
-  pattern_id?: string;
+  pattern_id?: string | null;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'YYYY-MM-DD when day 1 of pattern starts (defaults to today if omitted)' })
   @IsDateString()
-  start_date: string; // YYYY-MM-DD when day 1 of pattern starts
+  @IsOptional()
+  start_date?: string;
 
   @ApiPropertyOptional()
   @IsDateString()
   @IsOptional()
   end_date?: string;
+
+  @ApiPropertyOptional({ description: 'Current week in rotation (1-based)' })
+  @IsNumber()
+  @IsOptional()
+  current_week_in_rotation?: number;
 
   @ApiPropertyOptional()
   @IsString()

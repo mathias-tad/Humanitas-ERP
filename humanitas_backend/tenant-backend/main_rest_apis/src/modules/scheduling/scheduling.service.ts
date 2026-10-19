@@ -489,6 +489,8 @@ export class SchedulingService {
       await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureSchedulingTables(connection);
 
+    const startDate = dto.start_date || new Date().toISOString().split('T')[0];
+
     const result = await connection.query(
       `
       INSERT INTO user_shift_patterns (user_id, pattern_id, start_date, end_date, day_off_days, auto_rotate_dayoff)
@@ -505,7 +507,7 @@ export class SchedulingService {
       [
         dto.user_id,
         dto.pattern_id || null,
-        dto.start_date,
+        startDate,
         dto.end_date || null,
         JSON.stringify(dto.day_off_days || []), // Default to empty array if not provided
         dto.auto_rotate_dayoff ?? true // Default to true
