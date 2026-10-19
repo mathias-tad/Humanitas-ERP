@@ -217,6 +217,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       "events",
       "messaging",
       "chat",
+      "calendar",
     ];
     if (CORE_PLATFORM_MODULES.includes(k)) {
       return true;

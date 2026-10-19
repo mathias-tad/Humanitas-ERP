@@ -59,8 +59,7 @@ const items = [
     url: "/calendar",
     icon: Calendar,
     id: 3,
-    module: "attendance",
-    permissions: [], // Requires attendance module
+    permissions: [],
   },
   {
     title: "Scheduling",
@@ -132,7 +131,7 @@ export function AppSidebar() {
     if ((item as any).module && !isModuleSubscribed((item as any).module)) {
       return false;
     }
-    if (item.permissions.length === 0) return true;
+    if (!item.permissions || item.permissions.length === 0) return true;
     return hasAnyPermission(item.permissions);
   };
 

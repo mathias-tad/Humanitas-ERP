@@ -222,11 +222,7 @@ function AppRoutes() {
             <LeaveWorkflowSettings />
           </PermissionRoute>
         } />
-        <Route path="/calendar" element={
-          <PermissionRoute module="scheduling" permissions={["view_roster", "manage_roster"]}>
-            <Calendar />
-          </PermissionRoute>
-        } />
+        <Route path="/calendar" element={<Calendar />} />
         <Route path="/scheduling" element={
           <PermissionRoute module="scheduling" permissions={["manage_roster", "view_roster"]}>
             <SchedulingDashboard />

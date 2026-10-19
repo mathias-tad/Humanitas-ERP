@@ -24,6 +24,7 @@ import '../../users/screens/users_screen.dart';
 import '../../payroll/screens/admin_payroll_screen.dart';
 import '../../devices/screens/devices_screen.dart';
 import '../../leave/screens/admin_leave_screen.dart';
+import '../../calendar/screens/calendar_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -231,6 +232,9 @@ class HomeScreen extends ConsumerWidget {
                 _QuickActionItem(icon: Icons.qr_code_scanner_rounded, color: AppColors.primary,  label: 'Clock In',  onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QrScannerScreen(isClockIn: true)));
                 }),
+                _QuickActionItem(icon: Icons.calendar_month_rounded,   color: AppColors.primary,  label: 'Calendar',  onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
+                }),
                 _QuickActionItem(icon: Icons.calendar_month_outlined,  color: AppColors.primaryDark, label: 'Roster',   onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SchedulingScreen()));
                 }),
@@ -400,10 +404,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const EventsListScreen()),
+                    MaterialPageRoute(builder: (_) => const CalendarScreen()),
                   ),
                   child: Text(
-                    'View All',
+                    'Open Calendar',
                     style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.teal),
                   ),
                 ),
@@ -414,7 +418,7 @@ class HomeScreen extends ConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const EventsListScreen()),
+                  MaterialPageRoute(builder: (_) => const CalendarScreen()),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
