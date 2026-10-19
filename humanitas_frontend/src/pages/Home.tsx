@@ -94,7 +94,7 @@ function Home() {
       description: "View shift patterns and roster times",
       color: "text-amber-600 dark:text-amber-400",
       bgLight: "bg-amber-500/10 dark:bg-amber-500/20",
-      path: "/scheduling"
+      path: "/hr/scheduling"
     },
   ];
 

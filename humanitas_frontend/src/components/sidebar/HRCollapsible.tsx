@@ -15,6 +15,7 @@ import {
   Banknote,
   Settings,
   Sparkles,
+  CalendarClock,
 } from "lucide-react";
 import {
   Collapsible,
@@ -88,6 +89,10 @@ export function HRCollapsible({
     { to: "/leave/workflow", icon: Settings, label: "Workflow Settings", permissions: ["manage_leave", "approve_leave"] },
   ];
 
+  const allSchedulingItems = [
+    { to: "/hr/scheduling", icon: CalendarClock, label: "Scheduling & Roster", permissions: ["manage_schedules", "view_roster", "manage_roster", "view_shifts", "manage_shifts"] },
+  ];
+
   const allRecruitmentItems = [
     { to: "/recruitment", icon: Sparkles, label: "AI Screening", permissions: ["manage_recruitment", "view_hrm_settings", "view_dashboard"] },
   ];
@@ -98,6 +103,7 @@ export function HRCollapsible({
   const isAttendanceSubscribed = isModuleSubscribed("attendance");
   const isLeaveSubscribed = isModuleSubscribed("leave");
   const isRecruitmentSubscribed = isModuleSubscribed("recruitment");
+  const isSchedulingSubscribed = isModuleSubscribed("hrms") || isModuleSubscribed("hr") || isModuleSubscribed("attendance") || isModuleSubscribed("scheduling");
 
   // Filter items based on permissions AND module subscription
   const payrollItems = isPayrollSubscribed
@@ -109,12 +115,15 @@ export function HRCollapsible({
   const leaveItems = isLeaveSubscribed
     ? allLeaveItems.filter(item => hasAnyPermission(item.permissions))
     : [];
+  const schedulingItems = isSchedulingSubscribed
+    ? allSchedulingItems.filter(item => item.permissions.length === 0 || hasAnyPermission(item.permissions))
+    : [];
   const recruitmentItems = isRecruitmentSubscribed
     ? allRecruitmentItems.filter(item => hasAnyPermission(item.permissions))
     : [];
 
   // Check if any HR section is accessible
-  const hasAnyHRAccess = payrollItems.length > 0 || attendanceItems.length > 0 || leaveItems.length > 0 || recruitmentItems.length > 0;
+  const hasAnyHRAccess = payrollItems.length > 0 || attendanceItems.length > 0 || leaveItems.length > 0 || schedulingItems.length > 0 || recruitmentItems.length > 0;
 
   if (!hasAnyHRAccess) {
     return null;
@@ -217,6 +226,23 @@ export function HRCollapsible({
               </div>
             )}
 
+            {/* Scheduling & Roster Section */}
+            {schedulingItems.map((item) => (
+              <NavLink key={item.to} to={item.to}>
+                {({ isActive }) => (
+                  <div
+                    className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </div>
+                )}
+              </NavLink>
+            ))}
+
             {/* Payroll Items */}
             {payrollItems.map((item) => (
               <NavLink key={item.to} to={item.to}>
@@ -306,6 +332,27 @@ export function HRCollapsible({
                 onOpenChange={onLeaveOpenChange}
               />
             )}
+
+            {/* Scheduling & Roster Items */}
+            {schedulingItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
 
             {/* Payroll Items */}
             {payrollItems.map((item) => (

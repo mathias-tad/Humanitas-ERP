@@ -223,11 +223,12 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/calendar" element={<Calendar />} />
-        <Route path="/scheduling" element={
-          <PermissionRoute module="scheduling" permissions={["manage_roster", "view_roster"]}>
+        <Route path="/hr/scheduling" element={
+          <PermissionRoute module="hrms" permissions={["manage_roster", "view_roster", "view_shifts", "manage_shifts", "manage_schedules"]}>
             <SchedulingDashboard />
           </PermissionRoute>
         } />
+        <Route path="/scheduling" element={<Navigate to="/hr/scheduling" replace />} />
         <Route path="/devices" element={
           <PermissionRoute module="attendance" permissions={["view_devices", "manage_devices"]}>
             <Devices />

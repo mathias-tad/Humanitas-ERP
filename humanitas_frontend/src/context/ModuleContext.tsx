@@ -259,8 +259,13 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     }
 
-    // Full HRMS bundle unlocks standard HR workflows
-    if (feats.includes("hrms") && ["attendance", "leave", "scheduling", "recruitment", "messaging"].includes(k)) {
+    // Full HRMS or HR bundle unlocks standard HR workflows
+    if (feats.some((f: string) => ["hrms", "hr"].includes(f)) && ["attendance", "leave", "scheduling", "recruitment", "messaging"].includes(k)) {
+      return true;
+    }
+
+    // Attendance module inherently unlocks shifts, roster, and scheduling
+    if (["scheduling", "roster", "shifts"].includes(k) && feats.some((f: string) => ["attendance", "hrms", "hr"].includes(f))) {
       return true;
     }
 

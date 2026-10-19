@@ -68,7 +68,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "Recruitment (ATS)", url: "/recruitment", icon: UserPlus, permissions: ["manage_recruitment", "view_hrm_settings"] },
         { title: "Attendance", url: "/attendance", icon: Clock },
         { title: "Leaves", url: "/leave", icon: CalendarDays },
-        { title: "Shifts & Roster", url: "/scheduling", icon: CalendarClock },
+        { title: "Shifts & Roster", url: "/hr/scheduling", icon: CalendarClock },
         { title: "Payroll", url: "/payroll/dashboard", icon: Calculator },
         { title: "Loans & Per Diem", url: "/loans", icon: CreditCard },
       ],

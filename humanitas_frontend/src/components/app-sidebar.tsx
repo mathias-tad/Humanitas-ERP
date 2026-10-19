@@ -1,4 +1,4 @@
-import { Calendar, Home, Settings, Computer, Key, CalendarClock, Megaphone, CalendarDays, Users, FileText, GitBranch } from "lucide-react";
+import { Calendar, Home, Settings, Computer, Key, Megaphone, CalendarDays, Users, FileText, GitBranch } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import humanitas_logo from "../assets/humanitas_logo.png";
 import { MySidebarHeader } from "./sidebar-header";
@@ -60,14 +60,6 @@ const items = [
     icon: Calendar,
     id: 3,
     permissions: [],
-  },
-  {
-    title: "Scheduling",
-    url: "/scheduling",
-    icon: CalendarClock,
-    id: 99,
-    module: "scheduling",
-    permissions: ["manage_schedules", "view_roster", "manage_roster"],
   },
   {
     title: "Announcements",
@@ -140,7 +132,9 @@ export function AppSidebar() {
     if (
       location.pathname.startsWith("/attendance") ||
       location.pathname.startsWith("/leave") ||
-      location.pathname.startsWith("/payroll")
+      location.pathname.startsWith("/payroll") ||
+      location.pathname.startsWith("/hr/scheduling") ||
+      location.pathname.startsWith("/scheduling")
     )
       setIsHROpen(true);
     if (location.pathname.startsWith("/attendance")) setIsAttendanceOpen(true);
