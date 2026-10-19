@@ -26,6 +26,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { API_BASE_URL } from "@/config/api.config";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 interface Role {
   id: string;
@@ -115,6 +117,13 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     allowance_settings: [],
   });
   const [categories, setCategories] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [isNewDeptDialogOpen, setIsNewDeptDialogOpen] = useState(false);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newDeptDesc, setNewDeptDesc] = useState("");
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+  const { hasPermission } = useAuth();
+  const canManageDepartments = hasPermission('manage_departments') || hasPermission('edit_company_settings') || hasPermission('create_users');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [biometricStatus, setBiometricStatus] = useState<any>(null);
@@ -212,9 +221,53 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     setError("");
     setActiveTab("basic");
     fetchCategories();
+    fetchDepartments();
   }, [user, isOpen]);
 
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/departments`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(Array.isArray(data) ? data : data.data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch departments:", e);
+    }
+  };
 
+  const handleCreateDepartment = async () => {
+    if (!newDeptName.trim()) {
+      toast.error("Please enter a department name");
+      return;
+    }
+    setIsCreatingDept(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/settings/departments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: newDeptName.trim(), description: newDeptDesc.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to create department");
+      }
+      const created = await res.json();
+      toast.success(`Department "${created.name || newDeptName.trim()}" created!`);
+      await fetchDepartments();
+      setFormData((prev) => ({ ...prev, department: created.name || newDeptName.trim() }));
+      setNewDeptName("");
+      setNewDeptDesc("");
+      setIsNewDeptDialogOpen(false);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to create department");
+    } finally {
+      setIsCreatingDept(false);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -300,7 +353,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit User" : "Add New User"}</DialogTitle>
@@ -617,13 +671,45 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Input
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="department">Department</Label>
+                    {canManageDepartments && (
+                      <button
+                        type="button"
+                        onClick={() => setIsNewDeptDialogOpen(true)}
+                        className="text-xs text-primary hover:underline font-medium cursor-pointer"
+                      >
+                        + New Department
+                      </button>
+                    )}
+                  </div>
+                  <select
                     id="department"
                     value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="Engineering"
-                  />
+                    onChange={(e) => {
+                      if (e.target.value === "__add_new__") {
+                        setIsNewDeptDialogOpen(true);
+                      } else {
+                        setFormData({ ...formData, department: e.target.value });
+                      }
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select Department...</option>
+                    {formData.department && !departments.some((d) => d.name?.toLowerCase() === formData.department?.toLowerCase()) && (
+                      <option value={formData.department}>{formData.department} (Current)</option>
+                    )}
+                    {departments.map((dept) => (
+                      <option key={dept.id || dept.name} value={dept.name}>
+                        {dept.name}
+                      </option>
+                    ))}
+                    {canManageDepartments && (
+                      <option value="__add_new__" className="text-primary font-medium">
+                        + Add New Department...
+                      </option>
+                    )}
+                  </select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="position">Position</Label>
@@ -1039,5 +1125,58 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Inline Create Department Modal */}
+    <Dialog open={isNewDeptDialogOpen} onOpenChange={setIsNewDeptDialogOpen}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle>Create Department</DialogTitle>
+          <DialogDescription>
+            Add a new department configuration for employee organization and roster scoping.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="new_dept_name">
+              Department Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="new_dept_name"
+              placeholder="e.g. Finance, Legal, Operations"
+              value={newDeptName}
+              onChange={(e) => setNewDeptName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new_dept_desc">Description (Optional)</Label>
+            <Input
+              id="new_dept_desc"
+              placeholder="Brief department responsibilities"
+              value={newDeptDesc}
+              onChange={(e) => setNewDeptDesc(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setIsNewDeptDialogOpen(false)}
+            disabled={isCreatingDept}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleCreateDepartment}
+            disabled={isCreatingDept || !newDeptName.trim()}
+          >
+            {isCreatingDept && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Create & Select
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

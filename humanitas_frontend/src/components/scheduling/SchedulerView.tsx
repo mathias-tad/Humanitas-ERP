@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, startOfWeek, endOfWeek, addDays, subDays, isSameDay } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { useUsers } from "@/hooks/useUsers";
 import { useShifts, usePatterns } from "@/hooks/useScheduling";
 import { RefreshButton } from "@/components/ui/refresh-button";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/context/AuthContext";
 import {
     ChevronLeft,
     ChevronRight,
     Search,
+    Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -122,13 +124,44 @@ export function SchedulerView() {
     const [isPatternModalOpen, setIsPatternModalOpen] = useState(false);
     const [isUserSearchOpen, setIsUserSearchOpen] = useState(false);
     const { hasPermission } = usePermissions();
+    const { user: currentUser } = useAuth();
+    const isOwnerOrAdmin = currentUser?.role?.toLowerCase() === 'owner' || 
+                           currentUser?.role?.toLowerCase() === 'admin' || 
+                           currentUser?.role?.toLowerCase() === 'administrator';
+
+    const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+
+    // Automatically set default department if manager has a department
+    useEffect(() => {
+        if (!isOwnerOrAdmin && currentUser?.department && currentUser.department.trim()) {
+            setSelectedDepartment(currentUser.department.trim());
+        }
+    }, [currentUser, isOwnerOrAdmin]);
+
+    // Available departments from user list
+    const availableDepartments = useMemo(() => {
+        const set = new Set<string>();
+        users.forEach(u => {
+            if (u.department && u.department.trim()) {
+                set.add(u.department.trim());
+            }
+        });
+        return Array.from(set).sort();
+    }, [users]);
 
     // Derived state for filtered users
-    const filteredUsers = users.filter(user =>
-        user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (user.department && user.department.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const filteredUsers = users.filter(user => {
+        const matchesSearch =
+            user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (user.department && user.department.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        const matchesDepartment =
+            selectedDepartment === "all" ||
+            (user.department && user.department.toLowerCase() === selectedDepartment.toLowerCase());
+
+        return matchesSearch && matchesDepartment;
+    });
 
     // Calculate week range for schedule fetching
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -327,7 +360,7 @@ export function SchedulerView() {
                             Assign Pattern
                         </Button>
                     )}
-                    <div className="relative w-64 mr-2">
+                    <div className="relative w-52 mr-2">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Search employees..."
@@ -335,6 +368,20 @@ export function SchedulerView() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-8 h-9"
                         />
+                    </div>
+                    <div className="w-48 mr-2">
+                        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                            <SelectTrigger className="h-9">
+                                <Building2 className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                                <SelectValue placeholder="All Departments" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Departments</SelectItem>
+                                {availableDepartments.map((dept) => (
+                                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="flex items-center border rounded-md">
                         <Button variant="ghost" size="icon" onClick={handlePreviousWeek}>

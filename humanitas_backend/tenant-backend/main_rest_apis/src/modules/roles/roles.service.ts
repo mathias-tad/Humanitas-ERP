@@ -104,6 +104,10 @@ export class RolesService {
       // Recruitment Permissions
       'manage_recruitment',
 
+      // Department Permissions
+      'view_departments',
+      'manage_departments',
+
       // Biometric & Hardware Permissions
       'authorize_devices',
       'sync_devices',
@@ -185,6 +189,8 @@ export class RolesService {
       'delete_users',
       'view_user_attachments',
       'manage_user_attachments',
+      'view_departments',
+      'manage_departments',
 
       // Roles & Access Control
       'view_roles',
@@ -340,6 +346,8 @@ export class RolesService {
       'view_dashboard',
       'view_users',
       'edit_users',
+      'view_departments',
+      'manage_departments',
       'view_user_attachments',
       'view_attendance',
       'edit_attendance',

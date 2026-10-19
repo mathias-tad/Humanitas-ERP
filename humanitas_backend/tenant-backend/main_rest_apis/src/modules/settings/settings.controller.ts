@@ -109,12 +109,14 @@ export class SettingsController {
   // Departments
   @Get('departments')
   @ApiOperation({ summary: 'Get all departments' })
+  @RequirePermissions('view_departments', 'view_company_settings', 'view_users', 'create_users', 'edit_users', 'view_roster')
   async getDepartments(@Req() req: AuthenticatedRequest) {
     return this.settingsService.getDepartments(req.user.tenantSlug);
   }
 
   @Post('departments')
   @ApiOperation({ summary: 'Create department' })
+  @RequirePermissions('manage_departments', 'edit_company_settings', 'create_users', 'edit_users')
   async createDepartment(
     @Req() req: AuthenticatedRequest,
     @Body() body: { name: string; description?: string; parent_id?: string },
@@ -124,6 +126,7 @@ export class SettingsController {
 
   @Patch('departments/:id')
   @ApiOperation({ summary: 'Update department' })
+  @RequirePermissions('manage_departments', 'edit_company_settings')
   async updateDepartment(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
@@ -134,6 +137,7 @@ export class SettingsController {
 
   @Delete('departments/:id')
   @ApiOperation({ summary: 'Delete department' })
+  @RequirePermissions('manage_departments', 'edit_company_settings')
   async deleteDepartment(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,

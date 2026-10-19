@@ -53,12 +53,13 @@ import {
   ScrollText,
   RefreshCw,
   QrCode,
+  Building2,
 } from "lucide-react";
 import { CorrectionLogDialog } from "./CorrectionLogDialog";
 import { OvertimeManagement } from "./OvertimeManagement";
 import { AbsencePenalties } from "./AbsencePenalties";
 import { LatenessSummaryDialog } from "./LatenessSummaryDialog";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL, getUploadUrl, SOCKET_URL } from "@/config/api.config";
 import { io, Socket } from "socket.io-client";
@@ -193,6 +194,25 @@ export default function Attendance() {
   const devices = devicesQuery.data || [];
   const networks = networksQuery.data || [];
   const detectedIp = detectedIpQuery.data?.clientIp || "";
+
+  const [selectedAssignmentDepartment, setSelectedAssignmentDepartment] = useState<string>("all");
+
+  const assignmentDepartments = useMemo(() => {
+    const set = new Set<string>();
+    users.forEach((u: any) => {
+      if (u.department && u.department.trim()) set.add(u.department.trim());
+    });
+    return Array.from(set).sort();
+  }, [users]);
+
+  const filteredAssignmentUsers = useMemo(() => {
+    return users.filter((u: any) => {
+      return (
+        selectedAssignmentDepartment === "all" ||
+        (u.department && u.department.toLowerCase() === selectedAssignmentDepartment.toLowerCase())
+      );
+    });
+  }, [users, selectedAssignmentDepartment]);
 
   const isLoading = attendanceQuery.isLoading || isLoadingShifts || isLoadingPatterns || assignmentsQuery.isLoading;
 
@@ -870,6 +890,20 @@ export default function Attendance() {
             <CardHeader className="border-b">
               <div className="flex justify-between items-center">
                 <CardTitle>Employee Shift Assignments</CardTitle>
+                <div className="w-52">
+                  <Select value={selectedAssignmentDepartment} onValueChange={setSelectedAssignmentDepartment}>
+                    <SelectTrigger className="h-9">
+                      <Building2 className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {assignmentDepartments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -884,7 +918,7 @@ export default function Attendance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {filteredAssignmentUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">

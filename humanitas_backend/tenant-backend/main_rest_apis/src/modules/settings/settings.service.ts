@@ -145,10 +145,27 @@ export class SettingsService {
   }
 
   // Departments CRUD
+  private async ensureDepartmentsTable(connection: any) {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS departments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        parent_id UUID,
+        manager_id UUID,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
   async getDepartments(tenantSlug: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
+
+    await this.ensureDepartmentsTable(connection);
 
     const result = await connection.query(
       `SELECT * FROM departments WHERE is_active = true ORDER BY name`,
@@ -163,6 +180,8 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
+
+    await this.ensureDepartmentsTable(connection);
 
     const result = await connection.query(
       `INSERT INTO departments (name, description, parent_id) VALUES ($1, $2, $3) RETURNING *`,

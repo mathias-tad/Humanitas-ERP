@@ -21,6 +21,18 @@ class AdminRosterScreen extends ConsumerStatefulWidget {
 class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _selectedDept = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    final authState = ref.read(authProvider);
+    final role = authState.user?.role.toLowerCase() ?? '';
+    final isPrivileged = role == 'owner' || role == 'admin' || role == 'administrator';
+    if (!isPrivileged && authState.user?.department != null && authState.user!.department!.isNotEmpty) {
+      _selectedDept = authState.user!.department!;
+    }
+  }
 
   @override
   void dispose() {
@@ -185,6 +197,51 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
             ),
           ),
 
+          // ── Department filter chips ──────────────────────────────────────
+          rosterAsync.maybeWhen(
+            data: (users) {
+              final depts = <String>{'All'};
+              for (final u in users) {
+                if (u.department != null && u.department!.trim().isNotEmpty) {
+                  depts.add(u.department!.trim());
+                }
+              }
+              if (depts.length <= 1) return const SizedBox.shrink();
+              return Container(
+                height: 38,
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: depts.map((dept) {
+                    final isSelected = _selectedDept.toLowerCase() == dept.toLowerCase();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(
+                          dept,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            color: isSelected
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: AppColors.primary,
+                        checkmarkColor: Colors.white,
+                        backgroundColor: isDark ? AppColors.cardDark : Colors.grey.shade100,
+                        onSelected: (_) => setState(() => _selectedDept = dept),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
+
           // ── User list ────────────────────────────────────────────────────
           Expanded(
             child: rosterAsync.when(
@@ -218,14 +275,18 @@ class _AdminRosterScreenState extends ConsumerState<AdminRosterScreen> {
                 ),
               ),
               data: (users) {
-                final filtered = _searchQuery.isEmpty
-                    ? users
-                    : users.where((u) {
-                        return u.fullName.toLowerCase().contains(_searchQuery) ||
-                            (u.department?.toLowerCase().contains(_searchQuery) ?? false) ||
-                            (u.position?.toLowerCase().contains(_searchQuery) ?? false) ||
-                            (u.email?.toLowerCase().contains(_searchQuery) ?? false);
-                      }).toList();
+                final filtered = users.where((u) {
+                  final matchesQuery = _searchQuery.isEmpty ||
+                      u.fullName.toLowerCase().contains(_searchQuery) ||
+                      (u.department?.toLowerCase().contains(_searchQuery) ?? false) ||
+                      (u.position?.toLowerCase().contains(_searchQuery) ?? false) ||
+                      (u.email?.toLowerCase().contains(_searchQuery) ?? false);
+
+                  final matchesDept = _selectedDept == 'All' ||
+                      (u.department?.toLowerCase() == _selectedDept.toLowerCase());
+
+                  return matchesQuery && matchesDept;
+                }).toList();
 
                 if (filtered.isEmpty) {
                   return Center(
