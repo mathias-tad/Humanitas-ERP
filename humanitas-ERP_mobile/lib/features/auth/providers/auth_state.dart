@@ -40,4 +40,17 @@ class AuthState {
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
+
+  bool hasPermission(String permission) {
+    final role = user?.role.toLowerCase() ?? '';
+    if (role == 'owner' || role == 'admin' || role == 'administrator') return true;
+    return permissions.contains(permission) || permissions.contains('*');
+  }
+
+  bool hasAnyPermission(List<String> perms) {
+    final role = user?.role.toLowerCase() ?? '';
+    if (role == 'owner' || role == 'admin' || role == 'administrator') return true;
+    if (permissions.contains('*')) return true;
+    return perms.any((p) => permissions.contains(p));
+  }
 }
