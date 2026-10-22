@@ -82,6 +82,8 @@ export class UsersService {
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS transport_allowance_override VARCHAR(20) DEFAULT NULL',
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS per_diem_allowance_override VARCHAR(20) DEFAULT NULL',
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id UUID',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id UUID',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS branch_id UUID',
     ];
     for (const sql of columns) {
       try {
@@ -103,7 +105,7 @@ export class UsersService {
               gender, marital_status, nationality, national_id,
               emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
               hire_date, employment_type, basic_salary, employee_category_id, 
-              tin, account_number,
+              tin, account_number, company_id, branch_id,
               desert_allowance_percent, hardship_allowance_percent, transport_allowance_percent, created_at, updated_at
        FROM users WHERE id = $1`,
       [userId],
@@ -396,7 +398,7 @@ export class UsersService {
               u.gender, u.marital_status, u.nationality, u.national_id,
               u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship,
               u.hire_date, u.employment_type, u.basic_salary, u.employee_category_id,
-              u.tin, u.account_number,
+              u.tin, u.account_number, u.company_id, u.branch_id,
               u.desert_allowance_percent, u.hardship_allowance_percent, u.transport_allowance_percent
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
@@ -439,6 +441,7 @@ export class UsersService {
               u.gender, u.marital_status, u.nationality, u.national_id,
               u.emergency_contact_name, u.emergency_contact_phone, u.emergency_contact_relationship,
               u.hire_date, u.employment_type, u.basic_salary, u.employee_category_id,
+              u.company_id, u.branch_id,
               u.desert_allowance_percent, u.hardship_allowance_percent, u.transport_allowance_percent
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
@@ -692,16 +695,16 @@ export class UsersService {
           gender, marital_status, nationality, national_id,
           emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
           hire_date, employment_type, basic_salary, employee_category_id,
-          tin, account_number,
+          tin, account_number, company_id, branch_id,
           desert_allowance_percent, hardship_allowance_percent, transport_allowance_percent
         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
          RETURNING id, email, full_name, phone, role_id, department, position, avatar_url, is_active, 
                    birth_date, address, city, state, country, postal_code,
                    gender, marital_status, nationality, national_id,
                    emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
                    hire_date, employment_type, basic_salary, employee_category_id,
-                   tin, account_number,
+                   tin, account_number, company_id, branch_id,
                    desert_allowance_percent, hardship_allowance_percent, transport_allowance_percent, created_at, updated_at`,
         [
           dto.email,
@@ -733,6 +736,8 @@ export class UsersService {
           dto.employee_category_id || null,
           dto.tin || null,
           dto.account_number || null,
+          dto.company_id || null,
+          dto.branch_id || null,
           dto.desert_allowance_percent || 0,
           dto.hardship_allowance_percent || 0,
           dto.transport_allowance_percent || 0,
@@ -820,6 +825,14 @@ export class UsersService {
     if (dto.position !== undefined) {
       updates.push(`position = $${paramIndex++}`);
       values.push(dto.position);
+    }
+    if (dto.company_id !== undefined) {
+      updates.push(`company_id = $${paramIndex++}`);
+      values.push(dto.company_id || null);
+    }
+    if (dto.branch_id !== undefined) {
+      updates.push(`branch_id = $${paramIndex++}`);
+      values.push(dto.branch_id || null);
     }
     if (dto.is_active !== undefined) {
       updates.push(`is_active = $${paramIndex++}`);
@@ -943,7 +956,7 @@ export class UsersService {
                  gender, marital_status, nationality, national_id,
                  emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
                  hire_date, employment_type, basic_salary, employee_category_id,
-                 tin, account_number,
+                 tin, account_number, company_id, branch_id,
                  desert_allowance_percent, hardship_allowance_percent, transport_allowance_percent, created_at, updated_at`,
       values,
     );

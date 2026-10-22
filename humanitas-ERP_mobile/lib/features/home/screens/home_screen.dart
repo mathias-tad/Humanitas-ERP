@@ -25,6 +25,7 @@ import '../../payroll/screens/admin_payroll_screen.dart';
 import '../../devices/screens/devices_screen.dart';
 import '../../leave/screens/admin_leave_screen.dart';
 import '../../calendar/screens/calendar_screen.dart';
+import '../../organization/widgets/company_branch_switcher.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -61,6 +62,10 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Center(child: CompanyBranchSwitcher()),
+          ),
           IconButton(
             icon: Icon(
               Icons.notifications_outlined,

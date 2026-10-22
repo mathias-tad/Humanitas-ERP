@@ -7,6 +7,8 @@ class UserModel {
   final String role;
   final String? tenantId;
   final String? tenantSlug;
+  final String? companyId;
+  final String? branchId;
   final String? avatarUrl;
   final String? position;
   final String? department;
@@ -21,6 +23,8 @@ class UserModel {
     required this.role,
     this.tenantId,
     this.tenantSlug,
+    this.companyId,
+    this.branchId,
     this.avatarUrl,
     this.position,
     this.department,
@@ -69,6 +73,8 @@ class UserModel {
       role: json['role'] ?? 'employee',
       tenantId: json['tenantId']?.toString() ?? json['tenant_id']?.toString(),
       tenantSlug: json['tenantSlug'] ?? json['tenant_slug'],
+      companyId: json['company_id']?.toString() ?? json['companyId']?.toString(),
+      branchId: json['branch_id']?.toString() ?? json['branchId']?.toString(),
       avatarUrl: json['avatar_url'] ?? json['avatarUrl'] ?? json['avatar'],
       position: json['position'] ?? json['job_title'] ?? json['jobTitle'] ?? json['title'],
       department: deptStr,
@@ -86,6 +92,8 @@ class UserModel {
       'role': role,
       'tenant_id': tenantId,
       'tenant_slug': tenantSlug,
+      'company_id': companyId,
+      'branch_id': branchId,
       'avatar_url': avatarUrl,
       'position': position,
       'department': department,

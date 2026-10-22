@@ -10,6 +10,8 @@ class UserModel {
   final String? phone;
   final String? employeeId;
   final String? hireDate;
+  final String? companyId;
+  final String? branchId;
 
   const UserModel({
     required this.id,
@@ -23,6 +25,8 @@ class UserModel {
     this.phone,
     this.employeeId,
     this.hireDate,
+    this.companyId,
+    this.branchId,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class UserModel {
       phone: json['phone']?.toString(),
       employeeId: json['employee_id']?.toString() ?? json['employeeId']?.toString(),
       hireDate: json['hire_date']?.toString() ?? json['hireDate']?.toString(),
+      companyId: json['company_id']?.toString() ?? json['companyId']?.toString(),
+      branchId: json['branch_id']?.toString() ?? json['branchId']?.toString(),
     );
   }
 }

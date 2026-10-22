@@ -7,6 +7,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -145,7 +146,84 @@ export class SettingsController {
     return this.settingsService.deleteDepartment(req.user.tenantSlug, id);
   }
 
+  // =============================================
+  // Companies
+  // =============================================
+  @Get('companies')
+  @ApiOperation({ summary: 'Get all companies' })
+  @RequirePermissions('view_companies', 'manage_companies', 'view_all_companies', 'view_users', 'edit_users')
+  async getCompanies(@Req() req: AuthenticatedRequest) {
+    return this.settingsService.getCompanies(req.user.tenantSlug);
+  }
+
+  @Get('companies/:id')
+  @ApiOperation({ summary: 'Get company by id' })
+  @RequirePermissions('view_companies', 'manage_companies', 'view_all_companies')
+  async getCompanyById(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settingsService.getCompanyById(req.user.tenantSlug, id);
+  }
+
+  @Post('companies')
+  @ApiOperation({ summary: 'Create a company' })
+  @RequirePermissions('manage_companies')
+  async createCompany(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    return this.settingsService.createCompany(req.user.tenantSlug, body);
+  }
+
+  @Patch('companies/:id')
+  @ApiOperation({ summary: 'Update a company' })
+  @RequirePermissions('manage_companies')
+  async updateCompany(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.settingsService.updateCompany(req.user.tenantSlug, id, body);
+  }
+
+  @Delete('companies/:id')
+  @ApiOperation({ summary: 'Delete a company' })
+  @RequirePermissions('manage_companies')
+  async deleteCompany(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settingsService.deleteCompany(req.user.tenantSlug, id);
+  }
+
+  // =============================================
+  // Branches
+  // =============================================
+  @Get('branches')
+  @ApiOperation({ summary: 'Get all branches' })
+  @RequirePermissions('view_branches', 'manage_branches', 'view_all_branches', 'view_users', 'edit_users')
+  async getBranches(@Req() req: AuthenticatedRequest, @Query('company_id') companyId?: string) {
+    return this.settingsService.getBranches(req.user.tenantSlug, companyId);
+  }
+
+  @Get('branches/:id')
+  @ApiOperation({ summary: 'Get branch by id' })
+  @RequirePermissions('view_branches', 'manage_branches', 'view_all_branches')
+  async getBranchById(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settingsService.getBranchById(req.user.tenantSlug, id);
+  }
+
+  @Post('branches')
+  @ApiOperation({ summary: 'Create a branch' })
+  @RequirePermissions('manage_branches')
+  async createBranch(@Req() req: AuthenticatedRequest, @Body() body: any) {
+    return this.settingsService.createBranch(req.user.tenantSlug, body);
+  }
+
+  @Patch('branches/:id')
+  @ApiOperation({ summary: 'Update a branch' })
+  @RequirePermissions('manage_branches')
+  async updateBranch(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: any) {
+    return this.settingsService.updateBranch(req.user.tenantSlug, id, body);
+  }
+
+  @Delete('branches/:id')
+  @ApiOperation({ summary: 'Delete a branch' })
+  @RequirePermissions('manage_branches')
+  async deleteBranch(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    return this.settingsService.deleteBranch(req.user.tenantSlug, id);
+  }
+
   // HR Settings
+
   @Get('hr')
   @ApiOperation({ summary: 'Get HR settings' })
   async getHRSettings(@Req() req: AuthenticatedRequest) {

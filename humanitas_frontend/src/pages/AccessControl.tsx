@@ -27,6 +27,14 @@ const permissions: Permission[] = [
   { id: "manage_departments", name: "manage_departments", label: "Manage Departments", module: "Users" },
   { id: "view_all_departments", name: "view_all_departments", label: "View All Departments (Org-Wide Scope)", module: "Users" },
 
+  // Organization (Multi-Company & Multi-Branch)
+  { id: "view_companies", name: "view_companies", label: "View Companies", module: "Organization" },
+  { id: "manage_companies", name: "manage_companies", label: "Manage Companies (Create/Edit/Delete)", module: "Organization" },
+  { id: "view_all_companies", name: "view_all_companies", label: "View All Companies (Enterprise Org-Wide Scope)", module: "Organization" },
+  { id: "view_branches", name: "view_branches", label: "View Branches", module: "Organization" },
+  { id: "manage_branches", name: "manage_branches", label: "Manage Branches (Create/Edit/Delete)", module: "Organization" },
+  { id: "view_all_branches", name: "view_all_branches", label: "View All Branches (Company-Wide Scope)", module: "Organization" },
+
   // Roles & Access Control
   { id: "view_roles", name: "view", label: "View Roles", module: "Access Control" },
   { id: "edit_roles", name: "edit", label: "Edit Roles", module: "Access Control" },

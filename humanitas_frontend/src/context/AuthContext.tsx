@@ -27,6 +27,8 @@ interface User {
   emergency_contact_relationship?: string;
   hire_date?: string;
   employment_type?: string;
+  company_id?: string;
+  branch_id?: string;
 }
 
 interface Tenant {
@@ -43,6 +45,10 @@ interface AuthContextType {
   permissions: string[];
   isLoading: boolean;
   isAuthenticated: boolean;
+  activeCompanyId: string | null;
+  activeBranchId: string | null;
+  setActiveCompany: (companyId: string | null) => void;
+  setActiveBranch: (branchId: string | null) => void;
   login: (tenantSlug: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -66,11 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
 
   const clearAuth = () => {
     setUser(null);
     setTenant(null);
     setPermissions([]);
+    setActiveCompanyId(null);
+    setActiveBranchId(null);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
     localStorage.removeItem(PERMISSIONS_KEY);
@@ -242,6 +252,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions,
         isLoading,
         isAuthenticated: !!user && !!tenant,
+        activeCompanyId,
+        activeBranchId,
+        setActiveCompany: (id: string | null) => setActiveCompanyId(id),
+        setActiveBranch: (id: string | null) => setActiveBranchId(id),
         login,
         logout,
         refreshUser,

@@ -8,17 +8,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
+| System Architecture & Core | 12 | 12 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
 | Sales, CRM & E-Invoicing | 34 | 0 | 34 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
-| Accounting & Fixed Assets | 54 | 0 | 54 | 0% |
+| Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
 | HRMS & Recruitment | 41 | 29 | 12 | 71% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
 | Dynamic Approval Engine | 12 | 0 | 12 | 0% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
-| Enterprise UI/UX | 18 | 13 | 5 | 72% |
+| Enterprise UI/UX | 20 | 16 | 4 | 80% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
 | AI Intelligence Module | 38 | 6 | 32 | 16% |
 | Employee Self-Service Portal | 21 | 0 | 21 | 0% |
@@ -34,7 +35,33 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 0 | 13 | 0% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **634** | **67** | **567** | **11%** |
+| **TOTAL** | **648** | **83** | **565** | **13%** |
+
+---
+
+## 0. 🏗️ System Architecture & Core
+
+- [x] **Multi-Tenancy Foundation**:
+  - [x] Isolated per-tenant PostgreSQL database provisioning via `TenantMigrationService`.
+  - [x] Tenant-scoped query routing through `DatabaseService.getTenantConnection(databaseName)`.
+- [x] **Multi-Company & Multi-Branch Organization Hierarchy** (`Tenant → Company → Branch → Department`):
+  - [x] `companies` and `branches` master tables with idempotent schema creation and default seeding.
+  - [x] 10 CRUD REST endpoints for Companies and Branches (`GET`, `POST`, `PUT`, `DELETE`) with full RBAC guards (`view_companies`, `manage_companies`, `view_all_companies`, `view_branches`, `manage_branches`, `view_all_branches`).
+  - [x] `company_id` and `branch_id` columns added to **all 40+ operational tables** (users, departments, positions, attendance, leave, payroll, PMS, shifts, schedules, devices, announcements, events, and all ERP tables).
+  - [x] PL/pgSQL trigger `trg_set_company_branch` auto-inherits `company_id`/`branch_id` from the record's owning user on `BEFORE INSERT`, with fallback to default company/branch.
+  - [x] Performance indexes `idx_<table>_company_id` and `idx_<table>_branch_id` on every operational table.
+  - [x] **Tenant Migration**: `20261022000001_add_company_branch_to_all_operational_tables.sql` registered and auto-applied on startup.
+- [x] **Company & Branch Context Switcher (Web)**:
+  - [x] `CompanyBranchSwitcher` header component with dropdown switcher for users with `view_all_companies` / `view_all_branches` permissions.
+  - [x] Locked badge (`Assigned Unit 🔒`) for single-entity users automatically scoped to their assigned company/branch.
+  - [x] Integrated into `EnterpriseTopHeader.tsx` (Humanitas-ERP) and inline top-bar (Humanitas).
+- [x] **Company & Branch Context Switcher (Mobile — Flutter)**:
+  - [x] `CompanyBranchSwitcher` widget with bottom sheets integrated into HomeScreen AppBar.
+  - [x] `OrganizationRepository`, `CompanyModel`, `BranchModel`, and `organization_provider` (Riverpod).
+- [x] **Organization Settings UI**:
+  - [x] Full CRUD management screen (`OrganizationSettings.tsx`) with tabbed Companies and Branches panels and modal dialogs.
+  - [x] `UserModal.tsx` Company and Branch select dropdowns dynamically bound to user creation/edit forms.
+- [x] **Automated Tests**: 12/12 backend unit tests passing (`settings.companies.spec.ts`) + 4/4 Flutter widget tests passing + `tsc -b` = 0 errors in both repos.
 
 ---
 
@@ -254,7 +281,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
     - [ ] Depreciation forecast schedule (monthly projections by asset class).
     - [ ] Asset disposal and write-off audit log.
 - [ ] **Multi-Company & Branch Financial Consolidation**:
-  - [ ] Multi-entity and branch transaction tagging.
+  - [x] Multi-entity and branch transaction tagging.
   - [ ] Inter-company transfer journals and elimination entries.
   - [ ] Consolidated Balance Sheet, P&L, and Trial Balance across subsidiaries or branch entities.
 - [ ] **Accounts Receivable (AR) & Credit Management**:
@@ -414,6 +441,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Contextual Left Rail Dock**:
   - [x] Slim icon rail with expandable module-specific submenu.
   - [x] Keeps navigation focused purely on the active module, eliminating menu clutter.
+- [x] **Company & Branch Context Switcher**:
+  - [x] Synchronized Company & Branch dropdown in navigation header; users with `view_all_companies` / `view_all_branches` can switch context freely.
+  - [x] Locked indicator (`Assigned Unit 🔒`) auto-applied for users scoped to a single company/branch.
 - [ ] **High-Density Enterprise Data Grids**:
   - [ ] Resizable and reorderable table columns.
   - [ ] Column pinning (freeze left/right), sorting, and multi-condition filtering.

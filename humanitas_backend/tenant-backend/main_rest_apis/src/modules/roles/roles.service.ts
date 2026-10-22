@@ -113,6 +113,14 @@ export class RolesService {
       'authorize_devices',
       'sync_devices',
       'view_device_logs',
+
+      // Organization (Company & Branch) Permissions
+      'view_companies',
+      'manage_companies',
+      'view_all_companies',
+      'view_branches',
+      'manage_branches',
+      'view_all_branches',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -120,6 +128,7 @@ export class RolesService {
       'delete_any_message', 'bypass_privacy_mode', 'export_chat_history',
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
       'authorize_devices', 'view_all_departments',
+      'view_all_companies', 'view_all_branches', 'manage_companies', 'manage_branches',
     ];
 
     // Permissions allowed for Employee role
@@ -342,6 +351,14 @@ export class RolesService {
       'delete_any_message',
       'bypass_privacy_mode',
       'export_chat_history',
+
+      // Organization (Company & Branch)
+      'view_companies',
+      'manage_companies',
+      'view_all_companies',
+      'view_branches',
+      'manage_branches',
+      'view_all_branches',
     ];
 
     const managerPermissions = [
@@ -395,6 +412,8 @@ export class RolesService {
       'manage_own_groups',
       'create_channels',
       'view_chat_settings',
+      'view_companies',
+      'view_branches',
     ];
 
     const employeePermissions = [

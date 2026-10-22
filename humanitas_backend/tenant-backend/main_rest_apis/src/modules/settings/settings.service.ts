@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
@@ -246,7 +246,247 @@ export class SettingsService {
     return { message: 'Department deleted' };
   }
 
+  // =============================================
+  // Companies CRUD
+  // =============================================
+  private async ensureCompaniesTable(connection: any) {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS companies (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(200) NOT NULL,
+        legal_name VARCHAR(200),
+        registration_number VARCHAR(100),
+        tax_number VARCHAR(100),
+        industry VARCHAR(100),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        phone VARCHAR(50),
+        email VARCHAR(200),
+        website VARCHAR(200),
+        logo_url TEXT,
+        is_active BOOLEAN DEFAULT true,
+        is_default BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Ensure there is always at least one default company
+    const existing = await connection.query(`SELECT id FROM companies WHERE is_default = true LIMIT 1`);
+    if (existing.length === 0) {
+      await connection.query(`
+        INSERT INTO companies (name, is_default, is_active)
+        SELECT 'Default Company', true, true
+        WHERE NOT EXISTS (SELECT 1 FROM companies)
+      `);
+    }
+  }
+
+  async getCompanies(tenantSlug: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    return connection.query(`SELECT * FROM companies WHERE is_active = true ORDER BY is_default DESC, name ASC`);
+  }
+
+  async getCompanyById(tenantSlug: string, id: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    const result = await connection.query(`SELECT * FROM companies WHERE id = $1`, [id]);
+    if (!result || result.length === 0) throw new NotFoundException(`Company not found: ${id}`);
+    return result[0];
+  }
+
+  async createCompany(tenantSlug: string, data: {
+    name: string; legal_name?: string; registration_number?: string; tax_number?: string;
+    industry?: string; address?: string; city?: string; state?: string; country?: string;
+    postal_code?: string; phone?: string; email?: string; website?: string; logo_url?: string; is_default?: boolean;
+  }) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    if (data.is_default) {
+      await connection.query(`UPDATE companies SET is_default = false WHERE is_default = true`);
+    }
+    const result = await connection.query(
+      `INSERT INTO companies (name, legal_name, registration_number, tax_number, industry, address, city, state, country, postal_code, phone, email, website, logo_url, is_default)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [data.name, data.legal_name||null, data.registration_number||null, data.tax_number||null,
+       data.industry||null, data.address||null, data.city||null, data.state||null, data.country||null,
+       data.postal_code||null, data.phone||null, data.email||null, data.website||null, data.logo_url||null, data.is_default||false]
+    );
+    return result[0];
+  }
+
+  async updateCompany(tenantSlug: string, id: string, data: {
+    name?: string; legal_name?: string; registration_number?: string; tax_number?: string;
+    industry?: string; address?: string; city?: string; state?: string; country?: string;
+    postal_code?: string; phone?: string; email?: string; website?: string; logo_url?: string; is_default?: boolean;
+  }) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    if (data.is_default) {
+      await connection.query(`UPDATE companies SET is_default = false WHERE is_default = true AND id != $1`, [id]);
+    }
+    const fields = ['name','legal_name','registration_number','tax_number','industry','address','city','state','country','postal_code','phone','email','website','logo_url','is_default'];
+    const updates: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    for (const f of fields) {
+      if (data[f as keyof typeof data] !== undefined) {
+        updates.push(`${f} = $${idx++}`);
+        values.push(data[f as keyof typeof data]);
+      }
+    }
+    if (updates.length === 0) return this.getCompanyById(tenantSlug, id);
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+    const result = await connection.query(
+      `UPDATE companies SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`, values
+    );
+    return result[0];
+  }
+
+  async deleteCompany(tenantSlug: string, id: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    const existing = await connection.query(`SELECT is_default FROM companies WHERE id = $1`, [id]);
+    if (existing[0]?.is_default) throw new BadRequestException('Cannot delete the default company. Set another company as default first.');
+    await connection.query(`UPDATE companies SET is_active = false, updated_at = NOW() WHERE id = $1`, [id]);
+    return { message: 'Company deleted' };
+  }
+
+  // =============================================
+  // Branches CRUD
+  // =============================================
+  private async ensureBranchesTable(connection: any) {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS branches (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+        name VARCHAR(200) NOT NULL,
+        code VARCHAR(50),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        country VARCHAR(100),
+        postal_code VARCHAR(20),
+        phone VARCHAR(50),
+        email VARCHAR(200),
+        manager_id UUID,
+        is_active BOOLEAN DEFAULT true,
+        is_default BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    // Ensure there is always at least one default branch per default company
+    const existing = await connection.query(`SELECT id FROM branches WHERE is_default = true LIMIT 1`);
+    if (existing.length === 0) {
+      const defaultCompany = await connection.query(`SELECT id FROM companies WHERE is_default = true LIMIT 1`);
+      const companyId = defaultCompany[0]?.id || null;
+      await connection.query(`
+        INSERT INTO branches (company_id, name, is_default, is_active)
+        SELECT $1, 'Main Branch', true, true
+        WHERE NOT EXISTS (SELECT 1 FROM branches)
+      `, [companyId]);
+    }
+  }
+
+  async getBranches(tenantSlug: string, companyId?: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    await this.ensureBranchesTable(connection);
+    if (companyId) {
+      return connection.query(
+        `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true AND b.company_id = $1 ORDER BY b.is_default DESC, b.name ASC`,
+        [companyId]
+      );
+    }
+    return connection.query(
+      `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true ORDER BY b.is_default DESC, b.name ASC`
+    );
+  }
+
+  async getBranchById(tenantSlug: string, id: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    await this.ensureBranchesTable(connection);
+    const result = await connection.query(
+      `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.id = $1`,
+      [id]
+    );
+    if (!result || result.length === 0) throw new NotFoundException(`Branch not found: ${id}`);
+    return result[0];
+  }
+
+  async createBranch(tenantSlug: string, data: {
+    company_id: string; name: string; code?: string; address?: string; city?: string;
+    state?: string; country?: string; postal_code?: string; phone?: string; email?: string;
+    manager_id?: string; is_default?: boolean;
+  }) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureCompaniesTable(connection);
+    await this.ensureBranchesTable(connection);
+    if (data.is_default) {
+      await connection.query(`UPDATE branches SET is_default = false WHERE company_id = $1 AND is_default = true`, [data.company_id]);
+    }
+    const result = await connection.query(
+      `INSERT INTO branches (company_id, name, code, address, city, state, country, postal_code, phone, email, manager_id, is_default)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [data.company_id, data.name, data.code||null, data.address||null, data.city||null,
+       data.state||null, data.country||null, data.postal_code||null, data.phone||null,
+       data.email||null, data.manager_id||null, data.is_default||false]
+    );
+    return result[0];
+  }
+
+  async updateBranch(tenantSlug: string, id: string, data: {
+    company_id?: string; name?: string; code?: string; address?: string; city?: string;
+    state?: string; country?: string; postal_code?: string; phone?: string; email?: string;
+    manager_id?: string; is_default?: boolean;
+  }) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    if (data.is_default && data.company_id) {
+      await connection.query(`UPDATE branches SET is_default = false WHERE company_id = $1 AND is_default = true AND id != $2`, [data.company_id, id]);
+    }
+    const fields = ['company_id','name','code','address','city','state','country','postal_code','phone','email','manager_id','is_default'];
+    const updates: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    for (const f of fields) {
+      if (data[f as keyof typeof data] !== undefined) {
+        updates.push(`${f} = $${idx++}`);
+        values.push(data[f as keyof typeof data]);
+      }
+    }
+    if (updates.length === 0) return this.getBranchById(tenantSlug, id);
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+    const result = await connection.query(
+      `UPDATE branches SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`, values
+    );
+    return result[0];
+  }
+
+  async deleteBranch(tenantSlug: string, id: string) {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    const existing = await connection.query(`SELECT is_default FROM branches WHERE id = $1`, [id]);
+    if (existing[0]?.is_default) throw new BadRequestException('Cannot delete the default branch. Set another branch as default first.');
+    await connection.query(`UPDATE branches SET is_active = false, updated_at = NOW() WHERE id = $1`, [id]);
+    return { message: 'Branch deleted' };
+  }
+
   // HR Settings
+
   async getHRSettings(tenantSlug: string) {
     return this.getSettings(tenantSlug, 'hr');
   }

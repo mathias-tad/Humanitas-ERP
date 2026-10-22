@@ -1,4 +1,4 @@
-import { Calendar, Home, Settings, Computer, Key, Megaphone, CalendarDays, Users, FileText, GitBranch } from "lucide-react";
+import { Calendar, Home, Settings, Computer, Key, Megaphone, CalendarDays, Users, FileText, GitBranch, Building2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import humanitas_logo from "../assets/humanitas_logo.png";
 import { MySidebarHeader } from "./sidebar-header";
@@ -96,6 +96,13 @@ const items = [
     icon: Settings,
     id: 9,
     permissions: ["view_general_settings", "edit_general_settings"],
+  },
+  {
+    title: "Organization",
+    url: "/settings/organization",
+    icon: Building2,
+    id: 13,
+    permissions: ["view_companies", "manage_companies", "view_branches", "manage_branches"],
   },
   {
     title: "System Logs",

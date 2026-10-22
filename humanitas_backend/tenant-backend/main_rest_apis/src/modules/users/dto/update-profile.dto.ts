@@ -170,6 +170,16 @@ export class CreateUserDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  company_id?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  branch_id?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsDateString()
   birth_date?: string;
 
@@ -321,6 +331,16 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   position?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  company_id?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  branch_id?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -42,6 +42,8 @@ interface UserData {
   role_id: string;
   department: string;
   position: string;
+  company_id?: string;
+  branch_id?: string;
   password?: string;
   is_active?: boolean;
   // New fields
@@ -92,6 +94,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     role_id: "",
     department: "",
     position: "",
+    company_id: "",
+    branch_id: "",
     password: "",
     birth_date: "",
     address: "",
@@ -118,6 +122,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
   });
   const [categories, setCategories] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [isNewDeptDialogOpen, setIsNewDeptDialogOpen] = useState(false);
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptDesc, setNewDeptDesc] = useState("");
@@ -161,6 +167,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
         role_id: user.role_id || "",
         department: user.department || "",
         position: user.position || "",
+        company_id: (user as any).company_id || "",
+        branch_id: (user as any).branch_id || "",
         password: "",
         birth_date: user.birth_date ? user.birth_date.split('T')[0] : "",
         address: user.address || "",
@@ -193,6 +201,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
         role_id: "",
         department: "",
         position: "",
+        company_id: "",
+        branch_id: "",
         password: "",
         birth_date: "",
         address: "",
@@ -222,7 +232,33 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     setActiveTab("basic");
     fetchCategories();
     fetchDepartments();
+    fetchCompanies();
   }, [user, isOpen]);
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/companies`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(Array.isArray(data) ? data : data.data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch companies:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const url = formData.company_id
+      ? `${API_BASE_URL}/settings/branches?company_id=${formData.company_id}`
+      : `${API_BASE_URL}/settings/branches`;
+    fetch(url, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setBranches(Array.isArray(data) ? data : data.data || []))
+      .catch(() => {});
+  }, [formData.company_id, isOpen]);
 
   const fetchDepartments = async () => {
     try {
@@ -301,6 +337,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
         role_id: formData.role_id || null,
         department: formData.department || null,
         position: formData.position || null,
+        company_id: formData.company_id || null,
+        branch_id: formData.branch_id || null,
         // New fields
         birth_date: formData.birth_date || null,
         address: formData.address || null,
@@ -667,6 +705,41 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="company_id">Company</Label>
+                  <select
+                    id="company_id"
+                    value={formData.company_id || ""}
+                    onChange={(e) => setFormData({ ...formData, company_id: e.target.value, branch_id: "" })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select Company...</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}{c.is_default ? " (Default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="branch_id">Branch</Label>
+                  <select
+                    id="branch_id"
+                    value={formData.branch_id || ""}
+                    onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select Branch...</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}{b.is_default ? " (Default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

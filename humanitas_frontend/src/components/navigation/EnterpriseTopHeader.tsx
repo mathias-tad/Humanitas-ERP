@@ -14,7 +14,9 @@ import {
   Palette,
   Shield,
   Menu,
+  Building2,
 } from "lucide-react";
+import { CompanyBranchSwitcher } from "./CompanyBranchSwitcher";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -111,6 +113,11 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
             Ctrl + K
           </kbd>
         </button>
+      </div>
+
+      {/* Center-Right: Company & Branch Context Switcher */}
+      <div className="hidden lg:flex items-center">
+        <CompanyBranchSwitcher />
       </div>
 
       {/* Right: Search (on mobile), Quick Create, AI Trigger, Chat, Notifications & User Profile */}
@@ -219,9 +226,13 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
               <Shield className="h-3.5 w-3.5 text-muted-foreground" />
               <span>Access Control & Roles</span>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings/organization")} className="text-xs gap-2 cursor-pointer">
+              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Company & Branch Structure</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/settings/general")} className="text-xs gap-2 cursor-pointer">
               <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Organization Settings</span>
+              <span>General Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="text-xs gap-2 text-destructive cursor-pointer">

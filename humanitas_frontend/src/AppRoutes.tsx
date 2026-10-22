@@ -46,6 +46,7 @@ import MyLoans from "./pages/MyLoans";
 import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import ComingSoonModulePage from "./components/common/ComingSoonModulePage";
+import OrganizationSettings from "./pages/settings/OrganizationSettings";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -142,6 +143,11 @@ function AppRoutes() {
       >
         <Route path="/dashboard" element={<Home />} />
         <Route path="/settings/appearance" element={<AppearanceSettings />} />
+        <Route path="/settings/organization" element={
+          <PermissionRoute permissions={["view_companies", "manage_companies", "view_branches", "manage_branches"]}>
+            <OrganizationSettings />
+          </PermissionRoute>
+        } />
         <Route path="/recruitment" element={
           <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
             <Recruitment />
