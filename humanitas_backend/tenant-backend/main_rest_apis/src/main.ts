@@ -120,6 +120,8 @@ async function bootstrap() {
       'Authorization',
       'X-Tenant-ID',
       'x-tenant-slug',
+      'x-company-id',
+      'x-branch-id',
       'Pragma',
       'Cache-Control',
       'If-Modified-Since',
