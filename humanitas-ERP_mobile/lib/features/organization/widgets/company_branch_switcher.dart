@@ -63,8 +63,12 @@ class CompanyBranchSwitcher extends ConsumerWidget {
       companyLabel = 'All Companies';
     } else if (activeCompanyIds.length == 1) {
       companyLabel = companies.where((c) => c.id == activeCompanyIds.first).firstOrNull?.name ?? '1 Company';
+    } else if (activeCompanyIds.length == 2) {
+      final c1 = companies.where((c) => c.id == activeCompanyIds[0]).firstOrNull?.name;
+      final c2 = companies.where((c) => c.id == activeCompanyIds[1]).firstOrNull?.name;
+      companyLabel = (c1 != null && c2 != null) ? '$c1 ∪ $c2' : '2 Companies (Union ∪)';
     } else {
-      companyLabel = '${activeCompanyIds.length} Companies';
+      companyLabel = '${activeCompanyIds.length} Companies (Union ∪)';
     }
 
     String branchLabel;
@@ -72,8 +76,12 @@ class CompanyBranchSwitcher extends ConsumerWidget {
       branchLabel = 'All Branches';
     } else if (activeBranchIds.length == 1) {
       branchLabel = branches.where((b) => b.id == activeBranchIds.first).firstOrNull?.name ?? '1 Branch';
+    } else if (activeBranchIds.length == 2) {
+      final b1 = branches.where((b) => b.id == activeBranchIds[0]).firstOrNull?.name;
+      final b2 = branches.where((b) => b.id == activeBranchIds[1]).firstOrNull?.name;
+      branchLabel = (b1 != null && b2 != null) ? '$b1 ∪ $b2' : '2 Branches (Union ∪)';
     } else {
-      branchLabel = '${activeBranchIds.length} Branches';
+      branchLabel = '${activeBranchIds.length} Branches (Union ∪)';
     }
 
     return Row(
@@ -334,7 +342,7 @@ class _SwitcherButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '$badgeCount',
+                  '∪ $badgeCount',
                   style: GoogleFonts.inter(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),

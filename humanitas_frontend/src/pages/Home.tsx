@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api.config';
-import { getAuthHeaders } from '@/context/AuthContext';
+import { useAuth, getAuthHeaders } from '@/context/AuthContext';
 import { PageHeader } from "@/components/design-system/PageHeader";
 import { KPITile } from "@/components/design-system/KPITile";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -59,8 +59,9 @@ async function fetchHomeDashboardData(): Promise<HomeDashboardData> {
 
 function Home() {
   const navigate = useNavigate();
+  const { activeCompanyId, activeBranchId, activeCompanyIds, activeBranchIds } = useAuth();
   const { data, isLoading } = useQuery<HomeDashboardData>({
-    queryKey: ['home-dashboard'],
+    queryKey: ['home-dashboard', activeCompanyId, activeBranchId],
     queryFn: fetchHomeDashboardData,
   });
 
@@ -146,6 +147,25 @@ function Home() {
           </div>
         }
       />
+
+      {/* Union Scope Indicator */}
+      {(activeCompanyIds.length > 1 || activeBranchIds.length > 1) && (
+        <div className="flex items-center justify-between p-3.5 bg-primary/10 border border-primary/25 rounded-xl text-xs text-primary shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm bg-primary/20 rounded px-1.5 py-0.5">∪</span>
+            <div>
+              <span className="font-semibold">Consolidated Union Scope Active: </span>
+              <span>
+                {activeCompanyIds.length > 1 ? `Aggregating executive metrics across ${activeCompanyIds.length} selected companies` : 'All Companies'}
+                {activeBranchIds.length > 1 ? ` & ${activeBranchIds.length} branches` : ''}
+              </span>
+            </div>
+          </div>
+          <span className="text-[11px] font-semibold bg-primary/20 px-2.5 py-1 rounded-full border border-primary/30">
+            Multi-Entity Union
+          </span>
+        </div>
+      )}
 
       {/* Quick Action Cards (Sleek, Interactive, Gold Accented) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

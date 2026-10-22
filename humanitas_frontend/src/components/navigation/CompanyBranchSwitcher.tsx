@@ -73,7 +73,12 @@ export const CompanyBranchSwitcher: React.FC = () => {
       const match = companies.find(c => c.id === activeCompanyIds[0]);
       return match ? match.name : '1 Company';
     }
-    return `${activeCompanyIds.length} Companies`;
+    if (activeCompanyIds.length === 2) {
+      const c1 = companies.find(c => c.id === activeCompanyIds[0]);
+      const c2 = companies.find(c => c.id === activeCompanyIds[1]);
+      if (c1 && c2) return `${c1.name} ∪ ${c2.name}`;
+    }
+    return `${activeCompanyIds.length} Companies (Union ∪)`;
   };
 
   const getBranchLabel = () => {
@@ -82,7 +87,12 @@ export const CompanyBranchSwitcher: React.FC = () => {
       const match = branches.find(b => b.id === activeBranchIds[0]);
       return match ? match.name : '1 Branch';
     }
-    return `${activeBranchIds.length} Branches`;
+    if (activeBranchIds.length === 2) {
+      const b1 = branches.find(b => b.id === activeBranchIds[0]);
+      const b2 = branches.find(b => b.id === activeBranchIds[1]);
+      if (b1 && b2) return `${b1.name} ∪ ${b2.name}`;
+    }
+    return `${activeBranchIds.length} Branches (Union ∪)`;
   };
 
   return (
@@ -101,10 +111,10 @@ export const CompanyBranchSwitcher: React.FC = () => {
               }`}
             >
               <Building2 className={`h-3.5 w-3.5 shrink-0 ${activeCompanyIds.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className="truncate max-w-[110px] font-medium">{getCompanyLabel()}</span>
+              <span className="truncate max-w-[130px] font-medium">{getCompanyLabel()}</span>
               {activeCompanyIds.length > 1 && (
-                <Badge variant="secondary" className="h-4 px-1 text-[9px] font-semibold bg-primary/15 text-primary">
-                  {activeCompanyIds.length}
+                <Badge variant="secondary" className="h-4 px-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/30">
+                  ∪ {activeCompanyIds.length}
                 </Badge>
               )}
               <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0 opacity-70" />
@@ -128,6 +138,16 @@ export const CompanyBranchSwitcher: React.FC = () => {
                 </button>
               )}
             </div>
+            {activeCompanyIds.length > 1 && (
+              <div className="mx-1 my-1 p-2 bg-primary/10 border border-primary/20 rounded-md text-[11px] text-primary">
+                <div className="font-semibold flex items-center gap-1">
+                  <span className="font-bold">∪</span> Union Active ({activeCompanyIds.length} Companies)
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {activeCompanyIds.map(id => companies.find(c => c.id === id)?.name || id).join(' ∪ ')}
+                </div>
+              </div>
+            )}
             <DropdownMenuSeparator />
 
             {/* All Companies option */}
@@ -212,10 +232,10 @@ export const CompanyBranchSwitcher: React.FC = () => {
               }`}
             >
               <GitBranch className={`h-3.5 w-3.5 shrink-0 ${activeBranchIds.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className="truncate max-w-[110px] font-medium">{getBranchLabel()}</span>
+              <span className="truncate max-w-[130px] font-medium">{getBranchLabel()}</span>
               {activeBranchIds.length > 1 && (
-                <Badge variant="secondary" className="h-4 px-1 text-[9px] font-semibold bg-primary/15 text-primary">
-                  {activeBranchIds.length}
+                <Badge variant="secondary" className="h-4 px-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/30">
+                  ∪ {activeBranchIds.length}
                 </Badge>
               )}
               <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0 opacity-70" />
@@ -239,6 +259,20 @@ export const CompanyBranchSwitcher: React.FC = () => {
                 </button>
               )}
             </div>
+            {activeBranchIds.length > 1 ? (
+              <div className="mx-1 my-1 p-2 bg-primary/10 border border-primary/20 rounded-md text-[11px] text-primary">
+                <div className="font-semibold flex items-center gap-1">
+                  <span className="font-bold">∪</span> Union Active ({activeBranchIds.length} Branches)
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {activeBranchIds.map(id => branches.find(b => b.id === id)?.name || id).join(' ∪ ')}
+                </div>
+              </div>
+            ) : activeCompanyIds.length > 1 ? (
+              <div className="mx-1 my-1 px-2 py-1.5 bg-surface-2 border border-border/50 rounded text-[10px] text-muted-foreground flex items-center gap-1">
+                <span className="font-semibold text-primary">∪</span> Showing branch union across {activeCompanyIds.length} companies
+              </div>
+            ) : null}
             <DropdownMenuSeparator />
 
             {/* All Branches option */}

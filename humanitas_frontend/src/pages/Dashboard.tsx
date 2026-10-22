@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api.config';
-import { getAuthHeaders } from '@/context/AuthContext';
+import { useAuth, getAuthHeaders } from '@/context/AuthContext';
 import {
   LucideCalendar,
   LucideCheck,
@@ -27,8 +27,9 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
 }
 
 function Dashboard() {
+  const { activeCompanyId, activeBranchId, activeCompanyIds } = useAuth();
   const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', activeCompanyId, activeBranchId],
     queryFn: fetchDashboardStats,
   });
 
@@ -42,6 +43,12 @@ function Dashboard() {
 
   return (
     <>
+      {activeCompanyIds.length > 1 && (
+        <div className="mb-3 flex items-center gap-2 p-2.5 bg-primary/10 border border-primary/20 rounded-lg text-xs text-primary font-medium">
+          <span className="font-bold text-sm bg-primary/20 px-1.5 py-0.5 rounded">∪</span>
+          <span>Consolidated Union View: Showing aggregated metrics across {activeCompanyIds.length} selected companies</span>
+        </div>
+      )}
       <div className="w-full overflow-x-auto">
         <div className="grid grid-cols-2 md:grid-cols-4 mt-2 gap-2 w-full">
           <div className="p-2 md:p-3 lg:p-4 bg-gray-50 shadow-md mb-5 rounded-md flex flex-col items-center max-w-[130px]">

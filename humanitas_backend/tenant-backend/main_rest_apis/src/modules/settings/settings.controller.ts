@@ -191,7 +191,8 @@ export class SettingsController {
   @ApiOperation({ summary: 'Get all branches' })
   @RequirePermissions('view_branches', 'manage_branches', 'view_all_branches', 'view_users', 'edit_users')
   async getBranches(@Req() req: AuthenticatedRequest, @Query('company_id') companyId?: string) {
-    return this.settingsService.getBranches(req.user.tenantSlug, companyId);
+    const activeCompanyId = companyId || (req.headers['x-company-id'] as string) || undefined;
+    return this.settingsService.getBranches(req.user.tenantSlug, activeCompanyId);
   }
 
   @Get('branches/:id')

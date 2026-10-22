@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/config/api.config';
 import { Button } from '@/components/ui/button';
@@ -278,9 +278,22 @@ export default function OrganizationSettings() {
                 {companies.find(c => c.id === activeCompanyIds[0])?.name || '1 Company'}
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs font-medium bg-primary/20 text-primary">
-                {activeCompanyIds.length} Companies Selected
-              </Badge>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge variant="secondary" className="text-xs font-semibold bg-primary/25 text-primary border border-primary/30">
+                  ∪ Union ({activeCompanyIds.length} Companies)
+                </Badge>
+                {activeCompanyIds.map((id, idx) => {
+                  const comp = companies.find(c => c.id === id);
+                  return (
+                    <React.Fragment key={id}>
+                      {idx > 0 && <span className="text-[10px] text-primary/70 font-bold">∪</span>}
+                      <Badge variant="outline" className="text-xs font-medium border-primary/40 bg-background/50">
+                        {comp?.name || id}
+                      </Badge>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             )}
             {activeBranchIds.length > 0 && (
               <>
@@ -290,9 +303,22 @@ export default function OrganizationSettings() {
                     {branches.find(b => b.id === activeBranchIds[0])?.name || '1 Branch'}
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-xs font-medium">
-                    {activeBranchIds.length} Branches Selected
-                  </Badge>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="text-xs font-semibold border-primary/30 text-primary">
+                      ∪ Union ({activeBranchIds.length} Branches)
+                    </Badge>
+                    {activeBranchIds.map((id, idx) => {
+                      const br = branches.find(b => b.id === id);
+                      return (
+                        <React.Fragment key={id}>
+                          {idx > 0 && <span className="text-[10px] text-primary/70 font-bold">∪</span>}
+                          <Badge variant="outline" className="text-[11px] font-medium">
+                            {br?.name || id}
+                          </Badge>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 )}
               </>
             )}

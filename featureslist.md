@@ -12,7 +12,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
-| Sales, CRM & E-Invoicing | 34 | 0 | 34 | 0% |
+| Sales & E-Invoicing | 37 | 0 | 37 | 0% |
+| Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
 | HRMS & Recruitment | 45 | 33 | 12 | 73% |
@@ -35,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 0 | 13 | 0% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **671** | **105** | **566** | **16%** |
+| **TOTAL** | **730** | **105** | **625** | **14%** |
 
 ---
 
@@ -176,42 +177,106 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 4. 💼 Sales, CRM & Invoicing (`/sales`)
+## 4. 💼 Enterprise Sales, Quotations & E-Invoicing (`/sales`)
 
-- [ ] **Customer Relationship Management (CRM)**:
-  - [ ] Lead capture, qualification, and interactive Kanban sales opportunity pipeline.
-  - [ ] Customer master data (credit limits, tax ID, payment terms, delivery addresses).
-  - [ ] Activity log (calls, meetings, notes, and emails logged per customer).
-- [ ] **Sales Quotations**:
-  - [ ] Professional quotation generator with discount rules, price lists, and expiration dates.
-  - [ ] Customer quote acceptance portal / digital signature.
-  - [ ] 1-Click conversion of approved Quotes into Sales Orders.
-- [ ] **Sales Orders (SO)**:
-  - [ ] Automated stock reservation upon SO confirmation.
-  - [ ] Credit limit validation preventing dispatch to overdue accounts.
-  - [ ] Order lifecycle management (`Quotation` -> `Sales Order` -> `Picking` -> `Shipped` -> `Invoiced` -> `Paid`).
-- [ ] **Delivery Orders (DO) & Dispatch**:
-  - [ ] Warehouse picking and packing slip generation.
-  - [ ] QR scan dispatch verification and proof-of-delivery tracking.
-- [ ] **Sales Invoicing & Tax Calculations**:
-  - [ ] Automated invoice generation from Sales Orders or Delivery Orders.
-  - [ ] Multi-rate tax engine (VAT, GST, State Tax, Withholding) calculated by Python Engine.
-  - [ ] Recurring Invoicing engine for subscription-based sales.
-- [ ] **Regulatory E-Invoicing & Fiscalization**:
-  - [ ] Cryptographic hash generation and QR code fiscalization complying with tax authorities (e.g., Ethiopian ERCA/Ministry of Revenues, ZATCA Phase 2, European e-invoicing).
-  - [ ] Tamper-proof digital invoice signature and audit validation.
-  - [ ] Automated transmission to government tax portals where supported.
-- [ ] **Credit Notes & Returns**:
-  - [ ] Customer return processing, stock re-entry, and Credit Note issuance against customer ledger.
-- [ ] **Sales Commission & Analytics**:
-  - [ ] Sales rep commission tracking based on sales volume or gross profit margin.
-  - [ ] Sales performance leaderboards and forecasting dashboards.
-- [ ] **Sales Reports**:
-  - [ ] Sales summary by period, customer, product, and sales rep.
-  - [ ] Quotation conversion rate analysis (Quotes → Orders → Invoices).
-  - [ ] Revenue and gross margin trend reports.
-  - [ ] Customer aged receivables summary.
-  - [ ] Top customers, top products, and sales pipeline forecast.
+- [ ] **Sales Quotations & Interactive CPQ**:
+  - [ ] Professional quotation generator with multi-tier pricing, discount matrix, and expiry countdown.
+  - [ ] Customer quote acceptance web portal with client digital signature.
+  - [ ] 1-Click conversion of approved Quotes into Sales Orders and Picking Slips.
+  - [ ] Optional item upsells, accessories add-ons, and bundle packages within quotes.
+- [ ] **Sales Orders (SO) Lifecycle**:
+  - [ ] Automated real-time stock reservation upon SO confirmation with warehouse allocation.
+  - [ ] Credit limit and overdue invoice check preventing dispatch to non-compliant accounts.
+  - [ ] Complete order state machine (`Quotation` -> `Sales Order` -> `Picking` -> `Packed` -> `Shipped` -> `Invoiced` -> `Paid`).
+  - [ ] Backorder and partial fulfillment handling with automated split dispatches.
+- [ ] **Delivery Orders (DO) & Logistics Dispatch**:
+  - [ ] Warehouse picking list and automated packing slip generation with weight/dimension calculations.
+  - [ ] QR code scan dispatch verification ensuring 100% packing accuracy.
+  - [ ] Proof of Delivery (POD) capture with recipient mobile signature and photo attachment.
+  - [ ] Carrier integration (DHL, FedEx, UPS, local courier tracking).
+- [ ] **Sales Invoicing & Automated Tax Calculations**:
+  - [ ] Automated invoice generation from Sales Orders or Delivery Orders upon shipment.
+  - [ ] Multi-rate regional tax engine (VAT, GST, State Tax, Withholding, Compound taxes) calculated by Python Calculation Service.
+  - [ ] Recurring Invoicing engine with flexible billing schedules (monthly, quarterly, annual) for subscription contracts.
+  - [ ] Multi-currency billing with live exchange rate conversion and FX gain/loss tracking.
+- [ ] **Regulatory E-Invoicing & Fiscalization Compliance**:
+  - [ ] Cryptographic hash generation and QR code fiscalization complying with global tax authorities (Ethiopian ERCA / Ministry of Revenues, Saudi ZATCA Phase 2, European PEPPOL / Factur-X, Latin America CFDI).
+  - [ ] Tamper-proof digital invoice signature (UBL 2.1 XML / PDF-A3) with digital certificates.
+  - [ ] Automated background transmission to government tax clearance portals with retry queues.
+- [ ] **Credit Notes, Customer Returns & Refunds**:
+  - [ ] Return Merchandise Authorization (RMA) workflow with inspection, restock, or scrap routing.
+  - [ ] Automated Credit Note issuance linked to original invoice with accounts receivable offset.
+  - [ ] Instant customer refund processing via original payment method or store credit voucher.
+- [ ] **Sales Commission & Representative Performance**:
+  - [ ] Multi-tier commission plans based on gross sales, gross margin profit, or product category accelerators.
+  - [ ] Split commissions across account executives, sales engineers, and territory managers.
+  - [ ] Real-time sales rep leaderboard, quota attainment percentages, and payout tracking.
+- [ ] **Sales Intelligence & Executive Reports**:
+  - [ ] Period-over-period sales velocity and revenue growth trends.
+  - [ ] Quotation-to-Order conversion funnel with stage drop-off analysis.
+  - [ ] Customer Aged Receivables report (Current, 30, 60, 90+ days overdue).
+  - [ ] Top customers, top revenue-generating products, and regional sales distribution heatmaps.
+
+---
+
+## 4.1 🤝 World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
+
+- [ ] **Handwriting-to-Text & Digital Ink Recognition (Zoho / Apple Pencil Rival)**:
+  - [ ] **Interactive Digital Ink Canvas**: Smooth handwriting input area on tablets, touchscreens, mobile, and desktop stylus for sales reps in the field.
+  - [ ] **Neural Handwriting-to-Keyboard OCR Engine**: Instant real-time conversion of handwritten customer registration sheets into structured typed text.
+  - [ ] **"Handwrite-to-Register" Quick Customer Onboarding**: Sales rep can write customer name, phone number, email, company, and meeting notes with a stylus or finger; 1-click "Convert & Save" parses handwritten notes directly into validated database fields (`name`, `phone`, `email`, `tax_id`, `address`, `notes`).
+  - [ ] **Stylus Pressure & Stroke Smoothing**: Bezier stroke smoothing, undo/redo, eraser, and pressure-sensitive digital ink rendering.
+  - [ ] **Business Card Camera Scanner (OCR)**: Snap a photo of a paper business card to automatically extract and populate lead/contact fields with AI validation.
+- [ ] **360° Customer & Account Master Intelligence**:
+  - [ ] Multi-tier corporate account hierarchy (Parent Holding -> Regional Subsidiaries -> Branch Offices -> Individual Contacts).
+  - [ ] Unified 360-degree timeline feed: all emails, phone calls, WhatsApp chats, meetings, quotes, orders, invoices, and support tickets in one single chronological view.
+  - [ ] AI-driven Customer Health Score & Churn Risk indicator based on communication frequency, order frequency, and payment punctuality.
+  - [ ] Dynamic Custom Fields & Layout Designer: drag-and-drop fields (text, number, date, dropdown, formula, multi-select) customizable per industry.
+  - [ ] Smart Duplicate Detection & Merge Assistant: Phonetic, email, and phone duplicate detection with automated field-by-field merge wizard.
+- [ ] **Omnichannel Communication & Engagement Hub**:
+  - [ ] **WhatsApp Business API Integration**: Send approved message templates, 1-on-1 chat directly within the customer card, media attachments, and automated conversation history logging.
+  - [ ] **Built-in VoIP WebRTC Softphone**: Click-to-call directly from customer profile, call recording, automated call duration logging, and 1-click voicemail drop.
+  - [ ] **Full Two-Way Email Synchronization**: Native IMAP/SMTP and OAuth2 sync for Gmail and Microsoft Outlook 365 with background inbox monitoring.
+  - [ ] **Email Open & Link Click Tracking**: Real-time push notifications when a prospect opens an email or clicks proposal links.
+  - [ ] **SMS Gateway Integration**: Two-way SMS messaging (Twilio, Infobip) for instant follow-up alerts, meeting reminders, and delivery notices.
+  - [ ] **Live Website Chat & AI Lead Bot**: Embeddable website widget that answers FAQs and automatically captures visitor email/phone into CRM leads.
+- [ ] **Visual Multi-Pipeline & Deal Opportunity Management**:
+  - [ ] Unlimited custom sales pipelines (e.g., Inbound SMB, Outbound Enterprise, Renewal / Up-sell, Channel Partners).
+  - [ ] Interactive drag-and-drop Kanban Deal Board with stage win-probability weighting and expected value calculation.
+  - [ ] Rotting Deals Alert: Automated visual alert and notification when an opportunity stays in a stage longer than the SLA threshold.
+  - [ ] Multi-Currency Deal Valuations with automatic corporate reporting currency conversion.
+  - [ ] Deal Split Revenue: Distribute opportunity revenue attribution across multiple team members.
+  - [ ] Win / Loss Analysis: Mandatory structured loss reason tracking with automated feedback collection and competitor benchmarking.
+- [ ] **Lead Capture, AI Scoring & Automated Distribution**:
+  - [ ] Embeddable Web-to-Lead forms with CAPTCHA and auto-tagging by campaign source.
+  - [ ] **Predictive AI Lead Scoring**: Dynamic 0-100 score based on demographic profile fit, company size, and behavioral engagement signals (page views, email opens, downloads).
+  - [ ] Automated Lead Routing Rules: Round-robin distribution, territory-based routing, or workload-balanced assignment.
+  - [ ] Lead Qualification SLA Timers: Countdown timers with automated manager escalation if a new high-priority lead is not contacted within 15 minutes.
+- [ ] **Sales Workflow Automation & Playbooks**:
+  - [ ] Visual Drag-and-Drop Workflow Automation Builder (`Trigger -> Condition -> Action`).
+  - [ ] Automated Multi-Step Email Drip Sequences with automatic cancellation upon prospect reply or booked meeting.
+  - [ ] Sales Cadence Playbooks: Predefined structured outreach schedules (Day 1: Phone call, Day 2: Personalized email, Day 4: LinkedIn message, Day 7: WhatsApp follow-up).
+  - [ ] Automated task and calendar reminder generation for sales representatives.
+- [ ] **Meeting Scheduler & Calendar Synchronization**:
+  - [ ] Personalized booking links (similar to Calendly) allowing clients to self-schedule meetings based on rep's Google / Outlook calendar availability.
+  - [ ] Video conference link auto-generation (Google Meet, Zoom, Microsoft Teams).
+  - [ ] Meeting notes recorder with action items checklist synced to CRM deal card.
+- [ ] **AI Sales Copilot & Generative Intelligence**:
+  - [ ] AI Sales Email Drafter: Generates personalized cold outreach and follow-up emails using prospect background and past deal context.
+  - [ ] Meeting Audio Transcription & Summary: Transcribes recorded calls, highlights key discussion topics, and extracts actionable next steps.
+  - [ ] Deal Sentiment Analysis: Analyzes email sentiment and customer tone to alert rep of declining engagement or buyer hesitation.
+  - [ ] AI "Next Best Action": Recommends optimal next contact time, suggested talking points, and probability-maximizing deal steps.
+- [ ] **Territory & Quota Management**:
+  - [ ] Multi-tier territory modeling by geography, industry vertical, or enterprise company size.
+  - [ ] Rep and Team Quota Tracking: Monthly and quarterly targets vs. closed revenue vs. weighted pipeline coverage.
+  - [ ] Commission Calculator & Accelerator tracking for transparent sales incentive visibility.
+- [ ] **Customer Self-Service Portal**:
+  - [ ] Dedicated branded customer portal where clients can view pending proposals, approve quotes with digital signatures, track orders, view invoice history, and submit support tickets.
+- [ ] **CRM Executive Analytics & Cohort Reports**:
+  - [ ] Full-funnel conversion analysis: `Visitor` -> `Lead` -> `Marketing Qualified (MQL)` -> `Sales Qualified (SQL)` -> `Opportunity` -> `Won`.
+  - [ ] Sales Velocity Formula report: `Velocity = (Deals in Pipeline × Win Rate × Average Deal Size) / Sales Cycle Length`.
+  - [ ] Rep Activity Scorecard: Calls made, emails sent, meetings conducted, and proposals submitted per rep.
+  - [ ] Revenue Forecast Matrix (Committed, Best Case, Pipeline, Closed) with historical forecast accuracy tracking.
 
 ---
 
