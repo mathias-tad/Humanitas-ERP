@@ -48,9 +48,7 @@ export interface OvertimePeriod {
     totalAmount: number;
 }
 
-const getHeaders = () => ({
-    "Content-Type": "application/json",
-});
+const getHeaders = () => getAuthHeaders();
 
 export const useOvertime = () => {
     const { isAuthenticated } = useAuth();

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
+import { getAuthHeaders } from "@/context/AuthContext";
 import { format } from "date-fns";
 
 async function fetcher(url: string) {
@@ -8,7 +9,7 @@ async function fetcher(url: string) {
         headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
-            'Content-Type': 'application/json'
+            ...getAuthHeaders(),
         }
     });
     if (!res.ok) {
@@ -118,14 +119,14 @@ export function usePrefetchScheduling() {
         await queryClient.prefetchQuery({
             queryKey: ['shifts'],
             queryFn: () => fetcher(`${API_BASE_URL}/attendance/shifts`),
-            staleTime: 10 * 60 * 1000, // 10 mins
+            staleTime: 60 * 1000, // 1 min
         });
 
         // Prefetch Patterns
         await queryClient.prefetchQuery({
             queryKey: ['patterns'],
             queryFn: () => fetcher(`${API_BASE_URL}/attendance/patterns`),
-            staleTime: 10 * 60 * 1000,
+            staleTime: 60 * 1000,
         });
 
         // We can't prefetch schedules easily without a date range or user ID, 

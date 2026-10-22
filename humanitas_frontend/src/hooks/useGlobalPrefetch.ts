@@ -27,7 +27,7 @@ export function useGlobalPrefetch() {
     const queryClient = useQueryClient();
 
     const prefetchAll = useCallback(async () => {
-        const staleTime = 10 * 60 * 1000; // 10 minutes
+        const staleTime = 60 * 1000; // 1 minute (60s)
 
         // === USERS & ROLES ===
         await queryClient.prefetchQuery({

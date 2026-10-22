@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api.config';
+import { getAuthHeaders } from '@/context/AuthContext';
 import {
   LucideCalendar,
   LucideCheck,
@@ -18,6 +19,7 @@ interface DashboardStats {
 async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await fetch(`${API_BASE_URL}/users/dashboard-stats`, {
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch dashboard stats');
   const data = await res.json();
@@ -28,7 +30,6 @@ function Dashboard() {
   const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: fetchDashboardStats,
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   if (isLoading || !stats) {

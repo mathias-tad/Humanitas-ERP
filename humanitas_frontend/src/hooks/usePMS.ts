@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/context/AuthContext";
 
 export const ProjectStatus = {
     PLANNING: 'Planning',
@@ -146,9 +147,11 @@ export interface ManualKPIMetric {
 async function fetcher<T>(url: string): Promise<T> {
     const res = await fetch(url, {
         credentials: 'include',
+        headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Failed to fetch data');
-    return res.json();
+    const data = await res.json();
+    return data.data || data;
 }
 
 export function usePMS() {

@@ -17,5 +17,15 @@ final branchesProvider = FutureProvider.family<List<BranchModel>, String?>((ref,
   return ref.watch(organizationRepositoryProvider).getBranches(companyId: companyId);
 });
 
-final activeCompanyIdProvider = StateProvider<String?>((ref) => null);
-final activeBranchIdProvider = StateProvider<String?>((ref) => null);
+final activeCompanyIdsProvider = StateProvider<List<String>>((ref) => []);
+final activeBranchIdsProvider = StateProvider<List<String>>((ref) => []);
+
+final activeCompanyIdProvider = Provider<String?>((ref) {
+  final ids = ref.watch(activeCompanyIdsProvider);
+  return ids.isEmpty ? null : ids.join(',');
+});
+
+final activeBranchIdProvider = Provider<String?>((ref) {
+  final ids = ref.watch(activeBranchIdsProvider);
+  return ids.isEmpty ? null : ids.join(',');
+});

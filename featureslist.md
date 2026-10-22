@@ -8,18 +8,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 12 | 12 | 0 | 100% |
+| System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
 | Sales, CRM & E-Invoicing | 34 | 0 | 34 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 41 | 29 | 12 | 71% |
+| HRMS & Recruitment | 45 | 33 | 12 | 73% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
 | Dynamic Approval Engine | 12 | 0 | 12 | 0% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
-| Enterprise UI/UX | 20 | 16 | 4 | 80% |
+| Enterprise UI/UX | 23 | 18 | 5 | 78% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
 | AI Intelligence Module | 38 | 6 | 32 | 16% |
 | Employee Self-Service Portal | 21 | 0 | 21 | 0% |
@@ -35,7 +35,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 0 | 13 | 0% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **648** | **83** | **565** | **13%** |
+| **TOTAL** | **671** | **105** | **566** | **16%** |
 
 ---
 
@@ -55,6 +55,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] `CompanyBranchSwitcher` header component with dropdown switcher for users with `view_all_companies` / `view_all_branches` permissions.
   - [x] Locked badge (`Assigned Unit 🔒`) for single-entity users automatically scoped to their assigned company/branch.
   - [x] Integrated into `EnterpriseTopHeader.tsx` (Humanitas-ERP) and inline top-bar (Humanitas).
+  - [x] Multi-select dropdown switcher supporting simultaneous selection of multiple companies and branches.
+  - [x] Multi-scope summaries & metric aggregation across selected companies/branches on dashboards and listings.
 - [x] **Company & Branch Context Switcher (Mobile — Flutter)**:
   - [x] `CompanyBranchSwitcher` widget with bottom sheets integrated into HomeScreen AppBar.
   - [x] `OrganizationRepository`, `CompanyModel`, `BranchModel`, and `organization_provider` (Riverpod).
@@ -62,6 +64,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Full CRUD management screen (`OrganizationSettings.tsx`) with tabbed Companies and Branches panels and modal dialogs.
   - [x] `UserModal.tsx` Company and Branch select dropdowns dynamically bound to user creation/edit forms.
 - [x] **Automated Tests**: 12/12 backend unit tests passing (`settings.companies.spec.ts`) + 4/4 Flutter widget tests passing + `tsc -b` = 0 errors in both repos.
+- [x] **Active Scope Persistence & Cache Management**:
+  - [x] Active company/branch scope persisted in `localStorage` with immediate invalidation on scope switch.
+  - [x] TanStack Query global 1-minute refresh interval configured via centralized `queryClient` (staleTime/gcTime).
+  - [x] `x-company-id` and `x-branch-id` scope headers automatically injected into all API calls via shared Axios interceptor.
+  - [x] Immediate `queryClient.invalidateQueries()` triggered on every company/branch context switch to force fresh scoped data.
 
 ---
 
@@ -311,6 +318,10 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## 7. 👥 Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
 
+- [x] **Organization Settings — Companies & Branches (`/settings/organization`)**:
+  - [x] Companies CRUD: create, view, edit, and delete companies with name, code, address, and status fields.
+  - [x] Branches CRUD: create, view, edit, and delete branches tied to their parent company.
+  - [x] Active company/branch scope banner displayed at the top of the OrganizationSettings page; list filtered to the current scope context.
 - [x] **Employee Lifecycle & Profiles**:
   - [x] Comprehensive digital employee profile: Personal info, emergency contacts, employment contracts, salary grade, bank details, and compliance documents.
   - [x] Visual Organizational Chart with reporting manager hierarchy.
@@ -444,6 +455,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Company & Branch Context Switcher**:
   - [x] Synchronized Company & Branch dropdown in navigation header; users with `view_all_companies` / `view_all_branches` can switch context freely.
   - [x] Locked indicator (`Assigned Unit 🔒`) auto-applied for users scoped to a single company/branch.
+  - [x] Selected scope persisted in `localStorage` and restored on page reload with no visual flash.
+  - [x] Switching scope instantly invalidates all cached queries so every data grid and KPI reflects the new company/branch without a manual refresh.
 - [ ] **High-Density Enterprise Data Grids**:
   - [ ] Resizable and reorderable table columns.
   - [ ] Column pinning (freeze left/right), sorting, and multi-condition filtering.

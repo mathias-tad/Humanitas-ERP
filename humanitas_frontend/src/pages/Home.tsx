@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/config/api.config';
+import { getAuthHeaders } from '@/context/AuthContext';
 import { PageHeader } from "@/components/design-system/PageHeader";
 import { KPITile } from "@/components/design-system/KPITile";
 import { StatusBadge } from "@/components/design-system/StatusBadge";
@@ -49,6 +50,7 @@ interface HomeDashboardData {
 async function fetchHomeDashboardData(): Promise<HomeDashboardData> {
   const res = await fetch(`${API_BASE_URL}/users/home-dashboard`, {
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch home dashboard data');
   const data = await res.json();
@@ -60,7 +62,6 @@ function Home() {
   const { data, isLoading } = useQuery<HomeDashboardData>({
     queryKey: ['home-dashboard'],
     queryFn: fetchHomeDashboardData,
-    refetchInterval: 30000,
   });
 
   const quickActions = [

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getAuthHeaders } from "@/context/AuthContext";
 
 export interface LeaveType {
     id: string;
@@ -85,9 +85,7 @@ export interface WorkflowStep {
     is_final: boolean;
 }
 
-const getHeaders = () => ({
-    "Content-Type": "application/json",
-});
+const getHeaders = () => getAuthHeaders();
 
 export const useLeave = () => {
     const { isAuthenticated } = useAuth();

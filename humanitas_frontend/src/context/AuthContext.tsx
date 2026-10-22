@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/config/api.config';
+import { queryClient } from '@/lib/queryClient';
 
 interface User {
   id: string;
@@ -47,8 +48,16 @@ interface AuthContextType {
   isAuthenticated: boolean;
   activeCompanyId: string | null;
   activeBranchId: string | null;
+  activeCompanyIds: string[];
+  activeBranchIds: string[];
   setActiveCompany: (companyId: string | null) => void;
   setActiveBranch: (branchId: string | null) => void;
+  setActiveCompanies: (companyIds: string[]) => void;
+  setActiveBranches: (branchIds: string[]) => void;
+  toggleCompany: (companyId: string) => void;
+  toggleBranch: (branchId: string) => void;
+  clearCompanyScope: () => void;
+  clearBranchScope: () => void;
   login: (tenantSlug: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -63,6 +72,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const USER_KEY = 'tenant_user';
 const TENANT_KEY = 'tenant_info';
 const PERMISSIONS_KEY = 'tenant_permissions';
+export const ACTIVE_COMPANY_KEY = 'active_company_id';
+export const ACTIVE_BRANCH_KEY = 'active_branch_id';
 
 // Session check interval (every 5 minutes)
 const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
@@ -72,18 +83,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
-  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+  const [activeCompanyIds, setActiveCompanyIds] = useState<string[]>(() => {
+    const raw = localStorage.getItem(ACTIVE_COMPANY_KEY);
+    if (!raw) return [];
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+  });
+  const [activeBranchIds, setActiveBranchIds] = useState<string[]>(() => {
+    const raw = localStorage.getItem(ACTIVE_BRANCH_KEY);
+    if (!raw) return [];
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+  });
+
+  const activeCompanyId = activeCompanyIds.length > 0 ? activeCompanyIds.join(',') : null;
+  const activeBranchId = activeBranchIds.length > 0 ? activeBranchIds.join(',') : null;
 
   const clearAuth = () => {
     setUser(null);
     setTenant(null);
     setPermissions([]);
-    setActiveCompanyId(null);
-    setActiveBranchId(null);
+    setActiveCompanyIds([]);
+    setActiveBranchIds([]);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
     localStorage.removeItem(PERMISSIONS_KEY);
+    localStorage.removeItem(ACTIVE_COMPANY_KEY);
+    localStorage.removeItem(ACTIVE_BRANCH_KEY);
+    queryClient.clear();
+  };
+
+  const setActiveCompanies = (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+    setActiveCompanyIds(uniqueIds);
+    if (uniqueIds.length > 0) {
+      localStorage.setItem(ACTIVE_COMPANY_KEY, uniqueIds.join(','));
+    } else {
+      localStorage.removeItem(ACTIVE_COMPANY_KEY);
+    }
+
+    // Invalidate all TanStack queries immediately to re-trigger data fetching on all pages
+    queryClient.invalidateQueries();
+    window.dispatchEvent(
+      new CustomEvent('company-branch-changed', {
+        detail: { companyIds: uniqueIds, branchIds: activeBranchIds },
+      })
+    );
+  };
+
+  const setActiveBranches = (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+    setActiveBranchIds(uniqueIds);
+    if (uniqueIds.length > 0) {
+      localStorage.setItem(ACTIVE_BRANCH_KEY, uniqueIds.join(','));
+    } else {
+      localStorage.removeItem(ACTIVE_BRANCH_KEY);
+    }
+
+    // Invalidate all TanStack queries immediately to re-trigger data fetching on all pages
+    queryClient.invalidateQueries();
+    window.dispatchEvent(
+      new CustomEvent('company-branch-changed', {
+        detail: { companyIds: activeCompanyIds, branchIds: uniqueIds },
+      })
+    );
+  };
+
+  const setActiveCompany = (id: string | null) => {
+    setActiveCompanies(id ? [id] : []);
+    setActiveBranches([]);
+  };
+
+  const setActiveBranch = (id: string | null) => {
+    setActiveBranches(id ? [id] : []);
+  };
+
+  const toggleCompany = (id: string) => {
+    const next = activeCompanyIds.includes(id)
+      ? activeCompanyIds.filter(item => item !== id)
+      : [...activeCompanyIds, id];
+    setActiveCompanies(next);
+  };
+
+  const toggleBranch = (id: string) => {
+    const next = activeBranchIds.includes(id)
+      ? activeBranchIds.filter(item => item !== id)
+      : [...activeBranchIds, id];
+    setActiveBranches(next);
+  };
+
+  const clearCompanyScope = () => {
+    setActiveCompanies([]);
+    setActiveBranches([]);
+  };
+
+  const clearBranchScope = () => {
+    setActiveBranches([]);
   };
 
   // Check if session is still valid (user not suspended, token not expired)
@@ -254,8 +347,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user && !!tenant,
         activeCompanyId,
         activeBranchId,
-        setActiveCompany: (id: string | null) => setActiveCompanyId(id),
-        setActiveBranch: (id: string | null) => setActiveBranchId(id),
+        activeCompanyIds,
+        activeBranchIds,
+        setActiveCompany,
+        setActiveBranch,
+        setActiveCompanies,
+        setActiveBranches,
+        toggleCompany,
+        toggleBranch,
+        clearCompanyScope,
+        clearBranchScope,
         login,
         logout,
         refreshUser,
@@ -277,9 +378,14 @@ export function useAuth() {
   return context;
 }
 
-// Helper for API calls - use credentials: 'include' to send HttpOnly cookies
+// Helper for API calls - includes Content-Type and active Company/Branch scoping headers
 export function getAuthHeaders(): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
+  const compId = localStorage.getItem(ACTIVE_COMPANY_KEY);
+  const branchId = localStorage.getItem(ACTIVE_BRANCH_KEY);
+  if (compId) headers['x-company-id'] = compId;
+  if (branchId) headers['x-branch-id'] = branchId;
+  return headers;
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getAuthHeaders } from "@/context/AuthContext";
 
 export interface AttendanceRecord {
     id: string;
@@ -65,9 +65,7 @@ export interface AllowedNetwork {
     created_at: string;
 }
 
-const getHeaders = () => ({
-    "Content-Type": "application/json",
-});
+const getHeaders = () => getAuthHeaders();
 
 export const useMyAttendance = (month: number, year: number) => {
     const { isAuthenticated } = useAuth();

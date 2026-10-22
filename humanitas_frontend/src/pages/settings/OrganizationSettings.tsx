@@ -74,7 +74,13 @@ const emptyCompany: Partial<Company> = { name: '' };
 const emptyBranch: Partial<Branch> = { name: '', company_id: '' };
 
 export default function OrganizationSettings() {
-  const { hasAnyPermission } = useAuth();
+  const {
+    hasAnyPermission,
+    activeCompanyIds,
+    activeBranchIds,
+    setActiveCompanies,
+    setActiveBranches,
+  } = useAuth();
 
   const canManageCompanies = hasAnyPermission(['manage_companies']);
   const canManageBranches = hasAnyPermission(['manage_branches']);
@@ -84,6 +90,7 @@ export default function OrganizationSettings() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [filterToActiveCompany, setFilterToActiveCompany] = useState<boolean>(true);
 
   // Company modal state
   const [companyModal, setCompanyModal] = useState(false);
@@ -101,7 +108,9 @@ export default function OrganizationSettings() {
   const fetchCompanies = useCallback(async () => {
     if (!canViewCompanies) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/companies`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE_URL}/settings/companies`, { 
+        credentials: 'include',
+      });
       if (res.ok) setCompanies(await res.json());
     } catch (e) { console.error(e); }
   }, [canViewCompanies]);
@@ -109,14 +118,29 @@ export default function OrganizationSettings() {
   const fetchBranches = useCallback(async () => {
     if (!canViewBranches) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/settings/branches`, { credentials: 'include' });
+      const url = activeCompanyIds.length > 0
+        ? `${API_BASE_URL}/settings/branches?company_id=${activeCompanyIds.join(',')}`
+        : `${API_BASE_URL}/settings/branches`;
+      const res = await fetch(url, { 
+        credentials: 'include',
+      });
       if (res.ok) setBranches(await res.json());
     } catch (e) { console.error(e); }
-  }, [canViewBranches]);
+  }, [canViewBranches, activeCompanyIds]);
 
   useEffect(() => {
     fetchCompanies();
     fetchBranches();
+  }, [fetchCompanies, fetchBranches, activeCompanyIds, activeBranchIds]);
+
+  // Listen for immediate company/branch switch events
+  useEffect(() => {
+    const handleSwitch = () => {
+      fetchCompanies();
+      fetchBranches();
+    };
+    window.addEventListener('company-branch-changed', handleSwitch);
+    return () => window.removeEventListener('company-branch-changed', handleSwitch);
   }, [fetchCompanies, fetchBranches]);
 
   // Company CRUD
@@ -220,6 +244,16 @@ export default function OrganizationSettings() {
     );
   }
 
+  const displayedCompanies = (activeCompanyIds.length > 0 && filterToActiveCompany)
+    ? companies.filter(c => activeCompanyIds.includes(c.id))
+    : companies;
+
+  const displayedBranches = branches.filter(b => {
+    if (activeCompanyIds.length > 0 && !activeCompanyIds.includes(b.company_id)) return false;
+    if (activeBranchIds.length > 0 && !activeBranchIds.includes(b.id)) return false;
+    return true;
+  });
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>
@@ -230,6 +264,55 @@ export default function OrganizationSettings() {
           Manage your companies and branches. Users, attendance, payroll, and reports are scoped by company and branch.
         </p>
       </div>
+
+      {/* Active Scope Banner */}
+      {(activeCompanyIds.length > 0 || activeBranchIds.length > 0) && (
+        <div className="flex flex-wrap items-center justify-between p-3.5 bg-primary/10 border border-primary/20 rounded-xl gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-semibold text-primary">Active Scope Filter:</span>
+            {activeCompanyIds.length === 0 ? (
+              <Badge variant="secondary" className="text-xs font-medium bg-primary/20 text-primary">All Companies</Badge>
+            ) : activeCompanyIds.length === 1 ? (
+              <Badge variant="secondary" className="text-xs font-medium bg-primary/20 text-primary">
+                {companies.find(c => c.id === activeCompanyIds[0])?.name || '1 Company'}
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs font-medium bg-primary/20 text-primary">
+                {activeCompanyIds.length} Companies Selected
+              </Badge>
+            )}
+            {activeBranchIds.length > 0 && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                {activeBranchIds.length === 1 ? (
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {branches.find(b => b.id === activeBranchIds[0])?.name || '1 Branch'}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {activeBranchIds.length} Branches Selected
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">Views automatically filtered by active scope</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/20"
+              onClick={() => {
+                setActiveCompanies([]);
+                setActiveBranches([]);
+              }}
+            >
+              Clear Scope / Show All
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue="companies">
         <TabsList className="mb-4">
@@ -243,8 +326,32 @@ export default function OrganizationSettings() {
 
         {/* Companies Tab */}
         <TabsContent value="companies">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Companies ({companies.length})</h2>
+          <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold">
+                Companies ({displayedCompanies.length}{displayedCompanies.length !== companies.length ? ` of ${companies.length}` : ''})
+              </h2>
+              {activeCompanyIds.length > 0 && (
+                <div className="flex items-center gap-1 bg-muted p-1 rounded-lg text-xs">
+                  <Button
+                    variant={filterToActiveCompany ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => setFilterToActiveCompany(true)}
+                  >
+                    Active Scope Only
+                  </Button>
+                  <Button
+                    variant={!filterToActiveCompany ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                    onClick={() => setFilterToActiveCompany(false)}
+                  >
+                    All Companies
+                  </Button>
+                </div>
+              )}
+            </div>
             {canManageCompanies && (
               <Button size="sm" className="gap-2" onClick={openCreateCompany}>
                 <Plus className="h-4 w-4" /> Add Company
@@ -252,13 +359,30 @@ export default function OrganizationSettings() {
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {companies.map((c) => (
+            {displayedCompanies.map((c) => (
               <div key={c.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-base truncate">{c.name}</span>
                       {c.is_default && <Badge variant="default" className="text-[10px] shrink-0"><Star className="h-2.5 w-2.5 mr-1" />Default</Badge>}
+                      {activeCompanyIds.includes(c.id) ? (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 shrink-0">
+                          Active Scope
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setActiveCompanies([c.id]);
+                            setActiveBranches([]);
+                          }}
+                        >
+                          Switch Scope
+                        </Button>
+                      )}
                     </div>
                     {c.legal_name && <p className="text-xs text-muted-foreground truncate">{c.legal_name}</p>}
                     {c.industry && <p className="text-xs text-muted-foreground">{c.industry}</p>}
@@ -281,10 +405,10 @@ export default function OrganizationSettings() {
                 </div>
               </div>
             ))}
-            {companies.length === 0 && (
+            {displayedCompanies.length === 0 && (
               <div className="col-span-3 text-center py-12 text-muted-foreground">
                 <Building2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No companies found. Create your first company.</p>
+                <p className="text-sm">No companies found in this scope.</p>
               </div>
             )}
           </div>
@@ -292,8 +416,18 @@ export default function OrganizationSettings() {
 
         {/* Branches Tab */}
         <TabsContent value="branches">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Branches ({branches.length})</h2>
+          <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Branches ({displayedBranches.length}{displayedBranches.length !== branches.length ? ` of ${branches.length}` : ''})
+              </h2>
+              {activeCompanyIds.length === 1 && (
+                <p className="text-xs text-muted-foreground">Filtered to {companies.find(c => c.id === activeCompanyIds[0])?.name}</p>
+              )}
+              {activeCompanyIds.length > 1 && (
+                <p className="text-xs text-muted-foreground">Filtered to {activeCompanyIds.length} companies</p>
+              )}
+            </div>
             {canManageBranches && (
               <Button size="sm" className="gap-2" onClick={openCreateBranch}>
                 <Plus className="h-4 w-4" /> Add Branch
@@ -301,7 +435,7 @@ export default function OrganizationSettings() {
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {branches.map((b) => (
+            {displayedBranches.map((b) => (
               <div key={b.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -309,6 +443,20 @@ export default function OrganizationSettings() {
                       <span className="font-semibold text-base truncate">{b.name}</span>
                       {b.is_default && <Badge variant="default" className="text-[10px] shrink-0"><Star className="h-2.5 w-2.5 mr-1" />Default</Badge>}
                       {b.code && <Badge variant="outline" className="text-[10px]">{b.code}</Badge>}
+                      {activeBranchIds.includes(b.id) ? (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 shrink-0">
+                          Active Scope
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+                          onClick={() => setActiveBranches([b.id])}
+                        >
+                          Switch Scope
+                        </Button>
+                      )}
                     </div>
                     {b.company_name && <p className="text-xs text-primary font-medium">{b.company_name}</p>}
                   </div>
@@ -326,10 +474,10 @@ export default function OrganizationSettings() {
                 </div>
               </div>
             ))}
-            {branches.length === 0 && (
+            {displayedBranches.length === 0 && (
               <div className="col-span-3 text-center py-12 text-muted-foreground">
                 <GitBranch className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No branches found. Create your first branch.</p>
+                <p className="text-sm">No branches found in this scope.</p>
               </div>
             )}
           </div>

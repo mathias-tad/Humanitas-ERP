@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/context/AuthContext";
 
 // Interfaces
 export interface PayrollRun {
@@ -42,6 +43,7 @@ export interface PayrollSummary {
 async function fetcher<T>(url: string): Promise<T> {
     const res = await fetch(url, {
         credentials: 'include',
+        headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error('Failed to fetch data');
     const data = await res.json();
@@ -91,6 +93,7 @@ export function usePayroll() {
 
             const response = await fetch(url, {
                 credentials: 'include',
+                headers: getAuthHeaders(),
             });
             if (!response.ok) {
                 return null;

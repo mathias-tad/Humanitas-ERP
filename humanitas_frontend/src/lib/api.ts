@@ -59,6 +59,16 @@ export async function apiRequest<T = unknown>(
     }
   }
 
+  // Add active company and branch scoping headers if present
+  const activeCompanyId = localStorage.getItem('active_company_id');
+  if (activeCompanyId) {
+    (requestHeaders as Record<string, string>)['x-company-id'] = activeCompanyId;
+  }
+  const activeBranchId = localStorage.getItem('active_branch_id');
+  if (activeBranchId) {
+    (requestHeaders as Record<string, string>)['x-branch-id'] = activeBranchId;
+  }
+
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {

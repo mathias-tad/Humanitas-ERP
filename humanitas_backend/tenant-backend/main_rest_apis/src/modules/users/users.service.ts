@@ -369,7 +369,7 @@ export class UsersService {
   }
 
   // User Management Methods
-  async findAllUsers(tenantSlug: string) {
+  async findAllUsers(tenantSlug: string, companyId?: string, branchId?: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
@@ -390,6 +390,35 @@ export class UsersService {
       )
     `);
 
+    const whereConditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (companyId) {
+      const compIds = companyId.split(',').map(s => s.trim()).filter(Boolean);
+      if (compIds.length === 1) {
+        whereConditions.push(`u.company_id = $${paramIndex++}`);
+        params.push(compIds[0]);
+      } else if (compIds.length > 1) {
+        const placeholders = compIds.map(() => `$${paramIndex++}`).join(', ');
+        whereConditions.push(`u.company_id IN (${placeholders})`);
+        params.push(...compIds);
+      }
+    }
+    if (branchId) {
+      const brIds = branchId.split(',').map(s => s.trim()).filter(Boolean);
+      if (brIds.length === 1) {
+        whereConditions.push(`u.branch_id = $${paramIndex++}`);
+        params.push(brIds[0]);
+      } else if (brIds.length > 1) {
+        const placeholders = brIds.map(() => `$${paramIndex++}`).join(', ');
+        whereConditions.push(`u.branch_id IN (${placeholders})`);
+        params.push(...brIds);
+      }
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
     const result = await connection.query(
       `SELECT u.id, u.email, u.full_name, u.phone, u.role_id, u.department, u.position,
               u.avatar_url, u.is_active, u.created_at, u.updated_at, u.last_login_at as last_login,
@@ -402,25 +431,57 @@ export class UsersService {
               u.desert_allowance_percent, u.hardship_allowance_percent, u.transport_allowance_percent
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
+       ${whereClause}
        ORDER BY u.created_at DESC`,
+      params,
     );
 
     return result;
   }
 
-  async getBasicUsers(tenantSlug: string) {
+  async getBasicUsers(tenantSlug: string, companyId?: string, branchId?: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
     await this.ensureUserColumns(connection);
 
+    const whereConditions: string[] = ['u.is_active = true'];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (companyId) {
+      const compIds = companyId.split(',').map(s => s.trim()).filter(Boolean);
+      if (compIds.length === 1) {
+        whereConditions.push(`u.company_id = $${paramIndex++}`);
+        params.push(compIds[0]);
+      } else if (compIds.length > 1) {
+        const placeholders = compIds.map(() => `$${paramIndex++}`).join(', ');
+        whereConditions.push(`u.company_id IN (${placeholders})`);
+        params.push(...compIds);
+      }
+    }
+    if (branchId) {
+      const brIds = branchId.split(',').map(s => s.trim()).filter(Boolean);
+      if (brIds.length === 1) {
+        whereConditions.push(`u.branch_id = $${paramIndex++}`);
+        params.push(brIds[0]);
+      } else if (brIds.length > 1) {
+        const placeholders = brIds.map(() => `$${paramIndex++}`).join(', ');
+        whereConditions.push(`u.branch_id IN (${placeholders})`);
+        params.push(...brIds);
+      }
+    }
+
+    const whereClause = `WHERE ${whereConditions.join(' AND ')}`;
+
     const result = await connection.query(
-      `SELECT u.id, u.email, u.full_name, u.avatar_url, r.name as role_name
+      `SELECT u.id, u.email, u.full_name, u.avatar_url, u.company_id, u.branch_id, r.name as role_name
        FROM users u
        LEFT JOIN roles r ON u.role_id = r.id
-       WHERE u.is_active = true
+       ${whereClause}
        ORDER BY u.full_name ASC`,
+      params,
     );
 
     return result;
@@ -1535,13 +1596,39 @@ export class UsersService {
   /**
    * Get dashboard statistics
    */
-  async getDashboardStats(tenantSlug: string) {
+  async getDashboardStats(tenantSlug: string, companyId?: string, branchId?: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
 
+    const compIds = (companyId || '').split(',').map(s => s.trim()).filter(Boolean);
+    const brIds = (branchId || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    const buildScope = (alias: string) => {
+      const conds: string[] = [];
+      const p: any[] = [];
+      let idx = 1;
+      if (compIds.length === 1) {
+        conds.push(`${alias}.company_id = $${idx++}`);
+        p.push(compIds[0]);
+      } else if (compIds.length > 1) {
+        conds.push(`${alias}.company_id IN (${compIds.map(() => `$${idx++}`).join(', ')})`);
+        p.push(...compIds);
+      }
+      if (brIds.length === 1) {
+        conds.push(`${alias}.branch_id = $${idx++}`);
+        p.push(brIds[0]);
+      } else if (brIds.length > 1) {
+        conds.push(`${alias}.branch_id IN (${brIds.map(() => `$${idx++}`).join(', ')})`);
+        p.push(...brIds);
+      }
+      return { clause: conds.length > 0 ? `AND ${conds.join(' AND ')}` : '', p };
+    };
+
     // Active Users
+    const uScope = buildScope('users');
     const usersResult = await connection.query(
-      `SELECT COUNT(*) as count FROM users WHERE is_active = true`
+      `SELECT COUNT(*) as count FROM users WHERE is_active = true ${uScope.clause}`,
+      uScope.p
     );
     const activeUsers = parseInt(usersResult[0].count);
 
@@ -1549,15 +1636,18 @@ export class UsersService {
     const hireResult = await connection.query(
       `SELECT COUNT(*) as count FROM users 
        WHERE EXTRACT(MONTH FROM hire_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-       AND EXTRACT(YEAR FROM hire_date) = EXTRACT(YEAR FROM CURRENT_DATE)`
+       AND EXTRACT(YEAR FROM hire_date) = EXTRACT(YEAR FROM CURRENT_DATE) ${uScope.clause}`,
+      uScope.p
     );
     const newHires = parseInt(hireResult[0].count);
 
     // Attendance Today
     let attendanceToday = 0;
     try {
+      const attScope = buildScope('attendance_records');
       const attResult = await connection.query(
-        `SELECT COUNT(DISTINCT user_id) as count FROM attendance_records WHERE date = CURRENT_DATE`
+        `SELECT COUNT(DISTINCT user_id) as count FROM attendance_records WHERE date = CURRENT_DATE ${attScope.clause}`,
+        attScope.p
       );
       attendanceToday = parseInt(attResult[0].count);
     } catch (e) {
@@ -1567,8 +1657,10 @@ export class UsersService {
     // Leaves Pending
     let leavesPending = 0;
     try {
+      const leaveScope = buildScope('leave_requests');
       const leaveResult = await connection.query(
-        `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending'`
+        `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending' ${leaveScope.clause}`,
+        leaveScope.p
       );
       leavesPending = parseInt(leaveResult[0].count);
     } catch (e) {
@@ -1586,25 +1678,54 @@ export class UsersService {
   /**
    * Get comprehensive home dashboard data
    */
-  async getHomeDashboardData(tenantSlug: string) {
+  async getHomeDashboardData(tenantSlug: string, companyId?: string, branchId?: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
 
+    const compIds = (companyId || '').split(',').map(s => s.trim()).filter(Boolean);
+    const brIds = (branchId || '').split(',').map(s => s.trim()).filter(Boolean);
+
+    const buildScope = (alias: string) => {
+      const conds: string[] = [];
+      const p: any[] = [];
+      let idx = 1;
+      if (compIds.length === 1) {
+        conds.push(`${alias}.company_id = $${idx++}`);
+        p.push(compIds[0]);
+      } else if (compIds.length > 1) {
+        conds.push(`${alias}.company_id IN (${compIds.map(() => `$${idx++}`).join(', ')})`);
+        p.push(...compIds);
+      }
+      if (brIds.length === 1) {
+        conds.push(`${alias}.branch_id = $${idx++}`);
+        p.push(brIds[0]);
+      } else if (brIds.length > 1) {
+        conds.push(`${alias}.branch_id IN (${brIds.map(() => `$${idx++}`).join(', ')})`);
+        p.push(...brIds);
+      }
+      return { clause: conds.length > 0 ? `AND ${conds.join(' AND ')}` : '', p };
+    };
+
     // HR Metrics
+    const uScope = buildScope('users');
     const totalEmployees = await connection.query(
-      `SELECT COUNT(*) as count FROM users WHERE is_active = true`
+      `SELECT COUNT(*) as count FROM users WHERE is_active = true ${uScope.clause}`,
+      uScope.p
     );
     const activeEmployees = parseInt(totalEmployees[0].count);
 
     const newHires = await connection.query(
       `SELECT COUNT(*) as count FROM users 
-       WHERE DATE(created_at) >= DATE_TRUNC('month', CURRENT_DATE)`
+       WHERE DATE(created_at) >= DATE_TRUNC('month', CURRENT_DATE) ${uScope.clause}`,
+      uScope.p
     );
 
     let pendingLeaves = 0;
     try {
+      const lScope = buildScope('leave_requests');
       const leaves = await connection.query(
-        `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending'`
+        `SELECT COUNT(*) as count FROM leave_requests WHERE status = 'pending' ${lScope.clause}`,
+        lScope.p
       );
       pendingLeaves = parseInt(leaves[0].count);
     } catch (e) { }
@@ -1612,17 +1733,19 @@ export class UsersService {
     // Today's Attendance
     let attendanceToday = { present: 0, absent: 0, late: 0 };
     try {
+      const attScope = buildScope('attendance_records');
       const present = await connection.query(
-        `SELECT COUNT(DISTINCT user_id) as count FROM attendance_records WHERE date = CURRENT_DATE`
+        `SELECT COUNT(DISTINCT user_id) as count FROM attendance_records WHERE date = CURRENT_DATE ${attScope.clause}`,
+        attScope.p
       );
       attendanceToday.present = parseInt(present[0].count);
-
-      attendanceToday.absent = activeEmployees - attendanceToday.present;
+      attendanceToday.absent = Math.max(0, activeEmployees - attendanceToday.present);
 
       // Count late arrivals
       const late = await connection.query(
         `SELECT COUNT(*) as count FROM attendance_records 
-         WHERE date = CURRENT_DATE AND is_late = true`
+         WHERE date = CURRENT_DATE AND is_late = true ${attScope.clause}`,
+        attScope.p
       );
       attendanceToday.late = parseInt(late[0]?.count || 0);
     } catch (e) { }
@@ -1641,6 +1764,7 @@ export class UsersService {
     };
 
     try {
+      const tScope = buildScope('tasks');
       const tasks = await connection.query(`
         SELECT 
           COUNT(*) as total,
@@ -1648,7 +1772,8 @@ export class UsersService {
           COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
           COUNT(CASE WHEN status != 'completed' AND due_date < CURRENT_DATE THEN 1 END) as overdue
         FROM tasks
-      `);
+        ${tScope.clause ? `WHERE 1=1 ${tScope.clause}` : ''}
+      `, tScope.p);
 
       if (tasks && tasks.length > 0) {
         pmsMetrics.totalTasks = parseInt(tasks[0].total);
@@ -1669,6 +1794,7 @@ export class UsersService {
     };
 
     try {
+      const payScope = buildScope('payroll_items');
       const payroll = await connection.query(`
         SELECT 
           SUM(net_salary) as total,
@@ -1677,7 +1803,8 @@ export class UsersService {
         WHERE month = EXTRACT(MONTH FROM CURRENT_DATE)
         AND year = EXTRACT(YEAR FROM CURRENT_DATE)
         AND status = 'completed'
-      `);
+        ${payScope.clause}
+      `, payScope.p);
 
       if (payroll && payroll.length > 0) {
         payrollMetrics.monthlyPayroll = parseFloat(payroll[0].total || 0);
@@ -1689,7 +1816,7 @@ export class UsersService {
       hrMetrics: {
         totalEmployees: activeEmployees,
         activeEmployees,
-        newHires: parseInt(newHires[0].count),
+        newHires: parseInt(newHires[0]?.count || 0),
         pendingLeaves,
         attendance: {
           today: attendanceToday,

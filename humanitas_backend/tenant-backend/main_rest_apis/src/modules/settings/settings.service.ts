@@ -402,10 +402,19 @@ export class SettingsService {
     await this.ensureCompaniesTable(connection);
     await this.ensureBranchesTable(connection);
     if (companyId) {
-      return connection.query(
-        `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true AND b.company_id = $1 ORDER BY b.is_default DESC, b.name ASC`,
-        [companyId]
-      );
+      const compIds = companyId.split(',').map(s => s.trim()).filter(Boolean);
+      if (compIds.length === 1) {
+        return connection.query(
+          `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true AND b.company_id = $1 ORDER BY b.is_default DESC, b.name ASC`,
+          [compIds[0]]
+        );
+      } else if (compIds.length > 1) {
+        const placeholders = compIds.map((_, i) => `$${i + 1}`).join(', ');
+        return connection.query(
+          `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true AND b.company_id IN (${placeholders}) ORDER BY b.is_default DESC, b.name ASC`,
+          compIds
+        );
+      }
     }
     return connection.query(
       `SELECT b.*, c.name as company_name FROM branches b LEFT JOIN companies c ON b.company_id = c.id WHERE b.is_active = true ORDER BY b.is_default DESC, b.name ASC`

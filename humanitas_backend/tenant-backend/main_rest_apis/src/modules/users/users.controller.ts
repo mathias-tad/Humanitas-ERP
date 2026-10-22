@@ -181,15 +181,27 @@ export class UsersController {
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   @RequirePermissions('view_users', 'view_roster')
-  async findAll(@Req() req: AuthenticatedRequest) {
-    return this.usersService.findAllUsers(req.user.tenantSlug);
+  async findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const activeCompanyId = companyId || (req.headers['x-company-id'] as string) || undefined;
+    const activeBranchId = branchId || (req.headers['x-branch-id'] as string) || undefined;
+    return this.usersService.findAllUsers(req.user.tenantSlug, activeCompanyId, activeBranchId);
   }
 
   @Get('list')
   @ApiOperation({ summary: 'Get basic user list for dropdowns' })
   // No @RequirePermissions means any authenticated user can access
-  async findBasicList(@Req() req: AuthenticatedRequest) {
-    return this.usersService.getBasicUsers(req.user.tenantSlug);
+  async findBasicList(
+    @Req() req: AuthenticatedRequest,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const activeCompanyId = companyId || (req.headers['x-company-id'] as string) || undefined;
+    const activeBranchId = branchId || (req.headers['x-branch-id'] as string) || undefined;
+    return this.usersService.getBasicUsers(req.user.tenantSlug, activeCompanyId, activeBranchId);
   }
 
   @Get('permissions')
@@ -203,14 +215,26 @@ export class UsersController {
 
   @Get('dashboard-stats')
   @ApiOperation({ summary: 'Get dashboard statistics' })
-  async getDashboardStats(@Req() req: AuthenticatedRequest) {
-    return this.usersService.getDashboardStats(req.user.tenantSlug);
+  async getDashboardStats(
+    @Req() req: AuthenticatedRequest,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const activeCompanyId = companyId || (req.headers['x-company-id'] as string) || undefined;
+    const activeBranchId = branchId || (req.headers['x-branch-id'] as string) || undefined;
+    return this.usersService.getDashboardStats(req.user.tenantSlug, activeCompanyId, activeBranchId);
   }
 
   @Get('home-dashboard')
   @ApiOperation({ summary: 'Get home dashboard data' })
-  async getHomeDashboard(@Req() req: AuthenticatedRequest) {
-    return this.usersService.getHomeDashboardData(req.user.tenantSlug);
+  async getHomeDashboard(
+    @Req() req: AuthenticatedRequest,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const activeCompanyId = companyId || (req.headers['x-company-id'] as string) || undefined;
+    const activeBranchId = branchId || (req.headers['x-branch-id'] as string) || undefined;
+    return this.usersService.getHomeDashboardData(req.user.tenantSlug, activeCompanyId, activeBranchId);
   }
 
   @Get('org-chart')

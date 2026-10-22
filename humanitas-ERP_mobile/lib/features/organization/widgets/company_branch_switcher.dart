@@ -43,8 +43,9 @@ class CompanyBranchSwitcher extends ConsumerWidget {
       );
     }
 
+    final activeCompanyIds = ref.watch(activeCompanyIdsProvider);
+    final activeBranchIds = ref.watch(activeBranchIdsProvider);
     final activeCompanyId = ref.watch(activeCompanyIdProvider);
-    final activeBranchId = ref.watch(activeBranchIdProvider);
     final companiesAsync = ref.watch(companiesProvider);
     final branchesAsync = ref.watch(branchesProvider(activeCompanyId));
 
@@ -57,8 +58,23 @@ class CompanyBranchSwitcher extends ConsumerWidget {
       orElse: () => <BranchModel>[],
     );
 
-    final activeCompany = companies.where((c) => c.id == activeCompanyId).firstOrNull;
-    final activeBranch = branches.where((b) => b.id == activeBranchId).firstOrNull;
+    String companyLabel;
+    if (activeCompanyIds.isEmpty) {
+      companyLabel = 'All Companies';
+    } else if (activeCompanyIds.length == 1) {
+      companyLabel = companies.where((c) => c.id == activeCompanyIds.first).firstOrNull?.name ?? '1 Company';
+    } else {
+      companyLabel = '${activeCompanyIds.length} Companies';
+    }
+
+    String branchLabel;
+    if (activeBranchIds.isEmpty) {
+      branchLabel = 'All Branches';
+    } else if (activeBranchIds.length == 1) {
+      branchLabel = branches.where((b) => b.id == activeBranchIds.first).firstOrNull?.name ?? '1 Branch';
+    } else {
+      branchLabel = '${activeBranchIds.length} Branches';
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -66,14 +82,16 @@ class CompanyBranchSwitcher extends ConsumerWidget {
         if (canViewAllCompanies)
           _SwitcherButton(
             icon: Icons.business_outlined,
-            label: activeCompany?.name ?? 'All Companies',
+            label: companyLabel,
+            badgeCount: activeCompanyIds.length > 1 ? activeCompanyIds.length : null,
             onTap: () => _showCompanySheet(context, ref, companies),
           ),
         if (canViewAllCompanies && canViewAllBranches) const SizedBox(width: 4),
         if (canViewAllBranches)
           _SwitcherButton(
             icon: Icons.account_tree_outlined,
-            label: activeBranch?.name ?? 'All Branches',
+            label: branchLabel,
+            badgeCount: activeBranchIds.length > 1 ? activeBranchIds.length : null,
             onTap: () => _showBranchSheet(context, ref, branches),
           ),
       ],
@@ -83,53 +101,96 @@ class CompanyBranchSwitcher extends ConsumerWidget {
   void _showCompanySheet(BuildContext context, WidgetRef ref, List<CompanyModel> companies) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Switch Company Scope',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.business_outlined),
-                title: Text('All Companies (Consolidated)', style: GoogleFonts.inter(fontSize: 13)),
-                trailing: ref.watch(activeCompanyIdProvider) == null
-                    ? const Icon(Icons.check, color: Colors.green, size: 18)
-                    : null,
-                onTap: () {
-                  ref.read(activeCompanyIdProvider.notifier).state = null;
-                  ref.read(activeBranchIdProvider.notifier).state = null;
-                  Navigator.pop(ctx);
-                },
-              ),
-              ...companies.map((c) => ListTile(
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final activeIds = ref.watch(activeCompanyIdsProvider);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.between,
+                    children: [
+                      Text(
+                        'Select Companies',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      if (activeIds.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            ref.read(activeCompanyIdsProvider.notifier).state = [];
+                            ref.read(activeBranchIdsProvider.notifier).state = [];
+                          },
+                          child: Text('Reset', style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
                     dense: true,
-                    leading: const Icon(Icons.business),
-                    title: Text(c.name, style: GoogleFonts.inter(fontSize: 13)),
-                    subtitle: c.isDefault
-                        ? Text('Default', style: GoogleFonts.inter(fontSize: 10, color: AppColors.primary))
-                        : null,
-                    trailing: ref.watch(activeCompanyIdProvider) == c.id
-                        ? const Icon(Icons.check, color: Colors.green, size: 18)
-                        : null,
+                    leading: const Icon(Icons.business_outlined),
+                    title: Text('All Companies', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                    trailing: activeIds.isEmpty
+                        ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                        : const Icon(Icons.radio_button_unchecked, color: Colors.grey, size: 20),
                     onTap: () {
-                      ref.read(activeCompanyIdProvider.notifier).state = c.id;
-                      ref.read(activeBranchIdProvider.notifier).state = null;
-                      Navigator.pop(ctx);
+                      ref.read(activeCompanyIdsProvider.notifier).state = [];
+                      ref.read(activeBranchIdsProvider.notifier).state = [];
                     },
-                  )),
-            ],
-          ),
-        ),
+                  ),
+                  const Divider(),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: companies.map((c) {
+                        final isSelected = activeIds.contains(c.id);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: isSelected,
+                          activeColor: AppColors.primary,
+                          title: Text(c.name, style: GoogleFonts.inter(fontSize: 13)),
+                          subtitle: c.isDefault
+                              ? Text('Default', style: GoogleFonts.inter(fontSize: 10, color: AppColors.primary))
+                              : null,
+                          onChanged: (_) {
+                            final next = List<String>.from(activeIds);
+                            if (isSelected) {
+                              next.remove(c.id);
+                            } else {
+                              next.add(c.id);
+                            }
+                            ref.read(activeCompanyIdsProvider.notifier).state = next;
+                            ref.read(activeBranchIdsProvider.notifier).state = [];
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Done', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -137,51 +198,93 @@ class CompanyBranchSwitcher extends ConsumerWidget {
   void _showBranchSheet(BuildContext context, WidgetRef ref, List<BranchModel> branches) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Switch Branch Scope',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.account_tree_outlined),
-                title: Text('All Branches', style: GoogleFonts.inter(fontSize: 13)),
-                trailing: ref.watch(activeBranchIdProvider) == null
-                    ? const Icon(Icons.check, color: Colors.green, size: 18)
-                    : null,
-                onTap: () {
-                  ref.read(activeBranchIdProvider.notifier).state = null;
-                  Navigator.pop(ctx);
-                },
-              ),
-              ...branches.map((b) => ListTile(
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final activeIds = ref.watch(activeBranchIdsProvider);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.between,
+                    children: [
+                      Text(
+                        'Select Branches',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      if (activeIds.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            ref.read(activeBranchIdsProvider.notifier).state = [];
+                          },
+                          child: Text('Reset', style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
                     dense: true,
-                    leading: const Icon(Icons.account_tree),
-                    title: Text(b.name, style: GoogleFonts.inter(fontSize: 13)),
-                    subtitle: b.isDefault
-                        ? Text('Default', style: GoogleFonts.inter(fontSize: 10, color: AppColors.primary))
-                        : null,
-                    trailing: ref.watch(activeBranchIdProvider) == b.id
-                        ? const Icon(Icons.check, color: Colors.green, size: 18)
-                        : null,
+                    leading: const Icon(Icons.account_tree_outlined),
+                    title: Text('All Branches', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                    trailing: activeIds.isEmpty
+                        ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                        : const Icon(Icons.radio_button_unchecked, color: Colors.grey, size: 20),
                     onTap: () {
-                      ref.read(activeBranchIdProvider.notifier).state = b.id;
-                      Navigator.pop(ctx);
+                      ref.read(activeBranchIdsProvider.notifier).state = [];
                     },
-                  )),
-            ],
-          ),
-        ),
+                  ),
+                  const Divider(),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: branches.map((b) {
+                        final isSelected = activeIds.contains(b.id);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: isSelected,
+                          activeColor: AppColors.primary,
+                          title: Text(b.name, style: GoogleFonts.inter(fontSize: 13)),
+                          subtitle: b.isDefault
+                              ? Text('Default', style: GoogleFonts.inter(fontSize: 10, color: AppColors.primary))
+                              : null,
+                          onChanged: (_) {
+                            final next = List<String>.from(activeIds);
+                            if (isSelected) {
+                              next.remove(b.id);
+                            } else {
+                              next.add(b.id);
+                            }
+                            ref.read(activeBranchIdsProvider.notifier).state = next;
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Done', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -190,8 +293,9 @@ class CompanyBranchSwitcher extends ConsumerWidget {
 class _SwitcherButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final int? badgeCount;
   final VoidCallback onTap;
-  const _SwitcherButton({required this.icon, required this.label, required this.onTap});
+  const _SwitcherButton({required this.icon, required this.label, this.badgeCount, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +314,7 @@ class _SwitcherButton extends StatelessWidget {
             Icon(icon, size: 12, color: AppColors.primary),
             const SizedBox(width: 4),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 80),
+              constraints: const BoxConstraints(maxWidth: 90),
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
@@ -221,6 +325,20 @@ class _SwitcherButton extends StatelessWidget {
                 ),
               ),
             ),
+            if (badgeCount != null) ...[
+              const SizedBox(width: 3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: GoogleFonts.inter(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
             const SizedBox(width: 2),
             Icon(Icons.keyboard_arrow_down, size: 12, color: AppColors.primary),
           ],
