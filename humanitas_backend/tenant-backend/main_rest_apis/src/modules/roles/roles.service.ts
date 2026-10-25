@@ -121,6 +121,89 @@ export class RolesService {
       'view_branches',
       'manage_branches',
       'view_all_branches',
+
+      // HRMS Reports & Bank Export Permissions
+      'view_hrms_reports',
+      'export_bank_transfer_file',
+
+      // Document Vault & Dynamic Letter Templates Permissions
+      'view_employee_documents',
+      'manage_employee_documents',
+      'verify_employee_documents',
+      'generate_employee_letters',
+      'manage_letter_templates',
+      'view_my_documents',
+
+      // Onboarding & Offboarding Permissions
+      'view_onboarding',
+      'manage_onboarding',
+
+      // Employee Self-Service (ESS) Permissions
+      'view_self_service',
+      'edit_my_profile',
+      'manage_profile_requests',
+
+      // Grievance & Whistleblower Permissions
+      'file_grievance',
+      'view_grievances',
+      'manage_grievances',
+      'investigate_grievances',
+      'view_grievance_reports',
+
+      // Benefits & Insurance Permissions
+      'view_benefit_plans',
+      'view_my_benefits',
+      'manage_benefits',
+      'manage_enrollments',
+      'view_benefit_reports',
+
+      // Training & Learning Management (LMS) Permissions
+      'view_training_courses',
+      'view_my_training',
+      'manage_training',
+      'enroll_training',
+      'complete_training',
+      'view_skills',
+      'manage_skills',
+      'view_training_reports',
+
+      // 360 Performance Reviews & Feedback Permissions
+      'view_reviews',
+      'manage_reviews',
+      'view_my_reviews',
+      'calibrate_reviews',
+      'manage_pips',
+
+      // Expense Management Permissions
+      'view_expenses',
+      'submit_expenses',
+      'view_my_expenses',
+      'approve_expenses',
+      'manage_expenses',
+      'manage_expense_policies',
+      'reimburse_expenses',
+      'view_expense_reports',
+
+      // Asset & Equipment Tracking Permissions
+      'view_assets',
+      'manage_assets',
+      'view_my_assets',
+      'assign_assets',
+      'view_asset_reports',
+
+      // Pulse Surveys & Engagement Permissions
+      'view_surveys',
+      'manage_surveys',
+      'participate_survey',
+      'view_survey_results',
+      'manage_survey_actions',
+
+      // Bulk Import/Export Engine Permissions
+      'view_import_export',
+      'manage_import',
+      'manage_export',
+      'rollback_import',
+      'manage_export_schedules',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -129,6 +212,29 @@ export class RolesService {
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
       'authorize_devices', 'view_all_departments',
       'view_all_companies', 'view_all_branches', 'manage_companies', 'manage_branches',
+      'manage_letter_templates',
+      'manage_onboarding',
+      'manage_profile_requests',
+      'manage_grievances',
+      'manage_benefits',
+      'manage_training',
+      'complete_training',
+      'manage_skills',
+      'manage_reviews',
+      'calibrate_reviews',
+      'manage_pips',
+      'manage_expenses',
+      'manage_expense_policies',
+      'reimburse_expenses',
+      'view_expense_reports',
+      'manage_assets',
+      'assign_assets',
+      'view_asset_reports',
+      'manage_surveys',
+      'manage_survey_actions',
+      'manage_import',
+      'rollback_import',
+      'manage_export_schedules',
     ];
 
     // Permissions allowed for Employee role
@@ -136,6 +242,26 @@ export class RolesService {
       'view_my_tasks', 'view_pms_dashboard', 'log_time', 'view_own_kpis',
       'view_my_attendance', 'view_my_leave', 'view_my_payslip', 'edit_own_tasks',
       'use_messaging', 'create_groups', 'manage_own_groups', 'view_chat_settings',
+      'view_my_documents',
+      'view_onboarding',
+      'view_self_service',
+      'edit_my_profile',
+      'file_grievance',
+      'view_grievances',
+      'view_benefit_plans',
+      'view_my_benefits',
+      'view_training_courses',
+      'view_my_training',
+      'enroll_training',
+      'view_skills',
+      'view_my_reviews',
+      'view_my_expenses',
+      'submit_expenses',
+      'view_my_assets',
+      'view_assets',
+      'view_surveys',
+      'participate_survey',
+      'view_survey_results',
     ];
 
     for (const permission of newPermissions) {
@@ -359,10 +485,33 @@ export class RolesService {
       'view_branches',
       'manage_branches',
       'view_all_branches',
+
+      // HRMS Reports & Bank Export
+      'view_hrms_reports',
+      'export_bank_transfer_file',
+
+      // Onboarding & Offboarding
+      'view_onboarding',
+      'manage_onboarding',
+
+      // Grievance & Whistleblower
+      'file_grievance',
+      'view_grievances',
+      'manage_grievances',
+      'investigate_grievances',
+      'view_grievance_reports',
+
+      // Benefits & Insurance
+      'view_benefit_plans',
+      'view_my_benefits',
+      'manage_benefits',
+      'manage_enrollments',
+      'view_benefit_reports',
     ];
 
     const managerPermissions = [
       'view_dashboard',
+      'view_hrms_reports',
       'view_users',
       'edit_users',
       'view_departments',
@@ -414,6 +563,15 @@ export class RolesService {
       'view_chat_settings',
       'view_companies',
       'view_branches',
+      'view_onboarding',
+      'file_grievance',
+      'view_grievances',
+      'investigate_grievances',
+      'view_grievance_reports',
+      'view_benefit_plans',
+      'view_my_benefits',
+      'manage_enrollments',
+      'view_benefit_reports',
     ];
 
     const employeePermissions = [
@@ -430,6 +588,11 @@ export class RolesService {
       'create_groups',
       'manage_own_groups',
       'view_chat_settings',
+      'view_onboarding',
+      'file_grievance',
+      'view_grievances',
+      'view_benefit_plans',
+      'view_my_benefits',
     ];
 
     const defaultRoles = [

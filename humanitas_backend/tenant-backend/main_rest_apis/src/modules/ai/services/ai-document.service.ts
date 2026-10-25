@@ -87,6 +87,19 @@ export class AiDocumentService {
         { key: 'project_name', label: 'Project Name', type: 'string', required: false, description: 'Target project name' },
       ],
     },
+    {
+      id: 'hr_analytics_executive_brief',
+      name: 'HR Analytics & People Intelligence Executive Brief',
+      description: 'Comprehensive workforce intelligence brief compiling headcount demographics, turnover rates, absenteeism heatmaps, and total cost of workforce.',
+      category: 'HRMS',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate an HR Analytics & People Intelligence Executive Brief. Include total active headcount, departmental distribution, gender diversity ratio, monthly attrition/turnover rate, 30/60/90-day new hire retention, absenteeism percentage, and total monthly workforce payroll cost.',
+      parameters: [
+        { key: 'month', label: 'Month (1-12)', type: 'number', required: false, description: 'Target month' },
+        { key: 'year', label: 'Year (e.g. 2026)', type: 'number', required: false, description: 'Target year' },
+        { key: 'department', label: 'Department Name', type: 'string', required: false, description: 'Filter by department' },
+      ],
+    },
   ];
 
   constructor(

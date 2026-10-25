@@ -1,12 +1,12 @@
-# 🌟 Humanitas Enterprise ERP — Master Feature & Capability Specification
+# ðŸŒŸ Humanitas Enterprise ERP â€” Master Feature & Capability Specification
 
 This document provides a comprehensive, enterprise-grade feature checklist for the **Humanitas Modular Cloud ERP Platform**, designed to rival top-tier global enterprise systems like **Microsoft Dynamics 365, SAP S/4HANA, NetSuite, and Odoo**.
 
 ---
 
-## 📊 Overall Progress
+## ðŸ“Š Overall Progress
 
-| Module | Total | ✅ Done | ⏳ Remaining | % Complete |
+| **TOTAL** | **692** | **268** | **424** | **39%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -16,36 +16,36 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 45 | 33 | 12 | 73% |
+| HRMS & Recruitment | 45 | 36 | 9 | 80% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
 | Dynamic Approval Engine | 12 | 0 | 12 | 0% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
 | Enterprise UI/UX | 23 | 18 | 5 | 78% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
 | AI Intelligence Module | 38 | 6 | 32 | 16% |
-| Employee Self-Service Portal | 21 | 0 | 21 | 0% |
-| Document Vault & Letters | 19 | 0 | 19 | 0% |
-| Onboarding & Offboarding | 22 | 0 | 22 | 0% |
-| Grievance & Complaints | 17 | 0 | 17 | 0% |
-| Benefits & Insurance | 17 | 0 | 17 | 0% |
-| Training & LMS | 22 | 0 | 22 | 0% |
-| 360 Performance Reviews | 27 | 0 | 27 | 0% |
-| Expense Management | 19 | 0 | 19 | 0% |
-| Asset & Equipment Tracking | 19 | 0 | 19 | 0% |
-| Pulse Surveys & Engagement | 19 | 0 | 19 | 0% |
-| Bulk Import/Export | 13 | 0 | 13 | 0% |
+| Employee Self-Service Portal | 21 | 21 | 0 | 100% |
+| Document Vault & Letters | 19 | 9 | 10 | 47% |
+| Onboarding & Offboarding | 22 | 15 | 7 | 68% |
+| Grievance & Complaints | 17 | 17 | 0 | 100% |
+| Benefits & Insurance | 17 | 17 | 0 | 100% |
+| Training & LMS | 22 | 22 | 0 | 100% |
+| 360 Performance Reviews | 27 | 27 | 0 | 100% |
+| Expense Management | 19 | 19 | 0 | 100% |
+| Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
+| Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
+| Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 19 | 3 | 16 | 16% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **730** | **105** | **625** | **14%** |
+| **TOTAL** | **692** | **300** | **392** | **43%** |
 
 ---
 
-## 0. 🏗️ System Architecture & Core
+## 0. ðŸ—ï¸ System Architecture & Core
 
 - [x] **Multi-Tenancy Foundation**:
   - [x] Isolated per-tenant PostgreSQL database provisioning via `TenantMigrationService`.
   - [x] Tenant-scoped query routing through `DatabaseService.getTenantConnection(databaseName)`.
-- [x] **Multi-Company & Multi-Branch Organization Hierarchy** (`Tenant → Company → Branch → Department`):
+- [x] **Multi-Company & Multi-Branch Organization Hierarchy** (`Tenant â†’ Company â†’ Branch â†’ Department`):
   - [x] `companies` and `branches` master tables with idempotent schema creation and default seeding.
   - [x] 10 CRUD REST endpoints for Companies and Branches (`GET`, `POST`, `PUT`, `DELETE`) with full RBAC guards (`view_companies`, `manage_companies`, `view_all_companies`, `view_branches`, `manage_branches`, `view_all_branches`).
   - [x] `company_id` and `branch_id` columns added to **all 40+ operational tables** (users, departments, positions, attendance, leave, payroll, PMS, shifts, schedules, devices, announcements, events, and all ERP tables).
@@ -54,11 +54,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] **Tenant Migration**: `20261022000001_add_company_branch_to_all_operational_tables.sql` registered and auto-applied on startup.
 - [x] **Company & Branch Context Switcher (Web)**:
   - [x] `CompanyBranchSwitcher` header component with dropdown switcher for users with `view_all_companies` / `view_all_branches` permissions.
-  - [x] Locked badge (`Assigned Unit 🔒`) for single-entity users automatically scoped to their assigned company/branch.
+  - [x] Locked badge (`Assigned Unit ðŸ”’`) for single-entity users automatically scoped to their assigned company/branch.
   - [x] Integrated into `EnterpriseTopHeader.tsx` (Humanitas-ERP) and inline top-bar (Humanitas).
   - [x] Multi-select dropdown switcher supporting simultaneous selection of multiple companies and branches.
   - [x] Multi-scope summaries & metric aggregation across selected companies/branches on dashboards and listings.
-- [x] **Company & Branch Context Switcher (Mobile — Flutter)**:
+- [x] **Company & Branch Context Switcher (Mobile â€” Flutter)**:
   - [x] `CompanyBranchSwitcher` widget with bottom sheets integrated into HomeScreen AppBar.
   - [x] `OrganizationRepository`, `CompanyModel`, `BranchModel`, and `organization_provider` (Riverpod).
 - [x] **Organization Settings UI**:
@@ -73,7 +73,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 1. 📦 Products & Catalog Management (`/products`)
+## 1. ðŸ“¦ Products & Catalog Management (`/products`)
 
 - [ ] **Product Master Data**:
   - [ ] Standard goods, services, digital items, and composite/bundled kit items.
@@ -103,7 +103,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 2. 🏭 Inventory & Warehouse Management (`/inventory`)
+## 2. ðŸ­ Inventory & Warehouse Management (`/inventory`)
 
 - [ ] **Multi-Warehouse & Location Hierarchy**:
   - [ ] Unlimited warehouses with hierarchical internal storage locations (Warehouse -> Zone -> Aisle -> Rack -> Bin).
@@ -140,7 +140,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 3. 🛒 Purchasing & Vendor Management (`/purchasing`)
+## 3. ðŸ›’ Purchasing & Vendor Management (`/purchasing`)
 
 - [ ] **Vendor Directory & Portal**:
   - [ ] Vendor profiles, tax registration numbers, payment terms, contact directories, and bank accounts.
@@ -177,7 +177,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 4. 💼 Enterprise Sales, Quotations & E-Invoicing (`/sales`)
+## 4. ðŸ’¼ Enterprise Sales, Quotations & E-Invoicing (`/sales`)
 
 - [ ] **Sales Quotations & Interactive CPQ**:
   - [ ] Professional quotation generator with multi-tier pricing, discount matrix, and expiry countdown.
@@ -219,7 +219,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 4.1 🤝 World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
+## 4.1 ðŸ¤ World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
 
 - [ ] **Handwriting-to-Text & Digital Ink Recognition (Zoho / Apple Pencil Rival)**:
   - [ ] **Interactive Digital Ink Canvas**: Smooth handwriting input area on tablets, touchscreens, mobile, and desktop stylus for sales reps in the field.
@@ -227,7 +227,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] **"Handwrite-to-Register" Quick Customer Onboarding**: Sales rep can write customer name, phone number, email, company, and meeting notes with a stylus or finger; 1-click "Convert & Save" parses handwritten notes directly into validated database fields (`name`, `phone`, `email`, `tax_id`, `address`, `notes`).
   - [ ] **Stylus Pressure & Stroke Smoothing**: Bezier stroke smoothing, undo/redo, eraser, and pressure-sensitive digital ink rendering.
   - [ ] **Business Card Camera Scanner (OCR)**: Snap a photo of a paper business card to automatically extract and populate lead/contact fields with AI validation.
-- [ ] **360° Customer & Account Master Intelligence**:
+- [ ] **360Â° Customer & Account Master Intelligence**:
   - [ ] Multi-tier corporate account hierarchy (Parent Holding -> Regional Subsidiaries -> Branch Offices -> Individual Contacts).
   - [ ] Unified 360-degree timeline feed: all emails, phone calls, WhatsApp chats, meetings, quotes, orders, invoices, and support tickets in one single chronological view.
   - [ ] AI-driven Customer Health Score & Churn Risk indicator based on communication frequency, order frequency, and payment punctuality.
@@ -274,13 +274,13 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Dedicated branded customer portal where clients can view pending proposals, approve quotes with digital signatures, track orders, view invoice history, and submit support tickets.
 - [ ] **CRM Executive Analytics & Cohort Reports**:
   - [ ] Full-funnel conversion analysis: `Visitor` -> `Lead` -> `Marketing Qualified (MQL)` -> `Sales Qualified (SQL)` -> `Opportunity` -> `Won`.
-  - [ ] Sales Velocity Formula report: `Velocity = (Deals in Pipeline × Win Rate × Average Deal Size) / Sales Cycle Length`.
+  - [ ] Sales Velocity Formula report: `Velocity = (Deals in Pipeline Ã— Win Rate Ã— Average Deal Size) / Sales Cycle Length`.
   - [ ] Rep Activity Scorecard: Calls made, emails sent, meetings conducted, and proposals submitted per rep.
   - [ ] Revenue Forecast Matrix (Committed, Best Case, Pipeline, Closed) with historical forecast accuracy tracking.
 
 ---
 
-## 5. ⚡ Point of Sale (POS) (`/pos`)
+## 5. âš¡ Point of Sale (POS) (`/pos`)
 
 - [ ] **Multi-Terminal & Register Architecture**:
   - [ ] Support for multiple cash registers across different stores/branches.
@@ -322,7 +322,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 6. 📊 Double-Entry Accounting, Financials & Fixed Assets (`/accounting`)
+## 6. ðŸ“Š Double-Entry Accounting, Financials & Fixed Assets (`/accounting`)
 
 - [ ] **Chart of Accounts (COA)**:
   - [ ] Standard hierarchical multi-tier Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expenses).
@@ -381,9 +381,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 7. 👥 Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
+## 7. ðŸ‘¥ Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
 
-- [x] **Organization Settings — Companies & Branches (`/settings/organization`)**:
+- [x] **Organization Settings â€” Companies & Branches (`/settings/organization`)**:
   - [x] Companies CRUD: create, view, edit, and delete companies with name, code, address, and status fields.
   - [x] Branches CRUD: create, view, edit, and delete branches tied to their parent company.
   - [x] Active company/branch scope banner displayed at the top of the OrganizationSettings page; list filtered to the current scope context.
@@ -419,19 +419,19 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Progressive income tax brackets, pension contributions, and statutory deduction calculation via Python Engine.
   - [x] Automated deductions for employee loans, salary advances, and disciplinary penalties.
   - [x] Bulk monthly payroll execution, approval workflow, and one-click payslip generation with email delivery.
-  - [ ] Direct Bank Transfer export files (ABA, NACHA, local bank CSV formats).
+  - [x] Direct Bank Transfer export files (ABA, NACHA, local bank CSV formats).
 - [x] **HRMS Reports**:
-  - [ ] Headcount and demographic analysis (by department, gender, age band, tenure).
+  - [x] Headcount and demographic analysis (by department, gender, age band, tenure).
   - [ ] Recruitment velocity & hiring funnel conversion report.
   - [x] Attendance summary report (present, absent, late, early departure rates).
   - [x] Leave utilization report by type and department.
   - [x] Overtime cost analysis by department and period.
   - [x] Payroll cost breakdown report (gross, deductions, net by department).
-  - [ ] Employee turnover and retention rate analysis.
+  - [x] Employee turnover and retention rate analysis.
 
 ---
 
-## 8. 🚀 Decoupled Project Management System (PMS) (`/pms`)
+## 8. ðŸš€ Decoupled Project Management System (PMS) (`/pms`)
 
 - [x] **Multi-Project Workspace**:
   - [x] Portfolio dashboard with project progress, health status, deadlines, and budget burn rates.
@@ -464,7 +464,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 9. 🔀 Dynamic Approval Workflow Engine (`/settings/approvals`)
+## 9. ðŸ”€ Dynamic Approval Workflow Engine (`/settings/approvals`)
 
 - [ ] **Configurable Multi-Tier Approval Rules**:
   - [ ] User-defined approval hierarchies across all operational workflows:
@@ -481,7 +481,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 10. 🔌 Webhooks & Developer API Portal (`/settings/developer-api`)
+## 10. ðŸ”Œ Webhooks & Developer API Portal (`/settings/developer-api`)
 
 - [ ] **Tenant API Key Management**:
   - [ ] Generation of scoped, revocable REST API keys for external ERP integrations.
@@ -502,7 +502,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 11. 🎨 Modern Enterprise UI / UX Architecture
+## 11. ðŸŽ¨ Modern Enterprise UI / UX Architecture
 
 - [x] **Design Language & Aesthetics**:
   - [x] Clean, high-performance, clutter-free design inspired by Microsoft Dynamics 365, SAP Fiori, and modern SaaS standards.
@@ -519,7 +519,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Keeps navigation focused purely on the active module, eliminating menu clutter.
 - [x] **Company & Branch Context Switcher**:
   - [x] Synchronized Company & Branch dropdown in navigation header; users with `view_all_companies` / `view_all_branches` can switch context freely.
-  - [x] Locked indicator (`Assigned Unit 🔒`) auto-applied for users scoped to a single company/branch.
+  - [x] Locked indicator (`Assigned Unit ðŸ”’`) auto-applied for users scoped to a single company/branch.
   - [x] Selected scope persisted in `localStorage` and restored on page reload with no visual flash.
   - [x] Switching scope instantly invalidates all cached queries so every data grid and KPI reflects the new company/branch without a manual refresh.
 - [ ] **High-Density Enterprise Data Grids**:
@@ -530,7 +530,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 12. 💳 Self-Service Subscription, Billing & Landing Page
+## 12. ðŸ’³ Self-Service Subscription, Billing & Landing Page
 
 - [ ] **Interactive SaaS Landing Page**:
   - [ ] Hero showcase displaying Humanitas ERP modules with live animated workflow previews.
@@ -556,11 +556,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 13. 🤖 AI Intelligence Module (`/ai`)
+## 13. ðŸ¤– AI Intelligence Module (`/ai`)
 
 ### Subscribable AI Capability Tiers
 - [x] **AI Help (`ai.help`)**: Conversational assistant that answers questions about how to use Humanitas. Knows every page, route, button, and action in the system via the AI Knowledge Base.
-- [x] **AI Document Creation (`ai.documents`)**: Generates formatted PDF and DOCX documents from database data. Supports user-uploaded sample/template documents — AI extracts the format structure and produces output in that exact layout.
+- [x] **AI Document Creation (`ai.documents`)**: Generates formatted PDF and DOCX documents from database data. Supports user-uploaded sample/template documents â€” AI extracts the format structure and produces output in that exact layout.
 - [x] **AI Actions (`ai.actions`)**: Executes system actions on behalf of the user if the user has the required permissions. Examples: "Approve all pending leave requests", "Create a purchase order for 500 units of Product X", "Run payroll for July 2026".
 - [x] **Full AI Module (`ai.full`)**: All AI capabilities unlocked (Help + Documents + Actions).
 
@@ -610,277 +610,277 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 14. 🏠 Employee Self-Service Portal (`/self-service`)
+## 14. ðŸ  Employee Self-Service Portal (`/self-service`)
 
-- [ ] **Unified "My HR" Dashboard**:
-  - [ ] Personal summary cards: leave balance, next payslip date, attendance streak, pending requests count.
-  - [ ] Quick-action shortcuts: Request Leave, Log Overtime, Submit Expense, View Payslip.
-- [ ] **Personal Payslip Center**:
-  - [ ] Payslip history viewer with month-by-month breakdown.
-  - [ ] Bulk PDF download of payslips by date range.
-  - [ ] Year-to-date earnings and deductions summary.
-- [ ] **Personal Attendance & Leave Tracker**:
-  - [ ] Attendance history calendar heatmap (present, late, absent, leave).
-  - [ ] Leave balance dashboard with accrual projections.
-  - [ ] Leave request submission with team calendar conflict visibility.
-- [ ] **Profile Self-Edit**:
-  - [ ] Employee-editable personal fields (address, phone, emergency contacts, bank details).
-  - [ ] Approval workflow for sensitive field changes (bank account, tax ID) requiring HR sign-off.
-- [ ] **Personal Tax & Benefits Portal**:
-  - [ ] Tax declaration submission and viewing.
-  - [ ] Benefits enrollment and current coverage summary.
-- [ ] **Self-Service Reports**:
-  - [ ] Personal attendance and punctuality summary.
-  - [ ] Personal leave usage and accrual history.
-  - [ ] Personal payslip and compensation trend chart.
+- [x] **Unified "My HR" Dashboard**:
+  - [x] Personal summary cards: leave balance, next payslip date, attendance streak, pending requests count.
+  - [x] Quick-action shortcuts: Request Leave, Log Overtime, Submit Expense, View Payslip.
+- [x] **Personal Payslip Center**:
+  - [x] Payslip history viewer with month-by-month breakdown.
+  - [x] Bulk PDF download of payslips by date range.
+  - [x] Year-to-date earnings and deductions summary.
+- [x] **Personal Attendance & Leave Tracker**:
+  - [x] Attendance history calendar heatmap (present, late, absent, leave).
+  - [x] Leave balance dashboard with accrual projections.
+  - [x] Leave request submission with team calendar conflict visibility.
+- [x] **Profile Self-Edit**:
+  - [x] Employee-editable personal fields (address, phone, emergency contacts, bank details).
+  - [x] Approval workflow for sensitive field changes (bank account, tax ID) requiring HR sign-off.
+- [x] **Personal Tax & Benefits Portal**:
+  - [x] Tax declaration submission and viewing.
+  - [x] Benefits enrollment and current coverage summary.
+- [x] **Self-Service Reports**:
+  - [x] Personal attendance and punctuality summary.
+  - [x] Personal leave usage and accrual history.
+  - [x] Personal payslip and compensation trend chart.
 
 ---
 
-## 15. 📂 Employee Document Vault & Letter Templates (`/hrms/documents`)
+## 15. ðŸ“‚ Employee Document Vault & Letter Templates (`/hrms/documents`)
 
-- [ ] **Per-Employee Document Repository**:
-  - [ ] Centralized storage for contracts, certifications, ID copies, disciplinary records, and compliance documents.
+- [x] **Per-Employee Document Repository**:
+  - [x] Centralized storage for contracts, certifications, ID copies, disciplinary records, and compliance documents.
   - [ ] Document versioning with full audit trail (who uploaded, when, what changed).
-  - [ ] Role-based document access (HR full access, managers team-only, employees own-only).
-- [ ] **Document Expiry & Compliance Tracking**:
-  - [ ] Expiry date tracking for visas, certifications, medical exams, and licenses.
+  - [x] Role-based document access (HR full access, managers team-only, employees own-only).
+- [x] **Document Expiry & Compliance Tracking**:
+  - [x] Expiry date tracking for visas, certifications, medical exams, and licenses.
   - [ ] Automated email/push reminders at 90, 60, 30, and 7 days before expiry.
   - [ ] Missing required document alerts per employee (e.g., no signed contract on file).
-- [ ] **Template-Based Letter Generation Engine**:
-  - [ ] Pre-built templates: Offer letters, employment verification, experience certificates, warning letters, termination letters, salary certificates.
-  - [ ] Dynamic field merge from employee database (name, position, salary, dates, department).
+- [x] **Template-Based Letter Generation Engine**:
+  - [x] Pre-built templates: Offer letters, employment verification, experience certificates, warning letters, termination letters, salary certificates.
+  - [x] Dynamic field merge from employee database (name, position, salary, dates, department).
   - [ ] Tenant-branded letterhead with configurable logo, header, footer, and signature block.
   - [ ] Digital signature capture for employee acknowledgment.
 - [ ] **Bulk Document Operations**:
   - [ ] Bulk generation of letters (e.g., generate all employee tax certificates for year-end).
   - [ ] Bulk download of employee documents by department or document type.
-- [ ] **Document Reports**:
-  - [ ] Document compliance dashboard (expired, expiring soon, missing required documents by department).
+- [x] **Document Reports**:
+  - [x] Document compliance dashboard (expired, expiring soon, missing required documents by department).
   - [ ] Letter generation audit log with template used, generated by, and recipient.
 
 ---
 
-## 16. 🚀 Onboarding & Offboarding Workflows (`/hrms/onboarding`)
+## 16. ðŸš€ Onboarding & Offboarding Workflows (`/hrms/onboarding`)
 
-- [ ] **Onboarding Checklist Engine**:
-  - [ ] Configurable onboarding checklist templates per department, role, and employment type.
-  - [ ] Automated task assignment on new hire creation: IT provisioning, equipment allocation, badge creation, policy acknowledgment, workspace setup.
-  - [ ] Task assignee designation (HR, IT, Department Manager, Buddy/Mentor).
-  - [ ] Progress tracker with completion percentage and overdue task alerts.
+- [x] **Onboarding Checklist Engine**:
+  - [x] Configurable onboarding checklist templates per department, role, and employment type.
+  - [x] Automated task assignment on new hire creation: IT provisioning, equipment allocation, badge creation, policy acknowledgment, workspace setup.
+  - [x] Task assignee designation (HR, IT, Department Manager, Buddy/Mentor).
+  - [x] Progress tracker with completion percentage and overdue task alerts.
 - [ ] **New Hire Welcome Portal**:
   - [ ] Guided portal for new employees: document upload, policy acceptance, orientation video viewing, personal info completion.
   - [ ] Digital contract signing with e-signature.
   - [ ] Welcome packet with company handbook, org chart, and key contacts.
-- [ ] **Probation Management**:
-  - [ ] Probation period tracking with configurable duration per employment type.
-  - [ ] Automated review reminders at probation midpoint and end date.
-  - [ ] Probation outcome recording (Confirmed, Extended, Terminated) with supporting notes.
-- [ ] **Offboarding Workflow**:
-  - [ ] Configurable offboarding checklist: equipment return, access revocation, knowledge transfer, exit interview, final settlement.
+- [x] **Probation Management**:
+  - [x] Probation period tracking with configurable duration per employment type.
+  - [x] Automated review reminders at probation midpoint and end date.
+  - [x] Probation outcome recording (Confirmed, Extended, Terminated) with supporting notes.
+- [x] **Offboarding Workflow**:
+  - [x] Configurable offboarding checklist: equipment return, access revocation, knowledge transfer, exit interview, final settlement.
   - [ ] 1-Click employee separation with automated final pay calculation (remaining leave encashment, prorated salary, pending loans).
-  - [ ] Knowledge transfer task assignment and handover document tracking.
-  - [ ] Exit interview questionnaire with anonymous feedback option.
-- [ ] **Onboarding & Offboarding Reports**:
-  - [ ] Onboarding completion rates and average time-to-productivity by department.
+  - [x] Knowledge transfer task assignment and handover document tracking.
+  - [x] Exit interview questionnaire with anonymous feedback option.
+- [x] **Onboarding & Offboarding Reports**:
+  - [x] Onboarding completion rates and average time-to-productivity by department.
   - [ ] Offboarding checklist compliance report (percentage of items completed before last day).
   - [ ] New hire retention rate at 30, 60, 90, and 180-day milestones.
 
 ---
 
-## 17. ⚖️ Employee Grievance & Complaint System (`/hrms/grievances`)
+## 17. âš–ï¸ Employee Grievance & Complaint System (`/hrms/grievances`)
 
-- [ ] **Grievance Submission Portal**:
-  - [ ] Formal grievance filing with category classification (harassment, discrimination, safety, policy violation, workplace conflict, compensation dispute).
-  - [ ] Anonymous complaint option with masked identity — only designated HR officers can view.
-  - [ ] Supporting evidence upload (documents, photos, screenshots).
-- [ ] **Investigation & Resolution Workflow**:
-  - [ ] Multi-stage lifecycle: `Filed` → `Acknowledged` → `Investigating` → `Resolution Proposed` → `Closed`.
-  - [ ] Assigned investigator and committee management with conflict-of-interest checks.
-  - [ ] Resolution tracking with escalation rules and SLA timers (e.g., acknowledge within 48 hours, resolve within 14 days).
-  - [ ] Confidential case file with restricted-access notes and attachments.
-- [ ] **Grievance Outcome & Follow-Up**:
-  - [ ] Resolution outcome recording with action items and responsible parties.
-  - [ ] Employee satisfaction feedback on resolution.
-  - [ ] Retaliation monitoring flag for sensitive cases.
-- [ ] **Grievance Reports**:
-  - [ ] Grievance volume and average resolution time analytics.
-  - [ ] Category breakdown and trend analysis by department and period.
-  - [ ] SLA compliance report (percentage resolved within target timelines).
-
----
-
-## 18. 🏥 Benefits & Insurance Management (`/hrms/benefits`)
-
-- [ ] **Benefits Plan Catalog**:
-  - [ ] Plan types: medical insurance, dental, vision, life insurance, pension/retirement, housing allowance, transport allowance, education assistance.
-  - [ ] Multi-tier plan options per benefit type (e.g., Basic, Standard, Premium medical plans).
-  - [ ] Employer vs. employee contribution split configuration per plan.
-- [ ] **Employee Benefits Enrollment**:
-  - [ ] Eligibility rules engine based on tenure, grade, employment type, and department.
-  - [ ] Dependent management for family coverage plans (spouse, children, parents).
-  - [ ] Open enrollment period management with automated start/end notifications.
-  - [ ] Mid-year enrollment changes with qualifying life event documentation (marriage, birth, etc.).
-- [ ] **Benefits Integration with Payroll**:
-  - [ ] Automated payroll deduction calculation for employee benefit contributions.
-  - [ ] Employer contribution booking as payroll expense.
-- [ ] **Benefits Reports**:
-  - [ ] Benefits enrollment summary by plan type and department.
-  - [ ] Employer total benefits cost analysis by period.
-  - [ ] Dependent coverage breakdown report.
-  - [ ] Benefits utilization rate analysis.
+- [x] **Grievance Submission Portal**:
+  - [x] Formal grievance filing with category classification (harassment, discrimination, safety, policy violation, workplace conflict, compensation dispute).
+  - [x] Anonymous complaint option with masked identity â€” only designated HR officers can view.
+  - [x] Supporting evidence upload (documents, photos, screenshots).
+- [x] **Investigation & Resolution Workflow**:
+  - [x] Multi-stage lifecycle: `Filed` â†’ `Acknowledged` â†’ `Investigating` â†’ `Resolution Proposed` â†’ `Closed`.
+  - [x] Assigned investigator and committee management with conflict-of-interest checks.
+  - [x] Resolution tracking with escalation rules and SLA timers (e.g., acknowledge within 48 hours, resolve within 14 days).
+  - [x] Confidential case file with restricted-access notes and attachments.
+- [x] **Grievance Outcome & Follow-Up**:
+  - [x] Resolution outcome recording with action items and responsible parties.
+  - [x] Employee satisfaction feedback on resolution.
+  - [x] Retaliation monitoring flag for sensitive cases.
+- [x] **Grievance Reports**:
+  - [x] Grievance volume and average resolution time analytics.
+  - [x] Category breakdown and trend analysis by department and period.
+  - [x] SLA compliance report (percentage resolved within target timelines).
 
 ---
 
-## 19. 🎓 Training & Learning Management (LMS) (`/hrms/training`)
+## 18. ðŸ¥ Benefits & Insurance Management (`/hrms/benefits`)
 
-- [ ] **Training Course Catalog**:
-  - [ ] Course creation with categories, description, prerequisites, capacity limits, and delivery method (in-person, online, blended).
-  - [ ] Training material uploads: videos, PDF documents, presentations, and quizzes.
-  - [ ] External training provider and venue management.
-- [ ] **Training Enrollment & Scheduling**:
-  - [ ] Employee self-enrollment and manager-nominated enrollment.
-  - [ ] Training calendar with session scheduling, instructor assignment, and room/venue booking.
-  - [ ] Waitlist management for oversubscribed sessions.
-  - [ ] Attendance tracking with check-in confirmation.
-- [ ] **Mandatory Compliance Training**:
-  - [ ] Compliance training assignments with due date enforcement per role, department, or regulation.
-  - [ ] Automated escalation for overdue mandatory training.
-  - [ ] Re-certification scheduling at configurable intervals.
-- [ ] **Certification & Skills Management**:
-  - [ ] Certification tracking per employee with expiry dates and automated renewal reminders.
-  - [ ] Skills matrix per employee with proficiency levels (Beginner, Intermediate, Advanced, Expert).
-  - [ ] Skills gap analysis against role requirements.
-- [ ] **Training Reports**:
-  - [ ] Training completion rates by course, department, and employee.
-  - [ ] Certification expiry forecast and compliance gap report.
-  - [ ] Training cost analysis and budget utilization.
-  - [ ] Skills matrix heatmap by department.
+- [x] **Benefits Plan Catalog**:
+  - [x] Plan types: medical insurance, dental, vision, life insurance, pension/retirement, housing allowance, transport allowance, education assistance.
+  - [x] Multi-tier plan options per benefit type (e.g., Basic, Standard, Premium medical plans).
+  - [x] Employer vs. employee contribution split configuration per plan.
+- [x] **Employee Benefits Enrollment**:
+  - [x] Eligibility rules engine based on tenure, grade, employment type, and department.
+  - [x] Dependent management for family coverage plans (spouse, children, parents).
+  - [x] Open enrollment period management with automated start/end notifications.
+  - [x] Mid-year enrollment changes with qualifying life event documentation (marriage, birth, etc.).
+- [x] **Benefits Integration with Payroll**:
+  - [x] Automated payroll deduction calculation for employee benefit contributions.
+  - [x] Employer contribution booking as payroll expense.
+- [x] **Benefits Reports**:
+  - [x] Benefits enrollment summary by plan type and department.
+  - [x] Employer total benefits cost analysis by period.
+  - [x] Dependent coverage breakdown report.
+  - [x] Benefits utilization rate analysis.
 
 ---
 
-## 20. 🔄 360 Performance Reviews & Feedback (`/pms/reviews`)
+## 19. ðŸŽ“ Training & Learning Management (LMS) (`/hrms/training`)
 
-- [ ] **Review Cycle Management**:
-  - [ ] Configurable review cycles: quarterly, semi-annual, annual, or custom periods.
-  - [ ] Review cycle creation wizard with timeline, participants, and form selection.
-  - [ ] Automated launch and deadline reminders via email and push notifications.
-- [ ] **Multi-Source Feedback Collection**:
-  - [ ] Self-assessment questionnaire.
-  - [ ] Manager/supervisor review form.
-  - [ ] Peer feedback nominations and collection (configurable: 2-5 peers per employee).
-  - [ ] Direct report upward feedback (for managers being reviewed).
-  - [ ] Optional external stakeholder/client feedback.
-- [ ] **Review Forms & Competencies**:
-  - [ ] Review form builder with rating scales (1-5, 1-10, descriptive), competency matrices, and open-ended questions.
-  - [ ] Pre-built competency libraries (leadership, communication, technical skills, teamwork, innovation).
-  - [ ] Goal setting and alignment with organizational OKRs/KPIs.
-- [ ] **Calibration & Normalization**:
-  - [ ] Calibration sessions for manager alignment on rating distribution.
-  - [ ] Forced distribution/bell curve visualization with adjustment tools.
-  - [ ] Cross-department rating comparison dashboard.
-- [ ] **Performance Improvement Plans (PIP)**:
-  - [ ] PIP creation with specific goals, milestones, support resources, and timeline.
-  - [ ] Progress check-in scheduling with manager sign-off.
-  - [ ] PIP outcome recording (Completed Successfully, Extended, Terminated).
-- [ ] **Review Reports**:
-  - [ ] Review cycle completion status by department and manager.
-  - [ ] Performance distribution analysis (bell curve, rating breakdown by department/grade).
-  - [ ] Goal attainment rates and trend analysis across review cycles.
-  - [ ] Historical performance trend per employee (review-over-review comparison).
+- [x] **Training Course Catalog**:
+  - [x] Course creation with categories, description, prerequisites, capacity limits, and delivery method (in-person, online, blended).
+  - [x] Training material uploads: videos, PDF documents, presentations, and quizzes.
+  - [x] External training provider and venue management.
+- [x] **Training Enrollment & Scheduling**:
+  - [x] Employee self-enrollment and manager-nominated enrollment.
+  - [x] Training calendar with session scheduling, instructor assignment, and room/venue booking.
+  - [x] Waitlist management for oversubscribed sessions.
+  - [x] Attendance tracking with check-in confirmation.
+- [x] **Mandatory Compliance Training**:
+  - [x] Compliance training assignments with due date enforcement per role, department, or regulation.
+  - [x] Automated escalation for overdue mandatory training.
+  - [x] Re-certification scheduling at configurable intervals.
+- [x] **Certification & Skills Management**:
+  - [x] Certification tracking per employee with expiry dates and automated renewal reminders.
+  - [x] Skills matrix per employee with proficiency levels (Beginner, Intermediate, Advanced, Expert).
+  - [x] Skills gap analysis against role requirements.
+- [x] **Training Reports**:
+  - [x] Training completion rates by course, department, and employee.
+  - [x] Certification expiry forecast and compliance gap report.
+  - [x] Training cost analysis and budget utilization.
+  - [x] Skills matrix heatmap by department.
 
 ---
 
-## 21. 💰 Expense Management (`/hrms/expenses`)
+## 20. ðŸ”„ 360 Performance Reviews & Feedback (`/pms/reviews`)
 
-- [ ] **Expense Claim Submission**:
-  - [ ] Employee expense claim form with category selection, amount, date, description, and receipt photo upload.
-  - [ ] AI-powered receipt OCR scanning for auto-extraction of vendor, amount, date, and category (via Python Engine).
-  - [ ] Multi-line expense reports grouping multiple expenses into a single submission.
-  - [ ] Draft saving and submission workflow.
-- [ ] **Expense Categories & Policies**:
-  - [ ] Configurable expense categories: Travel, Meals, Accommodation, Office Supplies, Client Entertainment, Transportation, Communication.
-  - [ ] Department and role-based spending limits per category.
-  - [ ] Policy rule engine: auto-flag expenses exceeding limits, require additional justification for high-value claims.
-- [ ] **Approval & Reimbursement**:
-  - [ ] Multi-tier approval workflow with configurable thresholds (e.g., <$100 auto-approve, <$500 Manager, >$500 Finance).
-  - [ ] Mileage and travel expense calculators with configurable per-km/per-mile rates.
-  - [ ] Reimbursement integration with payroll cycle (auto-add approved expenses to next pay run).
-  - [ ] Corporate credit card transaction reconciliation and matching.
-- [ ] **Expense Reports**:
-  - [ ] Expense summary by category, department, employee, and period.
-  - [ ] Budget vs. actual expense comparison by department.
-  - [ ] Reimbursement processing time and pending claims aging report.
-  - [ ] Top expense categories and policy violation frequency report.
+- [x] **Review Cycle Management**:
+  - [x] Configurable review cycles: quarterly, semi-annual, annual, or custom periods.
+  - [x] Review cycle creation wizard with timeline, participants, and form selection.
+  - [x] Automated launch and deadline reminders via email and push notifications.
+- [x] **Multi-Source Feedback Collection**:
+  - [x] Self-assessment questionnaire.
+  - [x] Manager/supervisor review form.
+  - [x] Peer feedback nominations and collection (configurable: 2-5 peers per employee).
+  - [x] Direct report upward feedback (for managers being reviewed).
+  - [x] Optional external stakeholder/client feedback.
+- [x] **Review Forms & Competencies**:
+  - [x] Review form builder with rating scales (1-5, 1-10, descriptive), competency matrices, and open-ended questions.
+  - [x] Pre-built competency libraries (leadership, communication, technical skills, teamwork, innovation).
+  - [x] Goal setting and alignment with organizational OKRs/KPIs.
+- [x] **Calibration & Normalization**:
+  - [x] Calibration sessions for manager alignment on rating distribution.
+  - [x] Forced distribution/bell curve visualization with adjustment tools.
+  - [x] Cross-department rating comparison dashboard.
+- [x] **Performance Improvement Plans (PIP)**:
+  - [x] PIP creation with specific goals, milestones, support resources, and timeline.
+  - [x] Progress check-in scheduling with manager sign-off.
+  - [x] PIP outcome recording (Completed Successfully, Extended, Terminated).
+- [x] **Review Reports**:
+  - [x] Review cycle completion status by department and manager.
+  - [x] Performance distribution analysis (bell curve, rating breakdown by department/grade).
+  - [x] Goal attainment rates and trend analysis across review cycles.
+  - [x] Historical performance trend per employee (review-over-review comparison).
 
 ---
 
-## 22. 🖥️ Employee Asset & Equipment Tracking (`/hrms/assets`)
+## 21. ðŸ’° Expense Management (`/hrms/expenses`)
 
-- [ ] **Asset Registry**:
-  - [ ] Asset catalog: laptops, monitors, phones, tablets, vehicles, access cards, keys, uniforms, tools.
-  - [ ] Unique asset tags with QR code generation for physical labeling.
-  - [ ] Asset details: serial number, purchase date, warranty expiry, purchase cost, current condition.
-- [ ] **Asset Assignment & Lifecycle**:
-  - [ ] Asset checkout to employee with digital acknowledgment signature.
-  - [ ] Asset return workflow with condition assessment (Good, Fair, Damaged, Missing).
-  - [ ] Asset transfer between employees with full custody chain history.
-  - [ ] Automatic asset return enforcement during offboarding.
-- [ ] **Maintenance & Warranty**:
-  - [ ] Maintenance scheduling and service history logging.
-  - [ ] Warranty expiry tracking with automated reminders.
-  - [ ] Repair request submission and status tracking.
-  - [ ] Asset decommission and disposal workflow with write-off approval.
-- [ ] **Asset Reports**:
-  - [ ] Asset inventory summary by type, status, and assigned department.
-  - [ ] Asset assignment history per employee (all assets ever assigned).
-  - [ ] Warranty expiry and maintenance schedule forecast.
-  - [ ] Outstanding asset returns report (overdue check-ins).
+- [x] **Expense Claim Submission**:
+  - [x] Employee expense claim form with category selection, amount, date, description, and receipt photo upload.
+  - [x] AI-powered receipt OCR scanning for auto-extraction of vendor, amount, date, and category (via Python Engine).
+  - [x] Multi-line expense reports grouping multiple expenses into a single submission.
+  - [x] Draft saving and submission workflow.
+- [x] **Expense Categories & Policies**:
+  - [x] Configurable expense categories: Travel, Meals, Accommodation, Office Supplies, Client Entertainment, Transportation, Communication.
+  - [x] Department and role-based spending limits per category.
+  - [x] Policy rule engine: auto-flag expenses exceeding limits, require additional justification for high-value claims.
+- [x] **Approval & Reimbursement**:
+  - [x] Multi-tier approval workflow with configurable thresholds (e.g., <$100 auto-approve, <$500 Manager, >$500 Finance).
+  - [x] Mileage and travel expense calculators with configurable per-km/per-mile rates.
+  - [x] Reimbursement integration with payroll cycle (auto-add approved expenses to next pay run).
+  - [x] Corporate credit card transaction reconciliation and matching.
+- [x] **Expense Reports**:
+  - [x] Expense summary by category, department, employee, and period.
+  - [x] Budget vs. actual expense comparison by department.
+  - [x] Reimbursement processing time and pending claims aging report.
+  - [x] Top expense categories and policy violation frequency report.
+
+---
+
+## 22. ðŸ–¥ï¸ Employee Asset & Equipment Tracking (`/hrms/assets`)
+
+- [x] **Asset Registry**:
+  - [x] Asset catalog: laptops, monitors, phones, tablets, vehicles, access cards, keys, uniforms, tools.
+  - [x] Unique asset tags with QR code generation for physical labeling.
+  - [x] Asset details: serial number, purchase date, warranty expiry, purchase cost, current condition.
+- [x] **Asset Assignment & Lifecycle**:
+  - [x] Asset checkout to employee with digital acknowledgment signature.
+  - [x] Asset return workflow with condition assessment (Good, Fair, Damaged, Missing).
+  - [x] Asset transfer between employees with full custody chain history.
+  - [x] Automatic asset return enforcement during offboarding.
+- [x] **Maintenance & Warranty**:
+  - [x] Maintenance scheduling and service history logging.
+  - [x] Warranty expiry tracking with automated reminders.
+  - [x] Repair request submission and status tracking.
+  - [x] Asset decommission and disposal workflow with write-off approval.
+- [x] **Asset Reports**:
+  - [x] Asset inventory summary by type, status, and assigned department.
+  - [x] Asset assignment history per employee (all assets ever assigned).
+  - [x] Warranty expiry and maintenance schedule forecast.
+  - [x] Outstanding asset returns report (overdue check-ins).
 
 ---
 
 ## 23. 📊 Employee Pulse Surveys & Engagement (`/hrms/surveys`)
 
-- [ ] **Survey Builder**:
-  - [ ] Quick-deploy pulse survey builder with question types: rating scale, multiple choice, NPS, open text, matrix/grid.
-  - [ ] Survey template library with pre-built engagement, satisfaction, and culture surveys.
-  - [ ] Branching logic for conditional follow-up questions.
-- [ ] **Survey Distribution & Collection**:
-  - [ ] Anonymous response collection with aggregate-only reporting (minimum response threshold before results visible).
-  - [ ] Scheduled recurring surveys: weekly, monthly, quarterly, or one-time.
-  - [ ] Target audience selection: all employees, specific departments, grades, or locations.
-  - [ ] Multi-channel distribution: in-app notification, email, and mobile push.
-- [ ] **Engagement Analytics**:
-  - [ ] Employee Net Promoter Score (eNPS) tracking with historical trend line.
-  - [ ] Engagement index scoring with benchmarking against historical data.
-  - [ ] AI-powered sentiment analysis word cloud from open-text responses (via Python Engine).
-  - [ ] Action plan creation and tracking based on survey insights.
-- [ ] **Survey Reports**:
-  - [ ] Survey response rates by department, location, and grade.
-  - [ ] eNPS and engagement score trends over time.
-  - [ ] Question-by-question breakdown with comparative analysis across departments.
-  - [ ] Survey impact tracking: improvement measurement between survey cycles.
+- [x] **Survey Builder**:
+  - [x] Quick-deploy pulse survey builder with question types: rating scale, multiple choice, NPS, open text, matrix/grid.
+  - [x] Survey template library with pre-built engagement, satisfaction, and culture surveys.
+  - [x] Branching logic for conditional follow-up questions.
+- [x] **Survey Distribution & Collection**:
+  - [x] Anonymous response collection with aggregate-only reporting (minimum response threshold before results visible).
+  - [x] Scheduled recurring surveys: weekly, monthly, quarterly, or one-time.
+  - [x] Target audience selection: all employees, specific departments, grades, or locations.
+  - [x] Multi-channel distribution: in-app notification, email, and mobile push.
+- [x] **Engagement Analytics**:
+  - [x] Employee Net Promoter Score (eNPS) tracking with historical trend line.
+  - [x] Engagement index scoring with benchmarking against historical data.
+  - [x] AI-powered sentiment analysis word cloud from open-text responses (via Python Engine).
+  - [x] Action plan creation and tracking based on survey insights.
+- [x] **Survey Reports**:
+  - [x] Survey response rates by department, location, and grade.
+  - [x] eNPS and engagement score trends over time.
+  - [x] Question-by-question breakdown with comparative analysis across departments.
+  - [x] Survey impact tracking: improvement measurement between survey cycles.
 
 ---
 
 ## 24. 📤 Bulk Import/Export Engine (`/settings/import-export`)
 
-- [ ] **Bulk Import**:
-  - [ ] CSV and Excel import for: employees, attendance records, leave balances, payroll adjustments, assets, training records.
-  - [ ] Import validation preview with error highlighting, row-by-row correction, and duplicate detection before committing.
-  - [ ] Downloadable import templates per entity type with column headers, data type hints, and example data.
-  - [ ] Incremental import support: update existing records or create new ones based on unique key matching.
-- [ ] **Bulk Export**:
-  - [ ] 1-click export of any data grid to CSV, Excel, and PDF with current filters and column selection preserved.
-  - [ ] Scheduled bulk exports with automatic delivery via email.
-  - [ ] Custom report builder: select fields, apply filters, and save as reusable export templates.
-- [ ] **Import/Export Governance**:
-  - [ ] Import/export audit log: who imported/exported what, when, with row count and status.
-  - [ ] Rollback capability for imports within a configurable time window.
-  - [ ] Permission-gated import/export by entity type (e.g., only HR Admin can import payroll data).
+- [x] **Bulk Import**:
+  - [x] CSV and Excel import for: employees, attendance records, leave balances, payroll adjustments, assets, training records.
+  - [x] Import validation preview with error highlighting, row-by-row correction, and duplicate detection before committing.
+  - [x] Downloadable import templates per entity type with column headers, data type hints, and example data.
+  - [x] Incremental import support: update existing records or create new ones based on unique key matching.
+- [x] **Bulk Export**:
+  - [x] 1-click export of any data grid to CSV, Excel, and PDF with current filters and column selection preserved.
+  - [x] Scheduled bulk exports with automatic delivery via email.
+  - [x] Custom report builder: select fields, apply filters, and save as reusable export templates.
+- [x] **Import/Export Governance**:
+  - [x] Import/export audit log: who imported/exported what, when, with row count and status.
+  - [x] Rollback capability for imports within a configurable time window.
+  - [x] Permission-gated import/export by entity type (e.g., only HR Admin can import payroll data).
 
 ---
 
-## 25. 🔔 Notification Engine — Email, In-App & Push (`/notifications`)
+## 25. ðŸ”” Notification Engine â€” Email, In-App & Push (`/notifications`)
 
 - [ ] **Email Notification Service**:
   - [ ] Centralized transactional email engine for: leave approvals/rejections, payroll ready, password resets, task assignments, review cycle launches, document expiry alerts, and grievance status updates.
@@ -904,14 +904,14 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 26. 🌍 Multi-Language (i18n) & Localization Support
+## 26. ðŸŒ Multi-Language (i18n) & Localization Support
 
 - [ ] **Frontend Internationalization**:
   - [ ] i18n framework integration with language switcher accessible from user profile/settings.
   - [ ] All UI labels, messages, error texts, and placeholders stored in translation files.
   - [ ] Right-to-Left (RTL) layout support for Arabic, Hebrew, and Farsi.
 - [ ] **Language Packs**:
-  - [ ] Pre-packaged language packs: English, Amharic (አማርኛ), Arabic (العربية), French (Français), Spanish (Español).
+  - [ ] Pre-packaged language packs: English, Amharic (áŠ áˆ›áˆ­áŠ›), Arabic (Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©), French (FranÃ§ais), Spanish (EspaÃ±ol).
   - [ ] Tenant-configurable default language with per-user override.
   - [ ] Community translation contribution portal for additional languages.
 - [ ] **Localization & Formatting**:
@@ -921,7 +921,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 27. ⚙️ Humanitas Global Engineering & Architecture Directives
+## 27. âš™ï¸ Humanitas Global Engineering & Architecture Directives
 
 To maintain unwavering code quality, security, and zero-rework consistency during development, the following principles are strictly enforced across every prompt and file edit:
 
@@ -951,8 +951,8 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 
 4. DESIGN-FIRST DEVELOPMENT:
    - The Enterprise UI/UX Design System, layout shell, and navigation architecture are built FIRST (Phase 1) before any module work begins.
-   - Every module built afterward MUST use the established design tokens, layout components, data grid system, form components, and navigation dock — no ad-hoc or one-off styling.
-   - Every new page, table, form, and modal MUST use the shared design system components — never raw HTML or inline styles.
+   - Every module built afterward MUST use the established design tokens, layout components, data grid system, form components, and navigation dock â€” no ad-hoc or one-off styling.
+   - Every new page, table, form, and modal MUST use the shared design system components â€” never raw HTML or inline styles.
 
 5. AI KNOWLEDGE SYNCHRONIZATION:
    - Every time a new page, route, button, action, or feature is created or modified, the AI Knowledge Base MUST be updated with: route path, page purpose, available actions, button locations, required permissions, and step-by-step how-to instructions.
@@ -980,11 +980,11 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 10. ENTERPRISE UI/UX FIDELITY:
     - Always follow the Dynamics 365 App Launcher & Contextual Dock navigation paradigm established in Phase 1.
     - Keep forms clean with consistent input validation, numeric formatting, and currency symbols.
-    - Every new page, table, form, and modal MUST use the shared design system components — never raw HTML or ad-hoc styles.
+    - Every new page, table, form, and modal MUST use the shared design system components â€” never raw HTML or ad-hoc styles.
 
 11. FULL MOBILE PARITY:
     - Every feature, page, report, and action built on the web frontend MUST have a corresponding mobile implementation in `humanitas_mobile` / `humanitas-ERP_mobile`.
-    - Mobile builds happen alongside web builds — not as a separate phase.
+    - Mobile builds happen alongside web builds â€” not as a separate phase.
 
 12. PER-MODULE REPORTING:
     - Every module MUST include a dedicated Reports sub-section with relevant charts, KPIs, and exportable data summaries.

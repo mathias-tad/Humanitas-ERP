@@ -47,6 +47,18 @@ import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import ComingSoonModulePage from "./components/common/ComingSoonModulePage";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
+import HRReportsDashboard from "./pages/hrms/HRReportsDashboard";
+import HRDocumentsPage from "./pages/hrms/HRDocumentsPage";
+import OnboardingPage from "./pages/hrms/OnboardingPage";
+import GrievancesPage from "./pages/hrms/GrievancesPage";
+import SelfServicePage from "./pages/self-service/SelfServicePage";
+import BenefitsPage from "./pages/hrms/BenefitsPage";
+import TrainingPage from "./pages/hrms/TrainingPage";
+import ReviewsPage from "./pages/pms/ReviewsPage";
+import ExpensesPage from "./pages/hrms/ExpensesPage";
+import AssetsPage from "./pages/hrms/AssetsPage";
+import SurveysPage from "./pages/hrms/SurveysPage";
+import ImportExportPage from "./pages/settings/ImportExportPage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -285,6 +297,18 @@ function AppRoutes() {
             <PMSReports />
           </PermissionRoute>
         } />
+        {/* 360 Performance Reviews & Feedback */}
+        <Route path="/pms/reviews" element={
+          <PermissionRoute moduleKey="pms" permissions={["view_reviews", "view_my_reviews", "view_pms"]}>
+            <ReviewsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/hrms/reviews" element={
+          <PermissionRoute moduleKey="hrms" permissions={["view_reviews", "view_my_reviews"]}>
+            <ReviewsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/reviews" element={<Navigate to="/pms/reviews" replace />} />
         <Route path="/pms/projects" element={
           <PermissionRoute moduleKey="pms" permissions={["view_projects", "view_pms"]}>
             <PMSProjects />
@@ -357,8 +381,95 @@ function AppRoutes() {
         <Route path="/loans" element={<Navigate to="/payroll/loans" replace />} />
         <Route path="/audit-logs" element={<PermissionRoute permissions={["view_logs"]}><SystemLogs /></PermissionRoute>} />
 
-        {/* HRMS Reports (Coming Soon) */}
-        <Route path="/hrms/reports" element={<ComingSoonModulePage moduleKey="hrms" subSectionTitle="HRMS Analytics & Reports" />} />
+        {/* HRMS Reports & People Analytics */}
+        <Route path="/hrms/reports" element={
+          <PermissionRoute module="hrms" permissions={["view_hrms_reports"]}>
+            <HRReportsDashboard />
+          </PermissionRoute>
+        } />
+        <Route path="/reports/hrms" element={<Navigate to="/hrms/reports" replace />} />
+
+        {/* HRMS Document Vault & Dynamic Letters */}
+        <Route path="/hrms/documents" element={
+          <PermissionRoute module="hrms" permissions={["view_employee_documents", "view_my_documents"]}>
+            <HRDocumentsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/documents" element={<Navigate to="/hrms/documents" replace />} />
+
+        {/* HRMS Onboarding & Offboarding */}
+        <Route path="/hrms/onboarding" element={
+          <PermissionRoute module="hrms" permissions={["view_onboarding", "manage_onboarding"]}>
+            <OnboardingPage />
+          </PermissionRoute>
+        } />
+        <Route path="/onboarding" element={<Navigate to="/hrms/onboarding" replace />} />
+
+        {/* Employee Self-Service (ESS) Portal */}
+        <Route path="/self-service" element={
+          <PermissionRoute module="hrms" permissions={["view_self_service"]}>
+            <SelfServicePage />
+          </PermissionRoute>
+        } />
+        <Route path="/me" element={<Navigate to="/self-service" replace />} />
+        <Route path="/portal" element={<Navigate to="/self-service" replace />} />
+
+        {/* HRMS Employee Grievance & Whistleblower System */}
+        <Route path="/hrms/grievances" element={
+          <PermissionRoute module="hrms" permissions={["view_grievances", "manage_grievances", "file_grievance"]}>
+            <GrievancesPage />
+          </PermissionRoute>
+        } />
+        <Route path="/grievances" element={<Navigate to="/hrms/grievances" replace />} />
+
+        {/* HRMS Benefits & Insurance Management */}
+        <Route path="/hrms/benefits" element={
+          <PermissionRoute module="hrms" permissions={["view_benefit_plans", "view_my_benefits", "manage_benefits"]}>
+            <BenefitsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/benefits" element={<Navigate to="/hrms/benefits" replace />} />
+
+        {/* HRMS Training & Learning Management (LMS) */}
+        <Route path="/hrms/training" element={
+          <PermissionRoute module="hrms" permissions={["view_training_courses", "view_my_training", "manage_training"]}>
+            <TrainingPage />
+          </PermissionRoute>
+        } />
+        <Route path="/training" element={<Navigate to="/hrms/training" replace />} />
+
+        {/* HRMS Expense Management */}
+        <Route path="/hrms/expenses" element={
+          <PermissionRoute module="hrms" permissions={["view_expenses", "view_my_expenses", "submit_expenses"]}>
+            <ExpensesPage />
+          </PermissionRoute>
+        } />
+        <Route path="/expenses" element={<Navigate to="/hrms/expenses" replace />} />
+
+        {/* HRMS Asset & Equipment Tracking */}
+        <Route path="/hrms/assets" element={
+          <PermissionRoute module="hrms" permissions={["view_assets", "view_my_assets"]}>
+            <AssetsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/assets" element={<Navigate to="/hrms/assets" replace />} />
+
+        {/* HRMS Pulse Surveys & Engagement */}
+        <Route path="/hrms/surveys" element={
+          <PermissionRoute module="hrms" permissions={["view_surveys", "participate_survey"]}>
+            <SurveysPage />
+          </PermissionRoute>
+        } />
+        <Route path="/surveys" element={<Navigate to="/hrms/surveys" replace />} />
+
+        {/* Bulk Import / Export Engine */}
+        <Route path="/settings/import-export" element={
+          <PermissionRoute module="hrms" permissions={["view_import_export", "manage_import", "manage_export"]}>
+            <ImportExportPage />
+          </PermissionRoute>
+        } />
+        <Route path="/hrms/import-export" element={<Navigate to="/settings/import-export" replace />} />
+        <Route path="/import-export" element={<Navigate to="/settings/import-export" replace />} />
 
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
         <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />

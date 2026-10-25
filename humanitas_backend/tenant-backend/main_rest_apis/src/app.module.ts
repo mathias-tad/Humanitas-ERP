@@ -32,6 +32,18 @@ import { PmsModule } from './modules/pms/pms.module';
 import { BiometricDevicesModule } from './modules/biometric-devices/biometric-devices.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { HrmsReportsModule } from './modules/hrms-reports/hrms-reports.module';
+import { HrmsDocumentsModule } from './modules/hrms-documents/hrms-documents.module';
+import { HrmsOnboardingModule } from './modules/hrms-onboarding/hrms-onboarding.module';
+import { SelfServiceModule } from './modules/self-service/self-service.module';
+import { HrmsGrievancesModule } from './modules/hrms-grievances/hrms-grievances.module';
+import { HrmsBenefitsModule } from './modules/hrms-benefits/hrms-benefits.module';
+import { HrmsTrainingModule } from './modules/hrms-training/hrms-training.module';
+import { PmsReviewsModule } from './modules/pms-reviews/pms-reviews.module';
+import { HrmsExpensesModule } from './modules/hrms-expenses/hrms-expenses.module';
+import { HrmsAssetsModule } from './modules/hrms-assets/hrms-assets.module';
+import { HrmsSurveysModule } from './modules/hrms-surveys/hrms-surveys.module';
+import { HrmsImportExportModule } from './modules/hrms-import-export/hrms-import-export.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ModuleSubscriptionGuard } from './modules/auth/guards/module-subscription.guard';
 import * as dns from 'dns';
@@ -138,6 +150,18 @@ dns.setDefaultResultOrder('ipv4first');
     PmsModule,
     BiometricDevicesModule,
     RecruitmentModule,
+    HrmsReportsModule,
+    HrmsDocumentsModule,
+    HrmsOnboardingModule,
+    SelfServiceModule,
+    HrmsGrievancesModule,
+    HrmsBenefitsModule,
+    HrmsTrainingModule,
+    PmsReviewsModule,
+    HrmsExpensesModule,
+    HrmsAssetsModule,
+    HrmsSurveysModule,
+    HrmsImportExportModule,
     AiModule,
   ],
   providers: [
