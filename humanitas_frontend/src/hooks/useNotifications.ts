@@ -48,6 +48,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   pms_sprint_completed:            'Sprint Completed',
   pms_milestone_due:               'Project Milestone Due',
   pms_project_status_update:       'Project Status Updated',
+  webhook_delivery_failed:         'Webhook Delivery Failed',
+  api_key_provisioned:             'API Key Provisioned',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -80,6 +82,8 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   pms_sprint_completed:            'When a sprint cycle completes and retro opens',
   pms_milestone_due:               'Upcoming milestone deadlines for active projects',
   pms_project_status_update:       'When project health, timeline, or status changes occur',
+  webhook_delivery_failed:         'Alert when an outgoing webhook event delivery fails after retries',
+  api_key_provisioned:             'Alert when a new developer API key is generated or rotated',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -99,6 +103,7 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',
     'import_export_completed', 'system_health_alert',
+    'webhook_delivery_failed', 'api_key_provisioned',
   ],
 };
 
@@ -137,6 +142,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   import_export_completed: 'view_import_export',
   system_health_alert:     'view_logs',
   approval_escalation_alert: 'manage_approval_rules',
+  webhook_delivery_failed:   'manage_developer_api',
+  api_key_provisioned:       'manage_developer_api',
 };
 
 /**
@@ -152,6 +159,8 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   approval_request_created:  'core',
   approval_request_decided:  'core',
   approval_escalation_alert: 'core',
+  webhook_delivery_failed:   'core',
+  api_key_provisioned:       'core',
 
   // HRMS
   leave_status_updates:      'hrms',

@@ -454,6 +454,7 @@ Humanitas ERP is organized into dedicated subscribable suites. You know every pa
     - **Access Control** (\`/accesscontrol\`): Granular RBAC roles & permissions matrix editor. Requires: \`view_roles\`, \`edit_roles\`.
     - **System Logs** (\`/system-logs\`): Microservice health diagnostics, failed execution queues, audit trails, and retry monitors. Requires: \`view_logs\`.
     - **General Settings** (\`/settings\`): Company profile, timezone, date formats, currencies, and integrations.
+    - **Developer API \u0026 Webhooks** (\`/settings/developer-api\`): Manage API keys and webhook subscriptions for third-party integrations. Tabs: API Keys (generate \`hk_live_...\` tokens, shown once on creation only), Webhooks (subscribe to events: \`employee.created\`, \`leave.approved\`, \`payroll.processed\`, etc.), Delivery Telemetry (retry failed deliveries), Quickstart Guide. Mobile: 2 tabs - API Keys and Webhooks via FAB. Requires: \`view_developer_api\` (view), \`manage_developer_api\` (create/revoke/delete). Signatures: HMAC-SHA256 via \`x-humanitas-signature\` header.
 
 === SUBSCRIPTION PACKAGE GATING RULES ===
 - Tenant access to modules is strictly governed by the tenant's assigned package tier configured in the SaaS Admin Portal.

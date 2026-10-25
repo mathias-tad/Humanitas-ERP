@@ -46,6 +46,7 @@ import { HrmsSurveysModule } from './modules/hrms-surveys/hrms-surveys.module';
 import { HrmsImportExportModule } from './modules/hrms-import-export/hrms-import-export.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { DeveloperApiModule } from './modules/developer-api/developer-api.module';
 import { ModuleSubscriptionGuard } from './modules/auth/guards/module-subscription.guard';
 import * as dns from 'dns';
 
@@ -165,6 +166,7 @@ dns.setDefaultResultOrder('ipv4first');
     HrmsImportExportModule,
     AiModule,
     ApprovalsModule,
+    DeveloperApiModule,
   ],
   providers: [
     // Activate ThrottlerGuard globally — every route gets rate limiting automatically.

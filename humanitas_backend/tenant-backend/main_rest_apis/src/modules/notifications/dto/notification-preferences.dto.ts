@@ -45,6 +45,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   import_export_completed: 'view_import_export',
   system_health_alert:     'view_logs',
   approval_escalation_alert: 'manage_approval_rules',
+  webhook_delivery_failed:   'manage_developer_api',
+  api_key_provisioned:       'manage_developer_api',
 };
 
 /**
@@ -62,6 +64,8 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   approval_request_created:  'core',
   approval_request_decided:  'core',
   approval_escalation_alert: 'core',
+  webhook_delivery_failed:   'core',
+  api_key_provisioned:       'core',
 
   // HRMS
   leave_status_updates:      'hrms',

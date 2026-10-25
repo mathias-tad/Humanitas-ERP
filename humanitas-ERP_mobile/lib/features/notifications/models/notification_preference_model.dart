@@ -69,6 +69,8 @@ const Map<String, String> kNotificationCategoryLabels = {
   'pms_sprint_completed': 'Sprint Completed',
   'pms_milestone_due': 'Project Milestone Due',
   'pms_project_status_update': 'Project Status Updated',
+  'webhook_delivery_failed': 'Webhook Delivery Failed',
+  'api_key_provisioned': 'API Key Provisioned',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -101,6 +103,8 @@ const Map<String, String> kNotificationCategoryGroups = {
   'device_offline_alert': 'Admin & System',
   'import_export_completed': 'Admin & System',
   'system_health_alert': 'Admin & System',
+  'webhook_delivery_failed': 'Admin & System',
+  'api_key_provisioned': 'Admin & System',
 };
 
 const Map<String, String?> kNotificationCategoryPermissionMap = {
@@ -138,6 +142,8 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'import_export_completed': 'view_import_export',
   'system_health_alert': 'view_logs',
   'approval_escalation_alert': 'manage_approval_rules',
+  'webhook_delivery_failed': 'manage_developer_api',
+  'api_key_provisioned': 'manage_developer_api',
 };
 
 /**
@@ -154,6 +160,8 @@ const Map<String, String> kNotificationCategoryModuleMap = {
   'approval_request_created': 'core',
   'approval_request_decided': 'core',
   'approval_escalation_alert': 'core',
+  'webhook_delivery_failed': 'core',
+  'api_key_provisioned': 'core',
 
   // HRMS
   'leave_status_updates': 'hrms',

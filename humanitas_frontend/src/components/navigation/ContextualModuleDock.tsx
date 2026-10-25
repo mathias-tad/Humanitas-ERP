@@ -45,6 +45,7 @@ import {
   UserCheck,
   Laptop,
   Smile,
+  Code2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -101,6 +102,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "Pulse Surveys", url: "/hrms/surveys", icon: Smile, permissions: ["view_surveys", "participate_survey"] },
         { title: "Import / Export", url: "/settings/import-export", icon: FileSpreadsheet, permissions: ["view_import_export", "manage_import", "manage_export"] },
         { title: "Approval Rules", url: "/settings/approvals", icon: GitPullRequest, permissions: ["manage_approval_rules"] },
+        { title: "Developer API", url: "/settings/developer-api", icon: Code2, permissions: ["view_developer_api", "manage_developer_api"] },
         { title: "HR Settings", url: "/settings/general", icon: Settings },
       ],
     },
@@ -277,6 +279,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "Audit Trail", url: "/audit-logs", icon: Shield },
         { title: "Access Control", url: "/accesscontrol", icon: Key },
         { title: "Approval Rules", url: "/settings/approvals", icon: GitPullRequest, permissions: ["manage_approval_rules"] },
+        { title: "Developer API & Webhooks", url: "/settings/developer-api", icon: Code2, permissions: ["view_developer_api", "manage_developer_api"] },
         { title: "Appearance Settings", url: "/settings/appearance", icon: Settings },
       ],
     },

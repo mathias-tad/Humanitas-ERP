@@ -218,6 +218,9 @@ export class RolesService {
       'view_approval_rules',
       'approve_requests',
       'view_approval_requests',
+      // Developer API & Webhooks
+      'view_developer_api',
+      'manage_developer_api',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -254,6 +257,7 @@ export class RolesService {
       'ai_full',
       'manage_notification_preferences',
       'manage_approval_rules',
+      'manage_developer_api',
     ];
 
     // Permissions allowed for Employee role
@@ -544,6 +548,9 @@ export class RolesService {
       'view_approval_rules',
       'approve_requests',
       'view_approval_requests',
+      // Developer API & Webhooks
+      'view_developer_api',
+      'manage_developer_api',
     ];
 
     const managerPermissions = [
@@ -615,6 +622,7 @@ export class RolesService {
       'view_approval_rules',
       'approve_requests',
       'view_approval_requests',
+      'view_developer_api',
     ];
 
     const employeePermissions = [

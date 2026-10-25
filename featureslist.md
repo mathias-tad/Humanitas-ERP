@@ -6,7 +6,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## ðŸ“Š Overall Progress
 
-| **TOTAL** | **746** | **361** | **385** | **48%** |
+| **TOTAL** | **746** | **377** | **369** | **51%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -19,7 +19,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | HRMS & Recruitment | 45 | 44 | 1 | 98% |
 | Project Management (PMS) | 28 | 24 | 4 | 86% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
-| Webhooks & Developer API | 16 | 0 | 16 | 0% |
+| Webhooks & Developer API | 16 | 16 | 0 | 100% |
 | Enterprise UI/UX | 23 | 18 | 5 | 78% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
 | AI Intelligence Module | 46 | 19 | 27 | 41% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 33 | 18 | 15 | 55% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **746** | **361** | **385** | **48%** |
+| **TOTAL** | **746** | **377** | **369** | **51%** |
 
 ---
 
@@ -483,22 +483,22 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## 10. ðŸ”Œ Webhooks & Developer API Portal (`/settings/developer-api`)
 
-- [ ] **Tenant API Key Management**:
-  - [ ] Generation of scoped, revocable REST API keys for external ERP integrations.
-  - [ ] Granular permission assignment per API key (e.g. read-only products, create sales orders).
-  - [ ] Rate limiting and request throttling per API token.
-  - [ ] API key activity log (last used, request count).
-- [ ] **Outgoing Event Webhooks**:
-  - [ ] Real-time HTTP POST event dispatch to external URLs upon ERP triggers:
-    - [ ] `invoice.created`, `invoice.paid`, `invoice.overdue`
-    - [ ] `inventory.low_stock`, `inventory.stock_received`
-    - [ ] `order.confirmed`, `order.dispatched`, `order.delivered`
-    - [ ] `employee.hired`, `employee.terminated`
-    - [ ] `payroll.run_completed`
-    - [ ] `leave.approved`, `leave.rejected`
-  - [ ] HMAC SHA-256 signature verification for secure webhook delivery.
-  - [ ] Automated retry queue with exponential backoff for failed webhook deliveries.
-  - [ ] Interactive Webhook delivery log viewer (request payload, HTTP status, response body).
+- [x] **Tenant API Key Management**:
+  - [x] Generation of scoped, revocable REST API keys for external ERP integrations.
+  - [x] Granular permission assignment per API key (e.g. read-only products, create sales orders).
+  - [x] Rate limiting and request throttling per API token.
+  - [x] API key activity log (last used, request count).
+- [x] **Outgoing Event Webhooks**:
+  - [x] Real-time HTTP POST event dispatch to external URLs upon ERP triggers:
+    - [x] `invoice.created`, `invoice.paid`, `invoice.overdue`
+    - [x] `inventory.low_stock`, `inventory.stock_received`
+    - [x] `order.confirmed`, `order.dispatched`, `order.delivered`
+    - [x] `employee.hired`, `employee.terminated`
+    - [x] `payroll.run_completed`
+    - [x] `leave.approved`, `leave.rejected`
+  - [x] HMAC SHA-256 signature verification for secure webhook delivery.
+  - [x] Automated retry queue with exponential backoff for failed webhook deliveries.
+  - [x] Interactive Webhook delivery log viewer (request payload, HTTP status, response body).
 
 ---
 

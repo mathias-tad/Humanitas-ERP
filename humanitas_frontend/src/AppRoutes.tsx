@@ -65,6 +65,7 @@ import ImportExportPage from "./pages/settings/ImportExportPage";
 import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
 import ApprovalsPage from "./pages/approvals/ApprovalsPage";
 import ApprovalSettingsPage from "./pages/settings/ApprovalSettingsPage";
+import DeveloperApiPage from "./pages/settings/DeveloperApiPage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -521,6 +522,14 @@ function AppRoutes() {
             <ApprovalSettingsPage />
           </PermissionRoute>
         } />
+
+        {/* Webhooks & Developer API Portal */}
+        <Route path="/settings/developer-api" element={
+          <PermissionRoute permissions={["view_developer_api", "manage_developer_api"]}>
+            <DeveloperApiPage />
+          </PermissionRoute>
+        } />
+        <Route path="/developer-api" element={<Navigate to="/settings/developer-api" replace />} />
 
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
         <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />
