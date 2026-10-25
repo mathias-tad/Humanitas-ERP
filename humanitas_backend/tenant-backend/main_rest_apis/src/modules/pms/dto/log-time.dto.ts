@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsDateString, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsDateString, Min, IsBoolean } from 'class-validator';
 
 export class LogTimeDto {
     @IsUUID()
@@ -21,4 +21,12 @@ export class LogTimeDto {
     @IsString()
     @IsOptional()
     description?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    is_billable?: boolean;
+
+    @IsNumber()
+    @IsOptional()
+    hourly_rate?: number;
 }

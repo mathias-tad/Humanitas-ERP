@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, IsDateString, IsDecimal } from 'class-validator';
-import { ProjectStatus, ProjectPriority } from '../entities/project.entity';
+import { ProjectStatus, ProjectPriority, ProjectVisibility } from '../entities/project.entity';
 
 export class CreateProjectDto {
     @IsString()
@@ -17,6 +17,10 @@ export class CreateProjectDto {
     @IsEnum(ProjectPriority)
     @IsOptional()
     priority?: ProjectPriority;
+
+    @IsEnum(ProjectVisibility)
+    @IsOptional()
+    visibility?: ProjectVisibility;
 
     @IsDateString()
     @IsOptional()

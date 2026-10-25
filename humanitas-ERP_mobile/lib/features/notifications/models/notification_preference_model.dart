@@ -2,11 +2,13 @@ class NotificationPreferenceModel {
   final String category;
   final String channel;
   final String? requiredPermission;
+  final String? module;
 
   const NotificationPreferenceModel({
     required this.category,
     required this.channel,
     this.requiredPermission,
+    this.module,
   });
 
   factory NotificationPreferenceModel.fromJson(Map<String, dynamic> json) {
@@ -14,6 +16,7 @@ class NotificationPreferenceModel {
       category: json['category']?.toString() ?? '',
       channel: json['channel']?.toString() ?? 'both',
       requiredPermission: json['required_permission']?.toString(),
+      module: json['module']?.toString(),
     );
   }
 
@@ -22,6 +25,7 @@ class NotificationPreferenceModel {
       category: category,
       channel: channel ?? this.channel,
       requiredPermission: requiredPermission,
+      module: module,
     );
   }
 
@@ -30,6 +34,7 @@ class NotificationPreferenceModel {
       'category': category,
       'channel': channel,
       if (requiredPermission != null) 'required_permission': requiredPermission,
+      if (module != null) 'module': module,
     };
   }
 }
@@ -59,6 +64,11 @@ const Map<String, String> kNotificationCategoryLabels = {
   'approval_request_created': 'New Approval Request',
   'approval_request_decided': 'Approval Decision Update',
   'approval_escalation_alert': 'Approval Escalation Alert',
+  'pms_task_assigned': 'Task Assigned to You',
+  'pms_sprint_started': 'Sprint Started',
+  'pms_sprint_completed': 'Sprint Completed',
+  'pms_milestone_due': 'Project Milestone Due',
+  'pms_project_status_update': 'Project Status Updated',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -71,6 +81,7 @@ const Map<String, String> kNotificationCategoryGroups = {
   'asset_assigned': 'Personal & Self-Service',
   'training_enrolled': 'Personal & Self-Service',
   'profile_update': 'Personal & Self-Service',
+  'pms_task_assigned': 'Personal & Self-Service',
   'leave_approval_requests': 'Approvals & Management',
   'expense_approval_requests': 'Approvals & Management',
   'grievance_filed': 'Approvals & Management',
@@ -82,6 +93,10 @@ const Map<String, String> kNotificationCategoryGroups = {
   'approval_request_created': 'Approvals & Management',
   'approval_request_decided': 'Approvals & Management',
   'approval_escalation_alert': 'Approvals & Management',
+  'pms_sprint_started': 'Approvals & Management',
+  'pms_sprint_completed': 'Approvals & Management',
+  'pms_milestone_due': 'Approvals & Management',
+  'pms_project_status_update': 'Approvals & Management',
   'payroll_run_completed': 'Admin & System',
   'device_offline_alert': 'Admin & System',
   'import_export_completed': 'Admin & System',
@@ -100,6 +115,7 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'training_enrolled': null,
   'profile_update': null,
   'approval_request_decided': null,
+  'pms_task_assigned': null,
 
   // Manager/HR level
   'leave_approval_requests': 'approve_leave',
@@ -111,6 +127,10 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'recruitment_offer_generated': 'manage_recruitment',
   'recruitment_candidate_hired': 'manage_recruitment',
   'approval_request_created': 'approve_requests',
+  'pms_sprint_started': 'view_sprints',
+  'pms_sprint_completed': 'view_sprints',
+  'pms_milestone_due': 'view_projects',
+  'pms_project_status_update': 'view_projects',
 
   // Admin level
   'payroll_run_completed': 'run_payroll',
@@ -118,4 +138,46 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'import_export_completed': 'view_import_export',
   'system_health_alert': 'view_logs',
   'approval_escalation_alert': 'manage_approval_rules',
+};
+
+/**
+ * Maps notification category to its parent tenant module.
+ * If the tenant has not subscribed to or has disabled this module,
+ * the category will be excluded from preferences.
+ */
+const Map<String, String> kNotificationCategoryModuleMap = {
+  // Core / Universal
+  'announcement': 'core',
+  'profile_update': 'core',
+  'system_health_alert': 'core',
+  'import_export_completed': 'core',
+  'approval_request_created': 'core',
+  'approval_request_decided': 'core',
+  'approval_escalation_alert': 'core',
+
+  // HRMS
+  'leave_status_updates': 'hrms',
+  'leave_approval_requests': 'hrms',
+  'payslip_ready': 'hrms',
+  'payroll_run_completed': 'hrms',
+  'shift_assigned': 'hrms',
+  'device_offline_alert': 'hrms',
+  'survey_invite': 'hrms',
+  'onboarding_task': 'hrms',
+  'onboarding_review': 'hrms',
+  'grievance_filed': 'hrms',
+  'asset_assigned': 'hrms',
+  'training_enrolled': 'hrms',
+  'expense_approval_requests': 'hrms',
+  'recruitment_interview_scheduled': 'hrms',
+  'recruitment_offer_generated': 'hrms',
+  'recruitment_candidate_hired': 'hrms',
+
+  // PMS
+  'task_assignment_alerts': 'pms',
+  'pms_task_assigned': 'pms',
+  'pms_sprint_started': 'pms',
+  'pms_sprint_completed': 'pms',
+  'pms_milestone_due': 'pms',
+  'pms_project_status_update': 'pms',
 };

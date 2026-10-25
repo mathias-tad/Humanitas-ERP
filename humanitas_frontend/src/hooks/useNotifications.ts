@@ -43,6 +43,11 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   approval_request_created:        'New Approval Request',
   approval_request_decided:        'Approval Decision Update',
   approval_escalation_alert:       'Approval Escalation Alert',
+  pms_task_assigned:               'Task Assigned to You',
+  pms_sprint_started:              'Sprint Started',
+  pms_sprint_completed:            'Sprint Completed',
+  pms_milestone_due:               'Project Milestone Due',
+  pms_project_status_update:       'Project Status Updated',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -70,6 +75,11 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   approval_request_created:        'Notification when an item requires your review and approval',
   approval_request_decided:        'Notification when your submitted request has been approved or rejected',
   approval_escalation_alert:       'Alert when an approval request exceeds its review SLA and escalates',
+  pms_task_assigned:               'When a project task or story is assigned to you',
+  pms_sprint_started:              'When an agile sprint is kicked off in your project',
+  pms_sprint_completed:            'When a sprint cycle completes and retro opens',
+  pms_milestone_due:               'Upcoming milestone deadlines for active projects',
+  pms_project_status_update:       'When project health, timeline, or status changes occur',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -77,12 +87,14 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'leave_status_updates', 'payslip_ready', 'shift_assigned',
     'announcement', 'survey_invite', 'onboarding_task',
     'asset_assigned', 'training_enrolled', 'profile_update',
+    'pms_task_assigned',
   ],
   'Approvals & Management': [
     'leave_approval_requests', 'expense_approval_requests',
     'grievance_filed', 'onboarding_review', 'task_assignment_alerts',
     'recruitment_interview_scheduled', 'recruitment_offer_generated', 'recruitment_candidate_hired',
     'approval_request_created', 'approval_request_decided', 'approval_escalation_alert',
+    'pms_sprint_started', 'pms_sprint_completed', 'pms_milestone_due', 'pms_project_status_update',
   ],
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',
@@ -102,6 +114,7 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   training_enrolled:       null,
   profile_update:          null,
   approval_request_decided: null,
+  pms_task_assigned:       null,
 
   // Manager/HR level
   leave_approval_requests:   'approve_leave',
@@ -113,6 +126,10 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   recruitment_offer_generated:     'manage_recruitment',
   recruitment_candidate_hired:     'manage_recruitment',
   approval_request_created:        'approve_requests',
+  pms_sprint_started:              'view_sprints',
+  pms_sprint_completed:            'view_sprints',
+  pms_milestone_due:               'view_projects',
+  pms_project_status_update:       'view_projects',
 
   // Admin level
   payroll_run_completed:   'run_payroll',
@@ -120,6 +137,47 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   import_export_completed: 'view_import_export',
   system_health_alert:     'view_logs',
   approval_escalation_alert: 'manage_approval_rules',
+};
+
+/**
+ * Maps notification category to its owning module.
+ * If the tenant does not subscribe to the module, category is hidden and alerts blocked.
+ */
+export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
+  // Core / Universal
+  announcement:              'core',
+  profile_update:            'core',
+  system_health_alert:       'core',
+  import_export_completed:   'core',
+  approval_request_created:  'core',
+  approval_request_decided:  'core',
+  approval_escalation_alert: 'core',
+
+  // HRMS
+  leave_status_updates:      'hrms',
+  leave_approval_requests:   'hrms',
+  payslip_ready:             'hrms',
+  payroll_run_completed:     'hrms',
+  shift_assigned:            'hrms',
+  device_offline_alert:      'hrms',
+  survey_invite:             'hrms',
+  onboarding_task:           'hrms',
+  onboarding_review:         'hrms',
+  grievance_filed:           'hrms',
+  asset_assigned:            'hrms',
+  training_enrolled:         'hrms',
+  expense_approval_requests: 'hrms',
+  recruitment_interview_scheduled: 'hrms',
+  recruitment_offer_generated:     'hrms',
+  recruitment_candidate_hired:     'hrms',
+
+  // PMS
+  task_assignment_alerts:    'pms',
+  pms_task_assigned:         'pms',
+  pms_sprint_started:        'pms',
+  pms_sprint_completed:      'pms',
+  pms_milestone_due:         'pms',
+  pms_project_status_update: 'pms',
 };
 
 async function fetcher<T>(url: string): Promise<T> {

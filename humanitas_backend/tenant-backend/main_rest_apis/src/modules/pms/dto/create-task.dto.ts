@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsDecimal, IsUUID, IsDateString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsDecimal, IsUUID, IsDateString, IsInt, IsBoolean } from 'class-validator';
 import { TaskStatus, TaskPriority } from '../entities/task.entity';
 
 export class CreateTaskDto {
@@ -49,6 +49,18 @@ export class CreateTaskDto {
     @IsDecimal()
     @IsOptional()
     estimated_cost?: number;
+
+    @IsInt()
+    @IsOptional()
+    story_points?: number;
+
+    @IsInt()
+    @IsOptional()
+    backlog_order?: number;
+
+    @IsBoolean()
+    @IsOptional()
+    is_milestone?: boolean;
 }
 
 import { PartialType } from '@nestjs/mapped-types';

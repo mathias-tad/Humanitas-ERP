@@ -28,6 +28,11 @@ export enum ProjectPriority {
     CRITICAL = 'Critical',
 }
 
+export enum ProjectVisibility {
+    PUBLIC = 'public',
+    PRIVATE = 'private',
+}
+
 @Entity('pms_projects')
 export class Project {
     @PrimaryGeneratedColumn('uuid')
@@ -41,6 +46,13 @@ export class Project {
 
     @Column({ type: 'text', nullable: true })
     description: string;
+
+    @Column({
+        type: 'varchar',
+        length: 20,
+        default: ProjectVisibility.PUBLIC,
+    })
+    visibility: ProjectVisibility;
 
     @Column({
         type: 'enum',

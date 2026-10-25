@@ -18,6 +18,9 @@ import PMSAllTasks from "./pages/pms/AllTasks";
 import PMSDashboard from "./pages/pms/Dashboard";
 import PMSMyTasks from "./pages/pms/MyTasks";
 import PMSProjects from "./pages/pms/Projects";
+import AgileBacklogPage from "./pages/pms/AgileBacklogPage";
+import ProjectGanttPage from "./pages/pms/ProjectGanttPage";
+import ProjectCalendarPage from "./pages/pms/ProjectCalendarPage";
 import PMSTeam from "./pages/pms/Team";
 import PMSTeams from "./pages/pms/Teams";
 import PMSTeamDashboard from "./pages/pms/TeamDashboard";
@@ -325,6 +328,21 @@ function AppRoutes() {
         <Route path="/pms/projects" element={
           <PermissionRoute moduleKey="pms" permissions={["view_projects", "view_pms"]}>
             <PMSProjects />
+          </PermissionRoute>
+        } />
+        <Route path="/pms/backlog" element={
+          <PermissionRoute moduleKey="pms" permissions={["view_sprints", "view_pms"]}>
+            <AgileBacklogPage />
+          </PermissionRoute>
+        } />
+        <Route path="/pms/gantt" element={
+          <PermissionRoute moduleKey="pms" permissions={["view_tasks", "view_pms"]}>
+            <ProjectGanttPage />
+          </PermissionRoute>
+        } />
+        <Route path="/pms/calendar" element={
+          <PermissionRoute moduleKey="pms" permissions={["view_tasks", "view_pms"]}>
+            <ProjectCalendarPage />
           </PermissionRoute>
         } />
         <Route path="/pms/team" element={

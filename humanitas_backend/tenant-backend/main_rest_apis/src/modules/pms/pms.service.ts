@@ -57,15 +57,27 @@ export class PmsService {
         }
     }
 
+    private async ensurePmsSchema(connection: any) {
+        try {
+            await connection.query(`
+                ALTER TABLE pms_projects ADD COLUMN IF NOT EXISTS visibility VARCHAR(20) DEFAULT 'public';
+                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS story_points INT DEFAULT 0;
+                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS backlog_order INT DEFAULT 0;
+                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS is_milestone BOOLEAN DEFAULT FALSE;
+                ALTER TABLE pms_task_time_logs ADD COLUMN IF NOT EXISTS is_billable BOOLEAN DEFAULT TRUE;
+                ALTER TABLE pms_task_time_logs ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(10, 2) DEFAULT 0;
+            `);
+        } catch (e) {
+            // Idempotent column check
+        }
+    }
+
     private async getTenantRepo<T extends ObjectLiteral>(tenantId: string, entity: EntityTarget<T>): Promise<Repository<T>> {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
-        // Ensure PMS tables exist in the tenant database
+        // Ensure PMS tables and columns exist in the tenant database
         if (!this.syncedTenants.has(tenantId)) {
-            // Only strictly necessary if tables are not created by global sync
-            // Since DatabaseService has synchronize: false, we run it here lazily
-            // Syncing is now handled via manual migration (POST /system/logs/migrate)
-            // to avoid duplicates and race conditions.
+            await this.ensurePmsSchema(connection);
             this.syncedTenants.add(tenantId);
         }
 
@@ -83,22 +95,47 @@ export class PmsService {
         return repo.save(project);
     }
 
-    async findAllProjects(tenantId: string) {
+    async findAllProjects(tenantId: string, userId?: string, userRole?: string) {
         const repo = await this.getTenantRepo<Project>(tenantId, Project);
-        return repo.find({
+        const projects = await repo.find({
             where: { tenant_id: tenantId },
             order: { created_at: 'DESC' },
             relations: ['manager', 'creator', 'members.user', 'sprints', 'team'],
         });
+
+        // Filter private projects for non-admin users
+        if (userId && userRole !== 'owner' && userRole !== 'admin') {
+            return projects.filter(p => {
+                if (!p.visibility || p.visibility === 'public') return true;
+                if (p.created_by === userId || p.manager_id === userId) return true;
+                if (p.members?.some(m => m.user_id === userId)) return true;
+                return false;
+            });
+        }
+
+        return projects;
     }
 
-    async findOneProject(tenantId: string, id: string) {
+    async findOneProject(tenantId: string, id: string, userId?: string, userRole?: string) {
         const repo = await this.getTenantRepo<Project>(tenantId, Project);
         const project = await repo.findOne({
             where: { id, tenant_id: tenantId },
             relations: ['manager', 'creator', 'members.user', 'sprints', 'team'],
         });
         if (!project) throw new NotFoundException('Project not found');
+
+        // Check privacy access for non-admin users
+        if (userId && userRole !== 'owner' && userRole !== 'admin') {
+            if (project.visibility === 'private') {
+                const isCreator = project.created_by === userId;
+                const isManager = project.manager_id === userId;
+                const isMember = project.members?.some(m => m.user_id === userId);
+                if (!isCreator && !isManager && !isMember) {
+                    throw new ForbiddenException('You do not have access to this private project');
+                }
+            }
+        }
+
         return project;
     }
 
@@ -883,5 +920,388 @@ export class PmsService {
 
         metric.is_active = false;
         return repo.save(metric);
+    }
+
+    // ============ AGILE SPRINTS & BURNDOWN ============
+    async getSprintBurndown(tenantId: string, sprintId: string) {
+        const sprintRepo = await this.getTenantRepo<Sprint>(tenantId, Sprint);
+        const taskRepo = await this.getTenantRepo<Task>(tenantId, Task);
+
+        const sprint = await sprintRepo.findOne({
+            where: { id: sprintId, tenant_id: tenantId },
+        });
+        if (!sprint) throw new NotFoundException('Sprint not found');
+
+        const tasks = await taskRepo.find({
+            where: { sprint_id: sprintId, tenant_id: tenantId },
+        });
+
+        const totalStoryPoints = tasks.reduce((sum, t) => sum + (Number(t.story_points) || 0), 0);
+        const completedTasks = tasks.filter(t => t.status === TaskStatus.DONE);
+        const completedPoints = completedTasks.reduce((sum, t) => sum + (Number(t.story_points) || 0), 0);
+        const remainingPoints = totalStoryPoints - completedPoints;
+
+        const startDate = sprint.start_date ? new Date(sprint.start_date) : new Date();
+        const endDate = sprint.end_date ? new Date(sprint.end_date) : new Date(startDate.getTime() + 14 * 86400000);
+
+        const dates: string[] = [];
+        const idealBurndown: number[] = [];
+        const actualBurndown: number[] = [];
+
+        const totalDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const dailyBurnRate = totalStoryPoints / totalDays;
+        const now = new Date();
+
+        for (let i = 0; i <= totalDays; i++) {
+            const currentDate = new Date(startDate.getTime() + i * 86400000);
+            const dateStr = currentDate.toISOString().split('T')[0];
+            dates.push(dateStr);
+
+            const ideal = Math.max(0, Math.round((totalStoryPoints - (i * dailyBurnRate)) * 10) / 10);
+            idealBurndown.push(ideal);
+
+            if (currentDate <= now || i === 0) {
+                const donePointsByDate = completedTasks
+                    .filter(t => t.completed_at && new Date(t.completed_at) <= new Date(`${dateStr}T23:59:59`))
+                    .reduce((sum, t) => sum + (Number(t.story_points) || 0), 0);
+                actualBurndown.push(Math.max(0, totalStoryPoints - donePointsByDate));
+            }
+        }
+
+        return {
+            sprint: {
+                id: sprint.id,
+                name: sprint.name,
+                start_date: sprint.start_date,
+                end_date: sprint.end_date,
+                status: sprint.status,
+            },
+            total_story_points: totalStoryPoints,
+            completed_points: completedPoints,
+            remaining_points: remainingPoints,
+            dates,
+            ideal_burndown: idealBurndown,
+            actual_burndown: actualBurndown,
+        };
+    }
+
+    async getSprintVelocity(tenantId: string, projectId: string) {
+        const sprintRepo = await this.getTenantRepo<Sprint>(tenantId, Sprint);
+        const taskRepo = await this.getTenantRepo<Task>(tenantId, Task);
+
+        const sprints = await sprintRepo.find({
+            where: { project_id: projectId, tenant_id: tenantId },
+            order: { start_date: 'ASC' },
+        });
+
+        const results = [];
+        for (const sprint of sprints) {
+            const tasks = await taskRepo.find({
+                where: { sprint_id: sprint.id, tenant_id: tenantId },
+            });
+            const committedPoints = tasks.reduce((sum, t) => sum + (Number(t.story_points) || 0), 0);
+            const completedPoints = tasks
+                .filter(t => t.status === TaskStatus.DONE)
+                .reduce((sum, t) => sum + (Number(t.story_points) || 0), 0);
+            const velocityPct = committedPoints > 0 ? Math.round((completedPoints / committedPoints) * 100) : 0;
+
+            results.push({
+                sprint_id: sprint.id,
+                sprint_name: sprint.name,
+                start_date: sprint.start_date,
+                end_date: sprint.end_date,
+                status: sprint.status,
+                committed_points: committedPoints,
+                completed_points: completedPoints,
+                velocity_percentage: velocityPct,
+            });
+        }
+
+        const avgVelocity = results.length > 0
+            ? Math.round(results.reduce((sum, s) => sum + s.completed_points, 0) / results.length)
+            : 0;
+
+        return {
+            project_id: projectId,
+            sprints: results,
+            average_velocity: avgVelocity,
+        };
+    }
+
+    // ============ BACKLOG MANAGEMENT ============
+    async getProjectBacklog(tenantId: string, projectId: string) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        await this.ensurePmsSchema(connection);
+
+        const tasks = await connection.query(`
+            SELECT 
+                t.*,
+                u.first_name AS assignee_first_name,
+                u.last_name AS assignee_last_name,
+                u.email AS assignee_email
+            FROM pms_tasks t
+            LEFT JOIN users u ON u.id = t.assignee_id
+            WHERE t.project_id = $1 AND t.tenant_id = $2 AND t.sprint_id IS NULL
+            ORDER BY COALESCE(t.backlog_order, 0) ASC, t.created_at ASC
+        `, [projectId, tenantId]);
+
+        return tasks.map(t => ({
+            ...t,
+            assignee: t.assignee_id ? {
+                id: t.assignee_id,
+                first_name: t.assignee_first_name,
+                last_name: t.assignee_last_name,
+                email: t.assignee_email,
+            } : null,
+        }));
+    }
+
+    async updateBacklogOrder(tenantId: string, taskIds: string[]) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        await this.ensurePmsSchema(connection);
+
+        for (let i = 0; i < taskIds.length; i++) {
+            await connection.query(
+                `UPDATE pms_tasks SET backlog_order = $1 WHERE id = $2 AND tenant_id = $3`,
+                [i, taskIds[i], tenantId],
+            );
+        }
+        return { success: true, count: taskIds.length };
+    }
+
+    async assignTaskToSprint(tenantId: string, taskId: string, sprintId: string | null) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        await this.ensurePmsSchema(connection);
+
+        await connection.query(
+            `UPDATE pms_tasks SET sprint_id = $1 WHERE id = $2 AND tenant_id = $3`,
+            [sprintId || null, taskId, tenantId],
+        );
+        return this.findOneTask(tenantId, taskId);
+    }
+
+    // ============ GANTT & MILESTONES ============
+    async getProjectGanttData(tenantId: string, projectId: string) {
+        const project = await this.findOneProject(tenantId, projectId);
+        const taskRepo = await this.getTenantRepo<Task>(tenantId, Task);
+        const sprintRepo = await this.getTenantRepo<Sprint>(tenantId, Sprint);
+
+        const tasks = await taskRepo.find({
+            where: { project_id: projectId, tenant_id: tenantId },
+            relations: ['assignee'],
+            order: { start_date: 'ASC', due_date: 'ASC' },
+        });
+
+        const sprints = await sprintRepo.find({
+            where: { project_id: projectId, tenant_id: tenantId },
+            order: { start_date: 'ASC' },
+        });
+
+        const ganttTasks = tasks.map(t => {
+            const isCompleted = t.status === TaskStatus.DONE;
+            const isInProgress = t.status === TaskStatus.IN_PROGRESS;
+            const progress = isCompleted ? 100 : (isInProgress ? 50 : 0);
+
+            return {
+                id: t.id,
+                title: t.title,
+                start_date: t.start_date || project.start_date || new Date().toISOString().split('T')[0],
+                due_date: t.due_date || project.target_end_date || new Date().toISOString().split('T')[0],
+                status: t.status,
+                priority: t.priority,
+                progress,
+                is_milestone: Boolean(t.is_milestone),
+                story_points: t.story_points || 0,
+                parent_task_id: t.parent_task_id,
+                sprint_id: t.sprint_id,
+                assignee: t.assignee ? {
+                    id: t.assignee.id,
+                    name: `${t.assignee.first_name || ''} ${t.assignee.last_name || ''}`.trim() || t.assignee.email,
+                } : null,
+            };
+        });
+
+        const milestones = ganttTasks.filter(t => t.is_milestone);
+
+        return {
+            project: {
+                id: project.id,
+                name: project.name,
+                start_date: project.start_date,
+                target_end_date: project.target_end_date,
+                status: project.status,
+            },
+            sprints: sprints.map(s => ({
+                id: s.id,
+                name: s.name,
+                start_date: s.start_date,
+                end_date: s.end_date,
+                status: s.status,
+            })),
+            tasks: ganttTasks,
+            milestones,
+        };
+    }
+
+    // ============ PROJECT CALENDAR ============
+    async getProjectCalendarEvents(tenantId: string, projectId: string) {
+        const taskRepo = await this.getTenantRepo<Task>(tenantId, Task);
+        const sprintRepo = await this.getTenantRepo<Sprint>(tenantId, Sprint);
+
+        const tasks = await taskRepo.find({
+            where: { project_id: projectId, tenant_id: tenantId },
+            relations: ['assignee'],
+        });
+
+        const sprints = await sprintRepo.find({
+            where: { project_id: projectId, tenant_id: tenantId },
+        });
+
+        const events = [];
+
+        for (const sprint of sprints) {
+            if (sprint.start_date) {
+                events.push({
+                    id: `sprint-${sprint.id}`,
+                    title: `Sprint: ${sprint.name}`,
+                    start: sprint.start_date,
+                    end: sprint.end_date || sprint.start_date,
+                    type: 'sprint',
+                    status: sprint.status,
+                    entity_id: sprint.id,
+                });
+            }
+        }
+
+        for (const task of tasks) {
+            const startDate = task.start_date || task.due_date;
+            const endDate = task.due_date || task.start_date;
+            if (startDate) {
+                events.push({
+                    id: `task-${task.id}`,
+                    title: task.title,
+                    start: startDate,
+                    end: endDate,
+                    type: task.is_milestone ? 'milestone' : 'task',
+                    status: task.status,
+                    priority: task.priority,
+                    is_milestone: Boolean(task.is_milestone),
+                    entity_id: task.id,
+                    assignee_name: task.assignee
+                        ? `${task.assignee.first_name || ''} ${task.assignee.last_name || ''}`.trim() || task.assignee.email
+                        : null,
+                });
+            }
+        }
+
+        return events;
+    }
+
+    // ============ TIME TRACKING & BILLABLE SEGREGATION ============
+    async getTimeTrackingSummary(tenantId: string, projectId: string) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        await this.ensurePmsSchema(connection);
+
+        const logs = await connection.query(`
+            SELECT 
+                l.id,
+                l.task_id,
+                l.user_id,
+                l.duration_minutes,
+                COALESCE(l.is_billable, true) AS is_billable,
+                COALESCE(l.hourly_rate, 0) AS hourly_rate,
+                l.started_at,
+                t.title AS task_title,
+                u.first_name,
+                u.last_name,
+                u.email
+            FROM pms_task_time_logs l
+            INNER JOIN pms_tasks t ON t.id = l.task_id
+            LEFT JOIN users u ON u.id = l.user_id
+            WHERE t.project_id = $1 AND t.tenant_id = $2
+            ORDER BY l.started_at DESC
+        `, [projectId, tenantId]);
+
+        let totalMinutes = 0;
+        let billableMinutes = 0;
+        let nonBillableMinutes = 0;
+        let totalBillableAmount = 0;
+
+        const byMemberMap = new Map<string, any>();
+        const byTaskMap = new Map<string, any>();
+
+        for (const log of logs) {
+            const mins = Number(log.duration_minutes) || 0;
+            const isBillable = log.is_billable === true || log.is_billable === 'true';
+            const rate = Number(log.hourly_rate) || 0;
+            const hours = mins / 60;
+            const billableAmount = isBillable ? hours * rate : 0;
+
+            totalMinutes += mins;
+            if (isBillable) {
+                billableMinutes += mins;
+                totalBillableAmount += billableAmount;
+            } else {
+                nonBillableMinutes += mins;
+            }
+
+            const memberId = log.user_id || 'unknown';
+            const memberName = [log.first_name, log.last_name].filter(Boolean).join(' ') || log.email || 'Unassigned';
+            if (!byMemberMap.has(memberId)) {
+                byMemberMap.set(memberId, {
+                    user_id: memberId,
+                    user_name: memberName,
+                    total_hours: 0,
+                    billable_hours: 0,
+                    non_billable_hours: 0,
+                    billable_amount: 0,
+                });
+            }
+            const m = byMemberMap.get(memberId);
+            m.total_hours = Math.round((m.total_hours + hours) * 100) / 100;
+            if (isBillable) {
+                m.billable_hours = Math.round((m.billable_hours + hours) * 100) / 100;
+                m.billable_amount = Math.round((m.billable_amount + billableAmount) * 100) / 100;
+            } else {
+                m.non_billable_hours = Math.round((m.non_billable_hours + hours) * 100) / 100;
+            }
+
+            const taskId = log.task_id;
+            const taskTitle = log.task_title || 'Untitled Task';
+            if (!byTaskMap.has(taskId)) {
+                byTaskMap.set(taskId, {
+                    task_id: taskId,
+                    task_title: taskTitle,
+                    total_hours: 0,
+                    billable_hours: 0,
+                    non_billable_hours: 0,
+                    billable_amount: 0,
+                });
+            }
+            const tk = byTaskMap.get(taskId);
+            tk.total_hours = Math.round((tk.total_hours + hours) * 100) / 100;
+            if (isBillable) {
+                tk.billable_hours = Math.round((tk.billable_hours + hours) * 100) / 100;
+                tk.billable_amount = Math.round((tk.billable_amount + billableAmount) * 100) / 100;
+            } else {
+                tk.non_billable_hours = Math.round((tk.non_billable_hours + hours) * 100) / 100;
+            }
+        }
+
+        const totalHours = Math.round((totalMinutes / 60) * 100) / 100;
+        const billableHours = Math.round((billableMinutes / 60) * 100) / 100;
+        const nonBillableHours = Math.round((nonBillableMinutes / 60) * 100) / 100;
+        const billablePercentage = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
+
+        return {
+            project_id: projectId,
+            total_hours: totalHours,
+            billable_hours: billableHours,
+            non_billable_hours: nonBillableHours,
+            billable_percentage: billablePercentage,
+            total_billable_amount: Math.round(totalBillableAmount * 100) / 100,
+            by_member: Array.from(byMemberMap.values()),
+            by_task: Array.from(byTaskMap.values()),
+        };
     }
 }

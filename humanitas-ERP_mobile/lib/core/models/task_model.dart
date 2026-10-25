@@ -14,6 +14,9 @@ class TaskModel {
   final String? assigneeId;
   final String? assigneeName;
   final String? createdAt;
+  final int? storyPoints;
+  final int? backlogOrder;
+  final bool isMilestone;
 
   TaskModel({
     required this.id,
@@ -29,6 +32,9 @@ class TaskModel {
     this.assigneeId,
     this.assigneeName,
     this.createdAt,
+    this.storyPoints,
+    this.backlogOrder,
+    this.isMilestone = false,
   });
 
   String get formattedDueDate {
@@ -60,6 +66,9 @@ class TaskModel {
       assigneeId: json['assignee_id']?.toString() ?? json['assigneeId']?.toString(),
       assigneeName: json['assignee_name']?.toString() ?? json['assignee']?['full_name']?.toString(),
       createdAt: json['created_at']?.toString(),
+      storyPoints: json['story_points'] != null ? int.tryParse(json['story_points'].toString()) : null,
+      backlogOrder: json['backlog_order'] != null ? int.tryParse(json['backlog_order'].toString()) : null,
+      isMilestone: json['is_milestone'] == true || json['is_milestone'] == 1,
     );
   }
 

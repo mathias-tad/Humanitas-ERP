@@ -21,6 +21,8 @@ export interface TaskFormData {
     priority: string;
     dueDate: string;
     estimatedHours?: number;
+    storyPoints?: number;
+    isMilestone?: boolean;
 }
 
 interface Option {
@@ -53,7 +55,6 @@ export function TaskModal({
     readOnly = false,
 }: TaskModalProps) {
     const [formData, setFormData] = useState<TaskFormData>({
-        // ... (data init remains the same)
         title: "",
         description: "",
         projectId: "",
@@ -61,13 +62,18 @@ export function TaskModal({
         status: "Pending",
         priority: "Medium",
         dueDate: "",
-        estimatedHours: 0
+        estimatedHours: 0,
+        storyPoints: 0,
+        isMilestone: false,
     });
 
-    // ... (useEffect remains)
     useEffect(() => {
         if (task) {
-            setFormData(task);
+            setFormData({
+                ...task,
+                storyPoints: task.storyPoints || 0,
+                isMilestone: task.isMilestone || false,
+            });
         } else {
             setFormData({
                 title: "",
@@ -77,7 +83,9 @@ export function TaskModal({
                 status: "To Do",
                 priority: "Medium",
                 dueDate: "",
-                estimatedHours: 0
+                estimatedHours: 0,
+                storyPoints: 0,
+                isMilestone: false,
             });
         }
     }, [task, isOpen]);
@@ -220,6 +228,36 @@ export function TaskModal({
                                         onChange={(e) => setFormData({ ...formData, estimatedHours: parseFloat(e.target.value) })}
                                         disabled={readOnly}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 items-center">
+                                <div className="space-y-2">
+                                    <Label htmlFor="storyPoints">Story Points</Label>
+                                    <Input
+                                        id="storyPoints"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={formData.storyPoints ?? 0}
+                                        onChange={(e) => setFormData({ ...formData, storyPoints: parseInt(e.target.value, 10) || 0 })}
+                                        disabled={readOnly}
+                                        placeholder="e.g. 1, 2, 3, 5, 8, 13"
+                                    />
+                                </div>
+                                <div className="flex items-center space-x-2 pt-6">
+                                    <input
+                                        id="isMilestone"
+                                        type="checkbox"
+                                        checked={Boolean(formData.isMilestone)}
+                                        onChange={(e) => setFormData({ ...formData, isMilestone: e.target.checked })}
+                                        disabled={readOnly}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="isMilestone" className="text-sm font-medium cursor-pointer">
+                                        Mark as Project Milestone
+                                    </Label>
                                 </div>
                             </div>
 

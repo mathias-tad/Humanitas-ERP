@@ -22,13 +22,16 @@ class LogTimeScreen extends ConsumerStatefulWidget {
 class _LogTimeScreenState extends ConsumerState<LogTimeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _hoursController = TextEditingController();
+  final _rateController = TextEditingController();
   final _descriptionController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  bool _isBillable = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
     _hoursController.dispose();
+    _rateController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -51,11 +54,15 @@ class _LogTimeScreenState extends ConsumerState<LogTimeScreen> {
       final hours = double.parse(_hoursController.text.trim());
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
+      final rate = _isBillable ? double.tryParse(_rateController.text.trim()) : null;
+
       await ref.read(pmsRepositoryProvider).logTime(
             taskId: widget.taskId,
             hours: hours,
             description: _descriptionController.text.trim(),
             date: dateStr,
+            isBillable: _isBillable,
+            hourlyRate: rate,
           );
 
       ref.read(pmsTasksProvider.notifier).fetch();
@@ -168,6 +175,43 @@ class _LogTimeScreenState extends ConsumerState<LogTimeScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // ── Billable Segregation ──────────────────────────────────
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Billable Work',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Track hours for client billing & revenue calculation',
+                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
+                ),
+                value: _isBillable,
+                activeColor: AppColors.primary,
+                onChanged: (val) => setState(() => _isBillable = val),
+              ),
+              if (_isBillable) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _rateController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Hourly Billing Rate (\$)',
+                    prefixIcon: Icon(Icons.attach_money_outlined),
+                    hintText: 'e.g. 75.00',
+                  ),
+                  validator: (v) {
+                    if (!_isBillable) return null;
+                    if (v != null && v.trim().isNotEmpty) {
+                      final n = double.tryParse(v.trim());
+                      if (n == null || n < 0) return 'Enter valid rate';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
 
               // ── Description ──────────────────────────────────────────

@@ -129,16 +129,20 @@ const exportToPDF = (title: string, data: any[], columns: string[]) => {
 };
 
 export default function PMSReports() {
-  const { useTasks, useProjects, useUsers, useAllUsersKPIs, useTenantKPIs } = usePMS();
+  const { useTasks, useProjects, useUsers, useAllUsersKPIs, useTenantKPIs, useTimeTrackingSummary } = usePMS();
   const { tenant } = useAuth();
   const [period, setPeriod] = useState<DatePeriod>('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeReportProjectId, setTimeReportProjectId] = useState<string>('');
 
   const { data: allTasks = [], isLoading: loadingTasks, refetch: refetchTasks } = useTasks({});
   const { data: projects = [], isLoading: loadingProjects, refetch: refetchProjects } = useProjects();
   const { isLoading: loadingUsers, refetch: refetchUsers } = useUsers();
   const { data: allUsersKPIs = [], isLoading: loadingKPIs, refetch: refetchKPIs } = useAllUsersKPIs();
   const { data: tenantKPIs, isLoading: loadingTenantKPIs, refetch: refetchTenantKPIs } = useTenantKPIs(tenant?.id || '');
+
+  const activeTimeProjectId = timeReportProjectId || (projects[0]?.id ?? '');
+  const { data: timeSummary, isLoading: loadingTimeSummary } = useTimeTrackingSummary(activeTimeProjectId);
 
   // Filter tasks by date period
   const tasks = useMemo(() => {
@@ -602,6 +606,102 @@ export default function PMSReports() {
               ))}
               {projectPerformance.length === 0 && <div className="p-4 text-center text-gray-500">No active projects.</div>}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Time Tracking & Billable Segregation */}
+        <Card className="shadow-lg">
+          <CardHeader className="border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-indigo-600" />
+                  Time Tracking & Billable Segregation
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Segregation of billable client hours vs non-billable internal overhead
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="px-3 py-1.5 border rounded-lg text-xs font-medium bg-background"
+                  value={activeTimeProjectId}
+                  onChange={(e) => setTimeReportProjectId(e.target.value)}
+                >
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            {loadingTimeSummary ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Aggregating time logs...
+              </div>
+            ) : !timeSummary || timeSummary.total_hours === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm border-2 border-dashed rounded-xl">
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                No time logs recorded for this project yet.
+              </div>
+            ) : (
+              <>
+                {/* KPI Metrics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-xl border bg-muted/20">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">Total Hours</p>
+                    <p className="text-2xl font-bold mt-1">{timeSummary.total_hours} hrs</p>
+                  </div>
+                  <div className="p-4 rounded-xl border bg-green-50/50 border-green-200">
+                    <p className="text-xs font-medium text-green-700 uppercase">Billable Hours</p>
+                    <p className="text-2xl font-bold text-green-700 mt-1">{timeSummary.billable_hours} hrs</p>
+                  </div>
+                  <div className="p-4 rounded-xl border bg-amber-50/50 border-amber-200">
+                    <p className="text-xs font-medium text-amber-700 uppercase">Non-Billable</p>
+                    <p className="text-2xl font-bold text-amber-700 mt-1">{timeSummary.non_billable_hours} hrs</p>
+                  </div>
+                  <div className="p-4 rounded-xl border bg-indigo-50/50 border-indigo-200">
+                    <p className="text-xs font-medium text-indigo-700 uppercase">Billable Ratio</p>
+                    <p className="text-2xl font-bold text-indigo-700 mt-1">{timeSummary.billable_percentage}%</p>
+                  </div>
+                </div>
+
+                {/* Team Member Breakdown */}
+                {timeSummary.by_member.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Time by Team Member</h4>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40 border-b text-muted-foreground">
+                          <tr>
+                            <th className="text-left p-3">Member</th>
+                            <th className="text-center p-3">Total</th>
+                            <th className="text-center p-3 text-green-600">Billable</th>
+                            <th className="text-center p-3 text-amber-600">Non-Billable</th>
+                            <th className="text-right p-3">Billable Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {timeSummary.by_member.map((m) => (
+                            <tr key={m.user_id} className="hover:bg-muted/10">
+                              <td className="p-3 font-medium">{m.user_name}</td>
+                              <td className="p-3 text-center">{m.total_hours} hrs</td>
+                              <td className="p-3 text-center text-green-700 font-semibold">{m.billable_hours} hrs</td>
+                              <td className="p-3 text-center text-amber-700">{m.non_billable_hours} hrs</td>
+                              <td className="p-3 text-right font-bold">${m.billable_amount.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

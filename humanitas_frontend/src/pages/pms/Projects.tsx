@@ -19,6 +19,8 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Lock,
+  Globe,
 } from "lucide-react";
 import { useState } from "react";
 import { ProjectModal, type ProjectFormData } from "@/components/pms/ProjectModal";
@@ -70,6 +72,7 @@ export default function PMSProjects() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [visibilityFilter, setVisibilityFilter] = useState("all");
 
   // Modal states
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -83,9 +86,9 @@ export default function PMSProjects() {
       project.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || project.status === statusFilter;
-    // Filter out archived unless specifically requested? Usually don't show archived by default.
-    // Adding filter for archived if statusFilter is 'all'
-    return matchesSearch && matchesStatus && project.status !== ProjectStatus.ARCHIVED;
+    const matchesVisibility =
+      visibilityFilter === "all" || (project.visibility || "public") === visibilityFilter;
+    return matchesSearch && matchesStatus && matchesVisibility && project.status !== ProjectStatus.ARCHIVED;
   });
 
   const projectStats = {
@@ -227,6 +230,15 @@ export default function PMSProjects() {
                 <option value={ProjectStatus.ON_HOLD}>On Hold</option>
                 <option value={ProjectStatus.COMPLETED}>Completed</option>
               </select>
+              <select
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={visibilityFilter}
+                onChange={(e) => setVisibilityFilter(e.target.value)}
+              >
+                <option value="all">All Confidentiality</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
             </div>
           </CardContent>
         </Card>
@@ -241,7 +253,18 @@ export default function PMSProjects() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">{project.name}</CardTitle>
+                      {project.visibility === 'private' ? (
+                        <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-200 text-xs flex items-center gap-1">
+                          <Lock className="h-3 w-3" /> Private
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground border-gray-200 text-xs flex items-center gap-1">
+                          <Globe className="h-3 w-3" /> Public
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(project.status)}>
                         {project.status}

@@ -18,6 +18,7 @@ export interface ProjectFormData {
     description: string;
     status: "Active" | "On Hold" | "Completed" | "Planning";
     priority: "High" | "Medium" | "Low";
+    visibility?: "public" | "private";
     start_date: string;
     target_end_date: string;
     team_id?: string;
@@ -43,6 +44,7 @@ export function ProjectModal({
         description: "",
         status: "Planning",
         priority: "Medium",
+        visibility: "public",
         start_date: "",
         target_end_date: "",
         team_id: "", // Default empty
@@ -50,13 +52,17 @@ export function ProjectModal({
 
     useEffect(() => {
         if (project) {
-            setFormData(project);
+            setFormData({
+                ...project,
+                visibility: project.visibility || "public",
+            });
         } else {
             setFormData({
                 name: "",
                 description: "",
                 status: "Planning",
                 priority: "Medium",
+                visibility: "public",
                 start_date: "",
                 target_end_date: "",
                 team_id: "",
@@ -73,6 +79,7 @@ export function ProjectModal({
             'description',
             'status',
             'priority',
+            'visibility',
             'start_date',
             'target_end_date',
             'team_id',
@@ -179,6 +186,26 @@ export function ProjectModal({
                                 <option value="High">High</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="visibility">Confidentiality / Visibility</Label>
+                        <select
+                            id="visibility"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={formData.visibility || 'public'}
+                            onChange={(e) =>
+                                setFormData({ ...formData, visibility: e.target.value as any })
+                            }
+                        >
+                            <option value="public">Public (Visible to all project viewers)</option>
+                            <option value="private">Private (Restricted to members & admins)</option>
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                            {formData.visibility === 'private'
+                                ? 'Only assigned members, managers, and administrators can view this project and its tasks.'
+                                : 'All users with PMS view permissions can see this project.'}
+                        </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

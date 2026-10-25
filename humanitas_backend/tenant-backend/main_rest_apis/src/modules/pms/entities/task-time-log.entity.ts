@@ -37,6 +37,12 @@ export class TaskTimeLog {
     @Column({ type: 'int', comment: 'Duration in minutes' })
     duration_minutes: number;
 
+    @Column({ type: 'boolean', default: true })
+    is_billable: boolean;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    hourly_rate: number;
+
     @Column({ length: 255, nullable: true })
     description: string;
 

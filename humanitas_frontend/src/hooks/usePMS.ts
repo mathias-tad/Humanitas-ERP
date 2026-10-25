@@ -36,6 +36,7 @@ export interface Project {
     description?: string;
     status: ProjectStatus;
     priority: ProjectPriority;
+    visibility?: 'public' | 'private';
     start_date?: string;
     target_end_date?: string;
     actual_end_date?: string;
@@ -54,7 +55,6 @@ export interface PMSUser {
     id: string;
     full_name: string;
     email: string;
-    // Add other fields as needed
     role?: string;
     status?: string;
     department?: string;
@@ -73,12 +73,15 @@ export interface Task {
     sprint_id?: string;
     estimated_hours?: number;
     actual_hours?: number;
+    story_points?: number;
+    backlog_order?: number;
+    is_milestone?: boolean;
     due_date?: string;
+    start_date?: string;
     project?: Project;
-    assignee?: PMSUser; // Use PMSUser which has full_name
+    assignee?: PMSUser;
     reporter_id: string;
     reporter?: PMSUser;
-    // Workflow Fields
     reviewer_id?: string;
     reviewer?: PMSUser;
     status_changed_at?: string;
@@ -90,7 +93,115 @@ export interface Task {
     created_at: string;
     completed_at?: string;
 }
-// ... existing interfaces ...
+
+export interface SprintBurndown {
+    sprint: {
+        id: string;
+        name: string;
+        start_date: string;
+        end_date: string;
+        status: string;
+    };
+    total_story_points: number;
+    completed_points: number;
+    remaining_points: number;
+    dates: string[];
+    ideal_burndown: number[];
+    actual_burndown: number[];
+}
+
+export interface SprintVelocityItem {
+    sprint_id: string;
+    sprint_name: string;
+    start_date: string;
+    end_date: string;
+    status: string;
+    committed_points: number;
+    completed_points: number;
+    velocity_percentage: number;
+}
+
+export interface SprintVelocity {
+    project_id: string;
+    sprints: SprintVelocityItem[];
+    average_velocity: number;
+}
+
+export interface GanttTask {
+    id: string;
+    title: string;
+    start_date: string;
+    due_date: string;
+    status: TaskStatus;
+    priority: ProjectPriority;
+    progress: number;
+    is_milestone: boolean;
+    story_points: number;
+    parent_task_id?: string;
+    sprint_id?: string;
+    assignee?: { id: string; name: string } | null;
+}
+
+export interface GanttData {
+    project: {
+        id: string;
+        name: string;
+        start_date?: string;
+        target_end_date?: string;
+        status: ProjectStatus;
+    };
+    sprints: {
+        id: string;
+        name: string;
+        start_date: string;
+        end_date: string;
+        status: string;
+    }[];
+    tasks: GanttTask[];
+    milestones: GanttTask[];
+}
+
+export interface ProjectCalendarEvent {
+    id: string;
+    title: string;
+    start: string;
+    end: string;
+    type: 'sprint' | 'task' | 'milestone';
+    status?: string;
+    priority?: string;
+    is_milestone?: boolean;
+    entity_id: string;
+    assignee_name?: string | null;
+}
+
+export interface TimeTrackingMemberSummary {
+    user_id: string;
+    user_name: string;
+    total_hours: number;
+    billable_hours: number;
+    non_billable_hours: number;
+    billable_amount: number;
+}
+
+export interface TimeTrackingTaskSummary {
+    task_id: string;
+    task_title: string;
+    total_hours: number;
+    billable_hours: number;
+    non_billable_hours: number;
+    billable_amount: number;
+}
+
+export interface TimeTrackingSummary {
+    project_id: string;
+    total_hours: number;
+    billable_hours: number;
+    non_billable_hours: number;
+    billable_percentage: number;
+    total_billable_amount: number;
+    by_member: TimeTrackingMemberSummary[];
+    by_task: TimeTrackingTaskSummary[];
+}
 
 
 
@@ -235,6 +346,41 @@ export function usePMS() {
         retry: false,
     });
 
+    const useSprintBurndown = (sprintId?: string) => useQuery<SprintBurndown>({
+        queryKey: ['pms-sprint-burndown', sprintId],
+        queryFn: () => fetcher<SprintBurndown>(`${API_BASE_URL}/pms/sprints/${sprintId}/burndown`),
+        enabled: !!sprintId,
+    });
+
+    const useSprintVelocity = (projectId?: string) => useQuery<SprintVelocity>({
+        queryKey: ['pms-sprint-velocity', projectId],
+        queryFn: () => fetcher<SprintVelocity>(`${API_BASE_URL}/pms/projects/${projectId}/velocity`),
+        enabled: !!projectId,
+    });
+
+    const useProjectBacklog = (projectId?: string) => useQuery<Task[]>({
+        queryKey: ['pms-project-backlog', projectId],
+        queryFn: () => fetcher<Task[]>(`${API_BASE_URL}/pms/projects/${projectId}/backlog`),
+        enabled: !!projectId,
+    });
+
+    const useProjectGantt = (projectId?: string) => useQuery<GanttData>({
+        queryKey: ['pms-project-gantt', projectId],
+        queryFn: () => fetcher<GanttData>(`${API_BASE_URL}/pms/projects/${projectId}/gantt`),
+        enabled: !!projectId,
+    });
+
+    const useProjectCalendar = (projectId?: string) => useQuery<ProjectCalendarEvent[]>({
+        queryKey: ['pms-project-calendar', projectId],
+        queryFn: () => fetcher<ProjectCalendarEvent[]>(`${API_BASE_URL}/pms/projects/${projectId}/calendar`),
+        enabled: !!projectId,
+    });
+
+    const useTimeTrackingSummary = (projectId?: string) => useQuery<TimeTrackingSummary>({
+        queryKey: ['pms-time-summary', projectId],
+        queryFn: () => fetcher<TimeTrackingSummary>(`${API_BASE_URL}/pms/projects/${projectId}/time-summary`),
+        enabled: !!projectId,
+    });
 
     // ============ MUTATIONS ============
 
@@ -655,6 +801,45 @@ export function usePMS() {
         onError: () => toast.error('Failed to remove member'),
     });
 
+    const updateBacklogOrder = useMutation({
+        mutationFn: async ({ taskIds }: { taskIds: string[]; projectId: string }) => {
+            const res = await fetch(`${API_BASE_URL}/pms/tasks/backlog-order`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                credentials: 'include',
+                body: JSON.stringify({ task_ids: taskIds }),
+            });
+            if (!res.ok) throw new Error('Failed to update backlog order');
+            return res.json();
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['pms-project-backlog', variables.projectId] });
+            queryClient.invalidateQueries({ queryKey: ['pms-tasks'] });
+            toast.success('Backlog order updated');
+        },
+        onError: () => toast.error('Failed to reorder backlog'),
+    });
+
+    const assignTaskToSprint = useMutation({
+        mutationFn: async ({ taskId, sprintId }: { taskId: string; sprintId: string | null; projectId: string }) => {
+            const res = await fetch(`${API_BASE_URL}/pms/tasks/${taskId}/assign-sprint`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                credentials: 'include',
+                body: JSON.stringify({ sprint_id: sprintId }),
+            });
+            if (!res.ok) throw new Error('Failed to assign task to sprint');
+            return res.json();
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['pms-project-backlog', variables.projectId] });
+            queryClient.invalidateQueries({ queryKey: ['pms-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['pms-sprints', variables.projectId] });
+            toast.success(variables.sprintId ? 'Task assigned to sprint' : 'Task moved to backlog');
+        },
+        onError: () => toast.error('Failed to assign task to sprint'),
+    });
+
     return {
         // Queries
         useProjects,
@@ -672,6 +857,12 @@ export function usePMS() {
         useTeams,
         useTeam,
         useTeamDashboard,
+        useSprintBurndown,
+        useSprintVelocity,
+        useProjectBacklog,
+        useProjectGantt,
+        useProjectCalendar,
+        useTimeTrackingSummary,
         // Mutations
         createProject,
         updateProject,
@@ -690,6 +881,8 @@ export function usePMS() {
         deleteTeam,
         addTeamMember,
         removeTeamMember,
+        updateBacklogOrder,
+        assignTaskToSprint,
         // Manual Metrics
         useMetrics,
         createMetric,

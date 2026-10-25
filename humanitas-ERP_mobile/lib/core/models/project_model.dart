@@ -5,6 +5,7 @@ class ProjectModel {
   final String status;
   final String? startDate;
   final String? endDate;
+  final String visibility; // 'public' | 'private'
 
   ProjectModel({
     required this.id,
@@ -13,7 +14,10 @@ class ProjectModel {
     required this.status,
     this.startDate,
     this.endDate,
+    this.visibility = 'public',
   });
+
+  bool get isPrivate => visibility == 'private';
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     return ProjectModel(
@@ -23,6 +27,7 @@ class ProjectModel {
       status: json['status']?.toString() ?? 'active',
       startDate: json['start_date']?.toString(),
       endDate: json['end_date']?.toString(),
+      visibility: json['visibility']?.toString() ?? 'public',
     );
   }
 }

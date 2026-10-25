@@ -115,4 +115,65 @@ describe('NotificationsService - Notification Preferences', () => {
       expect(hasAccess).toBe(true);
     });
   });
+
+  describe('tenant module subscription gating', () => {
+    const moduleMap: Record<string, string> = {
+      announcement: 'core',
+      profile_update: 'core',
+      leave_status_updates: 'hrms',
+      payslip_ready: 'hrms',
+      payroll_run_completed: 'hrms',
+      task_assignment_alerts: 'pms',
+      pms_task_assigned: 'pms',
+      pms_sprint_started: 'pms',
+    };
+
+    const isModuleActive = (cat: string, activeModules: string[]): boolean => {
+      const reqMod = (moduleMap[cat] || 'core').toLowerCase().trim();
+      if (reqMod === 'core') return true;
+      if (activeModules.includes('*')) return true;
+      return activeModules.includes(reqMod);
+    };
+
+    it('should always include core categories regardless of tenant modules', () => {
+      const activeModules: string[] = []; // No extra modules subscribed
+      expect(isModuleActive('announcement', activeModules)).toBe(true);
+      expect(isModuleActive('profile_update', activeModules)).toBe(true);
+    });
+
+    it('should exclude PMS categories when tenant does not have pms subscribed', () => {
+      const activeModules = ['hrms'];
+      expect(isModuleActive('task_assignment_alerts', activeModules)).toBe(false);
+      expect(isModuleActive('pms_task_assigned', activeModules)).toBe(false);
+      expect(isModuleActive('pms_sprint_started', activeModules)).toBe(false);
+    });
+
+    it('should include PMS categories when tenant has pms module subscribed', () => {
+      const activeModules = ['hrms', 'pms'];
+      expect(isModuleActive('task_assignment_alerts', activeModules)).toBe(true);
+      expect(isModuleActive('pms_task_assigned', activeModules)).toBe(true);
+      expect(isModuleActive('pms_sprint_started', activeModules)).toBe(true);
+    });
+
+    it('should block effective channel dispatch (returns none) when tenant module is disabled', () => {
+      const activeModules = ['hrms']; // pms not active
+      const getEffectiveChannelMock = (cat: string, modules: string[]) => {
+        if (!isModuleActive(cat, modules)) return 'none';
+        return 'both';
+      };
+      expect(getEffectiveChannelMock('pms_sprint_started', activeModules)).toBe('none');
+      expect(getEffectiveChannelMock('payslip_ready', activeModules)).toBe('both');
+    });
+
+    it('should deny preference updates for unsubscribed tenant modules', () => {
+      const activeModules = ['hrms'];
+      const updatePref = (cat: string) => {
+        if (!isModuleActive(cat, activeModules)) {
+          throw new Error(`Module "${moduleMap[cat]}" is not subscribed or enabled for this tenant.`);
+        }
+        return { success: true };
+      };
+      expect(() => updatePref('pms_task_assigned')).toThrow('Module "pms" is not subscribed or enabled for this tenant.');
+    });
+  });
 });

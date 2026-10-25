@@ -7,6 +7,9 @@ import {
   Users,
   FileText,
   Settings,
+  GitBranch,
+  BarChart2,
+  Calendar,
 } from "lucide-react";
 import {
   Collapsible,
@@ -50,6 +53,9 @@ export function PMSCollapsible({ isOpen, onOpenChange }: PMSCollapsibleProps) {
     { to: "/pms/my-tasks", icon: ListTodo, label: "My Tasks", permissions: ["view_my_tasks", "view_pms"] },
     { to: "/pms/all-tasks", icon: ListTodo, label: "All Tasks", permissions: ["view_all_tasks", "view_pms"] },
     { to: "/pms/projects", icon: Briefcase, label: "Projects", permissions: ["view_projects", "view_pms"] },
+    { to: "/pms/backlog", icon: GitBranch, label: "Sprints & Backlog", permissions: ["view_sprints", "view_pms"] },
+    { to: "/pms/gantt", icon: BarChart2, label: "Gantt Timeline", permissions: ["view_tasks", "view_pms"] },
+    { to: "/pms/calendar", icon: Calendar, label: "Project Calendar", permissions: ["view_tasks", "view_pms"] },
     { to: "/pms/teams", icon: Users, label: "Teams", permissions: ["view_teams", "view_pms"] },
     { to: "/pms/reports", icon: FileText, label: "Reports", permissions: ["view_pms_reports", "view_pms"] },
     { to: "/pms/settings", icon: Settings, label: "Settings", permissions: ["manage_pms_settings"] },

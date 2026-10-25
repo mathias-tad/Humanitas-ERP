@@ -137,6 +137,15 @@ export class Task {
     @Column({ type: 'date', nullable: true })
     start_date: Date;
 
+    @Column({ type: 'int', default: 0 })
+    story_points: number;
+
+    @Column({ type: 'int', default: 0 })
+    backlog_order: number;
+
+    @Column({ type: 'boolean', default: false })
+    is_milestone: boolean;
+
     @Column({ type: 'timestamp', nullable: true })
     completed_at: Date;
 

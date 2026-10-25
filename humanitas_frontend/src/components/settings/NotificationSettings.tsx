@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Bell, Mail, Smartphone, BellOff, Layers, Check, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useModules } from '@/context/ModuleContext';
 import {
   useNotificationPreferences,
   useBulkUpdateNotificationPreferences,
   NOTIFICATION_CATEGORY_LABELS,
   NOTIFICATION_CATEGORY_DESCRIPTIONS,
   NOTIFICATION_CATEGORY_PERMISSION_MAP,
+  NOTIFICATION_CATEGORY_MODULE_MAP,
   CATEGORY_GROUPS,
   type NotificationPreference,
 } from '@/hooks/useNotifications';
@@ -27,6 +29,7 @@ interface NotificationSettingsProps {
 
 export function NotificationSettings({ disabled = false }: NotificationSettingsProps) {
   const { hasPermission, user } = useAuth();
+  const { isModuleSubscribed } = useModules();
   const role = (user as any)?.role?.toLowerCase() || (user as any)?.role_name?.toLowerCase();
   const isOwnerOrAdmin = role === 'owner' || role === 'admin' || role === 'administrator';
 
@@ -65,6 +68,8 @@ export function NotificationSettings({ disabled = false }: NotificationSettingsP
 
   const canSeeCategory = (category: string) => {
     if (!prefsByCategory.has(category)) return false;
+    const mod = NOTIFICATION_CATEGORY_MODULE_MAP[category] || 'core';
+    if (mod !== 'core' && !isModuleSubscribed(mod as any)) return false;
     const requiredPermission = NOTIFICATION_CATEGORY_PERMISSION_MAP[category];
     if (requiredPermission === null || requiredPermission === undefined) return true;
     if (isOwnerOrAdmin) return true;

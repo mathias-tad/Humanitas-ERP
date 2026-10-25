@@ -200,6 +200,27 @@ export class NotificationsService {
         return [];
     }
 
+    async getActiveModulesForTenant(connection: any): Promise<string[]> {
+        try {
+            const rows = await connection.query(
+                `SELECT module_key FROM tenant_modules WHERE is_active = true`
+            );
+            if (rows && rows.length > 0) {
+                return rows.map((r: any) => r.module_key.toLowerCase().trim());
+            }
+        } catch {
+            // Table may not exist yet or query failed
+        }
+        return ['core', 'hrms', 'attendance', 'leave', 'scheduling', 'recruitment', 'pms'];
+    }
+
+    isCategoryModuleActive(category: string, activeModules: string[]): boolean {
+        const requiredModule = (NOTIFICATION_CATEGORY_MODULE_MAP[category] || 'core').toLowerCase().trim();
+        if (requiredModule === 'core') return true;
+        if (activeModules.includes('*')) return true;
+        return activeModules.includes(requiredModule);
+    }
+
   async getNotificationPreferences(
     tenantId: string,
     userId: string,
@@ -207,6 +228,7 @@ export class NotificationsService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureNotificationsTables(connection);
+    const activeModules = await this.getActiveModulesForTenant(connection);
 
     const saved = await connection.query(
       `SELECT category, channel FROM user_notification_preferences WHERE user_id = $1`,
@@ -217,10 +239,16 @@ export class NotificationsService {
       savedMap[row.category] = row.channel;
     }
 
-    const result: { category: string; channel: string; required_permission: string | null }[] = [];
+    const result: { category: string; channel: string; required_permission: string | null; module: string }[] = [];
     const isOwnerOrAdmin = userPermissions.includes('*');
 
     for (const [category, requiredPermission] of Object.entries(NOTIFICATION_CATEGORY_PERMISSION_MAP)) {
+      // 1. Tenant Module Gating: Exclude category if module is not active for tenant
+      if (!this.isCategoryModuleActive(category, activeModules)) {
+        continue;
+      }
+
+      // 2. User Permission Gating
       const hasAccess =
         requiredPermission === null ||
         isOwnerOrAdmin ||
@@ -231,6 +259,7 @@ export class NotificationsService {
           category,
           channel: savedMap[category] || 'both',
           required_permission: requiredPermission,
+          module: NOTIFICATION_CATEGORY_MODULE_MAP[category] || 'core',
         });
       }
     }
@@ -247,12 +276,20 @@ export class NotificationsService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureNotificationsTables(connection);
+    const activeModules = await this.getActiveModulesForTenant(connection);
 
     const requiredPermission = NOTIFICATION_CATEGORY_PERMISSION_MAP[category];
     if (requiredPermission === undefined) {
       throw new Error(`Unknown notification category: ${category}`);
     }
 
+    // 1. Tenant Module Check
+    if (!this.isCategoryModuleActive(category, activeModules)) {
+      const requiredModule = NOTIFICATION_CATEGORY_MODULE_MAP[category] || 'unknown';
+      throw new Error(`Module "${requiredModule}" is not subscribed or enabled for this tenant.`);
+    }
+
+    // 2. User Permission Check
     const isOwnerOrAdmin = userPermissions.includes('*');
     const hasAccess =
       requiredPermission === null ||
@@ -300,6 +337,12 @@ export class NotificationsService {
   ): Promise<string> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureNotificationsTables(connection);
+    const activeModules = await this.getActiveModulesForTenant(connection);
+
+    // If module is not active for this tenant, block notifications completely
+    if (!this.isCategoryModuleActive(category, activeModules)) {
+      return 'none';
+    }
 
     const result = await connection.query(
       `SELECT channel FROM user_notification_preferences WHERE user_id = $1 AND category = $2`,

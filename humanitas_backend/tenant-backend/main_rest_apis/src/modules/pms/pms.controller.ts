@@ -2,6 +2,7 @@ import {
     Controller,
     Get,
     Post,
+    Put,
     Body,
     Patch,
     Param,
@@ -41,13 +42,13 @@ export class PmsController {
     @Get('projects')
     @RequirePermissions('view_projects', 'view_pms', 'view_tasks', 'view_my_tasks')
     findAllProjects(@Req() req) {
-        return this.pmsService.findAllProjects(req.user.tenantId);
+        return this.pmsService.findAllProjects(req.user.tenantId, req.user?.sub, req.user?.role);
     }
 
     @Get('projects/:id')
-    @RequirePermissions('view_projects')
+    @RequirePermissions('view_projects', 'view_pms', 'view_tasks')
     findOneProject(@Req() req, @Param('id') id: string) {
-        return this.pmsService.findOneProject(req.user.tenantId, id);
+        return this.pmsService.findOneProject(req.user.tenantId, id, req.user?.sub, req.user?.role);
     }
 
     @Patch('projects/:id')
@@ -294,5 +295,58 @@ export class PmsController {
     @RequirePermissions('manage_pms_settings')
     deleteMetric(@Req() req, @Param('id') id: string) {
         return this.pmsService.deleteMetric(req.user.tenantId, id);
+    }
+
+    // ============ AGILE SPRINTS & BURNDOWN ============
+    @Get('sprints/:id/burndown')
+    @RequirePermissions('view_sprints', 'view_pms')
+    getSprintBurndown(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getSprintBurndown(req.user.tenantId, id);
+    }
+
+    @Get('projects/:id/velocity')
+    @RequirePermissions('view_sprints', 'view_pms', 'view_pms_reports')
+    getSprintVelocity(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getSprintVelocity(req.user.tenantId, id);
+    }
+
+    // ============ BACKLOG MANAGEMENT ============
+    @Get('projects/:id/backlog')
+    @RequirePermissions('view_tasks', 'view_pms')
+    getProjectBacklog(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getProjectBacklog(req.user.tenantId, id);
+    }
+
+    @Put('tasks/backlog-order')
+    @RequirePermissions('manage_sprints', 'edit_tasks')
+    updateBacklogOrder(@Req() req, @Body() body: { task_ids: string[] }) {
+        return this.pmsService.updateBacklogOrder(req.user.tenantId, body.task_ids || []);
+    }
+
+    @Put('tasks/:id/assign-sprint')
+    @RequirePermissions('manage_sprints', 'edit_tasks')
+    assignTaskToSprint(@Req() req, @Param('id') id: string, @Body() body: { sprint_id?: string | null }) {
+        return this.pmsService.assignTaskToSprint(req.user.tenantId, id, body.sprint_id ?? null);
+    }
+
+    // ============ GANTT & MILESTONES ============
+    @Get('projects/:id/gantt')
+    @RequirePermissions('view_tasks', 'view_pms')
+    getProjectGanttData(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getProjectGanttData(req.user.tenantId, id);
+    }
+
+    // ============ PROJECT CALENDAR ============
+    @Get('projects/:id/calendar')
+    @RequirePermissions('view_tasks', 'view_pms')
+    getProjectCalendarEvents(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getProjectCalendarEvents(req.user.tenantId, id);
+    }
+
+    // ============ TIME TRACKING & BILLABLE SUMMARY ============
+    @Get('projects/:id/time-summary')
+    @RequirePermissions('view_pms_reports', 'view_pms')
+    getTimeTrackingSummary(@Req() req, @Param('id') id: string) {
+        return this.pmsService.getTimeTrackingSummary(req.user.tenantId, id);
     }
 }
