@@ -391,7 +391,7 @@ export class HrmsSurveysService {
     let totalEnpsScore = 0;
     let npsQuestionCount = 0;
 
-    const questionResults = [];
+    const questionResults: any[] = [];
     for (const q of questions) {
       if (q.question_type === QuestionType.NPS) {
         // Promoters (9-10), Passives (7-8), Detractors (0-6)
