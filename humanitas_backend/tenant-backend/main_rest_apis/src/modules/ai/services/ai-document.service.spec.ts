@@ -27,10 +27,10 @@ describe('AiDocumentService', () => {
   });
 
   describe('getBuiltinTemplates', () => {
-    it('should return all 5 enterprise templates', () => {
+    it('should return all 6 enterprise templates', () => {
       const templates = service.getBuiltinTemplates();
       expect(templates).toBeInstanceOf(Array);
-      expect(templates.length).toBe(5);
+      expect(templates.length).toBe(6);
 
       const templateIds = templates.map(t => t.id);
       expect(templateIds).toContain('employment_verification');
@@ -38,6 +38,7 @@ describe('AiDocumentService', () => {
       expect(templateIds).toContain('performance_evaluation');
       expect(templateIds).toContain('attendance_monthly_report');
       expect(templateIds).toContain('project_status_report');
+      expect(templateIds).toContain('hr_analytics_executive_brief');
     });
 
     it('each template should have required properties and supportedFormats', () => {
