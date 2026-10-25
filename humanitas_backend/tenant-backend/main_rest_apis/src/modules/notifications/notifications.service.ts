@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsGateway } from './notifications.gateway';
-import { NOTIFICATION_CATEGORY_PERMISSION_MAP } from './dto/notification-preferences.dto';
+import { NOTIFICATION_CATEGORY_PERMISSION_MAP, NOTIFICATION_CATEGORY_MODULE_MAP } from './dto/notification-preferences.dto';
 
 @Injectable()
 export class NotificationsService {

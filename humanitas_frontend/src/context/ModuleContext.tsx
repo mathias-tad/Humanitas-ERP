@@ -210,6 +210,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       "users",
       "system",
       "notifications",
+      "approvals",
       "auth",
       "settings",
       "presence",

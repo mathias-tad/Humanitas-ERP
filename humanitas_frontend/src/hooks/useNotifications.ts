@@ -40,6 +40,9 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   recruitment_interview_scheduled: 'Interview Scheduled',
   recruitment_offer_generated:     'Offer Letter Generated',
   recruitment_candidate_hired:     'Candidate Hired & Onboarded',
+  approval_request_created:        'New Approval Request',
+  approval_request_decided:        'Approval Decision Update',
+  approval_escalation_alert:       'Approval Escalation Alert',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -64,6 +67,9 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   recruitment_interview_scheduled: 'Alert when a candidate interview is scheduled or rescheduled',
   recruitment_offer_generated:     'Alert when a job offer letter is created or sent',
   recruitment_candidate_hired:     'Alert when a candidate is hired and converted to an active employee',
+  approval_request_created:        'Notification when an item requires your review and approval',
+  approval_request_decided:        'Notification when your submitted request has been approved or rejected',
+  approval_escalation_alert:       'Alert when an approval request exceeds its review SLA and escalates',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -76,11 +82,44 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'leave_approval_requests', 'expense_approval_requests',
     'grievance_filed', 'onboarding_review', 'task_assignment_alerts',
     'recruitment_interview_scheduled', 'recruitment_offer_generated', 'recruitment_candidate_hired',
+    'approval_request_created', 'approval_request_decided', 'approval_escalation_alert',
   ],
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',
     'import_export_completed', 'system_health_alert',
   ],
+};
+
+export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null> = {
+  // Available to ALL authenticated users (Personal & Self-Service)
+  leave_status_updates:    null,
+  payslip_ready:           null,
+  shift_assigned:          null,
+  announcement:            null,
+  survey_invite:           null,
+  onboarding_task:         null,
+  asset_assigned:          null,
+  training_enrolled:       null,
+  profile_update:          null,
+  approval_request_decided: null,
+
+  // Manager/HR level
+  leave_approval_requests:   'approve_leave',
+  expense_approval_requests: 'approve_expenses',
+  grievance_filed:           'manage_grievances',
+  onboarding_review:         'manage_onboarding',
+  task_assignment_alerts:    'manage_sprints',
+  recruitment_interview_scheduled: 'manage_recruitment',
+  recruitment_offer_generated:     'manage_recruitment',
+  recruitment_candidate_hired:     'manage_recruitment',
+  approval_request_created:        'approve_requests',
+
+  // Admin level
+  payroll_run_completed:   'run_payroll',
+  device_offline_alert:    'authorize_devices',
+  import_export_completed: 'view_import_export',
+  system_health_alert:     'view_logs',
+  approval_escalation_alert: 'manage_approval_rules',
 };
 
 async function fetcher<T>(url: string): Promise<T> {

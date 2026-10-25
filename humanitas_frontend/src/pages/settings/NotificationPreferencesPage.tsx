@@ -6,6 +6,7 @@ import {
   useBulkUpdateNotificationPreferences,
   NOTIFICATION_CATEGORY_LABELS,
   NOTIFICATION_CATEGORY_DESCRIPTIONS,
+  NOTIFICATION_CATEGORY_PERMISSION_MAP,
   CATEGORY_GROUPS,
   type NotificationPreference,
 } from '@/hooks/useNotifications';
@@ -22,8 +23,9 @@ const CHANNEL_OPTIONS: { value: Channel; label: string; icon: React.ReactNode; d
 
 export default function NotificationPreferencesPage() {
   const { hasPermission, user } = useAuth();
-  const isOwner = (user as any)?.role?.toLowerCase() === 'owner' || (user as any)?.role_name?.toLowerCase() === 'owner';
-  const canAccess = hasPermission('view_notification_preferences') || hasPermission('use_ai') || isOwner;
+  const role = (user as any)?.role?.toLowerCase() || (user as any)?.role_name?.toLowerCase();
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin' || role === 'administrator';
+  const canAccess = hasPermission('view_notification_preferences') || hasPermission('use_ai') || isOwnerOrAdmin;
 
   const { data: preferences = [], isLoading, isError } = useNotificationPreferences();
   const bulkUpdate = useBulkUpdateNotificationPreferences();
@@ -86,6 +88,14 @@ export default function NotificationPreferencesPage() {
 
   const prefsByCategory = new Map<string, NotificationPreference>(preferences.map((p) => [p.category, p]));
 
+  const canSeeCategory = (category: string) => {
+    if (!prefsByCategory.has(category)) return false;
+    const requiredPermission = NOTIFICATION_CATEGORY_PERMISSION_MAP[category];
+    if (requiredPermission === null || requiredPermission === undefined) return true;
+    if (isOwnerOrAdmin) return true;
+    return hasPermission(requiredPermission);
+  };
+
   return (
     <div className="container max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -127,7 +137,7 @@ export default function NotificationPreferencesPage() {
       </div>
 
       {Object.entries(CATEGORY_GROUPS).map(([groupName, categories]) => {
-        const groupPrefs = categories.filter((cat) => prefsByCategory.has(cat));
+        const groupPrefs = categories.filter(canSeeCategory);
         if (groupPrefs.length === 0) return null;
 
         return (

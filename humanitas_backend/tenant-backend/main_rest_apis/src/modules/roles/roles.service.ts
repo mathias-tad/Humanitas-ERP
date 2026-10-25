@@ -15,12 +15,12 @@ export class RolesService {
     private readonly holidaysService: HolidaysService,
   ) { }
 
-  private async getTenantDatabaseName(tenantSlug: string): Promise<string> {
+  private async getTenantDatabaseName(tenantSlugOrId: string): Promise<string> {
     const tenant = await this.tenantRepository.findOne({
-      where: { slug: tenantSlug },
+      where: [{ slug: tenantSlugOrId }, { id: tenantSlugOrId }],
     });
     if (!tenant) {
-      throw new NotFoundException(`Tenant not found: ${tenantSlug}`);
+      throw new NotFoundException(`Tenant not found: ${tenantSlugOrId}`);
     }
     return tenant.database_name;
   }
@@ -213,6 +213,11 @@ export class RolesService {
       // Notification Preferences
       'manage_notification_preferences',
       'view_notification_preferences',
+      // Dynamic Approvals
+      'manage_approval_rules',
+      'view_approval_rules',
+      'approve_requests',
+      'view_approval_requests',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -248,6 +253,7 @@ export class RolesService {
       'ai_actions',
       'ai_full',
       'manage_notification_preferences',
+      'manage_approval_rules',
     ];
 
     // Permissions allowed for Employee role
@@ -278,6 +284,7 @@ export class RolesService {
       'use_ai',
       'ai_help',
       'view_notification_preferences',
+      'view_approval_requests',
     ];
 
     for (const permission of newPermissions) {
@@ -532,6 +539,11 @@ export class RolesService {
       // Notification Preferences
       'manage_notification_preferences',
       'view_notification_preferences',
+      // Dynamic Approvals
+      'manage_approval_rules',
+      'view_approval_rules',
+      'approve_requests',
+      'view_approval_requests',
     ];
 
     const managerPermissions = [
@@ -600,6 +612,9 @@ export class RolesService {
       'use_ai',
       'ai_help',
       'view_notification_preferences',
+      'view_approval_rules',
+      'approve_requests',
+      'view_approval_requests',
     ];
 
     const employeePermissions = [
@@ -624,6 +639,7 @@ export class RolesService {
       'use_ai',
       'ai_help',
       'view_notification_preferences',
+      'view_approval_requests',
     ];
 
     const defaultRoles = [
@@ -818,19 +834,40 @@ export class RolesService {
 
   /**
    * Get all permissions for a specific user (by userId) from their role.
-   * Looks up the user's role_id then returns the role's permissions array.
+   * Looks up the user's role_id or role name then returns the role's permissions array.
+   * If the user is owner or admin, returns ['*'] for full capability.
    */
-  async getPermissionsForUser(tenantSlug: string, userId: string): Promise<string[]> {
-    const databaseName = await this.getTenantDatabaseName(tenantSlug);
-    const connection = await this.databaseService.getTenantConnection(databaseName);
+  async getPermissionsForUser(tenantSlugOrId: string, userId: string): Promise<string[]> {
+    let connection: any;
+    try {
+      const databaseName = await this.getTenantDatabaseName(tenantSlugOrId);
+      connection = await this.databaseService.getTenantConnection(databaseName);
+    } catch {
+      try {
+        connection = await this.databaseService.getTenantConnectionById(tenantSlugOrId);
+      } catch {
+        return [];
+      }
+    }
     await this.ensureRolesTable(connection);
 
+    // Check user role directly first
+    const userRow = await connection.query(
+      `SELECT role, role_id FROM users WHERE id = $1 LIMIT 1`,
+      [userId],
+    );
+    if (!userRow || !userRow[0]) return [];
+    const userRoleStr = (userRow[0].role || '').toLowerCase();
+    if (userRoleStr === 'owner' || userRoleStr === 'admin' || userRoleStr === 'administrator') {
+      return ['*'];
+    }
+
+    // Lookup role permissions by role_id OR by role name match
     const result = await connection.query(
       `SELECT r.permissions FROM roles r
-       INNER JOIN users u ON u.role_id = r.id
-       WHERE u.id = $1 AND r.is_active = true
+       WHERE (r.id = $1 OR LOWER(r.name) = $2) AND r.is_active = true
        LIMIT 1`,
-      [userId],
+      [userRow[0].role_id, userRoleStr],
     );
 
     if (!result || !result[0]) return [];

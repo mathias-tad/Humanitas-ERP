@@ -6,7 +6,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## ðŸ“Š Overall Progress
 
-| **TOTAL** | **746** | **341** | **405** | **46%** |
+| **TOTAL** | **746** | **353** | **393** | **47%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -18,7 +18,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
 | HRMS & Recruitment | 45 | 44 | 1 | 98% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
-| Dynamic Approval Engine | 12 | 0 | 12 | 0% |
+| Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
 | Enterprise UI/UX | 23 | 18 | 5 | 78% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 33 | 18 | 15 | 55% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **746** | **341** | **405** | **46%** |
+| **TOTAL** | **746** | **353** | **393** | **47%** |
 
 ---
 
@@ -466,18 +466,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## 9. ðŸ”€ Dynamic Approval Workflow Engine (`/settings/approvals`)
 
-- [ ] **Configurable Multi-Tier Approval Rules**:
-  - [ ] User-defined approval hierarchies across all operational workflows:
-    - [ ] Purchase Requisitions & Purchase Orders (threshold-based: e.g. <$1,000 Manager, >$5,000 Director, >$25,000 CFO)
-    - [ ] Sales Quotation & Order Discounts (e.g. >10% Team Lead, >20% Sales VP)
-    - [ ] Customer Credit Limit overrides
-    - [ ] Leave Requests & Overtime Claims
-    - [ ] Inventory Write-offs & Stock Adjustments
-    - [ ] Fixed Asset disposals and write-offs
-    - [ ] General Journal Postings
-  - [ ] Support for parallel (all must approve) and sequential (stepped approval) routes.
-  - [ ] Automated email and push notification alerts with 1-click Approve / Reject action links.
-  - [ ] Complete approval audit trail with timestamp, approver comments, and full status history.
+- [x] **Configurable Multi-Tier Approval Rules**:
+  - [x] User-defined approval hierarchies across all operational workflows:
+    - [x] Purchase Requisitions & Purchase Orders (threshold-based: e.g. <$1,000 Manager, >$5,000 Director, >$25,000 CFO)
+    - [x] Sales Quotation & Order Discounts (e.g. >10% Team Lead, >20% Sales VP)
+    - [x] Customer Credit Limit overrides
+    - [x] Leave Requests & Overtime Claims
+    - [x] Inventory Write-offs & Stock Adjustments
+    - [x] Fixed Asset disposals and write-offs
+    - [x] General Journal Postings
+  - [x] Support for parallel (all must approve) and sequential (stepped approval) routes.
+  - [x] Automated email and push notification alerts with 1-click Approve / Reject action links.
+  - [x] Complete approval audit trail with timestamp, approver comments, and full status history.
 
 ---
 

@@ -60,6 +60,8 @@ import AssetsPage from "./pages/hrms/AssetsPage";
 import SurveysPage from "./pages/hrms/SurveysPage";
 import ImportExportPage from "./pages/settings/ImportExportPage";
 import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
+import ApprovalsPage from "./pages/approvals/ApprovalsPage";
+import ApprovalSettingsPage from "./pages/settings/ApprovalSettingsPage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -489,6 +491,18 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/notifications/preferences" element={<Navigate to="/settings/notifications" replace />} />
+
+        {/* Dynamic Approval Workflow Engine */}
+        <Route path="/approvals" element={
+          <PermissionRoute permissions={["view_approval_requests", "approve_requests"]}>
+            <ApprovalsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/settings/approvals" element={
+          <PermissionRoute permissions={["manage_approval_rules"]}>
+            <ApprovalSettingsPage />
+          </PermissionRoute>
+        } />
 
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
         <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />

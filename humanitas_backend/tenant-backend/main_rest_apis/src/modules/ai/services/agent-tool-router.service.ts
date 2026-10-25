@@ -83,11 +83,20 @@ export class AgentToolRouterService {
           offers: '/hrms/recruitment',
           recruitment_reports: '/hrms/recruitment/reports',
           hiring_funnel: '/hrms/recruitment/reports',
+          approvals: '/approvals',
+          pending_approvals: '/approvals',
+          approval_requests: '/approvals',
+          approval_rules: '/settings/approvals',
+          approval_workflows: '/settings/approvals',
+          approval_settings: '/settings/approvals',
         };
         const destLower = destination.toLowerCase();
         
         for (const [key, path] of Object.entries(routes)) {
           if (destLower.includes(key)) {
+            if (key.includes('approval')) {
+              return `Web route for ${key}: ${path}.\nMobile app: Open the app menu or bottom navigation, select 'Approval Center' to review pending approvals with 1-click Approve or Reject, view request details, or inspect audit history.`;
+            }
             return `Web route for ${key}: ${path}.\nMobile app: Open the app menu or bottom navigation, select 'Recruitment & ATS' to access Job Openings, Candidate Pipeline, Scheduled Interviews, and Funnel Analytics.`;
           }
         }

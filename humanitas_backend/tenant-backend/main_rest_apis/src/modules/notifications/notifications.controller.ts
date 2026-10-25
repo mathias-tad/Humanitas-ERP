@@ -49,15 +49,22 @@ export class NotificationsController {
         );
     }
 
+    private async resolveUserPermissions(user: any): Promise<string[]> {
+        const role = (user?.role || '').toLowerCase();
+        if (role === 'owner' || role === 'admin' || role === 'administrator') {
+            return ['*'];
+        }
+        try {
+            return await this.rolesService.getPermissionsForUser(user.tenantSlug || user.tenantId, user.sub);
+        } catch {
+            return [];
+        }
+    }
+
     @Get('preferences')
     async getPreferences(@Request() req: any) {
         const user = req.user;
-        let permissions: string[] = [];
-        try {
-            permissions = await this.rolesService.getPermissionsForUser(user.tenantSlug, user.sub);
-        } catch {
-            permissions = [];
-        }
+        const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.getNotificationPreferences(
             user.tenantId,
             user.sub,
@@ -68,12 +75,7 @@ export class NotificationsController {
     @Put('preferences')
     async updatePreference(@Request() req: any, @Body() body: UpdateNotificationPreferenceDto) {
         const user = req.user;
-        let permissions: string[] = [];
-        try {
-            permissions = await this.rolesService.getPermissionsForUser(user.tenantSlug, user.sub);
-        } catch {
-            permissions = [];
-        }
+        const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.updateNotificationPreference(
             user.tenantId,
             user.sub,
@@ -86,12 +88,7 @@ export class NotificationsController {
     @Put('preferences/bulk')
     async bulkUpdatePreferences(@Request() req: any, @Body() body: BulkUpdateNotificationPreferencesDto) {
         const user = req.user;
-        let permissions: string[] = [];
-        try {
-            permissions = await this.rolesService.getPermissionsForUser(user.tenantSlug, user.sub);
-        } catch {
-            permissions = [];
-        }
+        const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.bulkUpdatePreferences(
             user.tenantId,
             user.sub,

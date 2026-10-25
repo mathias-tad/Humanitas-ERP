@@ -283,9 +283,23 @@ class _NotificationSettingsScreenState
 
   List<Widget> _buildGroupedSections(
       List<NotificationPreferenceModel> preferences, bool isDark) {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    final String? role = user?.role?.toLowerCase();
+    final bool isOwnerOrAdmin =
+        role == 'owner' || role == 'admin' || role == 'administrator';
+
+    final visiblePreferences = preferences.where((pref) {
+      final reqPerm = pref.requiredPermission ??
+          kNotificationCategoryPermissionMap[pref.category];
+      if (reqPerm == null) return true;
+      if (isOwnerOrAdmin) return true;
+      return authState.hasPermission(reqPerm);
+    }).toList();
+
     final Map<String, List<NotificationPreferenceModel>> groups = {};
 
-    for (final pref in preferences) {
+    for (final pref in visiblePreferences) {
       final group =
           kNotificationCategoryGroups[pref.category] ?? 'Personal & Self-Service';
       groups.putIfAbsent(group, () => []).add(pref);

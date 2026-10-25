@@ -37,12 +37,24 @@ final _adminUser = UserModel(
   role: 'admin',
 );
 
+final _employeeUser = UserModel(
+  id: 'u2',
+  email: 'employee@example.com',
+  role: 'employee',
+);
+
 // ── Auth state helpers ─────────────────────────────────────────────────────────
 
 AuthState _adminAuthState() => AuthState(
       status: AuthStatus.authenticated,
       user: _adminUser,
       permissions: const [],
+    );
+
+AuthState _employeeAuthState() => AuthState(
+      status: AuthStatus.authenticated,
+      user: _employeeUser,
+      permissions: const ['view_notification_preferences'],
     );
 
 AuthState _noPermAuthState() => AuthState(
@@ -74,6 +86,13 @@ List<Override> _adminOverrides(
     [
       notificationPreferencesProvider.overrideWith((_) async => prefs),
       authProvider.overrideWith((ref) => _buildNotifier(_adminAuthState())),
+    ];
+
+List<Override> _employeeOverrides(
+        [List<NotificationPreferenceModel> prefs = _emptyPreferences]) =>
+    [
+      notificationPreferencesProvider.overrideWith((_) async => prefs),
+      authProvider.overrideWith((ref) => _buildNotifier(_employeeAuthState())),
     ];
 
 // ── Widget builder ─────────────────────────────────────────────────────────────
@@ -149,6 +168,24 @@ void main() {
         findsOneWidget,
       );
       expect(find.byIcon(Icons.notifications_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('Employee user: hides manager and admin categories according to permissions',
+        (tester) async {
+      await tester.pumpWidget(_buildApp(
+        overrides: _employeeOverrides(_samplePreferences),
+        initialPreferences: _samplePreferences,
+      ));
+      await tester.pumpAndSettle();
+
+      // Personal category (null permission) must be visible to employee
+      expect(find.text('Leave Request Updates'), findsOneWidget);
+
+      // Manager category (approve_leave) must NOT be visible to employee
+      expect(find.text('Pending Leave Approvals'), findsNothing);
+
+      // Admin category (run_payroll) must NOT be visible to employee
+      expect(find.text('Payroll Run Completed'), findsNothing);
     });
   });
 }

@@ -198,6 +198,12 @@ const permissions: Permission[] = [
   // Notification Preferences
   { id: "view_notification_preferences", name: "view_preferences", label: "View Notification Preferences", module: "Notifications" },
   { id: "manage_notification_preferences", name: "manage_preferences", label: "Manage Notification Preferences (Admin)", module: "Notifications" },
+
+  // Dynamic Approvals
+  { id: "view_approval_rules", name: "view_approval_rules", label: "View Approval Workflows & Rules", module: "Dynamic Approvals" },
+  { id: "manage_approval_rules", name: "manage_approval_rules", label: "Manage Approval Rules & Workflows", module: "Dynamic Approvals" },
+  { id: "approve_requests", name: "approve_requests", label: "Approve or Reject Approval Requests", module: "Dynamic Approvals" },
+  { id: "view_approval_requests", name: "view_approval_requests", label: "View Approval Requests & History", module: "Dynamic Approvals" },
 ];
 
 function AccessControl() {

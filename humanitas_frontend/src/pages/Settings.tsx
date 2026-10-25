@@ -44,7 +44,7 @@ const settingsTabs = [
   { value: "Categories", label: "Employee Categories", icon: Users, permissions: ["view_hrm_settings", "edit_hrm_settings"] },
   { value: "Acting", label: "Acting Assignments", icon: UserPlus, permissions: ["view_payroll_settings", "edit_payroll_settings"] },
   { value: "Payroll", label: "Payroll & Accounting", icon: Calculator, permissions: ["view_payroll_settings", "edit_payroll_settings"] },
-  { value: "Notifications", label: "Notifications", icon: Bell, permissions: ["view_notifications_settings", "edit_notifications_settings"] },
+  { value: "Notifications", label: "Notifications", icon: Bell, permissions: ["view_notification_preferences", "view_notifications_settings", "edit_notifications_settings"] },
   { value: "Email", label: "Email Settings", icon: Mail, permissions: ["view_email_settings", "edit_email_settings"] },
   { value: "Integrations", label: "Integrations", icon: Blocks, permissions: ["view_general_settings", "edit_general_settings"] },
   { value: "Holidays", label: "Holidays", icon: CalendarDays, permissions: ["view_holidays", "manage_holidays"] },
@@ -145,9 +145,9 @@ export function Settings() {
             )}
 
 
-            {hasAnyPermission(["view_notifications_settings", "edit_notifications_settings"]) && (
+            {hasAnyPermission(["view_notification_preferences", "view_notifications_settings", "edit_notifications_settings"]) && (
               <TabsContent value="Notifications" className="space-y-6 m-0">
-                <NotificationSettings disabled={!hasPermission("edit_notifications_settings")} />
+                <NotificationSettings disabled={!hasAnyPermission(["view_notification_preferences", "edit_notifications_settings"])} />
               </TabsContent>
             )}
 
