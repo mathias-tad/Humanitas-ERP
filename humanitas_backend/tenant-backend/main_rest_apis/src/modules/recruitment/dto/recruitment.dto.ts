@@ -172,3 +172,307 @@ export class RecruitmentWebhookDto {
   data?: any;
 }
 
+// ──────────────────────────────────────────────
+// Interview DTOs
+// ──────────────────────────────────────────────
+
+export class CreateInterviewDto {
+  @IsString()
+  @IsNotEmpty()
+  job_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  candidate_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  candidate_name: string;
+
+  @IsString()
+  @IsOptional()
+  candidate_email?: string;
+
+  @IsString()
+  @IsOptional()
+  interviewer_id?: string;
+
+  @IsString()
+  @IsOptional()
+  interviewer_name?: string;
+
+  @IsString()
+  @IsOptional()
+  interview_type?: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  scheduled_at: string;
+
+  @IsNumber()
+  @IsOptional()
+  duration_minutes?: number;
+
+  @IsString()
+  @IsOptional()
+  meeting_link?: string;
+
+  @IsString()
+  @IsOptional()
+  feedback?: string;
+
+  @IsNumber()
+  @IsOptional()
+  rating?: number;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+}
+
+export class UpdateInterviewDto {
+  @IsString()
+  @IsOptional()
+  feedback?: string;
+
+  @IsNumber()
+  @IsOptional()
+  rating?: number;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsDateString()
+  @IsOptional()
+  scheduled_at?: string;
+
+  @IsNumber()
+  @IsOptional()
+  duration_minutes?: number;
+
+  @IsString()
+  @IsOptional()
+  meeting_link?: string;
+
+  @IsString()
+  @IsOptional()
+  interview_type?: string;
+
+  @IsString()
+  @IsOptional()
+  interviewer_id?: string;
+
+  @IsString()
+  @IsOptional()
+  interviewer_name?: string;
+}
+
+export class FilterInterviewDto {
+  @IsString()
+  @IsOptional()
+  job_id?: string;
+
+  @IsString()
+  @IsOptional()
+  candidate_id?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsDateString()
+  @IsOptional()
+  start_date?: string;
+
+  @IsDateString()
+  @IsOptional()
+  end_date?: string;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+}
+
+// ──────────────────────────────────────────────
+// Offer DTOs
+// ──────────────────────────────────────────────
+
+export class CreateOfferDto {
+  @IsString()
+  @IsNotEmpty()
+  job_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  candidate_id: string;
+
+  @IsString()
+  @IsNotEmpty()
+  candidate_name: string;
+
+  @IsString()
+  @IsOptional()
+  candidate_email?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  position_title: string;
+
+  @IsString()
+  @IsOptional()
+  department?: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  offered_salary: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsDateString()
+  @IsOptional()
+  start_date?: string;
+
+  @IsDateString()
+  @IsOptional()
+  expiry_date?: string;
+
+  @IsString()
+  @IsOptional()
+  letter_content?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+}
+
+export class UpdateOfferStatusDto {
+  @IsString()
+  @IsNotEmpty()
+  status: string;
+
+  @IsString()
+  @IsOptional()
+  letter_content?: string;
+
+  @IsDateString()
+  @IsOptional()
+  signed_at?: string;
+}
+
+export class FilterOfferDto {
+  @IsString()
+  @IsOptional()
+  job_id?: string;
+
+  @IsString()
+  @IsOptional()
+  candidate_id?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+}
+
+// ──────────────────────────────────────────────
+// Conversion DTO
+// ──────────────────────────────────────────────
+
+export class ConvertCandidateToEmployeeDto {
+  @IsString()
+  @IsOptional()
+  job_id?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  first_name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  last_name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @IsOptional()
+  department?: string;
+
+  @IsString()
+  @IsOptional()
+  position_title?: string;
+
+  @IsDateString()
+  @IsOptional()
+  start_date?: string;
+
+  @IsNumber()
+  @IsOptional()
+  salary?: number;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+
+  @IsString()
+  @IsOptional()
+  template_id?: string;
+}
+
+// ──────────────────────────────────────────────
+// Reports Filter DTO
+// ──────────────────────────────────────────────
+
+export class RecruitmentReportsFilterDto {
+  @IsString()
+  @IsOptional()
+  job_id?: string;
+
+  @IsDateString()
+  @IsOptional()
+  start_date?: string;
+
+  @IsDateString()
+  @IsOptional()
+  end_date?: string;
+
+  @IsString()
+  @IsOptional()
+  company_id?: string;
+
+  @IsString()
+  @IsOptional()
+  branch_id?: string;
+}
+

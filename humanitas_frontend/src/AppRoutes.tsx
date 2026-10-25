@@ -166,6 +166,16 @@ function AppRoutes() {
             <Recruitment />
           </PermissionRoute>
         } />
+        <Route path="/hrms/recruitment" element={
+          <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
+            <Recruitment />
+          </PermissionRoute>
+        } />
+        <Route path="/hrms/recruitment/reports" element={
+          <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
+            <Recruitment />
+          </PermissionRoute>
+        } />
         <Route path="/recruitment/jobs/:jobId/leaderboard" element={
           <PermissionRoute module="recruitment" permissions={["manage_recruitment", "view_hrm_settings"]}>
             <Leaderboard />

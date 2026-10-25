@@ -26,6 +26,9 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   grievance_filed:           'manage_grievances',
   onboarding_review:         'manage_onboarding',
   task_assignment_alerts:    'manage_sprints',
+  recruitment_interview_scheduled: 'manage_recruitment',
+  recruitment_offer_generated:     'manage_recruitment',
+  recruitment_candidate_hired:     'manage_recruitment',
 
   // Admin level
   payroll_run_completed:   'run_payroll',

@@ -37,6 +37,9 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   device_offline_alert:      'Device Offline Alert',
   import_export_completed:   'Import/Export Job Completed',
   system_health_alert:       'System Health Alert',
+  recruitment_interview_scheduled: 'Interview Scheduled',
+  recruitment_offer_generated:     'Offer Letter Generated',
+  recruitment_candidate_hired:     'Candidate Hired & Onboarded',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -58,6 +61,9 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   device_offline_alert:      'When a biometric attendance device goes offline',
   import_export_completed:   'When a bulk import or export job finishes',
   system_health_alert:       'Critical system health and error notifications',
+  recruitment_interview_scheduled: 'Alert when a candidate interview is scheduled or rescheduled',
+  recruitment_offer_generated:     'Alert when a job offer letter is created or sent',
+  recruitment_candidate_hired:     'Alert when a candidate is hired and converted to an active employee',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -69,6 +75,7 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
   'Approvals & Management': [
     'leave_approval_requests', 'expense_approval_requests',
     'grievance_filed', 'onboarding_review', 'task_assignment_alerts',
+    'recruitment_interview_scheduled', 'recruitment_offer_generated', 'recruitment_candidate_hired',
   ],
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',

@@ -53,6 +53,9 @@ const Map<String, String> kNotificationCategoryLabels = {
   'device_offline_alert': 'Device Offline Alert',
   'import_export_completed': 'Import/Export Job Completed',
   'system_health_alert': 'System Health Alert',
+  'recruitment_interview_scheduled': 'Interview Scheduled',
+  'recruitment_offer_generated': 'Offer Letter Generated',
+  'recruitment_candidate_hired': 'Candidate Hired & Onboarded',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -70,6 +73,9 @@ const Map<String, String> kNotificationCategoryGroups = {
   'grievance_filed': 'Approvals & Management',
   'onboarding_review': 'Approvals & Management',
   'task_assignment_alerts': 'Approvals & Management',
+  'recruitment_interview_scheduled': 'Approvals & Management',
+  'recruitment_offer_generated': 'Approvals & Management',
+  'recruitment_candidate_hired': 'Approvals & Management',
   'payroll_run_completed': 'Admin & System',
   'device_offline_alert': 'Admin & System',
   'import_export_completed': 'Admin & System',

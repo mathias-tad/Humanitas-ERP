@@ -75,12 +75,20 @@ export class AgentToolRouterService {
           data_import: '/settings/import-export',
           csv_import: '/settings/import-export',
           data_export: '/settings/import-export',
+          recruitment: '/hrms/recruitment',
+          jobs: '/hrms/recruitment',
+          candidates: '/hrms/recruitment',
+          ats: '/hrms/recruitment',
+          interviews: '/hrms/recruitment',
+          offers: '/hrms/recruitment',
+          recruitment_reports: '/hrms/recruitment/reports',
+          hiring_funnel: '/hrms/recruitment/reports',
         };
         const destLower = destination.toLowerCase();
         
         for (const [key, path] of Object.entries(routes)) {
           if (destLower.includes(key)) {
-            return `The exact route to access ${key} is: ${path}`;
+            return `Web route for ${key}: ${path}.\nMobile app: Open the app menu or bottom navigation, select 'Recruitment & ATS' to access Job Openings, Candidate Pipeline, Scheduled Interviews, and Funnel Analytics.`;
           }
         }
         return `I couldn't find a specific route for "${destination}". The available core routes are: ${Object.values(routes).join(', ')}.`;

@@ -7,6 +7,7 @@ import {
   Body,
   Query,
   Param,
+  Headers,
   UseGuards,
   Req,
   Logger,
@@ -18,6 +19,7 @@ import { RecruitmentService } from './recruitment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import {
   CreateJobDto,
   UpdateJobDto,
@@ -29,18 +31,30 @@ import {
   ManageJobLinksDto,
   SubmitApplicationDto,
   RecruitmentWebhookDto,
+  CreateInterviewDto,
+  UpdateInterviewDto,
+  FilterInterviewDto,
+  CreateOfferDto,
+  UpdateOfferStatusDto,
+  FilterOfferDto,
+  ConvertCandidateToEmployeeDto,
+  RecruitmentReportsFilterDto,
 } from './dto/recruitment.dto';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
     sub: string;
     tenantSlug: string;
+    tenantId?: string;
+    tenant_id?: string;
     email: string;
     role: string;
+    company_id?: string;
+    companyId?: string;
+    branch_id?: string;
+    branchId?: string;
   };
 }
-
-import { RequireModule } from '../auth/guards/module-subscription.guard';
 
 @ApiTags('Recruitment')
 @Controller('recruitment')
@@ -49,6 +63,32 @@ export class RecruitmentController {
   private readonly logger = new Logger(RecruitmentController.name);
 
   constructor(private readonly recruitmentService: RecruitmentService) {}
+
+  private getTenantIdentifier(req: any, headerTenantId?: string): string {
+    return req.user?.tenantId || req.user?.tenant_id || headerTenantId || req.user?.tenantSlug;
+  }
+
+  private resolveScope(
+    req: any,
+    headerCompanyId?: string,
+    headerBranchId?: string,
+    queryCompanyId?: string,
+    queryBranchId?: string,
+  ) {
+    const company_id =
+      queryCompanyId ||
+      headerCompanyId ||
+      req.headers?.['x-company-id'] ||
+      req.user?.company_id ||
+      req.user?.companyId;
+    const branch_id =
+      queryBranchId ||
+      headerBranchId ||
+      req.headers?.['x-branch-id'] ||
+      req.user?.branch_id ||
+      req.user?.branchId;
+    return { company_id, branch_id };
+  }
 
   @Get('jobs')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -373,5 +413,223 @@ export class RecruitmentController {
 
     return this.recruitmentService.uploadPublicFile(token, formData);
   }
+
+  // ── INTERVIEW SCHEDULING & CALENDAR ──────────────────────────────────────────
+
+  @Get('interviews')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('view_recruitment', 'manage_recruitment')
+  @ApiOperation({ summary: 'List scheduled interviews with filters & multi-branch scope' })
+  async getInterviews(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Query('job_id') jobId?: string,
+    @Query('candidate_id') candidateId?: string,
+    @Query('status') status?: string,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, companyId, branchId);
+    return this.recruitmentService.getInterviews(tenantIdentifier, {
+      job_id: jobId,
+      candidate_id: candidateId,
+      status,
+      start_date: startDate,
+      end_date: endDate,
+      company_id: scope.company_id,
+      branch_id: scope.branch_id,
+    });
+  }
+
+  @Post('interviews')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('manage_recruitment')
+  @ApiOperation({ summary: 'Schedule an interview and notify participants' })
+  async createInterview(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Body() data: CreateInterviewDto,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, data.company_id, data.branch_id);
+    return this.recruitmentService.createInterview(tenantIdentifier, {
+      ...data,
+      company_id: scope.company_id,
+      branch_id: scope.branch_id,
+    });
+  }
+
+  @Put('interviews/:id')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('manage_recruitment')
+  @ApiOperation({ summary: 'Update interview status, rating, and feedback' })
+  async updateInterview(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Param('id') id: string,
+    @Body() data: UpdateInterviewDto,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    return this.recruitmentService.updateInterview(tenantIdentifier, id, data);
+  }
+
+  // ── OFFER LETTERS & DIGITAL ACCEPTANCE ─────────────────────────────────────
+
+  @Get('offers')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('view_recruitment', 'manage_recruitment')
+  @ApiOperation({ summary: 'List candidate offers' })
+  async getOffers(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Query('job_id') jobId?: string,
+    @Query('candidate_id') candidateId?: string,
+    @Query('status') status?: string,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, companyId, branchId);
+    return this.recruitmentService.getOffers(tenantIdentifier, {
+      job_id: jobId,
+      candidate_id: candidateId,
+      status,
+      company_id: scope.company_id,
+      branch_id: scope.branch_id,
+    });
+  }
+
+  @Post('offers')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('manage_recruitment')
+  @ApiOperation({ summary: 'Create and generate a candidate offer letter' })
+  async createOffer(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Body() data: CreateOfferDto,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, data.company_id, data.branch_id);
+    return this.recruitmentService.createOffer(
+      tenantIdentifier,
+      {
+        ...data,
+        company_id: scope.company_id,
+        branch_id: scope.branch_id,
+      },
+      req.user?.sub,
+    );
+  }
+
+  @Put('offers/:id/status')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('manage_recruitment')
+  @ApiOperation({ summary: 'Update offer status (sent, accepted, rejected, expired)' })
+  async updateOfferStatus(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Param('id') id: string,
+    @Body() data: UpdateOfferStatusDto,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    return this.recruitmentService.updateOfferStatus(tenantIdentifier, id, data);
+  }
+
+  // ── 1-CLICK CANDIDATE-TO-EMPLOYEE CONVERSION ──────────────────────────────
+
+  @Post('candidates/:candidateId/convert-to-employee')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('manage_recruitment')
+  @ApiOperation({ summary: '1-Click Candidate-to-Employee Conversion with Onboarding' })
+  async convertToEmployee(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Param('candidateId') candidateId: string,
+    @Body() data: ConvertCandidateToEmployeeDto,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, data.company_id, data.branch_id);
+    return this.recruitmentService.convertToEmployee(
+      tenantIdentifier,
+      candidateId,
+      {
+        ...data,
+        company_id: scope.company_id,
+        branch_id: scope.branch_id,
+      },
+      req.user?.sub,
+    );
+  }
+
+  // ── RECRUITMENT ANALYTICS & REPORTS ───────────────────────────────────────
+
+  @Get('reports/funnel')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('view_recruitment', 'manage_recruitment')
+  @ApiOperation({ summary: 'Get recruitment hiring funnel stage counts and conversion rates' })
+  async getFunnelReport(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Query('job_id') jobId?: string,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, companyId, branchId);
+    return this.recruitmentService.getFunnelReport(tenantIdentifier, {
+      job_id: jobId,
+      start_date: startDate,
+      end_date: endDate,
+      company_id: scope.company_id,
+      branch_id: scope.branch_id,
+    });
+  }
+
+  @Get('reports/analytics')
+  @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @RequirePermissions('view_recruitment', 'manage_recruitment')
+  @ApiOperation({ summary: 'Get recruitment KPIs: time to hire, cost per hire, and department breakdown' })
+  async getAnalyticsReport(
+    @Req() req: AuthenticatedRequest,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Headers('x-company-id') headerCompanyId: string,
+    @Headers('x-branch-id') headerBranchId: string,
+    @Query('company_id') companyId?: string,
+    @Query('branch_id') branchId?: string,
+  ) {
+    const tenantIdentifier = this.getTenantIdentifier(req, headerTenantId);
+    const scope = this.resolveScope(req, headerCompanyId, headerBranchId, companyId, branchId);
+    return this.recruitmentService.getAnalyticsReport(tenantIdentifier, {
+      company_id: scope.company_id,
+      branch_id: scope.branch_id,
+    });
+  }
 }
+
 

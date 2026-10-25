@@ -62,6 +62,8 @@ const TOOL_PERMISSION_MAP: Record<string, string[]> = {
   get_survey_analytics:      ['view_survey_results', 'view_surveys'],
   get_import_export_jobs:    ['view_import_export'],
   get_import_export_stats:   ['view_import_export'],
+  get_recruitment_funnel:    ['manage_recruitment', 'view_recruitment'],
+  get_recruitment_analytics: ['manage_recruitment', 'view_recruitment'],
 };
 
 @Injectable()
@@ -1395,6 +1397,56 @@ export class AiActionService {
       }
     );
 
+    const getRecruitmentFunnelTool = tool(
+      async () => {
+        try {
+          const { ds } = await getConn();
+          const interviews = await ds.query(`SELECT COUNT(*) as c FROM recruitment_interviews`);
+          const offers = await ds.query(`SELECT COUNT(*) as c, SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as hired FROM recruitment_offers`);
+          const intCount = parseInt(interviews[0]?.c || '0', 10);
+          const offCount = parseInt(offers[0]?.c || '0', 10);
+          const hiredCount = parseInt(offers[0]?.hired || '0', 10);
+          return `Recruitment & ATS Pipeline Overview:\n` +
+            `- Scheduled Interviews: ${intCount}\n` +
+            `- Offers Extended: ${offCount}\n` +
+            `- Hired Candidates: ${hiredCount}\n` +
+            `- Offer Acceptance Rate: ${offCount > 0 ? Math.round((hiredCount / offCount) * 100) : 0}%`;
+        } catch (err) {
+          return `Failed to fetch recruitment funnel: ${err.message}`;
+        }
+      },
+      {
+        name: 'get_recruitment_funnel',
+        description: 'Get hiring funnel metrics, interview counts, extended offers, and conversion statistics.',
+        schema: z.object({}),
+      }
+    );
+
+    const getRecruitmentAnalyticsTool = tool(
+      async () => {
+        try {
+          const { ds } = await getConn();
+          const rows = await ds.query(`
+            SELECT 
+              department, 
+              COUNT(*) as total_offers,
+              AVG(offered_salary) as avg_salary
+            FROM recruitment_offers
+            GROUP BY department
+          `);
+          return `Recruitment Department Breakdown:\n` +
+            (rows.length ? rows.map((r: any) => `- ${r.department || 'General'}: ${r.total_offers} offers (Avg Salary: $${Math.round(Number(r.avg_salary || 0))})`).join('\n') : 'No active department offers recorded yet.');
+        } catch (err) {
+          return `Failed to fetch recruitment analytics: ${err.message}`;
+        }
+      },
+      {
+        name: 'get_recruitment_analytics',
+        description: 'Get department-level recruitment salary averages and talent acquisition velocity.',
+        schema: z.object({}),
+      }
+    );
+
     // Build the full tool registry (name → tool instance)
     const allTools: Record<string, any> = {
       create_user:           createUserTool,
@@ -1444,6 +1496,8 @@ export class AiActionService {
       get_survey_analytics:      getSurveyAnalyticsTool,
       get_import_export_jobs:    getImportExportJobsTool,
       get_import_export_stats:   getImportExportStatsTool,
+      get_recruitment_funnel:    getRecruitmentFunnelTool,
+      get_recruitment_analytics: getRecruitmentAnalyticsTool,
     };
 
     // SECURITY: Return ONLY the tools the user is permitted to invoke.

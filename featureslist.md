@@ -6,7 +6,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## ðŸ“Š Overall Progress
 
-| **TOTAL** | **746** | **333** | **413** | **45%** |
+| **TOTAL** | **746** | **341** | **405** | **46%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 45 | 36 | 9 | 80% |
+| HRMS & Recruitment | 45 | 44 | 1 | 98% |
 | Project Management (PMS) | 28 | 16 | 12 | 57% |
 | Dynamic Approval Engine | 12 | 0 | 12 | 0% |
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 33 | 18 | 15 | 55% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **746** | **333** | **413** | **45%** |
+| **TOTAL** | **746** | **341** | **405** | **46%** |
 
 ---
 
@@ -395,13 +395,13 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Job Requisition creation with budget approval workflow.
   - [x] Job Postings management & public career portal page.
   - [x] Candidate Pipeline Kanban (`Applied` -> `Screening` -> `Interview` -> `Offer` -> `Hired` -> `Rejected`).
-  - [ ] Candidate Resume/CV storage, applicant scoring, and interview scheduling with calendar sync.
-  - [ ] Offer letter generation and digital acceptance workflow.
-  - [ ] **1-Click Candidate-to-Employee Conversion**: Auto-provisions employee profile, contract, and onboarding checklist upon hire.
-  - [ ] Recruitment Reports:
-    - [ ] Hiring funnel conversion rates (Applied -> Screened -> Interviewed -> Offered -> Hired).
-    - [ ] Time-to-hire and cost-per-hire analytics by department and role.
-    - [ ] Open vs. filled positions summary.
+  - [x] Candidate Resume/CV storage, applicant scoring, and interview scheduling with calendar sync.
+  - [x] Offer letter generation and digital acceptance workflow.
+  - [x] **1-Click Candidate-to-Employee Conversion**: Auto-provisions employee profile, contract, and onboarding checklist upon hire.
+  - [x] Recruitment Reports:
+    - [x] Hiring funnel conversion rates (Applied -> Screened -> Interviewed -> Offered -> Hired).
+    - [x] Time-to-hire and cost-per-hire analytics by department and role.
+    - [x] Open vs. filled positions summary.
 - [x] **Biometric & Mobile Attendance**:
   - [x] Integration with ZKTeco & Hikvision hardware biometric devices.
   - [x] Mobile Geofenced & QR Code Clock-In / Clock-Out with anti-spoofing checks.
@@ -422,7 +422,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Direct Bank Transfer export files (ABA, NACHA, local bank CSV formats).
 - [x] **HRMS Reports**:
   - [x] Headcount and demographic analysis (by department, gender, age band, tenure).
-  - [ ] Recruitment velocity & hiring funnel conversion report.
+  - [x] Recruitment velocity & hiring funnel conversion report.
   - [x] Attendance summary report (present, absent, late, early departure rates).
   - [x] Leave utilization report by type and department.
   - [x] Overtime cost analysis by department and period.
