@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsGateway } from './notifications.gateway';
+import { NOTIFICATION_CATEGORY_PERMISSION_MAP } from './dto/notification-preferences.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -29,6 +30,15 @@ export class NotificationsService {
                 );
                 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
                 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read);
+                CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL,
+                    category VARCHAR(100) NOT NULL,
+                    channel VARCHAR(10) NOT NULL DEFAULT 'both',
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE(user_id, category)
+                );
+                CREATE INDEX IF NOT EXISTS idx_notif_prefs_user ON user_notification_preferences(user_id);
             `);
             this.ensuredDatabases.add(dbName);
         } catch (err: any) {
@@ -189,4 +199,114 @@ export class NotificationsService {
 
         return [];
     }
+
+  async getNotificationPreferences(
+    tenantId: string,
+    userId: string,
+    userPermissions: string[],
+  ) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+
+    const saved = await connection.query(
+      `SELECT category, channel FROM user_notification_preferences WHERE user_id = $1`,
+      [userId],
+    );
+    const savedMap: Record<string, string> = {};
+    for (const row of saved) {
+      savedMap[row.category] = row.channel;
+    }
+
+    const result: { category: string; channel: string; required_permission: string | null }[] = [];
+    const isOwnerOrAdmin = userPermissions.includes('*');
+
+    for (const [category, requiredPermission] of Object.entries(NOTIFICATION_CATEGORY_PERMISSION_MAP)) {
+      const hasAccess =
+        requiredPermission === null ||
+        isOwnerOrAdmin ||
+        userPermissions.includes(requiredPermission);
+
+      if (hasAccess) {
+        result.push({
+          category,
+          channel: savedMap[category] || 'both',
+          required_permission: requiredPermission,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  async updateNotificationPreference(
+    tenantId: string,
+    userId: string,
+    category: string,
+    channel: string,
+    userPermissions: string[],
+  ) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+
+    const requiredPermission = NOTIFICATION_CATEGORY_PERMISSION_MAP[category];
+    if (requiredPermission === undefined) {
+      throw new Error(`Unknown notification category: ${category}`);
+    }
+
+    const isOwnerOrAdmin = userPermissions.includes('*');
+    const hasAccess =
+      requiredPermission === null ||
+      isOwnerOrAdmin ||
+      userPermissions.includes(requiredPermission);
+
+    if (!hasAccess) {
+      throw new Error(`You do not have permission for notification category: ${category}`);
+    }
+
+    await connection.query(
+      `INSERT INTO user_notification_preferences (user_id, category, channel, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (user_id, category) DO UPDATE SET channel = $3, updated_at = NOW()`,
+      [userId, category, channel],
+    );
+
+    return { success: true, category, channel };
+  }
+
+  async bulkUpdatePreferences(
+    tenantId: string,
+    userId: string,
+    preferences: { category: string; channel: string }[],
+    userPermissions: string[],
+  ) {
+    const results: any[] = [];
+    for (const pref of preferences) {
+      try {
+        const result = await this.updateNotificationPreference(
+          tenantId, userId, pref.category, pref.channel, userPermissions,
+        );
+        results.push(result);
+      } catch (err: any) {
+        results.push({ success: false, category: pref.category, error: err.message });
+      }
+    }
+    return results;
+  }
+
+  async getEffectiveChannel(
+    tenantId: string,
+    userId: string,
+    category: string,
+  ): Promise<string> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+
+    const result = await connection.query(
+      `SELECT channel FROM user_notification_preferences WHERE user_id = $1 AND category = $2`,
+      [userId, category],
+    );
+
+    return result[0]?.channel || 'both';
+  }
 }
+

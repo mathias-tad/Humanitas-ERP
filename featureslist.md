@@ -6,7 +6,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## ðŸ“Š Overall Progress
 
-| **TOTAL** | **692** | **268** | **424** | **39%** |
+| **TOTAL** | **746** | **333** | **413** | **45%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -22,7 +22,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Webhooks & Developer API | 16 | 0 | 16 | 0% |
 | Enterprise UI/UX | 23 | 18 | 5 | 78% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 38 | 6 | 32 | 16% |
+| AI Intelligence Module | 46 | 19 | 27 | 41% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | Document Vault & Letters | 19 | 9 | 10 | 47% |
 | Onboarding & Offboarding | 22 | 15 | 7 | 68% |
@@ -34,9 +34,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
 | Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
-| Notification Engine | 19 | 3 | 16 | 16% |
+| Notification Engine | 33 | 18 | 15 | 55% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **692** | **300** | **392** | **43%** |
+| **TOTAL** | **746** | **333** | **413** | **45%** |
 
 ---
 
@@ -577,14 +577,16 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [ ] Context-aware: AI knows which module the user is currently in and tailors responses accordingly.
 
 ### AI Action Executor
-- [ ] Receives natural language commands from the user.
-- [ ] Maps commands to system actions (create record, approve request, generate report, navigate to page).
-- [ ] **Permission enforcement**: Before executing any action, AI verifies the user has the required RBAC permissions. If not, AI explains what permissions are needed.
-- [ ] Action types supported:
-  - [ ] CRUD operations on any entity (Create employee, Update product price, Delete draft PO).
-  - [ ] Approval workflows (Approve leave request, Confirm purchase order).
-  - [ ] Report generation (Generate sales report for Q3, Run trial balance).
-  - [ ] Navigation assistance (Open the inventory settings page, Show me all overdue invoices).
+- [x] Receives natural language commands from the user.
+- [x] Maps commands to system actions (create record, approve request, generate report, navigate to page).
+- [x] **Permission enforcement (Two-Layer)**: AI verifies the user has both the AI capability tier permission (`use_ai`, `ai_actions`) AND the underlying RBAC business permission. Responds with explicit deny messages if either check fails.
+- [x] **Zero fake action confirmation**: AI only reports success after the action tool returns a confirmed result.
+- [x] **Strict zero-guessing**: AI always queries real database data; never fabricates or estimates any factual values.
+- [x] Action types supported:
+  - [x] CRUD operations on any entity (Create employee, Update product price, Delete draft PO).
+  - [x] Approval workflows (Approve leave request, Confirm purchase order).
+  - [x] Report generation (Generate sales report for Q3, Run trial balance).
+  - [x] Navigation assistance (Open the inventory settings page, Show me all overdue invoices).
 - [ ] Execution audit trail: All AI-executed actions are logged in the system audit log with `executed_by: 'ai_on_behalf'` and the originating user ID.
 
 ### AI Document Preparation Engine
@@ -894,8 +896,22 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Firebase Cloud Messaging (FCM) integration for Android push notifications.
   - [ ] Apple Push Notification Service (APNs) integration for iOS.
   - [ ] Push notification payload with action buttons (Approve/Reject for leave, View for payslips).
-- [ ] **User Notification Preferences**:
-  - [ ] Per-user configurable preferences: enable/disable per notification type, per channel (email, in-app, push).
+- [x] **User Notification Preferences**:
+  - [x] Per-user configurable preferences: per notification category, per channel (email, push, both, none).
+  - [x] `user_notification_preferences` PostgreSQL table with unique `(user_id, category)` constraint.
+  - [x] `GET /notifications/preferences` — returns permission-filtered categories + saved channels.
+  - [x] `PUT /notifications/preferences` — upsert single preference.
+  - [x] `PUT /notifications/preferences/bulk` — batch save all preference changes.
+  - [x] 18 notification categories mapped: 9 employee-level, 5 manager-level, 4 admin-level.
+  - [x] Permission-filtered: employees only see categories relevant to their role; admins see all.
+  - [x] `NotificationPreferencesPage.tsx` — grouped category matrix, channel pill selector, batch save.
+  - [x] Route `/settings/notifications` + redirect from `/notifications/preferences`.
+  - [x] Link from existing `NotificationSettings.tsx` to per-category page.
+  - [x] `useNotifications.ts` TanStack Query hook with `getAuthHeaders()`.
+  - [x] Flutter `NotificationSettingsScreen` — permission gate, grouped ListView, animated channel pills.
+  - [x] Flutter widget tests: 4/4 passing in both repos.
+  - [x] AI permission permissions seeded: `use_ai`, `ai_help`, `ai_documents`, `ai_actions`, `ai_full`, `view_notification_preferences`, `manage_notification_preferences`.
+  - [x] AI & Notification permissions in `AccessControl.tsx` (tenant-level capability management).
   - [ ] Notification digest mode: instant delivery vs. daily/weekly summary email.
 - [ ] **Notification Reports**:
   - [ ] Notification delivery rates and failure tracking by channel.

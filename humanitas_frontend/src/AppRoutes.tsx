@@ -59,6 +59,7 @@ import ExpensesPage from "./pages/hrms/ExpensesPage";
 import AssetsPage from "./pages/hrms/AssetsPage";
 import SurveysPage from "./pages/hrms/SurveysPage";
 import ImportExportPage from "./pages/settings/ImportExportPage";
+import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -470,6 +471,14 @@ function AppRoutes() {
         } />
         <Route path="/hrms/import-export" element={<Navigate to="/settings/import-export" replace />} />
         <Route path="/import-export" element={<Navigate to="/settings/import-export" replace />} />
+
+        {/* Notification Preferences */}
+        <Route path="/settings/notifications" element={
+          <PermissionRoute module="notifications" permissions={["view_notification_preferences"]}>
+            <NotificationPreferencesPage />
+          </PermissionRoute>
+        } />
+        <Route path="/notifications/preferences" element={<Navigate to="/settings/notifications" replace />} />
 
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
         <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />

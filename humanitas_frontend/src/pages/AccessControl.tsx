@@ -187,6 +187,17 @@ const permissions: Permission[] = [
 
   // Recruitment
   { id: "manage_recruitment", name: "manage_recruitment", label: "Manage Recruitment (Jobs & Candidates)", module: "Recruitment" },
+
+  // AI Intelligence Capability Gating
+  { id: "use_ai", name: "use_ai", label: "Use AI Assistant (Base Access)", module: "AI Intelligence" },
+  { id: "ai_help", name: "ai_help", label: "AI Help & Knowledge Base Queries", module: "AI Intelligence" },
+  { id: "ai_documents", name: "ai_documents", label: "AI Document Generation", module: "AI Intelligence" },
+  { id: "ai_actions", name: "ai_actions", label: "AI System Actions (Execute on Behalf)", module: "AI Intelligence" },
+  { id: "ai_full", name: "ai_full", label: "Full AI Suite (All Capabilities)", module: "AI Intelligence" },
+
+  // Notification Preferences
+  { id: "view_notification_preferences", name: "view_preferences", label: "View Notification Preferences", module: "Notifications" },
+  { id: "manage_notification_preferences", name: "manage_preferences", label: "Manage Notification Preferences (Admin)", module: "Notifications" },
 ];
 
 function AccessControl() {

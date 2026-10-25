@@ -204,6 +204,15 @@ export class RolesService {
       'manage_export',
       'rollback_import',
       'manage_export_schedules',
+      // AI Intelligence Permissions
+      'use_ai',
+      'ai_help',
+      'ai_documents',
+      'ai_actions',
+      'ai_full',
+      // Notification Preferences
+      'manage_notification_preferences',
+      'view_notification_preferences',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -235,6 +244,10 @@ export class RolesService {
       'manage_import',
       'rollback_import',
       'manage_export_schedules',
+      'ai_documents',
+      'ai_actions',
+      'ai_full',
+      'manage_notification_preferences',
     ];
 
     // Permissions allowed for Employee role
@@ -262,6 +275,9 @@ export class RolesService {
       'view_surveys',
       'participate_survey',
       'view_survey_results',
+      'use_ai',
+      'ai_help',
+      'view_notification_preferences',
     ];
 
     for (const permission of newPermissions) {
@@ -507,6 +523,15 @@ export class RolesService {
       'manage_benefits',
       'manage_enrollments',
       'view_benefit_reports',
+      // AI Intelligence
+      'use_ai',
+      'ai_help',
+      'ai_documents',
+      'ai_actions',
+      'ai_full',
+      // Notification Preferences
+      'manage_notification_preferences',
+      'view_notification_preferences',
     ];
 
     const managerPermissions = [
@@ -572,6 +597,9 @@ export class RolesService {
       'view_my_benefits',
       'manage_enrollments',
       'view_benefit_reports',
+      'use_ai',
+      'ai_help',
+      'view_notification_preferences',
     ];
 
     const employeePermissions = [
@@ -593,6 +621,9 @@ export class RolesService {
       'view_grievances',
       'view_benefit_plans',
       'view_my_benefits',
+      'use_ai',
+      'ai_help',
+      'view_notification_preferences',
     ];
 
     const defaultRoles = [
@@ -783,5 +814,31 @@ export class RolesService {
     // Handling JSONB array from DB which might be string or object array depending on driver
     const perms = Array.isArray(role.permissions) ? role.permissions : role.permissions;
     return perms.includes(permission);
+  }
+
+  /**
+   * Get all permissions for a specific user (by userId) from their role.
+   * Looks up the user's role_id then returns the role's permissions array.
+   */
+  async getPermissionsForUser(tenantSlug: string, userId: string): Promise<string[]> {
+    const databaseName = await this.getTenantDatabaseName(tenantSlug);
+    const connection = await this.databaseService.getTenantConnection(databaseName);
+    await this.ensureRolesTable(connection);
+
+    const result = await connection.query(
+      `SELECT r.permissions FROM roles r
+       INNER JOIN users u ON u.role_id = r.id
+       WHERE u.id = $1 AND r.is_active = true
+       LIMIT 1`,
+      [userId],
+    );
+
+    if (!result || !result[0]) return [];
+    const permissions = result[0].permissions;
+    if (Array.isArray(permissions)) return permissions;
+    if (typeof permissions === 'string') {
+      try { return JSON.parse(permissions); } catch { return []; }
+    }
+    return [];
   }
 }

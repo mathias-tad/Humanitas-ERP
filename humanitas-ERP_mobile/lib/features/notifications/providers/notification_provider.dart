@@ -1,18 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/models/notification_model.dart';
-import '../../../core/providers/providers.dart';
-import '../repositories/notification_repository.dart';
+import 'package:humanitas_erp_mobile/core/models/notification_model.dart';
+import 'package:humanitas_erp_mobile/core/providers/providers.dart';
+import 'package:humanitas_erp_mobile/features/notifications/models/notification_preference_model.dart';
+import 'package:humanitas_erp_mobile/features/notifications/repositories/notification_repository.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository(ref.watch(apiClientProvider));
+  final apiClient = ref.watch(apiClientProvider);
+  return NotificationRepository(apiClient);
 });
 
-final notificationsProvider =
-    StateNotifierProvider<NotificationsNotifier, AsyncValue<List<NotificationModel>>>((ref) {
+final notificationPreferencesProvider =
+    FutureProvider.autoDispose<List<NotificationPreferenceModel>>((ref) async {
+  final repo = ref.watch(notificationRepositoryProvider);
+  return repo.getPreferences();
+});
+
+final notificationsProvider = StateNotifierProvider<NotificationsNotifier,
+    AsyncValue<List<NotificationModel>>>((ref) {
   return NotificationsNotifier(ref.watch(notificationRepositoryProvider));
 });
 
-class NotificationsNotifier extends StateNotifier<AsyncValue<List<NotificationModel>>> {
+class NotificationsNotifier
+    extends StateNotifier<AsyncValue<List<NotificationModel>>> {
   final NotificationRepository _repo;
   NotificationsNotifier(this._repo) : super(const AsyncValue.loading()) {
     fetch();

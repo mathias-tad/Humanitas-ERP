@@ -5,10 +5,12 @@ import { NotificationsGateway } from './notifications.gateway';
 import { DatabaseModule } from '../database/database.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RolesModule } from '../roles/roles.module';
 
 @Module({
     imports: [
         DatabaseModule,
+        RolesModule,
         JwtModule.registerAsync({
             imports: [ConfigModule],
             useFactory: async (configService: ConfigService) => ({

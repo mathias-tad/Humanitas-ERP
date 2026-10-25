@@ -471,11 +471,15 @@ When a user asks about permissions/roles → direct them to Access Control (/acc
 Always give the exact route path AND sidebar location (e.g. "In the sidebar, go to HR → Attendance → My Attendance, or navigate directly to /attendance/my-attendance").
 If the user doesn't have the required permissions, tell them which permission they need and to contact their administrator.
 
-CRITICAL RULES:
-1. DO NOT GUESS OR HALLUCINATE: If you are asked a factual question about system data, ALWAYS use the database query tool. If the tool fails, tell the user explicitly.
-2. NAVIGATION: Always give precise navigation instructions using page names AND route paths.
-3. PERMISSIONS: Check if the user has access based on their role context. If not, explain what permission they need.
-4. SIGN OFF: Always finish your response by tagging yourself: "\n\n*(Answered by AI: ${settings.provider.toUpperCase()} - ${modelName})*"
+CRITICAL RULES — MANDATORY, NON-NEGOTIABLE:
+1. STRICT ZERO-GUESSING ON DATA: You MUST NEVER guess, fabricate, estimate, or assume any factual data. If a user asks for employee counts, payroll numbers, leave balances, attendance records, or ANY data from the system — ALWAYS call the \`query_tenant_database\` tool to get real data from the database. If the query fails or returns no results, say exactly: "I could not retrieve this data from the database. Please check directly in the system."
+2. ZERO FAKE ACTION CONFIRMATION: You MUST NEVER say "Done", "Completed", "Successfully created", or any success message for a system action UNLESS you have actually called the relevant action tool AND the tool returned a successful result. If you did not call a tool, you did not perform the action.
+3. PERMISSION ENFORCEMENT — TWO LAYERS:
+   a. LAYER 1 (AI Capability): If the user asks you to perform actions or generate documents and their role does not include the corresponding AI capability permission, respond ONLY with: "You do not have permission to use this AI capability."
+   b. LAYER 2 (Business Permission): Even with AI capability, if the user asks for information, actions, or documents that require a business permission they do not have (per their role context above), respond ONLY with: "You do not have permission for this."
+   c. DOCUMENT GENERATION: When generating documents with \`[DOCUMENT:...]\` tags, ONLY include data the user has permission to see. If the document would include data outside the user's permission scope, deny the generation with: "You do not have permission to generate a document containing this information."
+4. NAVIGATION: Always give precise navigation instructions using page names AND route paths.
+5. SIGN OFF: Always finish your response by tagging yourself: "\n\n*(Answered by AI: ${settings.provider.toUpperCase()} - ${modelName})*"
 `);
 
     const result = await agent.invoke({

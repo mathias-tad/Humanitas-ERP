@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { API_BASE_URL } from "@/config/api.config";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bell } from "lucide-react";
 
 interface NotificationSettingsData {
   email_notifications: string;
@@ -153,7 +153,7 @@ export function NotificationSettings({ disabled: _disabled = false }: Notificati
           </select>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex items-center justify-between">
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
             <>
@@ -164,6 +164,13 @@ export function NotificationSettings({ disabled: _disabled = false }: Notificati
             "Save Notification Settings"
           )}
         </Button>
+        <a
+          href="/settings/notifications"
+          className="text-sm text-primary hover:underline flex items-center gap-1"
+        >
+          <Bell className="h-3.5 w-3.5" />
+          Per-category preferences →
+        </a>
       </CardFooter>
     </Card>
   );

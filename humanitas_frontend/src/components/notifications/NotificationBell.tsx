@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Megaphone, Calendar } from 'lucide-react';
+import { Bell, Megaphone, Calendar, Settings } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL, SOCKET_URL } from '@/config/api.config';
@@ -359,6 +359,23 @@ export function NotificationBell() {
                                 )}
                             </ScrollArea>
                         </CardContent>
+                        <div className="border-t px-4 py-2 flex items-center justify-between">
+                            <a
+                                href="/notifications"
+                                className="text-xs text-primary hover:underline"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                View all notifications
+                            </a>
+                            <a
+                                href="/settings/notifications"
+                                className="text-xs text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <Settings className="h-3 w-3" />
+                                Preferences
+                            </a>
+                        </div>
                     </Card>
                 )}
             </div>
