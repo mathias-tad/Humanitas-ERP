@@ -4,11 +4,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## ðŸ“Š Overall Progress
-
 ## 📊 Overall Progress
 
-| **TOTAL** | **746** | **393** | **353** | **53%** |
+| Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -19,15 +17,15 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
 | HRMS & Recruitment | 45 | 44 | 1 | 98% |
-| Project Management (PMS) | 28 | 27 | 1 | 96% |
+| Project Management (PMS) | 28 | 28 | 0 | 100% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
-| Enterprise UI/UX | 23 | 23 | 0 | 100% |
+| Enterprise UI/UX | 30 | 25 | 5 | 83% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 46 | 23 | 23 | 50% |
+| AI Intelligence Module | 40 | 20 | 20 | 50% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | Document Vault & Letters | 19 | 19 | 0 | 100% |
-| Onboarding & Offboarding | 22 | 22 | 0 | 100% |
+| Onboarding & Offboarding | 22 | 21 | 1 | 95% |
 | Grievance & Complaints | 17 | 17 | 0 | 100% |
 | Benefits & Insurance | 17 | 17 | 0 | 100% |
 | Training & LMS | 22 | 22 | 0 | 100% |
@@ -36,10 +34,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
 | Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
-| Notification Engine | 33 | 33 | 0 | 100% |
+| Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **746** | **420** | **326** | **56%** |
-
+| **TOTAL** | **759** | **427** | **332** | **56%** |
 
 ---
 
@@ -505,7 +502,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 11. ðŸŽ¨ Modern Enterprise UI / UX Architecture
+## 11. 🎨 Modern Enterprise UI / UX Architecture
 
 - [x] **Design Language & Aesthetics**:
   - [x] Clean, high-performance, clutter-free design inspired by Microsoft Dynamics 365, SAP Fiori, and modern SaaS standards.
@@ -522,16 +519,24 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Keeps navigation focused purely on the active module, eliminating menu clutter.
 - [x] **Company & Branch Context Switcher**:
   - [x] Synchronized Company & Branch dropdown in navigation header; users with `view_all_companies` / `view_all_branches` can switch context freely.
-  - [x] Locked indicator (`Assigned Unit ðŸ”’`) auto-applied for users scoped to a single company/branch.
+  - [x] Locked indicator (`Assigned Unit 🔒`) auto-applied for users scoped to a single company/branch.
   - [x] Selected scope persisted in `localStorage` and restored on page reload with no visual flash.
   - [x] Switching scope instantly invalidates all cached queries so every data grid and KPI reflects the new company/branch without a manual refresh.
-- [x] **High-Density Enterprise Data Grids**:
-  - [x] Resizable and reorderable table columns.
-  - [x] Column pinning (freeze left/right), sorting, and multi-condition filtering.
-  - [x] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
-  - [x] Instant 1-click Export to CSV, Excel, and PDF.
+- [x] **Adaptive Navigation Layout Mode (Sidebar vs. Topbar)**:
+  - [x] User-level layout toggle between vertical sidebar/dock navigation and horizontal topbar navigation.
+  - [x] Option accessible directly from user profile dropdown menu next to "My Profile" and "Log out".
+  - [x] Preference persisted across sessions via `localStorage` (`user_navigation_layout`) with zero layout flicker.
+  - [x] Immediate reactive re-render via custom event `navigation-layout-changed` without requiring full browser reload.
+  - [x] Full horizontal topbar navbar (`TopbarModuleNavigation.tsx`) with primary module links and dynamic "More" overflow dropdown.
+  - [x] Parity in Humanitas (`TopbarNavigation.tsx`) and `EnterpriseLayout.tsx`.
+- [ ] **High-Density Enterprise Data Grids**:
+  - [ ] Resizable and reorderable table columns.
+  - [ ] Column pinning (freeze left/right), sorting, and multi-condition filtering.
+  - [ ] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
+  - [ ] Instant 1-click Export to CSV, Excel, and PDF.
 
 ---
+
 
 ## 12. ðŸ’³ Self-Service Subscription, Billing & Landing Page
 
@@ -916,6 +921,12 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] AI permission permissions seeded: `use_ai`, `ai_help`, `ai_documents`, `ai_actions`, `ai_full`, `view_notification_preferences`, `manage_notification_preferences`.
   - [x] AI & Notification permissions in `AccessControl.tsx` (tenant-level capability management).
   - [x] Notification digest mode: instant delivery vs. daily/weekly summary email.
+- [x] **Automated Employee Birthday Greetings & Colleague Celebration Alerts**:
+  - [x] Automated employee birthday greeting emails (`birthday-greeting.hbs` Handlebars template with brand styling and warm wishes).
+  - [x] Daily 8:00 AM celebration cron service (`BirthdayGreetingsCron` with scheduled dispatch).
+  - [x] Automated colleague celebration alert broadcasting (in-app, push, and notification feed alert to wish the employee a happy birthday).
+  - [x] Default active celebration settings with tenant-level deactivation toggle (`GET` / `PUT` `/notifications/settings/birthday`).
+  - [x] Birthday notification categories registered in notification preferences (`birthday_greeting`, `colleague_birthday_alert`) across web and mobile.
 - [x] **Notification Reports**:
   - [x] Notification delivery rates and failure tracking by channel.
   - [x] User notification preference distribution summary.
