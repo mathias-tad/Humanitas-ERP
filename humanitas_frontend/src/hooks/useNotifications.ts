@@ -14,6 +14,7 @@ export interface Notification {
   reference_id?: string;
   title: string;
   message?: string;
+  deep_link?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -250,3 +251,35 @@ export function useBulkUpdateNotificationPreferences() {
     },
   });
 }
+
+export interface DigestConfig {
+  mode: 'instant' | 'daily' | 'weekly';
+  digest_time: string;
+}
+
+export function useDigestConfig() {
+  return useQuery<DigestConfig>({
+    queryKey: ['notification-digest-config'],
+    queryFn: () => fetcher<DigestConfig>(`${API_BASE_URL}/notifications/digest-config`),
+  });
+}
+
+export function useUpdateDigestConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (config: { mode: string; digest_time?: string }) => {
+      const res = await fetch(`${API_BASE_URL}/notifications/digest-config`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      if (!res.ok) throw new Error('Failed to update digest config');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-digest-config'] });
+    },
+  });
+}
+

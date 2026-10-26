@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL, getAvatarUrl as generateAvatarUrl, getUploadUrl } from "@/config/api.config";
 import { Camera, Loader2, Trash2, FileText, Download, File } from "lucide-react";
+import { SignatureUploader } from "@/components/shared/SignatureUploader";
 
 interface AccountSettingsProps {
   disabled?: boolean;
@@ -809,6 +810,21 @@ export function AccountSettings({ disabled = false }: AccountSettingsProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Digital Signature Card */}
+      {user?.id && (
+        <Card>
+          <CardHeader>
+            <CardTitle>My Signature</CardTitle>
+            <CardDescription>
+              Your signature will appear on HR letters, contracts, and other documents generated for you.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SignatureUploader userId={user.id} label="Upload Your Signature" />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

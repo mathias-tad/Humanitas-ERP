@@ -21,6 +21,8 @@ import { Tenant } from '../auth/entities/tenant.entity';
 import { AiAnalyticsService } from './services/ai-analytics.service';
 import { AiActionService } from './services/ai-action.service';
 import { AiFileParserService } from './services/ai-file-parser.service';
+import { AiSettingsConfigService } from './ai-settings.service';
+import { AiSettingsController } from './ai-settings.controller';
 
 @Module({
   imports: [
@@ -32,7 +34,8 @@ import { AiFileParserService } from './services/ai-file-parser.service';
     AiDocumentController, 
     AiLifecycleController, 
     AiUsageController,
-    AiConversationController
+    AiConversationController,
+    AiSettingsController,
   ],
   providers: [
     AiService,
@@ -49,6 +52,7 @@ import { AiFileParserService } from './services/ai-file-parser.service';
     AiAnalyticsService,
     AiActionService,
     AiFileParserService,
+    AiSettingsConfigService,
   ],
   exports: [
     AiService, 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "822287956527",
+    "project_id": "humanitas-be2bf",
+    "storage_bucket": "humanitas-be2bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822287956527:android:acec58c596f4ad3f22e4da",
+        "android_client_info": {
+          "package_name": "com.humanitas.hrm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKzAl5LlAozLXW5-8y6FFkXSn4MwHpqWA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -46,6 +46,7 @@ import {
   Laptop,
   Smile,
   Code2,
+  PenLine,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -93,6 +94,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "Access Control", url: "/accesscontrol", icon: Key, permissions: ["view_roles"] },
         { title: "HR Reports", url: "/hrms/reports", icon: PieChart, permissions: ["view_hrms_reports"] },
         { title: "Document Vault", url: "/hrms/documents", icon: FileText, permissions: ["view_employee_documents", "view_my_documents"] },
+        { title: "E-Signature Settings", url: "/settings/esign", icon: PenLine, permissions: ["manage_documents", "manage_employee_documents"] },
         { title: "Onboarding", url: "/hrms/onboarding", icon: UserPlus, permissions: ["view_onboarding", "manage_onboarding"] },
         { title: "Grievances", url: "/hrms/grievances", icon: ShieldAlert, permissions: ["view_grievances", "manage_grievances", "file_grievance"] },
         { title: "Benefits & Insurance", url: "/hrms/benefits", icon: HeartPulse, permissions: ["view_benefit_plans", "view_my_benefits", "manage_benefits"] },
@@ -280,6 +282,7 @@ const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[]
         { title: "Access Control", url: "/accesscontrol", icon: Key },
         { title: "Approval Rules", url: "/settings/approvals", icon: GitPullRequest, permissions: ["manage_approval_rules"] },
         { title: "Developer API & Webhooks", url: "/settings/developer-api", icon: Code2, permissions: ["view_developer_api", "manage_developer_api"] },
+        { title: "E-Signature Settings", url: "/settings/esign", icon: PenLine, permissions: ["manage_documents", "manage_employee_documents"] },
         { title: "Appearance Settings", url: "/settings/appearance", icon: Settings },
       ],
     },

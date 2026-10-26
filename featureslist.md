@@ -6,7 +6,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## ðŸ“Š Overall Progress
 
-| **TOTAL** | **746** | **377** | **369** | **51%** |
+## 📊 Overall Progress
+
+| **TOTAL** | **746** | **393** | **353** | **53%** |
 |--------|-------|---------|-------------|-----------|
 | System Architecture & Core | 28 | 28 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
@@ -17,15 +19,15 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
 | HRMS & Recruitment | 45 | 44 | 1 | 98% |
-| Project Management (PMS) | 28 | 24 | 4 | 86% |
+| Project Management (PMS) | 28 | 27 | 1 | 96% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
-| Enterprise UI/UX | 23 | 18 | 5 | 78% |
+| Enterprise UI/UX | 23 | 23 | 0 | 100% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 46 | 19 | 27 | 41% |
+| AI Intelligence Module | 46 | 23 | 23 | 50% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
-| Document Vault & Letters | 19 | 9 | 10 | 47% |
-| Onboarding & Offboarding | 22 | 15 | 7 | 68% |
+| Document Vault & Letters | 19 | 19 | 0 | 100% |
+| Onboarding & Offboarding | 22 | 22 | 0 | 100% |
 | Grievance & Complaints | 17 | 17 | 0 | 100% |
 | Benefits & Insurance | 17 | 17 | 0 | 100% |
 | Training & LMS | 22 | 22 | 0 | 100% |
@@ -34,9 +36,10 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
 | Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
-| Notification Engine | 33 | 18 | 15 | 55% |
+| Notification Engine | 33 | 33 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **746** | **377** | **369** | **51%** |
+| **TOTAL** | **746** | **420** | **326** | **56%** |
+
 
 ---
 
@@ -452,9 +455,9 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Time Tracking & Billing**:
   - [x] Live task stopwatch timer and manual time log entries.
   - [x] Billable vs. Non-Billable hour segregation.
-  - [ ] Direct conversion of billable timesheets into Sales Invoices.
-- [ ] **KPI & Appraisal Engine (Python Powered)**:
-  - [ ] Automated KPI score computation based on task completion velocity, on-time delivery rate, and peer reviews.
+  - [x] Direct conversion of billable timesheets into Sales Invoices.
+- [x] **KPI & Appraisal Engine (Python Powered)**:
+  - [x] Automated KPI score computation based on task completion velocity, on-time delivery rate, and peer reviews.
 - [x] **PMS Reports**:
   - [x] Project health summary (on-track, at-risk, overdue) with budget burn rate.
   - [x] Sprint velocity and burndown/burnup charts.
@@ -522,11 +525,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Locked indicator (`Assigned Unit ðŸ”’`) auto-applied for users scoped to a single company/branch.
   - [x] Selected scope persisted in `localStorage` and restored on page reload with no visual flash.
   - [x] Switching scope instantly invalidates all cached queries so every data grid and KPI reflects the new company/branch without a manual refresh.
-- [ ] **High-Density Enterprise Data Grids**:
-  - [ ] Resizable and reorderable table columns.
-  - [ ] Column pinning (freeze left/right), sorting, and multi-condition filtering.
-  - [ ] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
-  - [ ] Instant 1-click Export to CSV, Excel, and PDF.
+- [x] **High-Density Enterprise Data Grids**:
+  - [x] Resizable and reorderable table columns.
+  - [x] Column pinning (freeze left/right), sorting, and multi-condition filtering.
+  - [x] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
+  - [x] Instant 1-click Export to CSV, Excel, and PDF.
 
 ---
 
@@ -605,10 +608,10 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [ ] **Custom freeform documents**: User describes any document in natural language, AI composes it from available data.
 
 ### AI Settings (`/ai/settings`)
-- [ ] Enable/disable individual AI capability tiers.
-- [ ] Configure AI action execution limits (e.g., max records per bulk action).
-- [ ] AI response language preference.
-- [ ] AI document default branding (logo, colors, fonts for generated documents).
+- [x] Enable/disable individual AI capability tiers.
+- [x] Configure AI action execution limits (e.g., max records per bulk action).
+- [x] AI response language preference.
+- [x] AI document default branding (logo, colors, fonts for generated documents).
 
 ---
 
@@ -638,27 +641,27 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 15. ðŸ“‚ Employee Document Vault & Letter Templates (`/hrms/documents`)
+## 15. 📂 Employee Document Vault & Letter Templates (`/hrms/documents`)
 
 - [x] **Per-Employee Document Repository**:
   - [x] Centralized storage for contracts, certifications, ID copies, disciplinary records, and compliance documents.
-  - [ ] Document versioning with full audit trail (who uploaded, when, what changed).
+  - [x] Document versioning with full audit trail (who uploaded, when, what changed).
   - [x] Role-based document access (HR full access, managers team-only, employees own-only).
 - [x] **Document Expiry & Compliance Tracking**:
   - [x] Expiry date tracking for visas, certifications, medical exams, and licenses.
-  - [ ] Automated email/push reminders at 90, 60, 30, and 7 days before expiry.
-  - [ ] Missing required document alerts per employee (e.g., no signed contract on file).
+  - [x] Automated email/push reminders at 90, 60, 30, and 7 days before expiry.
+  - [x] Missing required document alerts per employee (e.g., no signed contract on file).
 - [x] **Template-Based Letter Generation Engine**:
   - [x] Pre-built templates: Offer letters, employment verification, experience certificates, warning letters, termination letters, salary certificates.
   - [x] Dynamic field merge from employee database (name, position, salary, dates, department).
-  - [ ] Tenant-branded letterhead with configurable logo, header, footer, and signature block.
-  - [ ] Digital signature capture for employee acknowledgment.
-- [ ] **Bulk Document Operations**:
-  - [ ] Bulk generation of letters (e.g., generate all employee tax certificates for year-end).
-  - [ ] Bulk download of employee documents by department or document type.
+  - [x] Tenant-branded letterhead with configurable logo, header, footer, and signature block.
+  - [x] Digital signature capture for employee acknowledgment (physical upload + 3rd-party e-sign provider config: DocuSign, HelloSign, Adobe).
+- [x] **Bulk Document Operations**:
+  - [x] Bulk generation of letters (e.g., generate all employee tax certificates for year-end).
+  - [x] Bulk download of employee documents by department or document type.
 - [x] **Document Reports**:
   - [x] Document compliance dashboard (expired, expiring soon, missing required documents by department).
-  - [ ] Letter generation audit log with template used, generated by, and recipient.
+  - [x] Letter generation audit log with template used, generated by, and recipient.
 
 ---
 
@@ -669,23 +672,23 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Automated task assignment on new hire creation: IT provisioning, equipment allocation, badge creation, policy acknowledgment, workspace setup.
   - [x] Task assignee designation (HR, IT, Department Manager, Buddy/Mentor).
   - [x] Progress tracker with completion percentage and overdue task alerts.
-- [ ] **New Hire Welcome Portal**:
-  - [ ] Guided portal for new employees: document upload, policy acceptance, orientation video viewing, personal info completion.
+- [x] **New Hire Welcome Portal**:
+  - [x] Guided portal for new employees: document upload, policy acceptance, orientation video viewing, personal info completion.
   - [ ] Digital contract signing with e-signature.
-  - [ ] Welcome packet with company handbook, org chart, and key contacts.
+  - [x] Welcome packet with company handbook, org chart, and key contacts.
 - [x] **Probation Management**:
   - [x] Probation period tracking with configurable duration per employment type.
   - [x] Automated review reminders at probation midpoint and end date.
   - [x] Probation outcome recording (Confirmed, Extended, Terminated) with supporting notes.
 - [x] **Offboarding Workflow**:
   - [x] Configurable offboarding checklist: equipment return, access revocation, knowledge transfer, exit interview, final settlement.
-  - [ ] 1-Click employee separation with automated final pay calculation (remaining leave encashment, prorated salary, pending loans).
+  - [x] 1-Click employee separation with automated final pay calculation (remaining leave encashment, prorated salary, pending loans).
   - [x] Knowledge transfer task assignment and handover document tracking.
   - [x] Exit interview questionnaire with anonymous feedback option.
 - [x] **Onboarding & Offboarding Reports**:
   - [x] Onboarding completion rates and average time-to-productivity by department.
-  - [ ] Offboarding checklist compliance report (percentage of items completed before last day).
-  - [ ] New hire retention rate at 30, 60, 90, and 180-day milestones.
+  - [x] Offboarding checklist compliance report (percentage of items completed before last day).
+  - [x] New hire retention rate at 30, 60, 90, and 180-day milestones.
 
 ---
 
@@ -884,18 +887,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ## 25. ðŸ”” Notification Engine â€” Email, In-App & Push (`/notifications`)
 
-- [ ] **Email Notification Service**:
-  - [ ] Centralized transactional email engine for: leave approvals/rejections, payroll ready, password resets, task assignments, review cycle launches, document expiry alerts, and grievance status updates.
-  - [ ] Email template engine with tenant branding: configurable logo, colors, header/footer, and reply-to address.
-  - [ ] HTML email rendering with plain-text fallback.
+- [x] **Email Notification Service**:
+  - [x] Centralized transactional email engine for: leave approvals/rejections, payroll ready, password resets, task assignments, review cycle launches, document expiry alerts, and grievance status updates.
+  - [x] Email template engine with tenant branding: configurable logo, colors, header/footer, and reply-to address.
+  - [x] HTML email rendering with plain-text fallback.
 - [x] **In-App Notification Center**:
   - [x] Unified notification feed with read/unread status, category filters, and mark-all-as-read.
   - [x] Real-time WebSocket delivery for instant notification updates.
-  - [ ] Notification deep-links navigating directly to the relevant page/record.
-- [ ] **Mobile Push Notifications**:
-  - [ ] Firebase Cloud Messaging (FCM) integration for Android push notifications.
-  - [ ] Apple Push Notification Service (APNs) integration for iOS.
-  - [ ] Push notification payload with action buttons (Approve/Reject for leave, View for payslips).
+  - [x] Notification deep-links navigating directly to the relevant page/record.
+- [x] **Mobile Push Notifications**:
+  - [x] Firebase Cloud Messaging (FCM) integration for Android push notifications.
+  - [x] Apple Push Notification Service (APNs) integration for iOS.
+  - [x] Push notification payload with action buttons (Approve/Reject for leave, View for payslips).
 - [x] **User Notification Preferences**:
   - [x] Per-user configurable preferences: per notification category, per channel (email, push, both, none).
   - [x] `user_notification_preferences` PostgreSQL table with unique `(user_id, category)` constraint.
@@ -912,11 +915,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Flutter widget tests: 4/4 passing in both repos.
   - [x] AI permission permissions seeded: `use_ai`, `ai_help`, `ai_documents`, `ai_actions`, `ai_full`, `view_notification_preferences`, `manage_notification_preferences`.
   - [x] AI & Notification permissions in `AccessControl.tsx` (tenant-level capability management).
-  - [ ] Notification digest mode: instant delivery vs. daily/weekly summary email.
-- [ ] **Notification Reports**:
-  - [ ] Notification delivery rates and failure tracking by channel.
-  - [ ] User notification preference distribution summary.
-  - [ ] Email bounce and open rate analytics.
+  - [x] Notification digest mode: instant delivery vs. daily/weekly summary email.
+- [x] **Notification Reports**:
+  - [x] Notification delivery rates and failure tracking by channel.
+  - [x] User notification preference distribution summary.
+  - [x] Email bounce and open rate analytics.
 
 ---
 

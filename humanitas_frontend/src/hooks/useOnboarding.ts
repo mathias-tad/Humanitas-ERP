@@ -139,6 +139,50 @@ export interface OnboardingStats {
   upcoming_probation_reviews: number;
 }
 
+export interface WelcomeChecklist {
+  id?: string;
+  user_id: string;
+  onboarding_id?: string;
+  document_uploaded: boolean;
+  policy_accepted: boolean;
+  profile_completed: boolean;
+  orientation_viewed: boolean;
+  welcome_packet_viewed: boolean;
+  updated_at?: string;
+}
+
+export interface RetentionMetrics {
+  retained_30d: number;
+  retained_60d: number;
+  retained_90d: number;
+  retained_180d: number;
+  '30d'?: number;
+  '60d'?: number;
+  '90d'?: number;
+  '180d'?: number;
+  total: number;
+}
+
+export interface OffboardingComplianceRecord {
+  id: string;
+  user_id?: string;
+  employee_name: string;
+  last_working_day?: string;
+  status: string;
+  total_tasks: number;
+  completed_tasks: number;
+  compliance_pct: number;
+}
+
+export interface SeparationPreview {
+  employee: any;
+  remaining_leave_days: number;
+  leave_encashment: number;
+  pending_loans: number;
+  prorated_salary: number;
+  total_final_settlement: number;
+}
+
 async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     credentials: 'include',
@@ -222,6 +266,33 @@ export function useOnboarding() {
     useQuery<OnboardingStats>({
       queryKey: ['hrms-onboarding-stats', activeCompanyId, activeBranchId],
       queryFn: () => fetcher<OnboardingStats>(`${API_BASE_URL}/hrms/onboarding/stats`),
+    });
+
+  const useWelcomeChecklist = (userId: string | null) =>
+    useQuery<WelcomeChecklist>({
+      queryKey: ['hrms-welcome-checklist', userId],
+      queryFn: () => fetcher<WelcomeChecklist>(`${API_BASE_URL}/hrms/onboarding/welcome/${userId}`),
+      enabled: !!userId,
+    });
+
+  const useRetentionMetrics = () =>
+    useQuery<RetentionMetrics>({
+      queryKey: ['hrms-retention-metrics', activeCompanyId, activeBranchId],
+      queryFn: () => fetcher<RetentionMetrics>(`${API_BASE_URL}/hrms/onboarding/retention-metrics`),
+    });
+
+  const useOffboardingCompliance = () =>
+    useQuery<OffboardingComplianceRecord[]>({
+      queryKey: ['hrms-offboarding-compliance', activeCompanyId, activeBranchId],
+      queryFn: () =>
+        fetcher<OffboardingComplianceRecord[]>(`${API_BASE_URL}/hrms/offboarding/compliance-report`),
+    });
+
+  const useSeparationPreview = (userId: string | null) =>
+    useQuery<SeparationPreview>({
+      queryKey: ['hrms-separation-preview', userId],
+      queryFn: () => fetcher<SeparationPreview>(`${API_BASE_URL}/hrms/offboarding/separation-preview/${userId}`),
+      enabled: !!userId,
     });
 
   // Mutations
@@ -456,6 +527,59 @@ export function useOnboarding() {
     },
   });
 
+  const updateWelcomeChecklistMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      onboardingId,
+      updates,
+    }: {
+      userId: string;
+      onboardingId?: string;
+      updates: Record<string, boolean>;
+    }) => {
+      const res = await fetch(`${API_BASE_URL}/hrms/onboarding/welcome/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ onboarding_id: onboardingId, updates }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Failed to update welcome checklist' }));
+        throw new Error(err.message || 'Failed to update welcome checklist');
+      }
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['hrms-welcome-checklist', vars.userId] });
+      queryClient.invalidateQueries({ queryKey: ['hrms-onboarding-instances'] });
+    },
+  });
+
+  const execute1ClickSeparationMutation = useMutation({
+    mutationFn: async (data: { user_id: string }) => {
+      const res = await fetch(`${API_BASE_URL}/hrms/offboarding/1-click-separation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Failed to execute 1-click separation' }));
+        throw new Error(err.message || 'Failed to execute 1-click separation');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hrms-offboarding-instances'] });
+      queryClient.invalidateQueries({ queryKey: ['hrms-onboarding-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['hrms-offboarding-compliance'] });
+    },
+  });
+
   return {
     // Queries
     useTemplates,
@@ -465,6 +589,10 @@ export function useOnboarding() {
     useOffboardings,
     useOffboardingInstance,
     useOnboardingStats,
+    useWelcomeChecklist,
+    useRetentionMetrics,
+    useOffboardingCompliance,
+    useSeparationPreview,
 
     // Mutations
     startOnboarding: startOnboardingMutation.mutateAsync,
@@ -490,5 +618,11 @@ export function useOnboarding() {
 
     createTemplateItem: createTemplateItemMutation.mutateAsync,
     isCreatingTemplateItem: createTemplateItemMutation.isPending,
+
+    updateWelcomeChecklist: updateWelcomeChecklistMutation.mutateAsync,
+    isUpdatingWelcomeChecklist: updateWelcomeChecklistMutation.isPending,
+
+    execute1ClickSeparation: execute1ClickSeparationMutation.mutateAsync,
+    isExecuting1ClickSeparation: execute1ClickSeparationMutation.isPending,
   };
 }

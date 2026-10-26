@@ -10,6 +10,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { EmployeeCategory } from './entities/employee-category.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { HrmsOnboardingModule } from '../hrms-onboarding/hrms-onboarding.module';
 
 @Module({
   imports: [
@@ -17,9 +18,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     DatabaseModule,
     SettingsModule,
     NotificationsModule,
+    forwardRef(() => HrmsOnboardingModule),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, PermissionsGuard],
+  controllers: [UsersController, EmployeeCategoryController],
+  providers: [UsersService, EmployeeCategoryService, PermissionsGuard],
   exports: [UsersService],
 })
 export class UsersModule {

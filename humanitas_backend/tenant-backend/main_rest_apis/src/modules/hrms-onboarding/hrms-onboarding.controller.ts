@@ -233,4 +233,131 @@ export class HrmsOnboardingController {
     const userId = req.user?.id;
     return this.onboardingService.submitExitInterview(tenantId, dto, userId);
   }
+
+  // ── C1: Welcome Portal ────────────────────────────────────────────────────
+
+  @Get('onboarding/welcome-portal')
+  @RequirePermissions('view_onboarding')
+  async getWelcomeStatus(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Query('userId') userId?: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    const targetId = userId || req.user?.id;
+    return this.onboardingService.getWelcomePortalStatus(tenantId, targetId);
+  }
+
+  @Put('onboarding/welcome-portal/step')
+  @RequirePermissions('view_onboarding')
+  async updateWelcomeStep(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Body() body: { step: string; value: boolean; e_signature?: string },
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.updateWelcomePortalStep(
+      tenantId,
+      req.user?.id,
+      body.step,
+      body.value,
+      body.e_signature,
+    );
+  }
+
+  // ── C2: Reports ───────────────────────────────────────────────────────────
+
+  @Get('onboarding/reports/offboarding-compliance')
+  @RequirePermissions('view_onboarding')
+  async getOffboardingCompliance(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.getOffboardingComplianceReport(tenantId);
+  }
+
+  @Get('onboarding/reports/retention')
+  @RequirePermissions('view_onboarding')
+  async getRetentionReport(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.getNewHireRetentionReport(tenantId);
+  }
+
+  // ── PART 1B: WELCOME PORTAL, REPORTS & 1-CLICK SEPARATION ──────────────────
+
+  @Get('onboarding/welcome/:userId')
+  @RequirePermissions('view_onboarding')
+  async getWelcomeChecklist(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Param('userId') userId: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.getWelcomeChecklist(tenantId, userId);
+  }
+
+  @Put('onboarding/welcome/:userId')
+  @RequirePermissions('view_onboarding')
+  async updateWelcomeChecklist(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Param('userId') userId: string,
+    @Body() body: { onboarding_id?: string; updates: Record<string, boolean> },
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.updateWelcomeChecklist(
+      tenantId,
+      userId,
+      body.onboarding_id || '',
+      body.updates || {},
+    );
+  }
+
+  @Get('onboarding/retention-metrics')
+  @RequirePermissions('view_onboarding')
+  async getRetentionMetrics(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.getRetentionMetrics(tenantId);
+  }
+
+  @Get('offboarding/compliance-report')
+  @RequirePermissions('view_onboarding')
+  async getOffboardingComplianceReportEndpoint(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.getOffboardingComplianceReport(tenantId);
+  }
+
+  @Get('offboarding/separation-preview/:userId')
+  @RequirePermissions('manage_onboarding')
+  async get1ClickPreview(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Param('userId') userId: string,
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    return this.onboardingService.get1ClickSeparationPreview(tenantId, userId);
+  }
+
+  @Post('offboarding/1-click-separation')
+  @RequirePermissions('manage_onboarding')
+  async execute1ClickSeparation(
+    @Request() req: any,
+    @Headers('x-tenant-id') tenantIdHeader: string,
+    @Body() body: { user_id: string },
+  ) {
+    const tenantId = this.getTenantId(req, tenantIdHeader);
+    const initiatedBy = req.user?.id;
+    return this.onboardingService.execute1ClickSeparation(tenantId, body.user_id, initiatedBy);
+  }
 }
+

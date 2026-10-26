@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getAuthHeaders } from '@/context/AuthContext';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
 import { Button } from '@/components/ui/button';
@@ -19,10 +21,13 @@ import {
   Printer,
   Loader2,
   Check,
+  Layers,
+  History as HistoryIcon,
 } from 'lucide-react';
 import { useHrmsDocuments, type EmployeeDocument, type LetterTemplate } from '@/hooks/useHrmsDocuments';
 import { useUsers } from '@/hooks/useUsers';
 import { toast } from 'sonner';
+
 
 export default function HRDocumentsPage() {
   const {
@@ -41,7 +46,7 @@ export default function HRDocumentsPage() {
   const { data: usersData } = useUsers();
   const users = Array.isArray(usersData) ? usersData : [];
 
-  const [activeTab, setActiveTab] = useState<'vault' | 'letters' | 'expirations'>('vault');
+  const [activeTab, setActiveTab] = useState<'vault' | 'letters' | 'expirations' | 'bulk-generate' | 'audit-log'>('vault');
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -51,6 +56,17 @@ export default function HRDocumentsPage() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [verifyModalDoc, setVerifyModalDoc] = useState<EmployeeDocument | null>(null);
   const [previewDoc, setPreviewDoc] = useState<EmployeeDocument | null>(null);
+
+  // B5: Bulk Generate modal state
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkTemplateId, setBulkTemplateId] = useState('');
+  const [bulkEmployeeIds, setBulkEmployeeIds] = useState<string[]>([]);
+  const [bulkDept, setBulkDept] = useState('all');
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+
+  // B5: Version History slide-over state
+  const [versionDocId, setVersionDocId] = useState<string | null>(null);
+
 
   // Upload Form state
   const [uploadUserId, setUploadUserId] = useState('');
@@ -288,6 +304,30 @@ export default function HRDocumentsPage() {
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => setActiveTab('bulk-generate')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+            activeTab === 'bulk-generate'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>Bulk Generate</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('audit-log')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+            activeTab === 'audit-log'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <Clock className="h-4 w-4" />
+          <span>Letter Audit Log</span>
+        </button>
       </div>
 
       {/* TAB 1: Document Vault */}
@@ -450,6 +490,15 @@ export default function HRDocumentsPage() {
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setVersionDocId(doc.id)}
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                title="Version History"
+                              >
+                                <HistoryIcon className="h-3.5 w-3.5" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -928,6 +977,387 @@ export default function HRDocumentsPage() {
           </div>
         </div>
       )}
+
+      {/* B5: TAB 4 — Bulk Generate */}
+      {activeTab === 'bulk-generate' && (
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-bold text-foreground mb-1 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" /> Bulk Letter Generation
+            </h3>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-muted-foreground text-sm">
+                Select a letter template and employees, then generate letters for all of them at once.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBulkModalOpen(true)}
+                className="gap-1.5"
+              >
+                <Layers className="w-4 h-4" /> Open in Modal
+              </Button>
+            </div>
+
+            <div className="space-y-4 max-w-lg">
+              {/* Template picker */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Letter Template</label>
+                <select
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm"
+                  value={bulkTemplateId}
+                  onChange={(e) => setBulkTemplateId(e.target.value)}
+                >
+                  <option value="">— Select template —</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Department filter */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Filter by Department</label>
+                <select
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm"
+                  value={bulkDept}
+                  onChange={(e) => {
+                    setBulkDept(e.target.value);
+                    setBulkEmployeeIds([]);
+                  }}
+                >
+                  <option value="all">All Departments</option>
+                  {[...new Set(users.map((u: any) => u.department).filter(Boolean))].map((d) => (
+                    <option key={d as string} value={d as string}>{d as string}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Employee multi-select */}
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Employees ({bulkEmployeeIds.length} selected)
+                </label>
+                <div className="border border-input rounded-lg overflow-auto max-h-48 bg-background">
+                  {users
+                    .filter((u: any) => bulkDept === 'all' || u.department === bulkDept)
+                    .map((u: any) => (
+                      <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={bulkEmployeeIds.includes(u.id)}
+                          onChange={(e) =>
+                            setBulkEmployeeIds((prev) =>
+                              e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
+                            )
+                          }
+                        />
+                        {u.full_name || u.email}
+                        {u.department && <span className="text-xs text-muted-foreground ml-auto">{u.department}</span>}
+                      </label>
+                    ))}
+                </div>
+                <button
+                  onClick={() => {
+                    const filtered = users
+                      .filter((u: any) => bulkDept === 'all' || u.department === bulkDept)
+                      .map((u: any) => u.id);
+                    setBulkEmployeeIds(filtered);
+                  }}
+                  className="mt-1 text-xs text-primary hover:underline"
+                >
+                  Select all in department
+                </button>
+              </div>
+
+              <Button
+                disabled={!bulkTemplateId || bulkEmployeeIds.length === 0 || bulkGenerating}
+                onClick={async () => {
+                  setBulkGenerating(true);
+                  try {
+                    const API = import.meta.env.VITE_API_URL || '';
+                    const res = await fetch(`${API}/hrms/documents/bulk-generate`, {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                      body: JSON.stringify({ template_id: bulkTemplateId, employee_ids: bulkEmployeeIds }),
+                    });
+                    const data = await res.json();
+                    toast.success(`Generated ${data.generated} letters${data.errors?.length ? `, ${data.errors.length} errors` : ''}`);
+                    if (data.errors?.length) {
+                      data.errors.forEach((e: string) => toast.error(e, { duration: 5000 }));
+                    }
+                    setBulkEmployeeIds([]);
+                    setActiveTab('audit-log');
+                  } catch {
+                    toast.error('Bulk generation failed');
+                  } finally {
+                    setBulkGenerating(false);
+                  }
+                }}
+              >
+                {bulkGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Layers className="w-4 h-4 mr-2" />}
+                Generate {bulkEmployeeIds.length > 0 ? `${bulkEmployeeIds.length} Letters` : 'Letters'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* B5: TAB 5 — Letter Audit Log */}
+      {activeTab === 'audit-log' && <LetterAuditLogTab />}
+
+      {/* B5: Bulk Generate Modal Dialog */}
+      {bulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" /> Bulk Letter Generator
+              </h3>
+              <button
+                onClick={() => setBulkModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Letter Template</label>
+                <select
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm"
+                  value={bulkTemplateId}
+                  onChange={(e) => setBulkTemplateId(e.target.value)}
+                >
+                  <option value="">— Select template —</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">Filter by Department</label>
+                <select
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2 text-sm"
+                  value={bulkDept}
+                  onChange={(e) => {
+                    setBulkDept(e.target.value);
+                    setBulkEmployeeIds([]);
+                  }}
+                >
+                  <option value="all">All Departments</option>
+                  {[...new Set(users.map((u: any) => u.department).filter(Boolean))].map((d) => (
+                    <option key={d as string} value={d as string}>{d as string}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                  Employees ({bulkEmployeeIds.length} selected)
+                </label>
+                <div className="border border-input rounded-lg overflow-auto max-h-48 bg-background">
+                  {users
+                    .filter((u: any) => bulkDept === 'all' || u.department === bulkDept)
+                    .map((u: any) => (
+                      <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted cursor-pointer text-sm">
+                        <input
+                          type="checkbox"
+                          checked={bulkEmployeeIds.includes(u.id)}
+                          onChange={(e) =>
+                            setBulkEmployeeIds((prev) =>
+                              e.target.checked ? [...prev, u.id] : prev.filter((id) => id !== u.id)
+                            )
+                          }
+                        />
+                        {u.full_name || u.email}
+                        {u.department && <span className="text-xs text-muted-foreground ml-auto">{u.department}</span>}
+                      </label>
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const filtered = users
+                      .filter((u: any) => bulkDept === 'all' || u.department === bulkDept)
+                      .map((u: any) => u.id);
+                    setBulkEmployeeIds(filtered);
+                  }}
+                  className="mt-1 text-xs text-primary hover:underline"
+                >
+                  Select all in department
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <Button variant="outline" size="sm" onClick={() => setBulkModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                disabled={!bulkTemplateId || bulkEmployeeIds.length === 0 || bulkGenerating}
+                onClick={async () => {
+                  setBulkGenerating(true);
+                  try {
+                    const API = import.meta.env.VITE_API_URL || '';
+                    const res = await fetch(`${API}/hrms/letters/generate-bulk`, {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                      body: JSON.stringify({ template_id: bulkTemplateId, employee_ids: bulkEmployeeIds }),
+                    });
+                    const data = await res.json();
+                    toast.success(`Generated ${data.generated ?? 0} letters${data.errors?.length ? `, ${data.errors.length} errors` : ''}`);
+                    if (data.errors?.length) {
+                      data.errors.forEach((e: string) => toast.error(e, { duration: 5000 }));
+                    }
+                    setBulkEmployeeIds([]);
+                    setBulkModalOpen(false);
+                    setActiveTab('audit-log');
+                  } catch {
+                    toast.error('Bulk generation failed');
+                  } finally {
+                    setBulkGenerating(false);
+                  }
+                }}
+              >
+                {bulkGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Layers className="w-4 h-4 mr-2" />}
+                Generate {bulkEmployeeIds.length > 0 ? `${bulkEmployeeIds.length} Letters` : 'Letters'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* B5: Version History Slide-over */}
+      {versionDocId && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setVersionDocId(null)} />
+          <div className="relative w-full max-w-sm bg-card border-l border-border h-full overflow-auto p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-foreground flex items-center gap-2">
+                <HistoryIcon className="w-4 h-4 text-primary" /> Version History
+              </h3>
+              <button onClick={() => setVersionDocId(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+            <VersionHistoryPanel documentId={versionDocId} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── B5: Sub-components ────────────────────────────────────────────────────────
+
+function LetterAuditLogTab() {
+  const API = import.meta.env.VITE_API_URL || '';
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ['letter-audit-log'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const res = await fetch(`${API}/hrms/letters/audit-log`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) {
+        const fallback = await fetch(`${API}/hrms/documents/letter-audit-log`, {
+          credentials: 'include',
+          headers: getAuthHeaders(),
+        });
+        return fallback.json();
+      }
+      return res.json();
+    },
+  });
+
+  const rows = Array.isArray(logs) ? logs : [];
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="p-4 border-b border-border flex items-center gap-2">
+        <Clock className="w-5 h-5 text-primary" />
+        <h3 className="font-bold text-foreground">Letter Generation Audit Log</h3>
+        <span className="ml-auto text-xs text-muted-foreground">{rows.length} records</span>
+      </div>
+      {isLoading ? (
+        <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>
+      ) : rows.length === 0 ? (
+        <div className="p-8 text-center text-muted-foreground text-sm">No generated letters yet.</div>
+      ) : (
+        <div className="overflow-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Document Title</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Template</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">For Employee</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Generated By</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: any) => (
+                <tr key={row.id} className="border-t border-border/50 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-medium text-foreground">{row.document_title || row.title}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.template_name || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.generated_for_name || row.employee_name || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.generated_by_name || 'System'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {row.generated_at ? new Date(row.generated_at).toLocaleString() : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VersionHistoryPanel({ documentId }: { documentId: string }) {
+  const API = import.meta.env.VITE_API_URL || '';
+  const { data, isLoading } = useQuery({
+    queryKey: ['doc-versions', documentId],
+    queryFn: async () => {
+      const res = await fetch(`${API}/hrms/documents/${documentId}/versions`, {
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+      return res.json();
+    },
+  });
+
+  const versions = Array.isArray(data) ? data : [];
+
+  if (isLoading) return <div className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>;
+  if (versions.length === 0) return <p className="text-muted-foreground text-sm">No versions yet.</p>;
+
+  return (
+    <div className="space-y-3">
+      {versions.map((v: any) => (
+        <div key={v.id} className="border border-border rounded-lg p-3 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-primary">Version {v.version_number}</span>
+            <span className="text-xs text-muted-foreground">
+              {v.created_at ? new Date(v.created_at).toLocaleDateString() : ''}
+            </span>
+          </div>
+          {v.change_notes && <p className="text-xs text-foreground mt-1">{v.change_notes}</p>}
+          <p className="text-xs text-muted-foreground mt-0.5">By {v.uploaded_by_name || 'Unknown'}</p>
+          {v.file_url && (
+            <a href={v.file_url} target="_blank" rel="noopener noreferrer"
+               className="text-xs text-primary hover:underline mt-1 block">
+              Download this version
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

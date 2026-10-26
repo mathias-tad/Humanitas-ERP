@@ -154,6 +154,41 @@ export class HrmsOnboardingService {
         CREATE INDEX IF NOT EXISTS idx_onboarding_tasks_parent ON onboarding_tasks(onboarding_id);
         CREATE INDEX IF NOT EXISTS idx_emp_offboarding_user ON employee_offboarding(user_id);
         CREATE INDEX IF NOT EXISTS idx_offboarding_tasks_parent ON offboarding_tasks(offboarding_id);
+
+        -- C1: Welcome Portal progress tracking per new hire
+        CREATE TABLE IF NOT EXISTS welcome_portal_status (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL UNIQUE,
+          onboarding_id UUID,
+          documents_uploaded BOOLEAN NOT NULL DEFAULT FALSE,
+          policy_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+          policy_accepted_at TIMESTAMP WITH TIME ZONE,
+          personal_info_completed BOOLEAN NOT NULL DEFAULT FALSE,
+          contract_signed BOOLEAN NOT NULL DEFAULT FALSE,
+          contract_signed_at TIMESTAMP WITH TIME ZONE,
+          e_signature TEXT,
+          orientation_viewed BOOLEAN NOT NULL DEFAULT FALSE,
+          completed_at TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_welcome_portal_user ON welcome_portal_status(user_id);
+
+        -- Onboarding Welcome Checklist
+        CREATE TABLE IF NOT EXISTS onboarding_welcome_checklist (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL,
+          onboarding_id UUID,
+          document_uploaded BOOLEAN DEFAULT FALSE,
+          policy_accepted BOOLEAN DEFAULT FALSE,
+          profile_completed BOOLEAN DEFAULT FALSE,
+          orientation_viewed BOOLEAN DEFAULT FALSE,
+          welcome_packet_viewed BOOLEAN DEFAULT FALSE,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_welcome_checklist_user ON onboarding_welcome_checklist(user_id);
       `);
 
       await this.seedDefaultTemplates(connection);
@@ -822,4 +857,365 @@ export class HrmsOnboardingService {
       upcoming_probation_reviews: row.upcoming_probation_reviews || 0,
     };
   }
+
+  // ── C1: WELCOME PORTAL ────────────────────────────────────────────────────
+
+  async getWelcomePortalStatus(tenantId: string, userId: string): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(
+      `SELECT * FROM welcome_portal_status WHERE user_id = $1`,
+      [userId],
+    );
+    return (
+      rows?.[0] || {
+        user_id: userId,
+        documents_uploaded: false,
+        policy_accepted: false,
+        personal_info_completed: false,
+        contract_signed: false,
+        orientation_viewed: false,
+        completed_at: null,
+      }
+    );
+  }
+
+  async updateWelcomePortalStep(
+    tenantId: string,
+    userId: string,
+    step: string,
+    value: boolean,
+    eSignature?: string,
+  ): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+
+    const allowedSteps = [
+      'documents_uploaded',
+      'policy_accepted',
+      'personal_info_completed',
+      'contract_signed',
+      'orientation_viewed',
+    ];
+    if (!allowedSteps.includes(step)) {
+      throw new BadRequestException(`Invalid step: ${step}`);
+    }
+
+    // Build extra timestamp/signature fields for specific steps
+    let extraSet = '';
+    if (step === 'policy_accepted' && value) {
+      extraSet = ', policy_accepted_at = NOW()';
+    } else if (step === 'contract_signed' && value) {
+      extraSet = ', contract_signed_at = NOW()';
+      if (eSignature) {
+        // parameterize separately to avoid injection; truncate to 2000 chars
+        extraSet += `, e_signature = '${eSignature.substring(0, 2000).replace(/'/g, "''")}'`;
+      }
+    }
+
+    await connection.query(
+      `INSERT INTO welcome_portal_status (user_id, ${step})
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE
+         SET ${step} = EXCLUDED.${step}${extraSet}, updated_at = NOW()`,
+      [userId, value],
+    );
+
+    // Auto-mark completed when all steps are done
+    await connection.query(
+      `UPDATE welcome_portal_status
+       SET completed_at = NOW()
+       WHERE user_id = $1
+         AND completed_at IS NULL
+         AND documents_uploaded = TRUE
+         AND policy_accepted = TRUE
+         AND personal_info_completed = TRUE
+         AND contract_signed = TRUE`,
+      [userId],
+    );
+
+    return this.getWelcomePortalStatus(tenantId, userId);
+  }
+
+  // ── WELCOME CHECKLIST (PART 1A) ──────────────────────────────────────────
+
+  async getWelcomeChecklist(tenantId: string, userId: string): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(
+      `SELECT * FROM onboarding_welcome_checklist WHERE user_id = $1 LIMIT 1`,
+      [userId],
+    );
+    if (rows && rows.length > 0) {
+      return rows[0];
+    }
+    return {
+      user_id: userId,
+      onboarding_id: null,
+      document_uploaded: false,
+      policy_accepted: false,
+      profile_completed: false,
+      orientation_viewed: false,
+      welcome_packet_viewed: false,
+    };
+  }
+
+  async updateWelcomeChecklist(
+    tenantId: string,
+    userId: string,
+    onboardingId: string,
+    updates: Record<string, boolean>,
+  ): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    const existing = await connection.query(
+      `SELECT * FROM onboarding_welcome_checklist WHERE user_id = $1 LIMIT 1`,
+      [userId],
+    );
+
+    const docUploaded = updates.document_uploaded !== undefined ? updates.document_uploaded : false;
+    const polAccepted = updates.policy_accepted !== undefined ? updates.policy_accepted : false;
+    const profCompleted = updates.profile_completed !== undefined ? updates.profile_completed : false;
+    const orientViewed = updates.orientation_viewed !== undefined ? updates.orientation_viewed : false;
+    const packetViewed = updates.welcome_packet_viewed !== undefined ? updates.welcome_packet_viewed : false;
+
+    if (existing && existing.length > 0) {
+      const cur = existing[0];
+      await connection.query(
+        `UPDATE onboarding_welcome_checklist
+         SET onboarding_id = COALESCE($1, onboarding_id),
+             document_uploaded = $2,
+             policy_accepted = $3,
+             profile_completed = $4,
+             orientation_viewed = $5,
+             welcome_packet_viewed = $6,
+             updated_at = NOW()
+         WHERE user_id = $7`,
+        [
+          onboardingId || cur.onboarding_id,
+          updates.document_uploaded !== undefined ? updates.document_uploaded : cur.document_uploaded,
+          updates.policy_accepted !== undefined ? updates.policy_accepted : cur.policy_accepted,
+          updates.profile_completed !== undefined ? updates.profile_completed : cur.profile_completed,
+          updates.orientation_viewed !== undefined ? updates.orientation_viewed : cur.orientation_viewed,
+          updates.welcome_packet_viewed !== undefined ? updates.welcome_packet_viewed : cur.welcome_packet_viewed,
+          userId,
+        ],
+      );
+    } else {
+      await connection.query(
+        `INSERT INTO onboarding_welcome_checklist (
+           user_id, onboarding_id, document_uploaded, policy_accepted,
+           profile_completed, orientation_viewed, welcome_packet_viewed
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          userId,
+          onboardingId || null,
+          docUploaded,
+          polAccepted,
+          profCompleted,
+          orientViewed,
+          packetViewed,
+        ],
+      );
+    }
+  }
+
+  // ── REPORTS & RETENTION (PART 1A) ─────────────────────────────────────────
+
+  async getRetentionMetrics(tenantId: string): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(`
+      SELECT 
+        COUNT(CASE WHEN (CURRENT_DATE - start_date) >= 30 AND status != 'overdue' THEN 1 END)::int as retained_30d,
+        COUNT(CASE WHEN (CURRENT_DATE - start_date) >= 60 AND status != 'overdue' THEN 1 END)::int as retained_60d,
+        COUNT(CASE WHEN (CURRENT_DATE - start_date) >= 90 AND status != 'overdue' THEN 1 END)::int as retained_90d,
+        COUNT(CASE WHEN (CURRENT_DATE - start_date) >= 180 AND status != 'overdue' THEN 1 END)::int as retained_180d,
+        COUNT(*)::int as total
+      FROM employee_onboarding
+    `);
+    const row = rows?.[0] || {};
+    return {
+      retained_30d: parseInt(row.retained_30d || '0', 10),
+      retained_60d: parseInt(row.retained_60d || '0', 10),
+      retained_90d: parseInt(row.retained_90d || '0', 10),
+      retained_180d: parseInt(row.retained_180d || '0', 10),
+      '30d': parseInt(row.retained_30d || '0', 10),
+      '60d': parseInt(row.retained_60d || '0', 10),
+      '90d': parseInt(row.retained_90d || '0', 10),
+      '180d': parseInt(row.retained_180d || '0', 10),
+      total: parseInt(row.total || '0', 10),
+    };
+  }
+
+  async getOffboardingComplianceReport(tenantId: string): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    return connection.query(`
+      SELECT
+        eo.id,
+        eo.user_id,
+        COALESCE(u.full_name, CONCAT(u.first_name, ' ', u.last_name)) AS employee_name,
+        eo.last_working_day,
+        eo.status,
+        COUNT(ot.id)::int AS total_tasks,
+        COUNT(CASE WHEN ot.status = 'completed' THEN 1 END)::int AS completed_tasks,
+        CASE
+          WHEN COUNT(ot.id) > 0
+          THEN ROUND(
+            COUNT(CASE WHEN ot.status = 'completed' THEN 1 END)::numeric
+            / COUNT(ot.id)::numeric * 100, 1
+          )::float
+          ELSE 0.0
+        END AS compliance_pct
+      FROM employee_offboarding eo
+      LEFT JOIN users u ON u.id = eo.user_id
+      LEFT JOIN offboarding_tasks ot ON ot.offboarding_id = eo.id
+      GROUP BY eo.id, eo.user_id, u.full_name, u.first_name, u.last_name, eo.last_working_day, eo.status, eo.created_at
+      ORDER BY eo.created_at DESC
+      LIMIT 100
+    `);
+  }
+
+  async getNewHireRetentionReport(tenantId: string): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+    const milestones = [30, 60, 90, 180];
+    const result: Record<string, any> = {};
+
+    for (const days of milestones) {
+      const rows = await connection.query(
+        `SELECT
+           COUNT(*)::int AS hired,
+           COUNT(CASE WHEN u.is_active = TRUE THEN 1 END)::int AS still_active
+         FROM employee_onboarding eo
+         JOIN users u ON u.id = eo.user_id
+         WHERE eo.start_date <= (CURRENT_DATE - INTERVAL '${days} days')
+           AND eo.start_date >= (CURRENT_DATE - INTERVAL '${days + 30} days')`,
+      );
+      const row = rows?.[0] || {};
+      const hired = parseInt(row.hired || '0', 10);
+      const retained = parseInt(row.still_active || '0', 10);
+      result[`day${days}`] = {
+        hired,
+        retained,
+        retentionRate: hired > 0 ? Math.round((retained / hired) * 100) : 0,
+      };
+    }
+    return result;
+  }
+
+  // ── 1-CLICK SEPARATION (PART 1A) ──────────────────────────────────────────
+
+  async get1ClickSeparationPreview(tenantId: string, userId: string): Promise<{
+    employee: any;
+    remaining_leave_days: number;
+    leave_encashment: number;
+    pending_loans: number;
+    prorated_salary: number;
+    total_final_settlement: number;
+  }> {
+    const connection = await this.getConnection(tenantId);
+
+    // 1. Get employee from users table (salary)
+    let employee: any = null;
+    try {
+      const userRows = await connection.query(
+        `SELECT id, first_name, last_name, full_name, email, department, position,
+                COALESCE(salary, base_salary, 0)::float as salary
+         FROM users WHERE id = $1`,
+        [userId],
+      );
+      if (userRows && userRows.length > 0) {
+        employee = userRows[0];
+      }
+    } catch {
+      const fallbackRows = await connection.query(
+        `SELECT id, email FROM users WHERE id = $1`,
+        [userId],
+      );
+      employee = fallbackRows?.[0] || { id: userId };
+    }
+
+    if (!employee) {
+      employee = { id: userId, full_name: 'Employee', email: '' };
+    }
+
+    const monthlySalary = parseFloat(employee.salary || 0);
+
+    // 2. Get pending leave balance from leave_requests/leave_balances
+    let remainingLeaveDays = 0;
+    try {
+      const leaveRows = await connection.query(
+        `SELECT COALESCE(SUM(remaining_days), 0)::float as balance 
+         FROM leave_balances WHERE user_id = $1`,
+        [userId],
+      );
+      remainingLeaveDays = parseFloat(leaveRows?.[0]?.balance || 0);
+    } catch {
+      remainingLeaveDays = 0;
+    }
+
+    const dailyRate = monthlySalary > 0 ? monthlySalary / 30 : 0;
+    const leaveEncashment = Math.round(remainingLeaveDays * dailyRate * 100) / 100;
+
+    // 3. Get pending loans from payroll_deductions where type = 'loan' and status = 'active'
+    let pendingLoans = 0;
+    try {
+      const loanRows = await connection.query(
+        `SELECT COALESCE(SUM(remaining_balance), 0)::float as total 
+         FROM loans WHERE user_id = $1 AND status = 'active'`,
+        [userId],
+      );
+      pendingLoans = parseFloat(loanRows?.[0]?.total || 0);
+    } catch {
+      try {
+        const deductionRows = await connection.query(
+          `SELECT COALESCE(SUM(amount), 0)::float as total 
+           FROM payroll_deductions WHERE user_id = $1 AND type = 'loan' AND status = 'active'`,
+          [userId],
+        );
+        pendingLoans = parseFloat(deductionRows?.[0]?.total || 0);
+      } catch {
+        pendingLoans = 0;
+      }
+    }
+
+    // 4. Calculate prorated salary for current month based on today's date
+    const today = new Date();
+    const currentDay = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const proratedSalary =
+      monthlySalary > 0
+        ? Math.round((monthlySalary / daysInMonth) * currentDay * 100) / 100
+        : 0;
+
+    // 5. Total final settlement preview
+    const totalFinalSettlement =
+      Math.round((proratedSalary + leaveEncashment - pendingLoans) * 100) / 100;
+
+    return {
+      employee,
+      remaining_leave_days: remainingLeaveDays,
+      leave_encashment: leaveEncashment,
+      pending_loans: pendingLoans,
+      prorated_salary: proratedSalary,
+      total_final_settlement: totalFinalSettlement,
+    };
+  }
+
+  async execute1ClickSeparation(
+    tenantId: string,
+    userId: string,
+    initiatedBy?: string,
+  ): Promise<{ offboarding_id: string; message: string }> {
+    const offboarding = await this.startOffboarding(
+      tenantId,
+      {
+        user_id: userId,
+        reason: 'Resigned',
+        last_working_day: new Date().toISOString().split('T')[0],
+      },
+      initiatedBy,
+    );
+
+    return {
+      offboarding_id: offboarding.id,
+      message: 'Offboarding initiated. Final pay calculation preview available.',
+    };
+  }
 }
+

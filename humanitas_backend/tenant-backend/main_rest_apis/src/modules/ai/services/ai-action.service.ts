@@ -84,6 +84,40 @@ export class AiActionService {
     return { ds, tenantId: rows[0].id };
   }
 
+  private async ensureAuditTable(ds: any): Promise<void> {
+    await ds.query(`
+      CREATE TABLE IF NOT EXISTS system_audit_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        action_type VARCHAR(50) NOT NULL,
+        performed_by UUID,
+        executed_by VARCHAR(50) DEFAULT 'ai_on_behalf',
+        entity_type VARCHAR(100),
+        entity_id VARCHAR(255),
+        details JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `).catch(() => {});
+  }
+
+  private async logAuditAction(
+    ds: any,
+    userId: string,
+    entityType: string,
+    entityId: string,
+    details: Record<string, any>,
+  ): Promise<void> {
+    try {
+      await this.ensureAuditTable(ds);
+      await ds.query(
+        `INSERT INTO system_audit_logs (action_type, performed_by, executed_by, entity_type, entity_id, details, created_at)
+         VALUES ('ai_action', $1, 'ai_on_behalf', $2, $3, $4, NOW())`,
+        [userId, entityType, entityId, JSON.stringify(details)],
+      );
+    } catch (err) {
+      this.logger.warn(`[AI-AUDIT] Failed to write audit log: ${err.message}`);
+    }
+  }
+
   /**
    * Returns ONLY the action tools the requesting user has RBAC permission to use.
    * @param tenantSlug - Tenant identifier from JWT

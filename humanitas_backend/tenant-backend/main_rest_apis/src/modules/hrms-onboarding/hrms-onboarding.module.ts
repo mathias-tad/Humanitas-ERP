@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HrmsOnboardingService } from './hrms-onboarding.service';
 import { HrmsOnboardingController } from './hrms-onboarding.controller';
 import { DatabaseModule } from '../database/database.module';

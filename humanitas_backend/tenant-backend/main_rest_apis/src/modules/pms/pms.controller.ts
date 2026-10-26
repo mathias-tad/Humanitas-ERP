@@ -349,4 +349,19 @@ export class PmsController {
     getTimeTrackingSummary(@Req() req, @Param('id') id: string) {
         return this.pmsService.getTimeTrackingSummary(req.user.tenantId, id);
     }
+
+    @Post('projects/:id/convert-to-invoice')
+    @RequirePermissions('manage_projects')
+    convertBillableToInvoice(
+        @Req() req,
+        @Param('id') projectId: string,
+        @Body() body: { start_date: string; end_date: string },
+    ) {
+        return this.pmsService.convertBillableTimesToInvoice(
+            req.user.tenantId,
+            projectId,
+            body.start_date,
+            body.end_date,
+        );
+    }
 }

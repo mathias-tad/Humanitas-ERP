@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsGateway } from './notifications.gateway';
+import { PushNotificationService } from './push-notification.service';
 import { NOTIFICATION_CATEGORY_PERMISSION_MAP, NOTIFICATION_CATEGORY_MODULE_MAP } from './dto/notification-preferences.dto';
 
 @Injectable()
@@ -9,7 +10,8 @@ export class NotificationsService {
 
     constructor(
         private readonly databaseService: DatabaseService,
-        private readonly notificationsGateway: NotificationsGateway
+        private readonly notificationsGateway: NotificationsGateway,
+        @Optional() private readonly pushNotificationService?: PushNotificationService,
     ) { }
 
     async ensureNotificationsTables(connection: any) {
@@ -25,9 +27,11 @@ export class NotificationsService {
                     reference_id UUID,
                     title VARCHAR(255) NOT NULL,
                     message TEXT,
+                    deep_link VARCHAR(500),
                     is_read BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT NOW()
                 );
+                ALTER TABLE notifications ADD COLUMN IF NOT EXISTS deep_link VARCHAR(500);
                 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
                 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read);
                 CREATE TABLE IF NOT EXISTS user_notification_preferences (
@@ -39,6 +43,17 @@ export class NotificationsService {
                     UNIQUE(user_id, category)
                 );
                 CREATE INDEX IF NOT EXISTS idx_notif_prefs_user ON user_notification_preferences(user_id);
+                CREATE TABLE IF NOT EXISTS push_device_tokens (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL,
+                    token VARCHAR(500) NOT NULL,
+                    platform VARCHAR(20) DEFAULT 'android',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    CONSTRAINT uniq_user_token UNIQUE (user_id, token)
+                );
+                CREATE INDEX IF NOT EXISTS idx_push_device_tokens_user ON push_device_tokens(user_id);
             `);
             this.ensuredDatabases.add(dbName);
         } catch (err: any) {
@@ -59,7 +74,7 @@ export class NotificationsService {
         await this.ensureNotificationsTables(connection);
 
         return connection.query(`
-            SELECT id, user_id, type, reference_id, title, message, is_read,
+            SELECT id, user_id, type, reference_id, title, message, deep_link, is_read,
                    to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at
             FROM notifications 
             WHERE user_id = $1 
@@ -83,17 +98,17 @@ export class NotificationsService {
     async createNotification(
         tenantId: string,
         userId: string,
-        data: { type: string; referenceId?: string; title: string; message?: string; priority?: string }
+        data: { type: string; referenceId?: string; title: string; message?: string; priority?: string; deep_link?: string }
     ) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
         await this.ensureNotificationsTables(connection);
 
         const result = await connection.query(`
-            INSERT INTO notifications (user_id, type, reference_id, title, message)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, user_id, type, reference_id, title, message, is_read,
+            INSERT INTO notifications (user_id, type, reference_id, title, message, deep_link)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, user_id, type, reference_id, title, message, deep_link, is_read,
                       to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at
-        `, [userId, data.type, data.referenceId, data.title, data.message]);
+        `, [userId, data.type, data.referenceId, data.title, data.message, data.deep_link || null]);
 
         const notification = result[0];
 
@@ -103,13 +118,30 @@ export class NotificationsService {
             priority: data.priority
         });
 
+        // Dispatch FCM Push notification if user preference permits
+        if (this.pushNotificationService) {
+            this.getEffectiveChannel(tenantId, userId, data.type)
+                .then(channel => {
+                    if (channel === 'push' || channel === 'both') {
+                        this.pushNotificationService?.sendPushToUser(tenantId, userId, {
+                            title: data.title,
+                            body: data.message || '',
+                            deep_link: data.deep_link,
+                            category: data.type,
+                            reference_id: data.referenceId,
+                        }).catch(() => {});
+                    }
+                })
+                .catch(() => {});
+        }
+
         return notification;
     }
 
     async createBulkNotifications(
         tenantId: string,
         userIds: string[],
-        data: { type: string; referenceId?: string; title: string; message?: string; priority?: string }
+        data: { type: string; referenceId?: string; title: string; message?: string; priority?: string; deep_link?: string }
     ) {
         if (!userIds.length) return [];
 
@@ -119,11 +151,11 @@ export class NotificationsService {
         const results: any[] = [];
         for (const userId of userIds) {
             const result = await connection.query(`
-                INSERT INTO notifications (user_id, type, reference_id, title, message)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING id, user_id, type, reference_id, title, message, is_read,
+                INSERT INTO notifications (user_id, type, reference_id, title, message, deep_link)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id, user_id, type, reference_id, title, message, deep_link, is_read,
                           to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as created_at
-            `, [userId, data.type, data.referenceId, data.title, data.message]);
+            `, [userId, data.type, data.referenceId, data.title, data.message, data.deep_link || null]);
 
             const notification = result[0];
             results.push(notification);
@@ -136,6 +168,23 @@ export class NotificationsService {
                 ...notification,
                 priority: data.priority
             });
+
+            // Dispatch FCM Push notification
+            if (this.pushNotificationService) {
+                this.getEffectiveChannel(tenantId, userId, data.type)
+                    .then(channel => {
+                        if (channel === 'push' || channel === 'both') {
+                            this.pushNotificationService?.sendPushToUser(tenantId, userId, {
+                                title: data.title,
+                                body: data.message || '',
+                                deep_link: data.deep_link,
+                                category: data.type,
+                                reference_id: data.referenceId,
+                            }).catch(() => {});
+                        }
+                    })
+                    .catch(() => {});
+            }
         }
 
         return results;
@@ -351,5 +400,105 @@ export class NotificationsService {
 
     return result[0]?.channel || 'both';
   }
+
+  async getDigestConfig(tenantId: string): Promise<{ mode: 'instant' | 'daily' | 'weekly'; digest_time: string }> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `).catch(() => {});
+
+    const rows = await connection.query(`
+      SELECT key, value FROM system_settings 
+      WHERE key IN ('notification_digest_mode', 'notification_digest_time')
+    `);
+
+    const map: Record<string, string> = {};
+    for (const row of rows || []) {
+      map[row.key] = row.value;
+    }
+
+    const mode = (map['notification_digest_mode'] || 'instant') as 'instant' | 'daily' | 'weekly';
+    const digest_time = map['notification_digest_time'] || '08:00';
+
+    return { mode, digest_time };
+  }
+
+  async updateDigestConfig(tenantId: string, config: { mode: string; digest_time?: string }): Promise<{ success: boolean; mode: string; digest_time: string }> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `).catch(() => {});
+
+    if (config.mode) {
+      await connection.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('notification_digest_mode', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+      `, [config.mode]);
+    }
+
+    if (config.digest_time) {
+      await connection.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('notification_digest_time', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+      `, [config.digest_time]);
+    }
+
+    return {
+      success: true,
+      mode: config.mode,
+      digest_time: config.digest_time || '08:00',
+    };
+  }
+
+  async registerPushToken(
+    tenantId: string,
+    userId: string,
+    token: string,
+    platform: 'android' | 'ios' | 'web' = 'android',
+  ): Promise<void> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+    await connection.query(`
+      INSERT INTO push_device_tokens (user_id, token, platform, is_active, updated_at)
+      VALUES ($1, $2, $3, TRUE, NOW())
+      ON CONFLICT (user_id, token) 
+      DO UPDATE SET is_active = TRUE, platform = $3, updated_at = NOW()
+    `, [userId, token, platform]);
+  }
+
+  async deregisterPushToken(
+    tenantId: string,
+    userId: string,
+    token: string,
+  ): Promise<void> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+    await connection.query(`
+      UPDATE push_device_tokens 
+      SET is_active = FALSE, updated_at = NOW()
+      WHERE user_id = $1 AND token = $2
+    `, [userId, token]);
+  }
+
+  async getUserPushTokens(tenantId: string, userId: string): Promise<string[]> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureNotificationsTables(connection);
+    const rows = await connection.query(`
+      SELECT token FROM push_device_tokens 
+      WHERE user_id = $1 AND is_active = TRUE
+    `, [userId]);
+    return (rows || []).map((r: any) => r.token);
+  }
 }
+
 

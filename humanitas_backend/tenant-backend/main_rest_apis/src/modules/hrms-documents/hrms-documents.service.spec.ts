@@ -232,6 +232,7 @@ describe('HrmsDocumentsService', () => {
         .mockResolvedValueOnce([mockTemplate]) // template lookup
         .mockResolvedValueOnce([mockEmployee]) // employee lookup
         .mockResolvedValueOnce([{ first_name: 'HR', last_name: 'Lead' }]) // issuer
+        .mockResolvedValueOnce([]) // signature lookup
         .mockResolvedValueOnce([{ id: 'vault-doc-123' }]); // insert into employee_documents
 
       const result = await service.generateLetter('tenant-1', {
@@ -244,4 +245,220 @@ describe('HrmsDocumentsService', () => {
       expect(result.vaultDocumentId).toBe('vault-doc-123');
     });
   });
+
+  // ── B6: New method tests ──────────────────────────────────────────────────
+
+  describe('addDocumentVersion', () => {
+    it('should add a version entry and return next version number', async () => {
+      mockConnection.query
+        .mockResolvedValueOnce([{ id: 'doc-1', user_id: 'u-1' }]) // getDocumentById
+        .mockResolvedValueOnce([{ next_version: 2 }]) // max version query
+        .mockResolvedValueOnce([]); // insert
+
+      const result = await service.addDocumentVersion('tenant-1', 'doc-1', {
+        fileUrl: 'https://storage.example.com/v2.pdf',
+        uploadedBy: 'admin-1',
+        uploadedByName: 'Admin User',
+        changeNotes: 'Updated contract terms',
+        fileSize: 12345,
+      });
+
+      expect(result.version).toBe(2);
+      expect(mockConnection.query).toHaveBeenCalledTimes(3);
+    });
+
+    it('should throw NotFoundException if document does not exist', async () => {
+      mockConnection.query.mockResolvedValueOnce([]); // getDocumentById returns empty
+
+      await expect(
+        service.addDocumentVersion('tenant-1', 'nonexistent', {
+          fileUrl: 'https://storage.example.com/v1.pdf',
+          uploadedBy: 'u-1',
+          uploadedByName: 'User',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getEmployeesWithMissingDocuments', () => {
+    it('should return list of employees with zero documents', async () => {
+      const mockEmployees = [
+        { id: 'u-2', full_name: 'New Hire', email: 'newhire@example.com', department: 'Sales', doc_count: 0 },
+      ];
+      mockConnection.query.mockResolvedValue(mockEmployees);
+
+      const result = await service.getEmployeesWithMissingDocuments('tenant-1');
+      expect(result).toEqual(mockEmployees);
+      expect(result[0].doc_count).toBe(0);
+    });
+  });
+
+  describe('bulkGenerateLetters', () => {
+    it('should generate letters for multiple employees and return count', async () => {
+      const mockTemplate = { id: 't-1', name: 'Offer Letter', code: 'OFFER_LETTER' };
+      mockConnection.query
+        .mockResolvedValueOnce([mockTemplate]) // template lookup
+        .mockResolvedValueOnce([{ id: 'u-1', full_name: 'Abebe Kebede' }]) // employee 1
+        .mockResolvedValueOnce([]) // insert for employee 1
+        .mockResolvedValueOnce([{ id: 'u-2', full_name: 'Sara Bekele' }]) // employee 2
+        .mockResolvedValueOnce([]); // insert for employee 2
+
+      const result = await service.bulkGenerateLetters('tenant-1', 'OFFER_LETTER', ['u-1', 'u-2']);
+
+      expect(result.generated).toBe(2);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should record errors for missing employees without failing the whole batch', async () => {
+      const mockTemplate = { id: 't-1', name: 'Offer Letter', code: 'OFFER_LETTER' };
+      mockConnection.query
+        .mockResolvedValueOnce([mockTemplate]) // template lookup
+        .mockResolvedValueOnce([]) // employee u-missing not found
+        .mockResolvedValueOnce([{ id: 'u-2', full_name: 'Sara Bekele' }]) // employee 2 found
+        .mockResolvedValueOnce([]); // insert for employee 2
+
+      const result = await service.bulkGenerateLetters('tenant-1', 'OFFER_LETTER', ['u-missing', 'u-2']);
+
+      expect(result.generated).toBe(1);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toContain('u-missing');
+    });
+
+    it('should throw NotFoundException when template does not exist', async () => {
+      mockConnection.query.mockResolvedValueOnce([]); // template not found
+
+      await expect(
+        service.bulkGenerateLetters('tenant-1', 'NONEXISTENT', ['u-1']),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ── B7: Document Vault & Letter Templates Extensions ───────────────────────
+
+  describe('Document Vault & Letter Templates Extensions', () => {
+    it('getDocumentVersions returns empty array when no versions exist', async () => {
+      mockConnection.query.mockResolvedValue([]);
+      const result = await service.getDocumentVersions('tenant-1', 'doc-none');
+      expect(result).toEqual([]);
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT * FROM document_versions WHERE document_id = $1 ORDER BY version_number DESC'),
+        ['doc-none'],
+      );
+    });
+
+    it('addDocumentVersion calls query with correct params', async () => {
+      mockConnection.query
+        .mockResolvedValueOnce([{ id: 'doc-1' }]) // getDocumentById
+        .mockResolvedValueOnce([{ next_version: 1 }]) // version query
+        .mockResolvedValueOnce([]); // insert query
+
+      await service.addDocumentVersion('tenant-1', 'doc-1', {
+        file_url: 'https://cdn.example.com/contract_v1.pdf',
+        file_name: 'contract_v1.pdf',
+        file_size: 2048,
+        uploaded_by: 'user-123',
+        change_notes: 'Initial signed copy',
+      });
+
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO document_versions'),
+        [
+          'doc-1',
+          1,
+          'https://cdn.example.com/contract_v1.pdf',
+          'contract_v1.pdf',
+          2048,
+          'user-123',
+          null,
+          'Initial signed copy',
+        ],
+      );
+    });
+
+    it('getLetterAuditLog returns empty array for new tenant', async () => {
+      mockConnection.query.mockResolvedValue([]);
+      const result = await service.getLetterAuditLog('tenant-1');
+      expect(result).toEqual([]);
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining('FROM letter_audit_log la'),
+        [],
+      );
+    });
+
+    it('getMissingDocumentAlerts returns employees without contracts', async () => {
+      const mockAlerts = [
+        {
+          id: 'user-missing-contract',
+          first_name: 'Kebede',
+          last_name: 'Tadesse',
+          department: 'Operations',
+          has_contract: 0,
+          has_id: 1,
+        },
+      ];
+      mockConnection.query.mockResolvedValue(mockAlerts);
+      const result = await service.getMissingDocumentAlerts('tenant-1');
+      expect(result).toEqual(mockAlerts);
+      expect(result[0].has_contract).toBe(0);
+    });
+  });
+
+  describe('Digital Signature & E-Sign Config', () => {
+    it('getUserSignature returns null when user has no signature', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([]);
+      const result = await service.getUserSignature('t1', 'user-1');
+      expect(result.signature_url).toBeNull();
+    });
+
+    it('getUserSignature returns signature_url when present', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([{ signature_url: 'data:image/png;base64,123' }]);
+      const result = await service.getUserSignature('t1', 'user-1');
+      expect(result.signature_url).toBe('data:image/png;base64,123');
+    });
+
+    it('upsertUserSignature calls execute with user_id and url', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([]);
+      await expect(service.upsertUserSignature('t1', 'user-1', 'data:image/png;base64,abc')).resolves.not.toThrow();
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO user_signatures'),
+        ['user-1', 'data:image/png;base64,abc'],
+      );
+    });
+
+    it('deleteUserSignature deletes signature row', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([]);
+      await expect(service.deleteUserSignature('t1', 'user-1')).resolves.not.toThrow();
+      expect(mockConnection.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM user_signatures'),
+        ['user-1'],
+      );
+    });
+
+    it('getEsignProviderConfig returns default provider none', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([]);
+      const config = await service.getEsignProviderConfig('t1');
+      expect(config).toHaveProperty('provider');
+      expect(config.provider).toBe('none');
+    });
+
+    it('updateEsignProviderConfig saves provider credentials', async () => {
+      (service as any).ensuredTenants.add('t1');
+      mockConnection.query.mockResolvedValue([]);
+      await expect(
+        service.updateEsignProviderConfig('t1', {
+          provider: 'docusign',
+          client_id: 'cid-123',
+          client_secret: 'sec-456',
+          account_id: 'acc-789',
+        }),
+      ).resolves.not.toThrow();
+    });
+  });
 });
+
+

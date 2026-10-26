@@ -53,6 +53,8 @@ import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import HRReportsDashboard from "./pages/hrms/HRReportsDashboard";
 import HRDocumentsPage from "./pages/hrms/HRDocumentsPage";
 import OnboardingPage from "./pages/hrms/OnboardingPage";
+import WelcomePortalPage from "./pages/hrms/onboarding/WelcomePortalPage";
+
 import GrievancesPage from "./pages/hrms/GrievancesPage";
 import SelfServicePage from "./pages/self-service/SelfServicePage";
 import BenefitsPage from "./pages/hrms/BenefitsPage";
@@ -63,9 +65,13 @@ import AssetsPage from "./pages/hrms/AssetsPage";
 import SurveysPage from "./pages/hrms/SurveysPage";
 import ImportExportPage from "./pages/settings/ImportExportPage";
 import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
+import NotificationReportsPage from "./pages/settings/NotificationReportsPage";
 import ApprovalsPage from "./pages/approvals/ApprovalsPage";
 import ApprovalSettingsPage from "./pages/settings/ApprovalSettingsPage";
 import DeveloperApiPage from "./pages/settings/DeveloperApiPage";
+import AiSettingsPage from "./pages/ai/AiSettingsPage";
+import ESignProviderPage from "./pages/settings/ESignProviderPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -435,7 +441,13 @@ function AppRoutes() {
             <OnboardingPage />
           </PermissionRoute>
         } />
+        <Route path="/hrms/onboarding/welcome" element={
+          <PermissionRoute module="hrms" permissions={["view_onboarding"]}>
+            <WelcomePortalPage />
+          </PermissionRoute>
+        } />
         <Route path="/onboarding" element={<Navigate to="/hrms/onboarding" replace />} />
+
 
         {/* Employee Self-Service (ESS) Portal */}
         <Route path="/self-service" element={
@@ -503,13 +515,19 @@ function AppRoutes() {
         <Route path="/hrms/import-export" element={<Navigate to="/settings/import-export" replace />} />
         <Route path="/import-export" element={<Navigate to="/settings/import-export" replace />} />
 
-        {/* Notification Preferences */}
+        {/* Notification Preferences & Reports */}
         <Route path="/settings/notifications" element={
           <PermissionRoute module="notifications" permissions={["view_notification_preferences"]}>
             <NotificationPreferencesPage />
           </PermissionRoute>
         } />
+        <Route path="/settings/notifications/reports" element={
+          <PermissionRoute module="notifications" permissions={["view_notification_reports"]}>
+            <NotificationReportsPage />
+          </PermissionRoute>
+        } />
         <Route path="/notifications/preferences" element={<Navigate to="/settings/notifications" replace />} />
+        <Route path="/notifications/reports" element={<Navigate to="/settings/notifications/reports" replace />} />
 
         {/* Dynamic Approval Workflow Engine */}
         <Route path="/approvals" element={
@@ -531,6 +549,18 @@ function AppRoutes() {
         } />
         <Route path="/developer-api" element={<Navigate to="/settings/developer-api" replace />} />
 
+        {/* Digital Signature & E-Sign Provider Configuration */}
+        <Route path="/settings/esign" element={
+          <PermissionRoute module="hrms" permissions={["manage_documents", "manage_employee_documents"]}>
+            <ESignProviderPage />
+          </PermissionRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
+
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
         <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />
         <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
@@ -550,8 +580,15 @@ function AppRoutes() {
         <Route path="/accounting" element={<ComingSoonModulePage moduleKey="accounting" />} />
         <Route path="/accounting/*" element={<ComingSoonModulePage moduleKey="accounting" />} />
 
+        <Route path="/ai/settings" element={
+          <PermissionRoute module="ai" permissions={["view_ai_settings"]}>
+            <AiSettingsPage />
+          </PermissionRoute>
+        } />
         <Route path="/ai" element={<ComingSoonModulePage moduleKey="ai" />} />
-        <Route path="/ai/*" element={<ComingSoonModulePage moduleKey="ai" />} />
+        <Route path="/ai/documents" element={<ComingSoonModulePage moduleKey="ai" />} />
+        <Route path="/ai/knowledge" element={<ComingSoonModulePage moduleKey="ai" />} />
+        <Route path="/ai/actions" element={<ComingSoonModulePage moduleKey="ai" />} />
       </Route>
 
       {/* Fallback */}

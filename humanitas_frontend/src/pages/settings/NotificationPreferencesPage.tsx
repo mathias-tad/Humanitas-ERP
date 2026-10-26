@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { Bell, Mail, Smartphone, BellOff, Layers, Check, Save, Loader2, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Bell, Mail, Smartphone, BellOff, Layers, Check, Save, Loader2, Lock, BarChart2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useModules } from '@/context/ModuleContext';
 import {
   useNotificationPreferences,
   useBulkUpdateNotificationPreferences,
+  useDigestConfig,
+  useUpdateDigestConfig,
   NOTIFICATION_CATEGORY_LABELS,
   NOTIFICATION_CATEGORY_DESCRIPTIONS,
   NOTIFICATION_CATEGORY_PERMISSION_MAP,
@@ -35,6 +38,26 @@ export default function NotificationPreferencesPage() {
 
   const [localPrefs, setLocalPrefs] = useState<Record<string, Channel>>({});
   const [hasChanges, setHasChanges] = useState(false);
+
+  const { data: digestConfig } = useDigestConfig();
+  const updateDigestMutation = useUpdateDigestConfig();
+  const [digestMode, setDigestMode] = useState<'instant' | 'daily' | 'weekly'>('instant');
+
+  useEffect(() => {
+    if (digestConfig?.mode) {
+      setDigestMode(digestConfig.mode);
+    }
+  }, [digestConfig?.mode]);
+
+  const handleUpdateDigestMode = async (mode: 'instant' | 'daily' | 'weekly') => {
+    setDigestMode(mode);
+    try {
+      await updateDigestMutation.mutateAsync({ mode });
+      toast.success(`Delivery mode updated to ${mode}`);
+    } catch {
+      toast.error('Failed to update delivery mode');
+    }
+  };
 
   if (!canAccess) {
     return (
@@ -113,20 +136,59 @@ export default function NotificationPreferencesPage() {
             Choose how you receive notifications. Categories are personalized to your role and permissions.
           </p>
         </div>
-        {hasChanges && (
-          <button
-            onClick={handleSaveAll}
-            disabled={bulkUpdate.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
-          >
-            {bulkUpdate.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Save Changes
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {(hasPermission('view_notification_reports') || isOwnerOrAdmin) && (
+            <Link
+              to="/settings/notifications/reports"
+              className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors text-foreground"
+            >
+              <BarChart2 className="h-4 w-4 text-primary" />
+              Delivery Reports
+            </Link>
+          )}
+          {hasChanges && (
+            <button
+              onClick={handleSaveAll}
+              disabled={bulkUpdate.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors"
+            >
+              {bulkUpdate.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save Changes
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Delivery Mode (Digest Setting) */}
+      <div className="bg-card rounded-xl border border-border p-4 mb-6 shadow-sm">
+        <h3 className="font-semibold text-foreground mb-3 text-sm">Delivery Mode</h3>
+        <div className="flex gap-3">
+          {(['instant', 'daily', 'weekly'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => handleUpdateDigestMode(mode)}
+              disabled={updateDigestMutation.isPending}
+              className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                digestMode === mode
+                  ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                  : 'border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {digestMode === 'instant'
+            ? 'Notifications delivered immediately.'
+            : digestMode === 'daily'
+            ? 'Notifications bundled in a daily summary email at 8 AM.'
+            : 'Notifications bundled in a weekly summary email every Monday.'}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

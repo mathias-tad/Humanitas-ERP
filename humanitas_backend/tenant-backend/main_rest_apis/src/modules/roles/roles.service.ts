@@ -133,6 +133,8 @@ export class RolesService {
       'generate_employee_letters',
       'manage_letter_templates',
       'view_my_documents',
+      'manage_documents',
+      'view_documents',
 
       // Onboarding & Offboarding Permissions
       'view_onboarding',
@@ -213,6 +215,8 @@ export class RolesService {
       // Notification Preferences
       'manage_notification_preferences',
       'view_notification_preferences',
+      'view_notification_reports',
+      'manage_notification_templates',
       // Dynamic Approvals
       'manage_approval_rules',
       'view_approval_rules',
@@ -221,6 +225,9 @@ export class RolesService {
       // Developer API & Webhooks
       'view_developer_api',
       'manage_developer_api',
+      // AI Intelligence Settings
+      'view_ai_settings',
+      'manage_ai_settings',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -256,8 +263,11 @@ export class RolesService {
       'ai_actions',
       'ai_full',
       'manage_notification_preferences',
+      'view_notification_reports',
+      'manage_notification_templates',
       'manage_approval_rules',
       'manage_developer_api',
+      'manage_ai_settings',
     ];
 
     // Permissions allowed for Employee role

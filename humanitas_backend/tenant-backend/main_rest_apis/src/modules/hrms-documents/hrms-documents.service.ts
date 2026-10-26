@@ -65,8 +65,59 @@ export class HrmsDocumentsService {
           signature_status VARCHAR(30) NOT NULL DEFAULT 'not_required',
           signed_at TIMESTAMP WITH TIME ZONE,
           notes TEXT,
+          template_id UUID,
+          generated_at TIMESTAMP WITH TIME ZONE,
+          status VARCHAR(30),
           is_confidential BOOLEAN NOT NULL DEFAULT false,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS document_versions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          document_id UUID NOT NULL,
+          version_number INTEGER NOT NULL DEFAULT 1,
+          file_url TEXT,
+          file_name VARCHAR(255),
+          uploaded_by UUID,
+          uploaded_by_name VARCHAR(255),
+          change_notes TEXT,
+          file_size INTEGER,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS letter_audit_log (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          template_id UUID,
+          template_name VARCHAR(255),
+          generated_for_user_id UUID,
+          generated_by UUID,
+          document_title VARCHAR(255),
+          generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS system_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS user_signatures (
+          id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          user_id VARCHAR(255) NOT NULL UNIQUE,
+          signature_url TEXT NOT NULL,
+          uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS esign_provider_config (
+          id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+          provider VARCHAR(50) DEFAULT 'none',
+          client_id VARCHAR(255),
+          client_secret TEXT,
+          account_id VARCHAR(255),
+          is_active BOOLEAN DEFAULT TRUE,
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );
 
@@ -74,6 +125,10 @@ export class HrmsDocumentsService {
         CREATE INDEX IF NOT EXISTS idx_emp_docs_expiry ON employee_documents(expiry_date);
         CREATE INDEX IF NOT EXISTS idx_emp_docs_company ON employee_documents(company_id);
         CREATE INDEX IF NOT EXISTS idx_emp_docs_branch ON employee_documents(branch_id);
+        CREATE INDEX IF NOT EXISTS idx_doc_versions_doc ON document_versions(document_id);
+        CREATE INDEX IF NOT EXISTS idx_letter_audit_log_user ON letter_audit_log(generated_for_user_id);
+        CREATE INDEX IF NOT EXISTS idx_letter_audit_log_tpl ON letter_audit_log(template_id);
+        CREATE INDEX IF NOT EXISTS idx_user_signatures_user ON user_signatures(user_id);
       `);
 
       await this.seedDefaultTemplates(connection);
@@ -379,7 +434,19 @@ Employee Acknowledgment: ____________________ Date: ____________`,
       ],
     );
 
-    return result[0];
+    const doc = result[0];
+    if (doc) {
+      try {
+        await connection.query(
+          `INSERT INTO document_versions (document_id, version_number, file_url, file_name, file_size, uploaded_by, change_notes)
+           VALUES ($1, 1, $2, $3, $4, $5, 'Initial upload')`,
+          [doc.id, doc.file_url, doc.file_name, doc.file_size, creatorUserId || dto.userId],
+        );
+      } catch (err: any) {
+        this.logger.warn(`Failed to auto-version document ${doc.id}: ${err.message}`);
+      }
+    }
+    return doc;
   }
 
   async verifyDocument(tenantId: string, id: string, dto: VerifyDocumentDto, verifierUserId: string) {
@@ -578,6 +645,23 @@ Employee Acknowledgment: ____________________ Date: ____________`,
       renderedBody = renderedBody.split(key).join(val);
     }
 
+    let signatureHtml = '';
+    try {
+      const sigData = await this.getUserSignature(tenantId, dto.employeeId);
+      if (sigData?.signature_url) {
+        signatureHtml = `
+          <div style="margin-top: 40px; page-break-inside: avoid;">
+            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">Employee Signature:</p>
+            <img src="${sigData.signature_url}" alt="Signature" 
+                 style="max-height: 80px; max-width: 200px; object-fit: contain; display: block;" />
+            <p style="font-size: 11px; color: #666; margin-top: 4px; border-top: 1px solid #ccc; padding-top: 4px;">
+              ${employeeFullName} — ${effectiveDateFormatted}
+            </p>
+          </div>
+        `;
+      }
+    } catch (_) {}
+
     const renderedHtml = `
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1e293b; line-height: 1.6;">
         <div style="border-bottom: 2px solid #0284c7; padding-bottom: 20px; margin-bottom: 30px;">
@@ -590,6 +674,7 @@ Employee Acknowledgment: ____________________ Date: ____________`,
         </div>
         <div style="white-space: pre-wrap; font-size: 14px; margin-bottom: 40px; color: #334155;">
 ${renderedBody}
+${signatureHtml}
         </div>
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 11px; color: #94a3b8; text-align: center;">
           This document is generated by Humanitas People Intelligence & Document Management System. Document verification ID: ${emp.id.substring(0, 8)}-${Date.now().toString(36)}.
@@ -620,7 +705,7 @@ ${renderedBody}
           issuerUserId || null,
         ],
       );
-      vaultDocumentId = docRes[0]?.id || null;
+      vaultDocumentId = docRes?.[0]?.id || null;
     }
 
     return {
@@ -634,5 +719,399 @@ ${renderedBody}
       savedToVault: !!dto.saveToVault,
       vaultDocumentId,
     };
+  }
+
+  // ── B1: DOCUMENT VERSIONING ────────────────────────────────────────────────
+
+  async addDocumentVersion(
+    tenantId: string,
+    documentId: string,
+    data: {
+      file_url?: string;
+      fileUrl?: string;
+      file_name?: string;
+      fileName?: string;
+      file_size?: number;
+      fileSize?: number;
+      uploaded_by?: string;
+      uploadedBy?: string;
+      uploadedByName?: string;
+      change_notes?: string;
+      changeNotes?: string;
+    },
+  ): Promise<any> {
+    const connection = await this.getConnection(tenantId);
+    // Verify document exists
+    await this.getDocumentById(tenantId, documentId);
+
+    const fileUrl = data.file_url || data.fileUrl || null;
+    const fileName = data.file_name || data.fileName || null;
+    const fileSize = data.file_size ?? data.fileSize ?? null;
+    const uploadedBy = data.uploaded_by || data.uploadedBy || null;
+    const uploadedByName = data.uploadedByName || null;
+    const changeNotes = data.change_notes || data.changeNotes || null;
+
+    const maxRows = await connection.query(
+      `SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version
+       FROM document_versions WHERE document_id = $1`,
+      [documentId],
+    );
+    const nextVersion = maxRows?.[0]?.next_version || 1;
+
+    await connection.query(
+      `INSERT INTO document_versions
+         (document_id, version_number, file_url, file_name, file_size, uploaded_by, uploaded_by_name, change_notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        documentId,
+        nextVersion,
+        fileUrl,
+        fileName,
+        fileSize,
+        uploadedBy,
+        uploadedByName,
+        changeNotes,
+      ],
+    );
+    return { version: nextVersion };
+  }
+
+  async getDocumentVersions(tenantId: string, documentId: string): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    return connection.query(
+      `SELECT * FROM document_versions WHERE document_id = $1 ORDER BY version_number DESC`,
+      [documentId],
+    );
+  }
+
+  // ── B2: LETTER AUDIT LOGGING ──────────────────────────────────────────────
+
+  async logLetterGeneration(
+    tenantId: string,
+    data: {
+      template_id?: string;
+      template_name?: string;
+      generated_for_user_id?: string;
+      generated_by?: string;
+      document_title: string;
+    },
+  ): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    await connection.query(
+      `INSERT INTO letter_audit_log
+         (template_id, template_name, generated_for_user_id, generated_by, document_title)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        data.template_id || null,
+        data.template_name || null,
+        data.generated_for_user_id || null,
+        data.generated_by || null,
+        data.document_title,
+      ],
+    );
+  }
+
+  async getLetterAuditLog(
+    tenantId: string,
+    filters?: { from?: string; to?: string; template_id?: string },
+  ): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    const conditions: string[] = ['1=1'];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (filters?.template_id) {
+      conditions.push(`la.template_id = $${idx++}`);
+      params.push(filters.template_id);
+    }
+    if (filters?.from) {
+      conditions.push(`la.generated_at >= $${idx++}`);
+      params.push(new Date(filters.from));
+    }
+    if (filters?.to) {
+      conditions.push(`la.generated_at <= $${idx++}`);
+      params.push(new Date(filters.to));
+    }
+
+    const query = `
+      SELECT
+        la.*,
+        CONCAT(u.first_name, ' ', u.last_name) AS generated_for_name,
+        CONCAT(gb.first_name, ' ', gb.last_name) AS generated_by_name
+      FROM letter_audit_log la
+      LEFT JOIN users u ON la.generated_for_user_id = u.id
+      LEFT JOIN users gb ON la.generated_by = gb.id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY la.generated_at DESC
+      LIMIT 200
+    `;
+    return connection.query(query, params);
+  }
+
+  // ── B3: MISSING DOCUMENT ALERTS ───────────────────────────────────────────
+
+  async getMissingDocumentAlerts(tenantId: string): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    const query = `
+      SELECT * FROM (
+        SELECT
+          u.id,
+          u.first_name,
+          u.last_name,
+          u.department,
+          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id = u.id AND d.category = 'contract' AND (d.status = 'active' OR d.status IS NULL)) as has_contract,
+          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id = u.id AND d.category = 'identification') as has_id
+        FROM users u
+        WHERE (u.is_active = TRUE OR u.status = 'active' OR u.is_active IS NULL)
+      ) emp_docs
+      WHERE has_contract = 0 OR has_id = 0
+      ORDER BY first_name ASC
+      LIMIT 100
+    `;
+    return connection.query(query);
+  }
+
+  async getEmployeesWithMissingDocuments(tenantId: string): Promise<any[]> {
+    return this.getMissingDocumentAlerts(tenantId);
+  }
+
+  // ── B4: EXPIRING DOCUMENTS QUERY ──────────────────────────────────────────
+
+  async getExpiringDocuments(tenantId: string, days: number[] = [7, 30, 60, 90]): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    const dayIntervals = days.map((d) => `d.expiry_date = (CURRENT_DATE + INTERVAL '${d} days')`).join(' OR ');
+    const clause = dayIntervals ? `AND (${dayIntervals})` : '';
+
+    return connection.query(`
+      SELECT d.*, u.first_name, u.last_name, u.email, u.department
+      FROM employee_documents d
+      JOIN users u ON d.user_id = u.id
+      WHERE d.expiry_date IS NOT NULL ${clause}
+      ORDER BY d.expiry_date ASC
+    `);
+  }
+
+  // ── B5: LETTERHEAD CONFIGURATION ──────────────────────────────────────────
+
+  async getLetterheadConfig(tenantId: string): Promise<{
+    logo_url?: string;
+    header_text?: string;
+    footer_text?: string;
+    company_name?: string;
+  }> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(
+      `SELECT key, value FROM system_settings WHERE key IN ('letterhead_logo', 'letterhead_header', 'letterhead_footer', 'company_name')`,
+    );
+    const map: Record<string, string> = {};
+    for (const r of (rows || [])) {
+      map[r.key] = r.value;
+    }
+    return {
+      logo_url: map['letterhead_logo'] || undefined,
+      header_text: map['letterhead_header'] || undefined,
+      footer_text: map['letterhead_footer'] || undefined,
+      company_name: map['company_name'] || undefined,
+    };
+  }
+
+  async updateLetterheadConfig(
+    tenantId: string,
+    config: { logo_url?: string; header_text?: string; footer_text?: string; company_name?: string },
+  ): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    const entries: [string, string | undefined][] = [
+      ['letterhead_logo', config.logo_url],
+      ['letterhead_header', config.header_text],
+      ['letterhead_footer', config.footer_text],
+      ['company_name', config.company_name],
+    ];
+
+    for (const [key, val] of entries) {
+      if (val !== undefined) {
+        await connection.query(
+          `INSERT INTO system_settings (key, value, updated_at)
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+          [key, val],
+        );
+      }
+    }
+  }
+
+  // ── B6: BULK OPERATIONS & DOWNLOAD ────────────────────────────────────────
+
+  async getBulkDownloadUrls(
+    tenantId: string,
+    filters?: { user_id?: string; category?: string; department?: string },
+  ): Promise<Array<{ id: string; title: string; file_url: string; file_name: string; user_name: string }>> {
+    const connection = await this.getConnection(tenantId);
+    const conditions: string[] = ['1=1'];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (filters?.user_id) {
+      conditions.push(`d.user_id = $${idx++}`);
+      params.push(filters.user_id);
+    }
+    if (filters?.category) {
+      conditions.push(`d.category = $${idx++}`);
+      params.push(filters.category);
+    }
+    if (filters?.department) {
+      conditions.push(`u.department = $${idx++}`);
+      params.push(filters.department);
+    }
+
+    const query = `
+      SELECT
+        d.id,
+        d.title,
+        d.file_url,
+        d.file_name,
+        CONCAT(u.first_name, ' ', u.last_name) AS user_name
+      FROM employee_documents d
+      JOIN users u ON d.user_id = u.id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY d.created_at DESC
+    `;
+    return connection.query(query, params);
+  }
+
+  async bulkGenerateLetters(
+    tenantId: string,
+    templateId: string,
+    employeeIds: string[],
+  ): Promise<{ generated: number; errors: string[] }> {
+    const connection = await this.getConnection(tenantId);
+    let generated = 0;
+    const errors: string[] = [];
+
+    const templates = await connection.query(
+      `SELECT * FROM letter_templates WHERE id::text = $1 OR code = $1 LIMIT 1`,
+      [templateId],
+    );
+    const template = templates?.[0];
+    if (!template) throw new NotFoundException('Letter template not found');
+
+    for (const employeeId of employeeIds) {
+      try {
+        const employees = await connection.query(
+          `SELECT id, full_name FROM users WHERE id = $1`,
+          [employeeId],
+        );
+        const employee = employees?.[0];
+        if (!employee) {
+          errors.push(`Employee ${employeeId} not found`);
+          continue;
+        }
+
+        await connection.query(
+          `INSERT INTO employee_documents
+             (user_id, title, category, document_type, file_url, file_name,
+              template_id, generated_at, status, verification_status)
+           VALUES ($1, $2, 'letter', 'generated_letter', '', $3, $4, NOW(), 'generated', 'verified')`,
+          [
+            employeeId,
+            `${template.name} — ${employee.full_name}`,
+            `${template.code}_${employee.full_name.replace(/\s+/g, '_')}.html`,
+            template.id,
+          ],
+        );
+        generated++;
+      } catch (err: any) {
+        errors.push(`Employee ${employeeId}: ${err.message}`);
+      }
+    }
+    return { generated, errors };
+  }
+
+  async getLetterGenerationAuditLog(tenantId: string): Promise<any[]> {
+    const connection = await this.getConnection(tenantId);
+    return connection.query(`
+      SELECT
+        d.id,
+        d.title,
+        d.generated_at,
+        d.user_id AS employee_id,
+        u.full_name AS employee_name,
+        t.name AS template_name
+      FROM employee_documents d
+      LEFT JOIN users u ON u.id = d.user_id
+      LEFT JOIN letter_templates t ON t.id = d.template_id
+      WHERE d.document_type = 'generated_letter'
+      ORDER BY d.generated_at DESC
+      LIMIT 100
+    `);
+  }
+
+  // ── DIGITAL SIGNATURE & E-SIGN CONFIGURATION ────────────────────────────────
+
+  async getUserSignature(tenantId: string, userId: string): Promise<{ signature_url: string | null }> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(
+      `SELECT signature_url FROM user_signatures WHERE user_id = $1 LIMIT 1`,
+      [userId],
+    );
+    return { signature_url: rows?.[0]?.signature_url ?? null };
+  }
+
+  async upsertUserSignature(tenantId: string, userId: string, signatureUrl: string): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    await connection.query(
+      `INSERT INTO user_signatures (user_id, signature_url)
+       VALUES ($1, $2)
+       ON CONFLICT (user_id) DO UPDATE SET signature_url = EXCLUDED.signature_url, updated_at = NOW()`,
+      [userId, signatureUrl],
+    );
+  }
+
+  async deleteUserSignature(tenantId: string, userId: string): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    await connection.query(`DELETE FROM user_signatures WHERE user_id = $1`, [userId]);
+  }
+
+  async getEsignProviderConfig(tenantId: string): Promise<{ provider: string; client_id?: string; account_id?: string; is_active: boolean }> {
+    const connection = await this.getConnection(tenantId);
+    const rows = await connection.query(
+      `SELECT provider, client_id, account_id, is_active FROM esign_provider_config LIMIT 1`,
+    );
+    if (!rows || rows.length === 0) {
+      return { provider: 'none', is_active: true };
+    }
+    const row = rows[0];
+    return {
+      provider: row.provider || 'none',
+      client_id: row.client_id || undefined,
+      account_id: row.account_id || undefined,
+      is_active: row.is_active ?? true,
+    };
+  }
+
+  async updateEsignProviderConfig(
+    tenantId: string,
+    dto: { provider: string; client_id?: string; client_secret?: string; account_id?: string },
+  ): Promise<void> {
+    const connection = await this.getConnection(tenantId);
+    const existing = await connection.query(`SELECT id, client_secret FROM esign_provider_config LIMIT 1`);
+    if (existing && existing.length > 0) {
+      const secretToUse = dto.client_secret ? dto.client_secret : existing[0].client_secret;
+      await connection.query(
+        `UPDATE esign_provider_config
+         SET provider = $1,
+             client_id = $2,
+             client_secret = $3,
+             account_id = $4,
+             updated_at = NOW()
+         WHERE id = $5`,
+        [dto.provider, dto.client_id || null, secretToUse || null, dto.account_id || null, existing[0].id],
+      );
+    } else {
+      await connection.query(
+        `INSERT INTO esign_provider_config (provider, client_id, client_secret, account_id, is_active)
+         VALUES ($1, $2, $3, $4, true)`,
+        [dto.provider, dto.client_id || null, dto.client_secret || null, dto.account_id || null],
+      );
+    }
   }
 }

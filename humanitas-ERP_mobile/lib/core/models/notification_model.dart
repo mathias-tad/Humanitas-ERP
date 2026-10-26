@@ -7,6 +7,7 @@ class NotificationModel {
   final String? type; // leave | payroll | loan | attendance | announcement | general
   final bool isRead;
   final String? referenceId;
+  final String? deepLink;
   final String? createdAt;
 
   NotificationModel({
@@ -16,6 +17,7 @@ class NotificationModel {
     this.type,
     this.isRead = false,
     this.referenceId,
+    this.deepLink,
     this.createdAt,
   });
 
@@ -42,6 +44,7 @@ class NotificationModel {
       type: json['type']?.toString(),
       isRead: json['is_read'] == true || json['isRead'] == true || json['read'] == true,
       referenceId: json['reference_id']?.toString() ?? json['referenceId']?.toString(),
+      deepLink: json['deep_link']?.toString() ?? json['deepLink']?.toString(),
       createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString(),
     );
   }

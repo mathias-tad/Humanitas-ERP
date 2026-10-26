@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,11 @@ import {
   Layers,
   MessageSquare,
   TrendingUp,
+  Sparkles,
+  ShieldCheck,
+  FileText,
+  MonitorPlay,
+  BookOpen,
 } from 'lucide-react';
 import {
   useOnboarding,
@@ -34,7 +40,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 export default function OnboardingPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, user: currentUser } = useAuth();
   const canManage = hasPermission('manage_onboarding');
 
   const {
@@ -59,14 +65,21 @@ export default function OnboardingPage() {
     isCreatingTemplate,
     createTemplateItem,
     isCreatingTemplateItem: isCreatingItem,
+    execute1ClickSeparation,
+    isExecuting1ClickSeparation: isExecutingSeparation,
   } = useOnboarding();
 
   const { data: usersData } = useUsers();
   const users = Array.isArray(usersData) ? usersData : [];
 
-  const [activeTab, setActiveTab] = useState<'onboarding' | 'offboarding' | 'templates'>('onboarding');
+  const [activeTab, setActiveTab] = useState<'onboarding' | 'offboarding' | 'templates' | 'welcome-portal' | 'reports'>('onboarding');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // 1-Click Separation Modal
+  const [separationModalOpen, setSeparationModalOpen] = useState(false);
+  const [separationUserId, setSeparationUserId] = useState('');
 
   // Selected Detail Modals
   const [selectedOnboardingId, setSelectedOnboardingId] = useState<string | null>(null);
@@ -191,6 +204,21 @@ export default function OnboardingPage() {
       setOffbUserId('');
     } catch (err: any) {
       toast.error(err.message || 'Failed to start offboarding');
+    }
+  };
+
+  const handleExecuteSeparation = async () => {
+    if (!separationUserId) {
+      toast.error('Please select an employee');
+      return;
+    }
+    try {
+      const res = await execute1ClickSeparation({ user_id: separationUserId });
+      toast.success(res.message || '1-Click Separation initiated successfully');
+      setSeparationModalOpen(false);
+      setSeparationUserId('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to execute separation');
     }
   };
 
@@ -336,6 +364,15 @@ export default function OnboardingPage() {
             {canManage && (
               <>
                 <Button
+                  onClick={() => setSeparationModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                >
+                  <UserX className="h-4 w-4" />
+                  <span>Initiate Separation</span>
+                </Button>
+                <Button
                   onClick={() => setStartOffboardingOpen(true)}
                   variant="outline"
                   size="sm"
@@ -445,6 +482,28 @@ export default function OnboardingPage() {
           >
             <Layers className="h-4 w-4" />
             <span>Checklist Templates ({templates.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('welcome-portal')}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'welcome-portal'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>Welcome Portal</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'reports'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span>Reports</span>
           </button>
         </div>
       </div>
@@ -577,6 +636,27 @@ export default function OnboardingPage() {
                 className="w-full h-9 pl-9 pr-3 rounded-md border border-input bg-background text-xs focus:ring-1 focus:ring-primary"
               />
             </div>
+            {canManage && (
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setSeparationModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                >
+                  <UserX className="h-4 w-4" />
+                  <span>Initiate Separation</span>
+                </Button>
+                <Button
+                  onClick={() => setStartOffboardingOpen(true)}
+                  size="sm"
+                  className="gap-2 bg-rose-600 text-white hover:bg-rose-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Initiate Offboarding</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
@@ -1640,6 +1720,562 @@ export default function OnboardingPage() {
           </div>
         </div>
       )}
+      {/* ── TAB 4: WELCOME PORTAL ── */}
+      {activeTab === 'welcome-portal' && (
+        <WelcomePortalTab
+          onboardings={onboardings}
+          canManage={canManage}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* ── TAB 5: REPORTS ── */}
+      {activeTab === 'reports' && <ReportsTab />}
+
+      {/* ── MODAL: 1-CLICK SEPARATION & FINAL SETTLEMENT PREVIEW ── */}
+      {separationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg p-6 space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center">
+                  <UserX className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground">1-Click Separation</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Instant offboarding initiation with automated final settlement preview
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSeparationModalOpen(false);
+                  setSeparationUserId('');
+                }}
+                className="text-muted-foreground hover:text-foreground text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-foreground">Select Departing Employee</label>
+                <select
+                  value={separationUserId}
+                  onChange={(e) => setSeparationUserId(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">-- Choose employee --</option>
+                  {users.map((u: any) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email} ({u.department || 'General'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {separationUserId && (
+                <SeparationPreviewCard userId={separationUserId} />
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border/50">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSeparationModalOpen(false);
+                  setSeparationUserId('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!separationUserId || isExecutingSeparation}
+                onClick={handleExecuteSeparation}
+                className="gap-2 bg-rose-600 text-white hover:bg-rose-700"
+              >
+                {isExecutingSeparation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserX className="h-4 w-4" />
+                )}
+                <span>Confirm & Execute Separation</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── C5: SUB-COMPONENTS ────────────────────────────────────────────────────────
+
+function WelcomePortalTab({
+  onboardings,
+  canManage,
+  currentUser,
+}: {
+  onboardings: OnboardingInstance[];
+  canManage: boolean;
+  currentUser: any;
+}) {
+  const inProgress = onboardings.filter((o) => o.status === 'in_progress' || o.status === 'not_started');
+  const displayList = inProgress.length > 0 ? inProgress : onboardings;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span>Employee Welcome Portal</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Self-service onboarding checklists, policy acknowledgments, and orientation tracking for new hires.
+            </p>
+          </div>
+          <Badge variant="outline" className="text-xs w-fit">
+            {displayList.length} Active New Hire{displayList.length === 1 ? '' : 's'}
+          </Badge>
+        </div>
+      </div>
+
+      {displayList.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground text-xs">
+          No active onboarding instances found.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {displayList.map((onb) => (
+            <WelcomePortalEmployeeCard
+              key={onb.id}
+              onboarding={onb}
+              canManage={canManage}
+              currentUserId={currentUser?.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WelcomePortalEmployeeCard({
+  onboarding,
+  canManage,
+  currentUserId,
+}: {
+  onboarding: OnboardingInstance;
+  canManage: boolean;
+  currentUserId?: string;
+}) {
+  const { useWelcomeChecklist, updateWelcomeChecklist } = useOnboarding();
+  const { data: checklist, isLoading } = useWelcomeChecklist(onboarding.user_id);
+  const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+
+  const canEdit = canManage || currentUserId === onboarding.user_id;
+
+  const checklistCards = [
+    {
+      key: 'document_uploaded',
+      title: 'Upload Documents',
+      description: 'Submit identification, educational certificates, and employment forms',
+      icon: FileText,
+    },
+    {
+      key: 'policy_accepted',
+      title: 'Accept Policies',
+      description: 'Review and agree to company policies, code of conduct & NDA terms',
+      icon: ShieldCheck,
+    },
+    {
+      key: 'profile_completed',
+      title: 'Complete Profile',
+      description: 'Fill in emergency contacts, personal info, and payroll details',
+      icon: UserCheck,
+    },
+    {
+      key: 'orientation_viewed',
+      title: 'View Orientation',
+      description: 'Watch the introductory company orientation and mission briefing',
+      icon: MonitorPlay,
+    },
+    {
+      key: 'welcome_packet_viewed',
+      title: 'View Welcome Packet',
+      description: 'Review benefits summary, office map, and employee handbook',
+      icon: BookOpen,
+    },
+  ];
+
+  const handleToggle = async (key: string, currentValue: boolean) => {
+    if (!canEdit) {
+      toast.error('Only the employee themselves or HR can update checklist items');
+      return;
+    }
+    setUpdatingKey(key);
+    try {
+      const nextValue = !currentValue;
+      await updateWelcomeChecklist({
+        userId: onboarding.user_id,
+        onboardingId: onboarding.id,
+        updates: {
+          [key]: nextValue,
+        },
+      });
+      toast.success(`Checklist updated`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update checklist item');
+    } finally {
+      setUpdatingKey(null);
+    }
+  };
+
+  const completedCount = checklistCards.filter(
+    (c) => !!(checklist as any)?.[c.key],
+  ).length;
+  const progressPct = Math.round((completedCount / checklistCards.length) * 100);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+            {onboarding.first_name?.[0] || 'U'}{onboarding.last_name?.[0] || ''}
+          </div>
+          <div>
+            <div className="font-semibold text-foreground text-sm flex items-center gap-2">
+              <span>{onboarding.first_name} {onboarding.last_name}</span>
+              <Badge variant="outline" className="text-[10px]">
+                {onboarding.position || 'Staff'}
+              </Badge>
+              {currentUserId === onboarding.user_id && (
+                <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">
+                  You
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {onboarding.department || 'General'} • Started: {onboarding.start_date || 'N/A'}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 min-w-[200px]">
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">Welcome Progress</span>
+              <span className="font-bold text-foreground">{completedCount} / 5 ({progressPct}%)</span>
+            </div>
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-300"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+          {progressPct === 100 && (
+            <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-xs">
+              Complete
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading checklist status...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {checklistCards.map((card) => {
+            const isCompleted = !!(checklist as any)?.[card.key];
+            const isUpdating = updatingKey === card.key;
+            const Icon = card.icon;
+
+            return (
+              <div
+                key={card.key}
+                className={`p-3.5 rounded-lg border transition-all flex flex-col justify-between space-y-3 ${
+                  isCompleted
+                    ? 'border-emerald-500/30 bg-emerald-500/5'
+                    : 'border-border bg-muted/20 hover:border-border/80'
+                }`}
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`h-7 w-7 rounded-md flex items-center justify-center ${
+                        isCompleted
+                          ? 'bg-emerald-500/15 text-emerald-600'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                    {isCompleted ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[10px] h-5 px-1.5">
+                        Done
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-muted-foreground">
+                        Pending
+                      </Badge>
+                    )}
+                  </div>
+                  <h4 className="font-semibold text-xs text-foreground">{card.title}</h4>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                    {card.description}
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant={isCompleted ? 'outline' : 'default'}
+                  disabled={!canEdit || isUpdating}
+                  onClick={() => handleToggle(card.key, isCompleted)}
+                  className={`w-full h-7 text-xs gap-1.5 justify-center ${
+                    isCompleted
+                      ? 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  }`}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : isCompleted ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Completed</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Mark Complete</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReportsTab() {
+  const { useRetentionMetrics, useOffboardingCompliance } = useOnboarding();
+  const { data: retention, isLoading: loadingRetention } = useRetentionMetrics();
+  const { data: compliance, isLoading: loadingCompliance } = useOffboardingCompliance();
+
+  const complianceRows = Array.isArray(compliance) ? compliance : [];
+
+  const milestones = [
+    { key: '30d', label: '30-Day Retention', count: retention?.retained_30d ?? retention?.['30d'] ?? 0 },
+    { key: '60d', label: '60-Day Retention', count: retention?.retained_60d ?? retention?.['60d'] ?? 0 },
+    { key: '90d', label: '90-Day Retention', count: retention?.retained_90d ?? retention?.['90d'] ?? 0 },
+    { key: '180d', label: '180-Day Retention', count: retention?.retained_180d ?? retention?.['180d'] ?? 0 },
+  ];
+
+  const totalEmployees = retention?.total ?? 0;
+
+  return (
+    <div className="space-y-6">
+      {/* 4 KPI Cards for Retention Metrics */}
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-xs">
+        <div>
+          <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <span>New Hire Retention Metrics</span>
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Retention cohorts across key tenure milestones for onboarded personnel.
+          </p>
+        </div>
+
+        {loadingRetention ? (
+          <div className="py-8 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading retention metrics...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {milestones.map(({ key, label, count }) => {
+              const rate = totalEmployees > 0 ? Math.round((count / totalEmployees) * 100) : 0;
+              return (
+                <div key={key} className="rounded-xl border border-border bg-muted/20 p-4 space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-bold text-foreground">{rate}%</span>
+                    <span className="text-xs text-muted-foreground">
+                      {count} / {totalEmployees} active
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        rate >= 80 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-primary'
+                      }`}
+                      style={{ width: `${rate}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Offboarding Compliance Table */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+        <div className="p-5 border-b border-border">
+          <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <span>Offboarding Compliance Report</span>
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Offboarding checklist compliance percentages across all departing personnel.
+          </p>
+        </div>
+
+        {loadingCompliance ? (
+          <div className="p-8 text-center text-muted-foreground text-xs flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading offboarding compliance records...</span>
+          </div>
+        ) : complianceRows.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-xs">
+            No offboarding compliance records found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-semibold tracking-wider border-b border-border">
+                <tr>
+                  <th className="px-4 py-3">Employee</th>
+                  <th className="px-4 py-3">Last Working Day</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Tasks Completed</th>
+                  <th className="px-4 py-3">Compliance %</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {complianceRows.map((row) => (
+                  <tr key={row.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-foreground">{row.employee_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{row.last_working_day || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          row.status === 'completed'
+                            ? 'bg-emerald-500/15 text-emerald-600'
+                            : 'bg-amber-500/15 text-amber-600'
+                        }`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {row.completed_tasks} / {row.total_tasks}
+                    </td>
+                    <td className="px-4 py-3 min-w-[140px]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{ width: `${row.compliance_pct}%` }}
+                          />
+                        </div>
+                        <span className="font-bold text-foreground text-xs">{row.compliance_pct}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SeparationPreviewCard({ userId }: { userId: string }) {
+  const { useSeparationPreview } = useOnboarding();
+  const { data: preview, isLoading } = useSeparationPreview(userId);
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-border p-6 text-center text-muted-foreground flex items-center justify-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Calculating final pay preview...</span>
+      </div>
+    );
+  }
+
+  if (!preview) {
+    return (
+      <div className="rounded-lg border border-border p-4 text-center text-muted-foreground">
+        No preview data available for selected employee.
+      </div>
+    );
+  }
+
+  const empName =
+    preview.employee?.full_name ||
+    `${preview.employee?.first_name || ''} ${preview.employee?.last_name || ''}`.trim() ||
+    preview.employee?.email ||
+    'Employee';
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+        <span className="font-semibold text-foreground">{empName}</span>
+        <Badge variant="outline" className="text-[10px]">
+          {preview.employee?.position || 'Staff'} • {preview.employee?.department || 'General'}
+        </Badge>
+      </div>
+
+      <div className="space-y-2 text-xs">
+        <div className="flex items-center justify-between text-muted-foreground">
+          <span>Remaining Leave Encashment ({preview.remaining_leave_days} days)</span>
+          <span className="font-medium text-foreground">
+            +${preview.leave_encashment?.toLocaleString() ?? 0}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-muted-foreground">
+          <span>Prorated Salary (Current Month)</span>
+          <span className="font-medium text-foreground">
+            +${preview.prorated_salary?.toLocaleString() ?? 0}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-muted-foreground">
+          <span>Pending Loans & Deductions</span>
+          <span className="font-medium text-rose-600">
+            -${preview.pending_loans?.toLocaleString() ?? 0}
+          </span>
+        </div>
+        <div className="border-t border-border pt-2 flex items-center justify-between font-bold text-sm">
+          <span className="text-foreground">Total Final Settlement</span>
+          <span
+            className={
+              (preview.total_final_settlement ?? 0) >= 0
+                ? 'text-emerald-600'
+                : 'text-rose-600'
+            }
+          >
+            ${preview.total_final_settlement?.toLocaleString() ?? 0}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

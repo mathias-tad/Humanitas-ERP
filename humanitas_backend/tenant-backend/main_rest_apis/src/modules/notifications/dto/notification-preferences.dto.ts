@@ -1,8 +1,14 @@
-import { IsString, IsIn } from 'class-validator';
+import { IsString, IsIn, IsOptional, IsEnum } from 'class-validator';
 
 export type NotificationChannel = 'email' | 'push' | 'both' | 'none';
 
 export const NOTIFICATION_CHANNELS: NotificationChannel[] = ['email', 'push', 'both', 'none'];
+
+export enum DigestMode {
+  INSTANT = 'instant',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+}
 
 /**
  * Notification categories and the minimum permission required to see them.
@@ -100,6 +106,10 @@ export class UpdateNotificationPreferenceDto {
 
   @IsIn(['email', 'push', 'both', 'none'])
   channel: NotificationChannel;
+
+  @IsOptional()
+  @IsEnum(DigestMode)
+  digest_mode?: DigestMode;
 }
 
 export class BulkUpdateNotificationPreferencesDto {

@@ -4,7 +4,9 @@ import {
   NotFoundException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
+
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,9 +26,12 @@ import * as crypto from 'crypto';
 const uuidv4 = () => crypto.randomUUID();
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { HrmsOnboardingService } from '../hrms-onboarding/hrms-onboarding.service';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(Tenant)
     private readonly tenantRepository: Repository<Tenant>,
@@ -38,6 +43,8 @@ export class UsersService {
     private readonly notificationsService: NotificationsService,
     @Inject(forwardRef(() => NotificationsGateway))
     private readonly notificationsGateway: NotificationsGateway,
+    @Inject(forwardRef(() => HrmsOnboardingService))
+    private readonly hrmsOnboardingService: HrmsOnboardingService,
   ) { }
 
   private async getTenantDatabaseName(tenantSlug: string): Promise<string> {
@@ -832,6 +839,31 @@ export class UsersService {
         await this.sendWelcomeEmail(tenantSlug, newUser, setupToken);
       } else {
         console.log('[CreateUser] Password provided, skipping welcome email');
+      }
+
+      // G: Auto-trigger default onboarding checklist for new employees
+      try {
+        const tenant = await this.tenantRepository.findOne({
+          where: { slug: tenantSlug },
+        });
+        if (tenant && this.hrmsOnboardingService) {
+          await this.hrmsOnboardingService.startOnboarding(
+            tenant.id,
+            {
+              user_id: newUser.id,
+              start_date: new Date().toISOString().split('T')[0],
+              probation_days: 90,
+            },
+            newUser.id,
+          );
+          this.logger.log(
+            `[AutoOnboarding] Onboarding checklist started for user ${newUser.id}`,
+          );
+        }
+      } catch (err) {
+        this.logger.warn(
+          `[AutoOnboarding] trigger failed for user ${newUser.id}: ${err.message}`,
+        );
       }
 
       return newUser;

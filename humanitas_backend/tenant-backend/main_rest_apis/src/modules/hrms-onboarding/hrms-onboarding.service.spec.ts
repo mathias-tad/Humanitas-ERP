@@ -388,4 +388,227 @@ describe('HrmsOnboardingService', () => {
       });
     });
   });
+
+  // ── C1/C2: Welcome Portal & Reports ──────────────────────────────────────
+
+  describe('getWelcomePortalStatus', () => {
+    it('should return existing welcome portal row', async () => {
+      const mockStatus = {
+        user_id: 'u-1',
+        documents_uploaded: true,
+        policy_accepted: false,
+        personal_info_completed: true,
+        contract_signed: false,
+        orientation_viewed: false,
+        completed_at: null,
+      };
+      mockConnection.query.mockResolvedValue([mockStatus]);
+
+      const result = await service.getWelcomePortalStatus('tenant-1', 'u-1');
+      expect(result.user_id).toBe('u-1');
+      expect(result.documents_uploaded).toBe(true);
+    });
+
+    it('should return default status object when no row exists', async () => {
+      mockConnection.query.mockResolvedValue([]);
+
+      const result = await service.getWelcomePortalStatus('tenant-1', 'u-new');
+      expect(result.user_id).toBe('u-new');
+      expect(result.documents_uploaded).toBe(false);
+      expect(result.contract_signed).toBe(false);
+    });
+  });
+
+  describe('updateWelcomePortalStep', () => {
+    it('should upsert a step and return updated status', async () => {
+      // upsert INSERT/ON CONFLICT, then auto-complete UPDATE, then SELECT
+      mockConnection.query
+        .mockResolvedValueOnce([]) // INSERT ON CONFLICT (upsert)
+        .mockResolvedValueOnce([]) // completed_at UPDATE
+        .mockResolvedValueOnce([{ user_id: 'u-1', documents_uploaded: true }]); // SELECT
+
+      const result = await service.updateWelcomePortalStep(
+        'tenant-1', 'u-1', 'documents_uploaded', true
+      );
+      expect(result.documents_uploaded).toBe(true);
+    });
+
+    it('should throw BadRequestException for an invalid step name', async () => {
+      await expect(
+        service.updateWelcomePortalStep('tenant-1', 'u-1', 'unknown_step', true),
+      ).rejects.toThrow('Invalid step: unknown_step');
+    });
+  });
+
+  describe('getOffboardingComplianceReport', () => {
+    it('should return compliance metrics per offboarding record', async () => {
+      const mockReport = [
+        {
+          id: 'ob-1',
+          employee_name: 'Abebe Kebede',
+          last_working_day: '2026-10-31',
+          status: 'in_progress',
+          total_tasks: 5,
+          completed_tasks: 3,
+          compliance_pct: 60,
+        },
+      ];
+      mockConnection.query.mockResolvedValue(mockReport);
+
+      const result = await service.getOffboardingComplianceReport('tenant-1');
+      expect(result).toEqual(mockReport);
+      expect(result[0].compliance_pct).toBe(60);
+    });
+  });
+
+  describe('getNewHireRetentionReport', () => {
+    it('should return retention rates for 4 milestones', async () => {
+      // 4 milestones × 1 query each
+      mockConnection.query
+        .mockResolvedValueOnce([{ hired: 10, still_active: 9 }]) // day30
+        .mockResolvedValueOnce([{ hired: 10, still_active: 8 }]) // day60
+        .mockResolvedValueOnce([{ hired: 10, still_active: 8 }]) // day90
+        .mockResolvedValueOnce([{ hired: 10, still_active: 7 }]); // day180
+
+      const result = await service.getNewHireRetentionReport('tenant-1');
+      expect(result.day30.retentionRate).toBe(90);
+      expect(result.day60.retentionRate).toBe(80);
+      expect(result.day180.retentionRate).toBe(70);
+    });
+  });
+
+  // ── PART 3A: NEW ONBOARDING & OFFBOARDING TESTS ───────────────────────────
+
+  describe('getWelcomeChecklist', () => {
+    it('should return default when no record exists', async () => {
+      mockConnection.query.mockResolvedValueOnce([]);
+
+      const result = await service.getWelcomeChecklist('tenant-1', 'u-new');
+      expect(result).toEqual({
+        user_id: 'u-new',
+        onboarding_id: null,
+        document_uploaded: false,
+        policy_accepted: false,
+        profile_completed: false,
+        orientation_viewed: false,
+        welcome_packet_viewed: false,
+      });
+    });
+
+    it('should return existing welcome checklist record', async () => {
+      const mockRecord = {
+        id: 'chk-1',
+        user_id: 'u-1',
+        onboarding_id: 'onb-1',
+        document_uploaded: true,
+        policy_accepted: true,
+        profile_completed: false,
+        orientation_viewed: false,
+        welcome_packet_viewed: false,
+      };
+      mockConnection.query.mockResolvedValueOnce([mockRecord]);
+
+      const result = await service.getWelcomeChecklist('tenant-1', 'u-1');
+      expect(result).toEqual(mockRecord);
+    });
+  });
+
+  describe('updateWelcomeChecklist', () => {
+    it('should insert record if not exists', async () => {
+      mockConnection.query
+        .mockResolvedValueOnce([]) // SELECT
+        .mockResolvedValueOnce([]); // INSERT
+
+      await service.updateWelcomeChecklist('tenant-1', 'u-1', 'onb-1', {
+        document_uploaded: true,
+      });
+      expect(mockConnection.query).toHaveBeenCalledTimes(2);
+    });
+
+    it('should update record if exists', async () => {
+      mockConnection.query
+        .mockResolvedValueOnce([{ id: 'chk-1', user_id: 'u-1' }]) // SELECT
+        .mockResolvedValueOnce([]); // UPDATE
+
+      await service.updateWelcomeChecklist('tenant-1', 'u-1', 'onb-1', {
+        policy_accepted: true,
+      });
+      expect(mockConnection.query).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getRetentionMetrics', () => {
+    it('should return an object with 30d/60d/90d/180d fields', async () => {
+      mockConnection.query.mockResolvedValueOnce([
+        {
+          retained_30d: 12,
+          retained_60d: 10,
+          retained_90d: 8,
+          retained_180d: 6,
+          total: 15,
+        },
+      ]);
+
+      const result = await service.getRetentionMetrics('tenant-1');
+      expect(result).toBeDefined();
+      expect(result.retained_30d).toBe(12);
+      expect(result.retained_60d).toBe(10);
+      expect(result.retained_90d).toBe(8);
+      expect(result.retained_180d).toBe(6);
+      expect(result['30d']).toBe(12);
+      expect(result['60d']).toBe(10);
+      expect(result['90d']).toBe(8);
+      expect(result['180d']).toBe(6);
+      expect(result.total).toBe(15);
+    });
+  });
+
+  describe('get1ClickSeparationPreview', () => {
+    it('should return an object with total_final_settlement field', async () => {
+      const mockUser = {
+        id: 'u-1',
+        first_name: 'John',
+        last_name: 'Doe',
+        salary: 3000,
+      };
+      mockConnection.query
+        .mockResolvedValueOnce([mockUser]) // user salary
+        .mockResolvedValueOnce([{ balance: 10 }]) // leave balance = 10 days
+        .mockResolvedValueOnce([{ total: 500 }]); // active loan = 500
+
+      const result = await service.get1ClickSeparationPreview('tenant-1', 'u-1');
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('total_final_settlement');
+      expect(typeof result.total_final_settlement).toBe('number');
+      expect(result.remaining_leave_days).toBe(10);
+      expect(result.leave_encashment).toBe(1000);
+      expect(result.pending_loans).toBe(500);
+    });
+  });
+
+  describe('execute1ClickSeparation', () => {
+    it('should call startOffboarding internally', async () => {
+      const startOffboardingSpy = jest.spyOn(service, 'startOffboarding').mockResolvedValueOnce({
+        id: 'off-new-1',
+        user_id: 'u-1',
+        status: 'in_progress',
+      } as any);
+
+      const result = await service.execute1ClickSeparation('tenant-1', 'u-1', 'admin-1');
+
+      expect(startOffboardingSpy).toHaveBeenCalledWith(
+        'tenant-1',
+        expect.objectContaining({
+          user_id: 'u-1',
+          reason: 'Resigned',
+        }),
+        'admin-1',
+      );
+      expect(result.offboarding_id).toBe('off-new-1');
+      expect(result.message).toContain('Offboarding initiated');
+
+      startOffboardingSpy.mockRestore();
+    });
+  });
 });
+

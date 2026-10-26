@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Megaphone, Calendar, Settings } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
@@ -21,6 +22,7 @@ interface Notification {
     reference_id?: string;
     title: string;
     message?: string;
+    deep_link?: string;
     is_read: boolean;
     created_at: string;
 }
@@ -38,6 +40,7 @@ interface NotificationDetail {
 }
 
 export function NotificationBell() {
+    const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -54,6 +57,9 @@ export function NotificationBell() {
         if (isAuthenticated) {
             fetchNotifications();
             fetchUnreadCount();
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+            }
         }
     }, [isAuthenticated]);
 
@@ -92,6 +98,22 @@ export function NotificationBell() {
             setNotifications(prev => [safeNotification, ...prev]);
             setUnreadCount(prev => prev + 1);
             showToast(safeNotification);
+
+            // Desktop OS native notification popup (Windows / macOS)
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const desktopNotif = new window.Notification(safeNotification.title || 'Humanitas Notification', {
+                        body: safeNotification.message || '',
+                        icon: '/favicon.ico',
+                    });
+                    desktopNotif.onclick = () => {
+                        window.focus();
+                        if (safeNotification.deep_link) {
+                            navigate(safeNotification.deep_link);
+                        }
+                    };
+                } catch (_) {}
+            }
         });
 
         newSocket.on('disconnect', () => {
@@ -207,6 +229,12 @@ export function NotificationBell() {
         // Mark as read
         if (!notification.is_read) {
             await markAsRead(notification.id);
+        }
+
+        if (notification.deep_link) {
+            navigate(notification.deep_link);
+            setIsOpen(false);
+            return;
         }
 
         // Open detail modal
