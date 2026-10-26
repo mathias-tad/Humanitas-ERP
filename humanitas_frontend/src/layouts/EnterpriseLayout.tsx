@@ -3,15 +3,18 @@ import { Outlet } from "react-router-dom";
 import { ModuleProvider, useERPModules } from "@/context/ModuleContext";
 import { EnterpriseTopHeader } from "@/components/navigation/EnterpriseTopHeader";
 import { ContextualModuleDock } from "@/components/navigation/ContextualModuleDock";
+import { TopbarModuleNavigation } from "@/components/navigation/TopbarModuleNavigation";
 import { AppLauncherModal } from "@/components/navigation/AppLauncherModal";
 import { GlobalCommandPalette } from "@/components/navigation/GlobalCommandPalette";
 import { ChatWidget } from "@/components/messaging/ChatWidget";
 import { AiAssistantWidget, type AiAssistantWidgetHandle } from "@/components/ai/AiAssistantWidget";
 import { useGlobalPrefetch } from "@/hooks/useGlobalPrefetch";
+import { useNavigationLayout } from "@/hooks/useNavigationLayout";
 
 function EnterpriseLayoutContent() {
   const prefetchAll = useGlobalPrefetch();
   const aiWidgetRef = useRef<AiAssistantWidgetHandle>(null);
+  const { isTopbar } = useNavigationLayout();
 
   useEffect(() => {
     // Prefetch background cache on mount
@@ -22,8 +25,8 @@ function EnterpriseLayoutContent() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      {/* Contextual Left Rail Navigation Dock (Dynamics 365 style) */}
-      <ContextualModuleDock />
+      {/* Contextual Left Rail Navigation Dock (Dynamics 365 style) - hidden in topbar mode */}
+      {!isTopbar && <ContextualModuleDock />}
 
       {/* Main Right Workspace Area */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden min-w-0">
@@ -35,6 +38,9 @@ function EnterpriseLayoutContent() {
             window.dispatchEvent(new CustomEvent("toggle-chat-drawer"));
           }}
         />
+
+        {/* Horizontal Navigation Bar (rendered when user selects Topbar layout) */}
+        {isTopbar && <TopbarModuleNavigation />}
 
         {/* Dynamic Page Workspace Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background/50">

@@ -51,6 +51,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   pms_project_status_update:       'Project Status Updated',
   webhook_delivery_failed:         'Webhook Delivery Failed',
   api_key_provisioned:             'API Key Provisioned',
+  birthday_greeting:               'Birthday Greeting',
+  colleague_birthday_alert:        "Colleague's Birthday Alert",
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -63,6 +65,8 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   asset_assigned:            'When company assets or equipment are assigned to you',
   training_enrolled:         'When you are enrolled in a training course',
   profile_update:            'When changes are made to your employee profile',
+  birthday_greeting:         'Personal birthday greeting and warm wishes from the company',
+  colleague_birthday_alert:  'Alert when a team colleague is celebrating their birthday today',
   leave_approval_requests:   'Pending leave requests awaiting your approval',
   expense_approval_requests: 'Pending expense reports awaiting your review',
   grievance_filed:           'When a new grievance is filed requiring your attention',
@@ -92,6 +96,7 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'leave_status_updates', 'payslip_ready', 'shift_assigned',
     'announcement', 'survey_invite', 'onboarding_task',
     'asset_assigned', 'training_enrolled', 'profile_update',
+    'birthday_greeting', 'colleague_birthday_alert',
     'pms_task_assigned',
   ],
   'Approvals & Management': [
@@ -120,6 +125,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   training_enrolled:       null,
   profile_update:          null,
   approval_request_decided: null,
+  birthday_greeting:       null,
+  colleague_birthday_alert: null,
   pms_task_assigned:       null,
 
   // Manager/HR level
@@ -282,4 +289,37 @@ export function useUpdateDigestConfig() {
     },
   });
 }
+
+export interface BirthdayGreetingSettings {
+  enabled: boolean;
+  notifyColleagues: boolean;
+  greetingMessage: string;
+}
+
+export function useBirthdaySettings() {
+  return useQuery<BirthdayGreetingSettings>({
+    queryKey: ['birthday-settings'],
+    queryFn: () => fetcher<BirthdayGreetingSettings>(`${API_BASE_URL}/notifications/settings/birthday`),
+  });
+}
+
+export function useUpdateBirthdaySettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (settings: Partial<BirthdayGreetingSettings>) => {
+      const res = await fetch(`${API_BASE_URL}/notifications/settings/birthday`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) throw new Error('Failed to update birthday greeting settings');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['birthday-settings'] });
+    },
+  });
+}
+
 

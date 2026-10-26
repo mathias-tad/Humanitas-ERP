@@ -26,6 +26,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   training_enrolled:       null,
   profile_update:          null,
   approval_request_decided: null,
+  birthday_greeting:       null,
+  colleague_birthday_alert: null,
 
   // Manager/HR level
   leave_approval_requests:   'approve_leave',
@@ -90,6 +92,8 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   recruitment_interview_scheduled: 'hrms',
   recruitment_offer_generated:     'hrms',
   recruitment_candidate_hired:     'hrms',
+  birthday_greeting:               'hrms',
+  colleague_birthday_alert:        'hrms',
 
   // PMS
   task_assignment_alerts:    'pms',

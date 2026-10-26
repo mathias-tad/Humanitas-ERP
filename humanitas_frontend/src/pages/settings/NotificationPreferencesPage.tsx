@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Mail, Smartphone, BellOff, Layers, Check, Save, Loader2, Lock, BarChart2 } from 'lucide-react';
+import { Bell, Mail, Smartphone, BellOff, Layers, Check, Save, Loader2, Lock, BarChart2, Cake } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useModules } from '@/context/ModuleContext';
 import {
@@ -8,6 +8,8 @@ import {
   useBulkUpdateNotificationPreferences,
   useDigestConfig,
   useUpdateDigestConfig,
+  useBirthdaySettings,
+  useUpdateBirthdaySettings,
   NOTIFICATION_CATEGORY_LABELS,
   NOTIFICATION_CATEGORY_DESCRIPTIONS,
   NOTIFICATION_CATEGORY_PERMISSION_MAP,
@@ -56,6 +58,38 @@ export default function NotificationPreferencesPage() {
       toast.success(`Delivery mode updated to ${mode}`);
     } catch {
       toast.error('Failed to update delivery mode');
+    }
+  };
+
+  const { data: birthdaySettings } = useBirthdaySettings();
+  const updateBirthdayMutation = useUpdateBirthdaySettings();
+  const [birthdayEnabled, setBirthdayEnabled] = useState(true);
+  const [notifyColleagues, setNotifyColleagues] = useState(true);
+
+  useEffect(() => {
+    if (birthdaySettings) {
+      setBirthdayEnabled(birthdaySettings.enabled);
+      setNotifyColleagues(birthdaySettings.notifyColleagues);
+    }
+  }, [birthdaySettings]);
+
+  const handleToggleBirthday = async (enabled: boolean) => {
+    setBirthdayEnabled(enabled);
+    try {
+      await updateBirthdayMutation.mutateAsync({ enabled });
+      toast.success(enabled ? 'Automated birthday greetings activated' : 'Automated birthday greetings deactivated');
+    } catch {
+      toast.error('Failed to update birthday greeting settings');
+    }
+  };
+
+  const handleToggleNotifyColleagues = async (notify: boolean) => {
+    setNotifyColleagues(notify);
+    try {
+      await updateBirthdayMutation.mutateAsync({ notifyColleagues: notify });
+      toast.success(notify ? 'Colleague birthday alerts activated' : 'Colleague birthday alerts deactivated');
+    } catch {
+      toast.error('Failed to update colleague birthday alert settings');
     }
   };
 
@@ -189,6 +223,57 @@ export default function NotificationPreferencesPage() {
             ? 'Notifications bundled in a daily summary email at 8 AM.'
             : 'Notifications bundled in a weekly summary email every Monday.'}
         </p>
+      </div>
+
+      {/* Automated Birthday Greetings & Celebrations (Default Active, Toggleable) */}
+      <div className="bg-card rounded-xl border border-border p-5 mb-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500">
+              <Cake className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                Automated Birthday Greetings
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
+                  Default Active
+                </span>
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Automatically send celebratory emails and alerts when team members have a birthday.
+              </p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={birthdayEnabled}
+              onChange={(e) => handleToggleBirthday(e.target.checked)}
+              disabled={updateBirthdayMutation.isPending}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <div>
+            <p className="text-xs font-medium text-foreground">Notify All Colleagues</p>
+            <p className="text-[11px] text-muted-foreground">
+              Notify teammates and colleagues on the day of the birthday so they can send warm wishes.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={notifyColleagues}
+              onChange={(e) => handleToggleNotifyColleagues(e.target.checked)}
+              disabled={!birthdayEnabled || updateBirthdayMutation.isPending}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

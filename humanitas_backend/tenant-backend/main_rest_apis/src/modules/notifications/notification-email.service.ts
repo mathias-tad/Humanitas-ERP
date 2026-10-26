@@ -257,4 +257,22 @@ export class NotificationEmailService {
       deepLink: `${appUrl}/hrms/documents`,
     });
   }
+
+  async sendBirthdayGreeting(
+    tenantSlug: string,
+    to: string,
+    ctx: { employeeName: string; companyName?: string },
+    appUrl: string,
+    tenantId?: string,
+  ): Promise<void> {
+    await this.sendEmail({
+      tenantSlug,
+      tenantId,
+      to,
+      subject: `🎂 Happy Birthday, ${ctx.employeeName}!`,
+      templateName: 'birthday-greeting',
+      context: ctx,
+      deepLink: `${appUrl}/dashboard`,
+    });
+  }
 }

@@ -71,6 +71,8 @@ const Map<String, String> kNotificationCategoryLabels = {
   'pms_project_status_update': 'Project Status Updated',
   'webhook_delivery_failed': 'Webhook Delivery Failed',
   'api_key_provisioned': 'API Key Provisioned',
+  'birthday_greeting': 'Birthday Greeting',
+  'colleague_birthday_alert': "Colleague's Birthday Alert",
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -83,6 +85,8 @@ const Map<String, String> kNotificationCategoryGroups = {
   'asset_assigned': 'Personal & Self-Service',
   'training_enrolled': 'Personal & Self-Service',
   'profile_update': 'Personal & Self-Service',
+  'birthday_greeting': 'Personal & Self-Service',
+  'colleague_birthday_alert': 'Personal & Self-Service',
   'pms_task_assigned': 'Personal & Self-Service',
   'leave_approval_requests': 'Approvals & Management',
   'expense_approval_requests': 'Approvals & Management',
@@ -119,6 +123,8 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'training_enrolled': null,
   'profile_update': null,
   'approval_request_decided': null,
+  'birthday_greeting': null,
+  'colleague_birthday_alert': null,
   'pms_task_assigned': null,
 
   // Manager/HR level
@@ -180,6 +186,8 @@ const Map<String, String> kNotificationCategoryModuleMap = {
   'recruitment_interview_scheduled': 'hrms',
   'recruitment_offer_generated': 'hrms',
   'recruitment_candidate_hired': 'hrms',
+  'birthday_greeting': 'hrms',
+  'colleague_birthday_alert': 'hrms',
 
   // PMS
   'task_assignment_alerts': 'pms',

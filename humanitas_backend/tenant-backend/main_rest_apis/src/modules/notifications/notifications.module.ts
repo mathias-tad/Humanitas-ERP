@@ -13,6 +13,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesModule } from '../roles/roles.module';
 import { PushNotificationService } from './push-notification.service';
+import { BirthdayGreetingsCron } from './birthday-greetings.cron';
 import { Tenant } from '../auth/entities/tenant.entity';
 
 @Module({
@@ -36,6 +37,7 @@ import { Tenant } from '../auth/entities/tenant.entity';
         NotificationReportsService,
         EmailTemplatesService,
         PushNotificationService,
+        BirthdayGreetingsCron,
     ],
     exports: [
         NotificationsService,
@@ -44,6 +46,7 @@ import { Tenant } from '../auth/entities/tenant.entity';
         NotificationReportsService,
         EmailTemplatesService,
         PushNotificationService,
+        BirthdayGreetingsCron,
     ],
 })
 export class NotificationsModule { }

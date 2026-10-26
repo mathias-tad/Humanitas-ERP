@@ -68,7 +68,7 @@ export interface ModuleNavConfig {
 }
 
 // Module-specific sub-navigation trees
-const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[] }[]> = {
+export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: NavItem[] }[]> = {
   hrms: [
     {
       title: "Workforce",

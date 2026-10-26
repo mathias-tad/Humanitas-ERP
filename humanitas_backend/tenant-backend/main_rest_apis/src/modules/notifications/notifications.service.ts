@@ -499,6 +499,82 @@ export class NotificationsService {
     `, [userId]);
     return (rows || []).map((r: any) => r.token);
   }
+
+  async getBirthdayGreetingSettings(tenantId: string): Promise<{
+    enabled: boolean;
+    notifyColleagues: boolean;
+    greetingMessage: string;
+  }> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `).catch(() => {});
+
+    const rows = await connection.query(`
+      SELECT key, value FROM system_settings 
+      WHERE key IN ('birthday_greetings_enabled', 'birthday_notify_colleagues', 'birthday_greeting_message')
+    `);
+
+    const map: Record<string, string> = {};
+    for (const row of rows || []) {
+      map[row.key] = row.value;
+    }
+
+    // Default active (enabled: true, notifyColleagues: true)
+    const enabled = map['birthday_greetings_enabled'] !== 'false';
+    const notifyColleagues = map['birthday_notify_colleagues'] !== 'false';
+    const greetingMessage = map['birthday_greeting_message'] || 'Wishing you a very Happy Birthday filled with joy and success!';
+
+    return {
+      enabled,
+      notifyColleagues,
+      greetingMessage,
+    };
+  }
+
+  async updateBirthdayGreetingSettings(
+    tenantId: string,
+    settings: { enabled?: boolean; notifyColleagues?: boolean; greetingMessage?: string },
+  ): Promise<{ enabled: boolean; notifyColleagues: boolean; greetingMessage: string }> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `).catch(() => {});
+
+    if (settings.enabled !== undefined) {
+      await connection.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('birthday_greetings_enabled', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+      `, [settings.enabled ? 'true' : 'false']);
+    }
+
+    if (settings.notifyColleagues !== undefined) {
+      await connection.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('birthday_notify_colleagues', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+      `, [settings.notifyColleagues ? 'true' : 'false']);
+    }
+
+    if (settings.greetingMessage !== undefined) {
+      await connection.query(`
+        INSERT INTO system_settings (key, value)
+        VALUES ('birthday_greeting_message', $1)
+        ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()
+      `, [settings.greetingMessage]);
+    }
+
+    return this.getBirthdayGreetingSettings(tenantId);
+  }
 }
 
 

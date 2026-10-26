@@ -205,4 +205,21 @@ export class NotificationsController {
         );
         return { success: true };
     }
+
+    @Get('settings/birthday')
+    @RequirePermissions('view_notification_preferences')
+    async getBirthdaySettings(@Request() req: any) {
+        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+        return this.notificationsService.getBirthdayGreetingSettings(tenantId);
+    }
+
+    @Put('settings/birthday')
+    @RequirePermissions('manage_notification_preferences')
+    async updateBirthdaySettings(
+        @Request() req: any,
+        @Body() body: { enabled?: boolean; notifyColleagues?: boolean; greetingMessage?: string },
+    ) {
+        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+        return this.notificationsService.updateBirthdayGreetingSettings(tenantId, body);
+    }
 }

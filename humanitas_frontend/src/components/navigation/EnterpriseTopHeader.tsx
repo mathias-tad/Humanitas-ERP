@@ -15,9 +15,14 @@ import {
   Shield,
   Menu,
   Building2,
+  User,
+  PanelLeft,
+  PanelTop,
 } from "lucide-react";
 import { CompanyBranchSwitcher } from "./CompanyBranchSwitcher";
 import { Button } from "@/components/ui/button";
+import { useNavigationLayout } from "@/hooks/useNavigationLayout";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +53,16 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
   } = useERPModules();
   const { user, tenant, logout } = useAuth();
   const navigate = useNavigate();
+  const { isTopbar, toggleLayout } = useNavigationLayout();
+
+  const handleToggleLayout = () => {
+    const nextMode = toggleLayout();
+    if (nextMode === "topbar") {
+      toast.success("Switched to Topbar navigation");
+    } else {
+      toast.success("Switched to Sidebar navigation");
+    }
+  };
 
   const currentModule = ALL_ERP_MODULES[activeModule] || ALL_ERP_MODULES.hrms;
   const ModuleIcon = currentModule.icon;
@@ -217,6 +232,24 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
                 <p className="text-[10px] leading-none text-muted-foreground">Tenant: {tenant?.slug || "Default"}</p>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/profile")} className="text-xs gap-2 cursor-pointer font-medium">
+              <User className="h-3.5 w-3.5 text-primary" />
+              <span>My Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleToggleLayout} className="text-xs gap-2 cursor-pointer">
+              {isTopbar ? (
+                <PanelLeft className="h-3.5 w-3.5 text-amber-500" />
+              ) : (
+                <PanelTop className="h-3.5 w-3.5 text-amber-500" />
+              )}
+              <div className="flex items-center justify-between flex-1">
+                <span>Layout: {isTopbar ? "Topbar" : "Sidebar"}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                  Switch
+                </span>
+              </div>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/settings/appearance")} className="text-xs gap-2 cursor-pointer">
               <Palette className="h-3.5 w-3.5 text-muted-foreground" />
