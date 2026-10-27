@@ -33,7 +33,7 @@ export const GlobalCommandPalette: React.FC = () => {
         onClick={() => setIsCommandPaletteOpen(false)}
       />
 
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scaleUp">
+      <div className="relative w-[92vw] sm:w-full max-w-2xl mx-auto overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scaleUp">
         <Command className="w-full">
           {/* Search Input */}
           <div className="flex items-center px-4 border-b border-border bg-surface-1">

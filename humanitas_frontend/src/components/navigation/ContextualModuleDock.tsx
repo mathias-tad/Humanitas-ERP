@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useERPModules, ALL_ERP_MODULES, type ERPModuleKey } from "@/context/ModuleContext";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigationLayout } from "@/hooks/useNavigationLayout";
+import { CompanyBranchSwitcher } from "./CompanyBranchSwitcher";
 import {
   Users,
   Package,
@@ -320,6 +322,7 @@ export const ContextualModuleDock: React.FC = () => {
   } = useERPModules();
   const { hasPermission } = useAuth();
   const location = useLocation();
+  const { isTopbar } = useNavigationLayout();
 
   const currentModule = ALL_ERP_MODULES[activeModule] || ALL_ERP_MODULES.hrms;
   const navSections = MODULE_NAV_CONFIGS[activeModule] || MODULE_NAV_CONFIGS.hrms;
@@ -381,6 +384,15 @@ export const ContextualModuleDock: React.FC = () => {
             <ChevronLeft className="h-4 w-4" />
           </button>
         )}
+      </div>
+
+      {/* Mobile Scope Switcher (Company & Branch) */}
+      <div className="px-3 py-2.5 border-b border-dock-border bg-surface-2/40 md:hidden">
+        <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 mb-1.5 flex items-center gap-1">
+          <Building2 className="h-3 w-3 text-primary" />
+          <span>Active Scope</span>
+        </p>
+        <CompanyBranchSwitcher />
       </div>
 
       {/* Navigation Links (Grouped by section) */}
@@ -468,14 +480,16 @@ export const ContextualModuleDock: React.FC = () => {
 
   return (
     <>
-      {/* Desktop Sidebar (Static Rail) */}
-      <aside
-        className={`hidden md:flex flex-col h-screen border-r border-dock-border select-none transition-all duration-200 z-30 shrink-0 ${
-          isCollapsed ? "w-[64px]" : "w-[240px]"
-        }`}
-      >
-        {content}
-      </aside>
+      {/* Desktop Sidebar (Static Rail) - only in sidebar layout mode */}
+      {!isTopbar && (
+        <aside
+          className={`hidden md:flex flex-col h-screen border-r border-dock-border select-none transition-all duration-200 z-30 shrink-0 ${
+            isCollapsed ? "w-[64px]" : "w-[240px]"
+          }`}
+        >
+          {content}
+        </aside>
+      )}
 
       {/* Mobile Drawer (Slide-Over with Backdrop) */}
       {isMobileSidebarOpen && (

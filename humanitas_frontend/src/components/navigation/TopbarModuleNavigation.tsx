@@ -60,7 +60,7 @@ export const TopbarModuleNavigation: React.FC = () => {
 
   return (
     <>
-      <nav className="w-full bg-card/95 backdrop-blur-md border-b border-border/80 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none select-none z-30 shrink-0">
+      <nav className="w-full bg-card/95 backdrop-blur-md border-b border-border/80 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none touch-pan-x select-none z-30 shrink-0">
         <div className="flex items-center gap-1.5 min-w-0">
           {/* Module Switcher Badge (clicking opens 9-dot launcher) */}
           <button
@@ -176,7 +176,7 @@ export const TopbarModuleNavigation: React.FC = () => {
 
       {/* All Menus Mega-Grid Modal / Site Map */}
       <Dialog open={isAllMenusOpen} onOpenChange={setIsAllMenusOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[85vh] overflow-hidden flex flex-col p-0">
           <DialogHeader className="p-4 border-b border-border bg-surface-1">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">

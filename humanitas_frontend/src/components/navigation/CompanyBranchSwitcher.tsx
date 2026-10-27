@@ -60,7 +60,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-1 border border-border text-xs text-muted-foreground select-none">
         <Lock className="h-3 w-3 text-muted-foreground" />
-        <span className="font-medium truncate max-w-[120px]">
+        <span className="font-medium truncate max-w-[80px] sm:max-w-[120px]">
           {user?.company_id ? 'Assigned Unit' : 'Main Organization'}
         </span>
       </div>
@@ -111,7 +111,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
               }`}
             >
               <Building2 className={`h-3.5 w-3.5 shrink-0 ${activeCompanyIds.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className="truncate max-w-[130px] font-medium">{getCompanyLabel()}</span>
+              <span className="truncate max-w-[85px] sm:max-w-[130px] font-medium">{getCompanyLabel()}</span>
               {activeCompanyIds.length > 1 && (
                 <Badge variant="secondary" className="h-4 px-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/30">
                   ∪ {activeCompanyIds.length}
@@ -232,7 +232,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
               }`}
             >
               <GitBranch className={`h-3.5 w-3.5 shrink-0 ${activeBranchIds.length > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
-              <span className="truncate max-w-[130px] font-medium">{getBranchLabel()}</span>
+              <span className="truncate max-w-[80px] sm:max-w-[130px] font-medium">{getBranchLabel()}</span>
               {activeBranchIds.length > 1 && (
                 <Badge variant="secondary" className="h-4 px-1 text-[9px] font-bold bg-primary/20 text-primary border border-primary/30">
                   ∪ {activeBranchIds.length}

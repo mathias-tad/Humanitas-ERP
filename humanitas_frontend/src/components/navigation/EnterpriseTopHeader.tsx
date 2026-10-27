@@ -115,7 +115,7 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
       </div>
 
       {/* Center: Global Search Bar (Triggering Cmd+K Palette) */}
-      <div className="flex-1 max-w-xl hidden md:block">
+      <div className="flex-1 max-w-xs md:max-w-sm lg:max-w-xl hidden md:block">
         <button
           onClick={() => setIsCommandPaletteOpen(true)}
           className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl border border-border bg-surface-1 text-xs text-muted-foreground hover:border-primary/50 hover:bg-card transition-all shadow-xs group"
@@ -130,8 +130,8 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
         </button>
       </div>
 
-      {/* Center-Right: Company & Branch Context Switcher */}
-      <div className="hidden lg:flex items-center">
+      {/* Center-Right: Company & Branch Context Switcher (visible on tablet & desktop) */}
+      <div className="hidden md:flex items-center shrink-0">
         <CompanyBranchSwitcher />
       </div>
 

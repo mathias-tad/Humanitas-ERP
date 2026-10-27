@@ -18,7 +18,7 @@ export const AppLauncherModal: React.FC = () => {
 
   return (
     <Dialog open={isAppLauncherOpen} onOpenChange={setIsAppLauncherOpen}>
-      <DialogContent className="sm:max-w-2xl bg-card border-border shadow-2xl p-6">
+      <DialogContent className="w-[95vw] sm:max-w-2xl bg-card border-border shadow-2xl p-4 sm:p-6">
         <DialogHeader className="pb-4 border-b border-border/80">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">

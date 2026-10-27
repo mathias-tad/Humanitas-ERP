@@ -25,8 +25,8 @@ function EnterpriseLayoutContent() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
-      {/* Contextual Left Rail Navigation Dock (Dynamics 365 style) - hidden in topbar mode */}
-      {!isTopbar && <ContextualModuleDock />}
+      {/* Contextual Left Rail Navigation Dock & Mobile Drawer */}
+      <ContextualModuleDock />
 
       {/* Main Right Workspace Area */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden min-w-0">
