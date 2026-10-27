@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ChevronDown, LayoutGrid, Search, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Search, X } from "lucide-react";
 
 export const TopbarModuleNavigation: React.FC = () => {
   const { activeModule, setIsAppLauncherOpen } = useERPModules();
@@ -27,6 +27,37 @@ export const TopbarModuleNavigation: React.FC = () => {
 
   const [isAllMenusOpen, setIsAllMenusOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = React.useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
+  React.useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
+
+  const handleScroll = (direction: "left" | "right") => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distance = 240;
+    el.scrollBy({ left: direction === "left" ? -distance : distance, behavior: "smooth" });
+  };
 
   const currentModule = ALL_ERP_MODULES[activeModule] || ALL_ERP_MODULES.hrms;
   const ModuleIcon = currentModule.icon;
@@ -60,102 +91,138 @@ export const TopbarModuleNavigation: React.FC = () => {
 
   return (
     <>
-      <nav className="w-full bg-card/95 backdrop-blur-md border-b border-border/80 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none touch-pan-x select-none z-30 shrink-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {/* Module Switcher Badge (clicking opens 9-dot launcher) */}
-          <button
-            onClick={() => setIsAppLauncherOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-2 text-foreground hover:bg-surface-3 transition-colors shrink-0 mr-1 group"
-            title="Switch Module"
+      <nav className="relative w-full bg-card/95 backdrop-blur-md border-b border-border/80 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 select-none z-30 shrink-0">
+        <div className="relative flex items-center flex-1 min-w-0">
+          {/* Left overflow indicator & scroll button */}
+          {canScrollLeft && (
+            <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center pr-3 bg-gradient-to-r from-card via-card/90 to-transparent pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => handleScroll("left")}
+                className="h-6 w-6 rounded-full bg-background border border-border shadow-md flex items-center justify-center text-foreground hover:bg-surface-2 hover:text-primary transition-all duration-150"
+                title="Scroll left to see more menus"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Scrollable menu items (no visible scrollbar) */}
+          <div
+            ref={scrollContainerRef}
+            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-x w-full py-0.5"
           >
-            <ModuleIcon className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
-            <span className="font-bold hidden md:inline">{currentModule.shortLabel}</span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-          </button>
+            {/* Module Switcher Badge (clicking opens 9-dot launcher) */}
+            <button
+              onClick={() => setIsAppLauncherOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface-2 text-foreground hover:bg-surface-3 transition-colors shrink-0 mr-1 group"
+              title="Switch Module"
+            >
+              <ModuleIcon className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="font-bold hidden md:inline">{currentModule.shortLabel}</span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </button>
 
-          {/* Categorized Dropdowns / Mega-menus for all module sections */}
-          {filteredSections.map((section, sIdx) => {
-            const active = isSectionActive(section);
+            {/* Categorized Dropdowns / Mega-menus for all module sections */}
+            {filteredSections.map((section, sIdx) => {
+              const active = isSectionActive(section);
 
-            // If a section has only 1 item, render it directly as a link
-            if (section.items.length === 1) {
-              const singleItem = section.items[0];
-              const Icon = singleItem.icon;
-              const isItemActive =
-                singleItem.url === "/dashboard"
-                  ? location.pathname === "/dashboard"
-                  : location.pathname.startsWith(singleItem.url);
+              // If a section has only 1 item, render it directly as a link
+              if (section.items.length === 1) {
+                const singleItem = section.items[0];
+                const Icon = singleItem.icon;
+                const isItemActive =
+                  singleItem.url === "/dashboard"
+                    ? location.pathname === "/dashboard"
+                    : location.pathname.startsWith(singleItem.url);
 
-              return (
-                <NavLink
-                  key={sIdx}
-                  to={singleItem.url}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    isItemActive
-                      ? "gold-gradient font-bold shadow-xs text-slate-950"
-                      : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-                  }`}
-                >
-                  <Icon className={`h-3.5 w-3.5 shrink-0 ${isItemActive ? "text-slate-950" : "text-muted-foreground"}`} />
-                  <span>{singleItem.title}</span>
-                </NavLink>
-              );
-            }
-
-            return (
-              <DropdownMenu key={sIdx}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all outline-none ${
-                      active
-                        ? "bg-primary/10 text-primary font-bold border-b-2 border-primary"
+                return (
+                  <NavLink
+                    key={sIdx}
+                    to={singleItem.url}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                      isItemActive
+                        ? "gold-gradient font-bold shadow-xs text-slate-950"
                         : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
                     }`}
                   >
-                    <span>{section.title}</span>
-                    <span className="text-[10px] text-muted-foreground/70 bg-surface-2 px-1 rounded-sm">
-                      {section.items.length}
-                    </span>
-                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 p-1.5 shadow-lg border-border">
-                  <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                    {section.title}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {section.items.map((item, iIdx) => {
-                    const Icon = item.icon;
-                    const isItemActive =
-                      item.url === "/dashboard"
-                        ? location.pathname === "/dashboard"
-                        : location.pathname.startsWith(item.url);
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isItemActive ? "text-slate-950" : "text-muted-foreground"}`} />
+                    <span>{singleItem.title}</span>
+                  </NavLink>
+                );
+              }
 
-                    return (
-                      <DropdownMenuItem key={iIdx} asChild>
-                        <NavLink
-                          to={item.url}
-                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
-                            isItemActive
-                              ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                              : "text-foreground hover:bg-surface-2"
-                          }`}
-                        >
-                          <Icon className={`h-3.5 w-3.5 shrink-0 ${isItemActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
-                          <span className="truncate flex-1">{item.title}</span>
-                          {item.badge && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-surface-3">
-                              {item.badge}
-                            </span>
-                          )}
-                        </NavLink>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            );
-          })}
+              return (
+                <DropdownMenu key={sIdx}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all outline-none ${
+                        active
+                          ? "bg-primary/10 text-primary font-bold border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+                      }`}
+                    >
+                      <span>{section.title}</span>
+                      <span className="text-[10px] text-muted-foreground/70 bg-surface-2 px-1 rounded-sm">
+                        {section.items.length}
+                      </span>
+                      <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 p-1.5 shadow-lg border-border">
+                    <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                      {section.title}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {section.items.map((item, iIdx) => {
+                      const Icon = item.icon;
+                      const isItemActive =
+                        item.url === "/dashboard"
+                          ? location.pathname === "/dashboard"
+                          : location.pathname.startsWith(item.url);
+
+                      return (
+                        <DropdownMenuItem key={iIdx} asChild>
+                          <NavLink
+                            to={item.url}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                              isItemActive
+                                ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                                : "text-foreground hover:bg-surface-2"
+                            }`}
+                          >
+                            <Icon className={`h-3.5 w-3.5 shrink-0 ${isItemActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                            <span className="truncate flex-1">{item.title}</span>
+                            {item.badge && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-surface-3">
+                                {item.badge}
+                              </span>
+                            )}
+                          </NavLink>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })}
+          </div>
+
+          {/* Right overflow indicator & scroll button */}
+          {canScrollRight && (
+            <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center pl-3 bg-gradient-to-l from-card via-card/90 to-transparent pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => handleScroll("right")}
+                className="h-6 w-6 rounded-full bg-background border border-border shadow-md flex items-center justify-center text-foreground hover:bg-surface-2 hover:text-primary transition-all duration-150"
+                title="Scroll right to see more menus"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right Action: All Menus Grid Button */}

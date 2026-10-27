@@ -365,23 +365,14 @@ export const ContextualModuleDock: React.FC = () => {
           </button>
         )}
 
-        {/* Mobile Close Button / Desktop Collapse Toggle */}
-        {isMobileSidebarOpen ? (
+        {/* Mobile Close Button */}
+        {isMobileSidebarOpen && (
           <button
             onClick={() => setIsMobileSidebarOpen(false)}
             className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors md:hidden"
+            title="Close navigation"
           >
             <X className="h-4 w-4" />
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`h-6 w-6 hidden md:flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors ${
-              isCollapsed ? "hidden" : "flex"
-            }`}
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <ChevronLeft className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -461,13 +452,9 @@ export const ContextualModuleDock: React.FC = () => {
       {/* Pinned Bottom Controls */}
       <div className="border-t border-dock-border p-2 bg-surface-1/50 space-y-1">
         {isCollapsed && !isMobileSidebarOpen ? (
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 mx-auto"
-            title="Expand Sidebar"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex h-8 w-full items-center justify-center text-[10px] text-muted-foreground font-semibold">
+            v2.0
+          </div>
         ) : (
           <div className="px-2 py-1 flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="truncate">Humanitas ERP v2.0</span>
@@ -483,11 +470,21 @@ export const ContextualModuleDock: React.FC = () => {
       {/* Desktop Sidebar (Static Rail) - only in sidebar layout mode */}
       {!isTopbar && (
         <aside
-          className={`hidden md:flex flex-col h-screen border-r border-dock-border select-none transition-all duration-200 z-30 shrink-0 ${
+          className={`relative hidden md:flex flex-col h-screen border-r border-dock-border select-none transition-all duration-200 z-30 shrink-0 ${
             isCollapsed ? "w-[64px]" : "w-[240px]"
           }`}
         >
           {content}
+
+          {/* Desktop Custom Edge Trigger */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="absolute -right-3 top-5 z-40 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-surface-2 text-foreground transition-all hover:scale-105"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+          </button>
         </aside>
       )}
 
