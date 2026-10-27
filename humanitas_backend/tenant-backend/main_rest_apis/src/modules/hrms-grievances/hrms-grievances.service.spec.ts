@@ -114,7 +114,8 @@ describe('HrmsGrievancesService', () => {
 
       const queryArg = mockConnection.query.mock.calls[0][0];
       expect(queryArg).not.toContain('g.user_id = $1');
-      expect(queryArg).toContain('g.status = $3');
+      expect(queryArg).toContain('g.status = $1');
+      expect(mockConnection.query.mock.calls[0][1]).toEqual(['investigating']);
     });
   });
 
