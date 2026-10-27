@@ -22,7 +22,6 @@ import {
 import { CompanyBranchSwitcher } from "./CompanyBranchSwitcher";
 import { Button } from "@/components/ui/button";
 import { useNavigationLayout } from "@/hooks/useNavigationLayout";
-import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,12 +55,7 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
   const { isTopbar, toggleLayout } = useNavigationLayout();
 
   const handleToggleLayout = () => {
-    const nextMode = toggleLayout();
-    if (nextMode === "topbar") {
-      toast.success("Switched to Topbar navigation");
-    } else {
-      toast.success("Switched to Sidebar navigation");
-    }
+    toggleLayout();
   };
 
   const currentModule = ALL_ERP_MODULES[activeModule] || ALL_ERP_MODULES.hrms;
