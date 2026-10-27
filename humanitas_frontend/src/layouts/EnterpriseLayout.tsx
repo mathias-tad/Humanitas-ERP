@@ -31,7 +31,7 @@ function EnterpriseLayoutContent() {
       {/* Main Right Workspace Area */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden min-w-0">
         {/* Top Global Command Header & Topbar Navigation (Strictly pinned, never moves on scroll) */}
-        <div className="shrink-0 sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md">
+        <div className="shrink-0 sticky top-0 z-20 w-full bg-card/95 backdrop-blur-md">
           <EnterpriseTopHeader
             onOpenAiWidget={() => aiWidgetRef.current?.open()}
             onOpenChatDrawer={() => {

@@ -62,7 +62,7 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
   const ModuleIcon = currentModule.icon;
 
   return (
-    <header className="h-14 w-full border-b border-border bg-card/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-40 select-none">
+    <header className="h-14 w-full border-b border-border bg-card/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 select-none">
       {/* Left: Mobile Menu Toggle + 9-Dot Launcher & Logo */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
         {/* Mobile Hamburger Drawer Button */}
@@ -125,7 +125,7 @@ export const EnterpriseTopHeader: React.FC<EnterpriseTopHeaderProps> = ({
       </div>
 
       {/* Center-Right: Company & Branch Context Switcher (visible on tablet & desktop) */}
-      <div className="hidden md:flex items-center shrink-0">
+      <div className="hidden md:flex items-center shrink-0 ml-auto">
         <CompanyBranchSwitcher />
       </div>
 

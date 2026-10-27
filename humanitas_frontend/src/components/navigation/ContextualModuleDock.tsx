@@ -479,7 +479,7 @@ export const ContextualModuleDock: React.FC = () => {
           {/* Desktop Custom Edge Trigger */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-5 z-40 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-surface-2 text-foreground transition-all hover:scale-105"
+            className="absolute -right-3 top-4 z-40 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-surface-2 text-foreground transition-all hover:scale-105"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
