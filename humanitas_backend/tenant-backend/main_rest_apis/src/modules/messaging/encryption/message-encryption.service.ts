@@ -8,8 +8,13 @@ export class MessageEncryptionService {
     private readonly key: Buffer;
 
     constructor(private configService: ConfigService) {
-        const rawKey = this.configService.get<string>('MESSAGE_ENCRYPTION_KEY')
+        let rawKey = this.configService.get<string>('MESSAGE_ENCRYPTION_KEY')
             || this.configService.get<string>('ENCRYPTION_SECRET');
+
+        // Fall back to JWT_SECRET if explicit encryption keys are not set in the environment
+        if (!rawKey) {
+            rawKey = this.configService.get<string>('JWT_SECRET');
+        }
 
         if (!rawKey) {
             throw new Error(
