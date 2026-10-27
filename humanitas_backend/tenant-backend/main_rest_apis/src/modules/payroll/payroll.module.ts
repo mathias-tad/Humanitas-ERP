@@ -21,11 +21,12 @@ import { AbsencePenaltyController } from './absence-penalty.controller';
 import { SettingsModule } from '../settings/settings.module';
 import { AbsencePenaltyService } from './absence-penalty.service';
 import { LateMinuteService } from './late-minute.service';
+import { BankTransferExportService } from './bank-transfer-export.service';
 
 @Module({
   imports: [DatabaseModule, NotificationsModule, TypeOrmModule.forFeature([Tenant, UserPenalty]), SettingsModule],
   controllers: [PayrollController, ActingAssignmentsController, PerDiemController, UserPenaltyController, LoanController, AbsencePenaltyController],
-  providers: [PayrollService, PayrollScheduler, ActingAssignmentsService, PerDiemService, UserPenaltyService, LoanService, AbsencePenaltyService, LateMinuteService],
-  exports: [PayrollService, PayrollScheduler, PerDiemService, UserPenaltyService, LoanService, AbsencePenaltyService, LateMinuteService],
+  providers: [PayrollService, PayrollScheduler, ActingAssignmentsService, PerDiemService, UserPenaltyService, LoanService, AbsencePenaltyService, LateMinuteService, BankTransferExportService],
+  exports: [PayrollService, PayrollScheduler, PerDiemService, UserPenaltyService, LoanService, AbsencePenaltyService, LateMinuteService, BankTransferExportService],
 })
 export class PayrollModule { }

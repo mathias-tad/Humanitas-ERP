@@ -12,7 +12,7 @@ export interface AiDocumentTemplate {
   id: string;
   name: string;
   description: string;
-  category: 'HRMS' | 'Payroll' | 'PMS' | 'Attendance' | 'General';
+  category: 'HRMS' | 'Payroll' | 'PMS' | 'Attendance' | 'Finance' | 'Operations' | 'General';
   supportedFormats: ('pdf' | 'docx' | 'excel')[];
   defaultPrompt: string;
   parameters: {
@@ -100,6 +100,110 @@ export class AiDocumentService {
         { key: 'department', label: 'Department Name', type: 'string', required: false, description: 'Filter by department' },
       ],
     },
+    {
+      id: 'individual_payslip',
+      name: 'Individual Employee Payslip',
+      description: 'Official monthly payslip detailing earnings, allowances, tax/pension statutory deductions, and net compensation for an individual employee.',
+      category: 'Payroll',
+      supportedFormats: ['pdf', 'docx', 'excel'],
+      defaultPrompt: 'Generate a comprehensive individual employee payslip. Include employer details, pay period, payment date, employee ID, full name, department, designation, bank account details, basic salary, itemized earnings/allowances (transport, housing, bonus), statutory and custom deductions (income tax, pension, loan deductions), and final net pay with currency.',
+      parameters: [
+        { key: 'employee_identifier', label: 'Employee Name or Email', type: 'string', required: true, description: 'Target employee' },
+        { key: 'pay_period', label: 'Pay Period (e.g., October 2026)', type: 'string', required: true, description: 'Target payroll cycle' },
+        { key: 'include_ytd', label: 'Include Year-to-Date Totals', type: 'boolean', required: false, description: 'Show YTD earnings' },
+      ],
+    },
+    {
+      id: 'payroll_summary_report',
+      name: 'Payroll Summary & Cost Allocation Report',
+      description: 'Enterprise payroll summary report compiling total payroll spend, statutory employer liabilities, departmental allocations, and net pay distributions.',
+      category: 'Payroll',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate an executive Payroll Summary Report. Include total gross payroll, statutory employee & employer contributions, total net disbursements, department-by-department payroll cost breakdown, headcount paid, and payment method summaries.',
+      parameters: [
+        { key: 'month', label: 'Month (1-12)', type: 'number', required: false, description: 'Target month' },
+        { key: 'year', label: 'Year (e.g., 2026)', type: 'number', required: false, description: 'Target year' },
+        { key: 'department', label: 'Department Name', type: 'string', required: false, description: 'Filter by department' },
+      ],
+    },
+    {
+      id: 'sales_invoice_quotation',
+      name: 'Sales Invoice & Quotation',
+      description: 'Professional commercial sales invoice or formal price quotation with line items, tax/VAT calculations, discounts, and payment terms.',
+      category: 'Finance',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate a professional Sales Invoice or Quotation. Include invoice/quotation number, issue date, due date, customer billing and shipping address, itemized line items with description, quantity, unit price, discounts, tax/VAT breakdown, subtotal, and total amount due with payment terms.',
+      parameters: [
+        { key: 'document_type', label: 'Document Type (Invoice or Quotation)', type: 'string', required: true, description: 'Invoice or Quotation' },
+        { key: 'customer_name', label: 'Customer Name', type: 'string', required: true, description: 'Target customer or account' },
+        { key: 'order_number', label: 'Order / Ref Number', type: 'string', required: false, description: 'Reference order number' },
+      ],
+    },
+    {
+      id: 'purchase_order_delivery',
+      name: 'Purchase Order & Goods Delivery Note',
+      description: 'Official procurement purchase order or delivery receipt note for vendor shipments with receiving acceptance criteria.',
+      category: 'Operations',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate an enterprise Purchase Order and Goods Delivery Note. Include PO number, requisition date, vendor details, shipping destination warehouse/branch, expected delivery date, line items with SKU, item description, quantity ordered, agreed unit cost, tax, payment terms, and receiving signature blocks.',
+      parameters: [
+        { key: 'document_type', label: 'Document Type (PO or Delivery Note)', type: 'string', required: true, description: 'PO or Delivery Note' },
+        { key: 'vendor_name', label: 'Vendor Name', type: 'string', required: true, description: 'Target supplier' },
+        { key: 'po_number', label: 'PO / Reference Number', type: 'string', required: false, description: 'Purchase order reference' },
+      ],
+    },
+    {
+      id: 'inventory_stock_valuation',
+      name: 'Inventory Stock Valuation Summary',
+      description: 'Comprehensive inventory valuation report detailing stock on hand, warehouse locations, valuation costing (FIFO/AVCO), and reorder alerts.',
+      category: 'Operations',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate an Inventory Stock Report and Valuation Summary. Include warehouse location, product categories, SKU codes, item descriptions, available on-hand stock quantities, unit cost valuation (FIFO/AVCO), total inventory valuation, reorder levels, and slow-moving or low-stock alerts.',
+      parameters: [
+        { key: 'warehouse_name', label: 'Warehouse Name', type: 'string', required: false, description: 'Target warehouse' },
+        { key: 'category', label: 'Product Category', type: 'string', required: false, description: 'Filter by product category' },
+      ],
+    },
+    {
+      id: 'financial_statements',
+      name: 'Financial Statements (P&L, Balance Sheet, Trial Balance)',
+      description: 'Official enterprise financial statements including Profit & Loss Statement, Balance Sheet, and Trial Balance ledger reconciliation.',
+      category: 'Finance',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate official Enterprise Financial Statements. For Profit & Loss: revenue breakdown, cost of goods sold (COGS), gross margin, operating expenses, and net operating income. For Balance Sheet: current and non-current assets, liabilities, and owner equity. For Trial Balance: list of ledger accounts with debit and credit balances verifying debit-credit equality.',
+      parameters: [
+        { key: 'statement_type', label: 'Statement Type (P&L, Balance Sheet, Trial Balance)', type: 'string', required: true, description: 'Type of financial statement' },
+        { key: 'fiscal_year', label: 'Fiscal Year (e.g., 2026)', type: 'number', required: false, description: 'Fiscal reporting year' },
+        { key: 'period', label: 'Period (e.g., Q3, Annual)', type: 'string', required: false, description: 'Reporting period' },
+      ],
+    },
+    {
+      id: 'employee_contract_offer',
+      name: 'Employee Contract & Offer Letter',
+      description: 'Formal employment offer letter and contract agreement outlining job designation, compensation package, reporting line, and terms of service.',
+      category: 'HRMS',
+      supportedFormats: ['pdf', 'docx'],
+      defaultPrompt: 'Generate an official Employment Contract and Job Offer Letter. Include company letterhead, formal greeting, job title, reporting manager, department, commencement date, compensation package breakdown (base salary, benefits, allowances), probationary period, confidentiality and IP terms, and candidate acceptance signature section.',
+      parameters: [
+        { key: 'candidate_name', label: 'Candidate Full Name', type: 'string', required: true, description: 'Prospective employee' },
+        { key: 'job_title', label: 'Job Title / Designation', type: 'string', required: true, description: 'Offered position' },
+        { key: 'department', label: 'Department', type: 'string', required: false, description: 'Department assignment' },
+        { key: 'offered_salary', label: 'Offered Gross Salary', type: 'number', required: false, description: 'Compensation figure' },
+      ],
+    },
+    {
+      id: 'leave_attendance_report',
+      name: 'Attendance & Leave Summary Report',
+      description: 'Comprehensive workforce attendance analysis detailing scheduled vs worked hours, leave utilization by type, remaining balances, and absenteeism rates.',
+      category: 'Attendance',
+      supportedFormats: ['pdf', 'excel'],
+      defaultPrompt: 'Generate a Workforce Attendance and Leave Summary Report. Detail scheduled vs worked hours per employee, leave requests by category (annual, sick, casual, maternity, unpaid), approval statuses, total days taken, remaining balances, and punctuality/absenteeism rate analysis.',
+      parameters: [
+        { key: 'start_date', label: 'Start Date (YYYY-MM-DD)', type: 'string', required: false, description: 'Start of period' },
+        { key: 'end_date', label: 'End Date (YYYY-MM-DD)', type: 'string', required: false, description: 'End of period' },
+        { key: 'department', label: 'Department Name', type: 'string', required: false, description: 'Filter by department' },
+      ],
+    },
   ];
 
   constructor(
@@ -118,6 +222,7 @@ export class AiDocumentService {
     format: 'pdf' | 'docx' | 'excel',
     parameters?: Record<string, any>,
     customNotes?: string,
+    userId?: string,
   ): Promise<{ buffer: Buffer; filename: string }> {
     const template = this.BUILTIN_TEMPLATES.find(t => t.id === templateId);
     if (!template) {
@@ -143,12 +248,57 @@ export class AiDocumentService {
       combinedPrompt += `\n\nADDITIONAL USER INSTRUCTIONS:\n${customNotes}`;
     }
 
+    let result: { buffer: Buffer; filename: string };
     if (format === 'pdf') {
-      return this.generatePdf(tenantSlug, userRoleContext, combinedPrompt);
+      result = await this.generatePdf(tenantSlug, userRoleContext, combinedPrompt, undefined, userId);
     } else if (format === 'docx') {
-      return this.generateDocx(tenantSlug, userRoleContext, combinedPrompt);
+      result = await this.generateDocx(tenantSlug, userRoleContext, combinedPrompt, undefined, userId);
     } else {
-      return this.generateExcel(tenantSlug, userRoleContext, combinedPrompt);
+      result = await this.generateExcel(tenantSlug, userRoleContext, combinedPrompt, userId);
+    }
+
+    await this.logDocumentGeneration(tenantSlug, userId, templateId, format, result.filename, parameters);
+    return result;
+  }
+
+  /**
+   * Log document generation audit trail with executed_by: 'ai_on_behalf'.
+   */
+  async logDocumentGeneration(
+    tenantSlug: string,
+    userId: string | undefined,
+    templateId: string,
+    format: string,
+    filename: string,
+    parameters?: Record<string, any>,
+  ): Promise<void> {
+    try {
+      const rows = await (this.databaseService as any).masterDataSource.query(
+        `SELECT database_name FROM tenants WHERE slug = $1`,
+        [tenantSlug],
+      );
+      if (!rows || !rows.length) return;
+      const dataSource = await this.databaseService.getTenantConnection(rows[0].database_name);
+      await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS ai_document_audit_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          tenant_id VARCHAR(100),
+          user_id VARCHAR(100),
+          template_id VARCHAR(100),
+          format VARCHAR(20),
+          filename VARCHAR(255),
+          parameters JSONB,
+          executed_by VARCHAR(50) DEFAULT 'ai_on_behalf',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await dataSource.query(
+        `INSERT INTO ai_document_audit_logs (tenant_id, user_id, template_id, format, filename, parameters, executed_by)
+         VALUES ($1, $2, $3, $4, $5, $6, 'ai_on_behalf')`,
+        [tenantSlug, userId || null, templateId, format, filename, JSON.stringify(parameters || {})]
+      );
+    } catch (err) {
+      console.warn('Could not log AI document generation audit trail:', err.message);
     }
   }
 
@@ -329,11 +479,11 @@ Generate the document based strictly on the above data.`;
   }
 
 
-  async generatePdf(tenantSlug: string, userRoleContext: string, prompt: string, referenceText?: string): Promise<{ buffer: Buffer; filename: string }> {
+  async generatePdf(tenantSlug: string, userRoleContext: string, prompt: string, referenceText?: string, userId?: string): Promise<{ buffer: Buffer; filename: string }> {
     const markdownContent = await this.generateContent(tenantSlug, userRoleContext, prompt, referenceText);
     const filename = this.generateFilename(prompt);
 
-    return new Promise((resolve, reject) => {
+    const buffer = await new Promise<Buffer>((resolve, reject) => {
       try {
         const doc = new (PDFDocument as any)({ margin: 60, size: 'A4', bufferPages: true });
         const buffers: Buffer[] = [];
@@ -427,10 +577,13 @@ Generate the document based strictly on the above data.`;
       } catch (error) {
         reject(new BadRequestException('Failed to generate PDF document: ' + error.message));
       }
-    }).then((buffer: any) => ({ buffer, filename }));
+    });
+
+    await this.logDocumentGeneration(tenantSlug, userId, 'custom_freeform', 'pdf', filename, { prompt });
+    return { buffer, filename };
   }
 
-  async generateDocx(tenantSlug: string, userRoleContext: string, prompt: string, referenceText?: string): Promise<{ buffer: Buffer; filename: string }> {
+  async generateDocx(tenantSlug: string, userRoleContext: string, prompt: string, referenceText?: string, userId?: string): Promise<{ buffer: Buffer; filename: string }> {
     const markdownContent = await this.generateContent(tenantSlug, userRoleContext, prompt, referenceText);
     const filename = this.generateFilename(prompt);
 
@@ -500,10 +653,11 @@ Generate the document based strictly on the above data.`;
     });
 
     const buffer = await Packer.toBuffer(doc);
+    await this.logDocumentGeneration(tenantSlug, userId, 'custom_freeform', 'docx', filename, { prompt });
     return { buffer, filename };
   }
 
-  async generateExcel(tenantSlug: string, userRoleContext: string, prompt: string): Promise<{ buffer: Buffer; filename: string }> {
+  async generateExcel(tenantSlug: string, userRoleContext: string, prompt: string, userId?: string): Promise<{ buffer: Buffer; filename: string }> {
     try {
       const filename = this.generateFilename(prompt);
       // Fetch real data
@@ -541,6 +695,7 @@ Generate the document based strictly on the above data.`;
       }
 
       const buffer = await workbook.xlsx.writeBuffer();
+      await this.logDocumentGeneration(tenantSlug, userId, 'custom_freeform', 'excel', filename, { prompt });
       return { buffer: buffer as any as Buffer, filename };
     } catch (error) {
       throw new BadRequestException('Failed to generate Excel document: ' + error.message);

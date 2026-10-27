@@ -39,10 +39,21 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Eye,
+  Landmark,
+  FileCode,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { API_BASE_URL } from "@/config/api.config";
 import { usePayroll, type PayrollSummary } from "@/hooks/usePayroll";
+import { getAuthHeaders } from "@/context/AuthContext";
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -220,6 +231,55 @@ export default function Payroll() {
       toast.error('Failed to export payroll');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const [isExportingBank, setIsExportingBank] = useState(false);
+
+  const handleExportBankTransfer = async (
+    month: number,
+    year: number,
+    format: 'nacha' | 'aba' | 'cbe' | 'awash' | 'dashen' | 'generic',
+    formatLabel: string,
+  ) => {
+    setIsExportingBank(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/payroll/export/bank-transfer?month=${month}&year=${year}&format=${format}`,
+        {
+          credentials: 'include',
+          headers: getAuthHeaders(),
+        },
+      );
+
+      if (response.ok) {
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `bank_transfer_${year}_${month}.${format === 'nacha' ? 'ach' : format === 'aba' ? 'aba' : 'csv'}`;
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename="?([^";]+)"?/);
+          if (match && match[1]) filename = match[1];
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast.success(`${formatLabel} file exported successfully`);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast.error(err.message || 'Failed to export bank transfer file');
+      }
+    } catch (error) {
+      console.error('Error exporting bank transfer:', error);
+      toast.error('Failed to export bank transfer file');
+    } finally {
+      setIsExportingBank(false);
     }
   };
 
@@ -443,6 +503,133 @@ export default function Payroll() {
               )}
               Export Excel
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={isExportingBank}
+                  className="gap-2"
+                >
+                  {isExportingBank ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Landmark className="h-4 w-4 text-emerald-600" />
+                  )}
+                  <span>Bank Transfer Export</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="text-xs font-semibold">
+                  Direct Bank Transfer Formats
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "nacha",
+                      "NACHA Direct Deposit (ACH)"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileCode className="h-3.5 w-3.5 text-blue-600" />
+                  <div>
+                    <p className="font-medium">NACHA ACH (.ach)</p>
+                    <p className="text-[10px] text-muted-foreground">Standard US Direct Deposit</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "aba",
+                      "ABA Direct Entry"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileCode className="h-3.5 w-3.5 text-purple-600" />
+                  <div>
+                    <p className="font-medium">ABA Direct Entry (.aba)</p>
+                    <p className="text-[10px] text-muted-foreground">Australian / CEMTEX Standard</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "cbe",
+                      "Commercial Bank of Ethiopia (CBE)"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-amber-600" />
+                  <div>
+                    <p className="font-medium">CBE Salary Transfer (.csv)</p>
+                    <p className="text-[10px] text-muted-foreground">Commercial Bank of Ethiopia</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "awash",
+                      "Awash Bank Direct Credit"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-blue-500" />
+                  <div>
+                    <p className="font-medium">Awash Bank (.csv)</p>
+                    <p className="text-[10px] text-muted-foreground">Direct Salary Credit Batch</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "dashen",
+                      "Dashen Bank Transfer"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-indigo-500" />
+                  <div>
+                    <p className="font-medium">Dashen Bank (.csv)</p>
+                    <p className="text-[10px] text-muted-foreground">Corporate Salary Upload</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    handleExportBankTransfer(
+                      selectedMonth + 1,
+                      selectedYear,
+                      "generic",
+                      "Generic Bank Transfer Batch"
+                    )
+                  }
+                  className="gap-2 cursor-pointer text-xs"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <div>
+                    <p className="font-medium">Generic Corporate Batch (.csv)</p>
+                    <p className="text-[10px] text-muted-foreground">Universal ISO 20022 compatible</p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
 
           </div>

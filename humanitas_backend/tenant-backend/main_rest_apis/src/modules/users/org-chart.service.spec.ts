@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { SettingsService } from '../settings/settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { HrmsOnboardingService } from '../hrms-onboarding/hrms-onboarding.service';
 
 describe('UsersService - Org Chart & Reporting Hierarchy', () => {
   let service: UsersService;
@@ -112,6 +113,12 @@ describe('UsersService - Org Chart & Reporting Hierarchy', () => {
         {
           provide: NotificationsGateway,
           useValue: {},
+        },
+        {
+          provide: HrmsOnboardingService,
+          useValue: {
+            createOnboarding: jest.fn().mockResolvedValue({ id: 'mock-onb-1' }),
+          },
         },
       ],
     }).compile();

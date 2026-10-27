@@ -81,6 +81,7 @@ export class AiDocumentController {
     @Res() res: FastifyReply,
   ) {
     const user = req.user;
+    const userId = user?.sub || user?.id;
     const roleContext = await this.roleContextBuilder.buildContext(
       user.tenantSlug,
       user.sub,
@@ -95,6 +96,7 @@ export class AiDocumentController {
         body.format,
         body.parameters,
         body.customNotes,
+        userId,
       );
 
       if (body.format === 'pdf') {
@@ -132,6 +134,7 @@ export class AiDocumentController {
     @Res() res: FastifyReply,
   ) {
     const user = req.user;
+    const userId = user?.sub || user?.id;
     const roleContext = await this.roleContextBuilder.buildContext(
       user.tenantSlug,
       user.sub,
@@ -145,6 +148,7 @@ export class AiDocumentController {
           roleContext,
           body.prompt,
           body.referenceText,
+          userId,
         );
         res.header('Content-Type', 'application/pdf');
         res.header('Content-Disposition', `attachment; filename="${filename}.pdf"`);
@@ -156,6 +160,7 @@ export class AiDocumentController {
           roleContext,
           body.prompt,
           body.referenceText,
+          userId,
         );
         res.header(
           'Content-Type',
@@ -169,6 +174,7 @@ export class AiDocumentController {
           user.tenantSlug,
           roleContext,
           body.prompt,
+          userId,
         );
         res.header(
           'Content-Type',

@@ -16,16 +16,16 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 45 | 44 | 1 | 98% |
+| HRMS & Recruitment | 45 | 45 | 0 | 100% |
 | Project Management (PMS) | 28 | 28 | 0 | 100% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
-| Enterprise UI/UX | 30 | 25 | 5 | 83% |
+| Enterprise UI/UX | 30 | 30 | 0 | 100% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 40 | 20 | 20 | 50% |
+| AI Intelligence Module | 40 | 33 | 7 | 83% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | Document Vault & Letters | 19 | 19 | 0 | 100% |
-| Onboarding & Offboarding | 22 | 21 | 1 | 95% |
+| Onboarding & Offboarding | 22 | 22 | 0 | 100% |
 | Grievance & Complaints | 17 | 17 | 0 | 100% |
 | Benefits & Insurance | 17 | 17 | 0 | 100% |
 | Training & LMS | 22 | 22 | 0 | 100% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **759** | **427** | **332** | **56%** |
+| **TOTAL** | **759** | **447** | **312** | **59%** |
 
 ---
 
@@ -390,7 +390,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Employee Lifecycle & Profiles**:
   - [x] Comprehensive digital employee profile: Personal info, emergency contacts, employment contracts, salary grade, bank details, and compliance documents.
   - [x] Visual Organizational Chart with reporting manager hierarchy.
-  - [ ] Onboarding & Offboarding task checklists.
+  - [x] Onboarding & Offboarding task checklists.
 - [x] **Recruitment & Applicant Tracking System (ATS) (`/hrms/recruitment`)**:
   - [x] Job Requisition creation with budget approval workflow.
   - [x] Job Postings management & public career portal page.
@@ -529,11 +529,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Immediate reactive re-render via custom event `navigation-layout-changed` without requiring full browser reload.
   - [x] Full horizontal topbar navbar (`TopbarModuleNavigation.tsx`) with primary module links and dynamic "More" overflow dropdown.
   - [x] Parity in Humanitas (`TopbarNavigation.tsx`) and `EnterpriseLayout.tsx`.
-- [ ] **High-Density Enterprise Data Grids**:
-  - [ ] Resizable and reorderable table columns.
-  - [ ] Column pinning (freeze left/right), sorting, and multi-condition filtering.
-  - [ ] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
-  - [ ] Instant 1-click Export to CSV, Excel, and PDF.
+- [x] **High-Density Enterprise Data Grids**:
+  - [x] Resizable and reorderable table columns.
+  - [x] Column pinning (freeze left/right), sorting, and multi-condition filtering.
+  - [x] Multi-row selection for bulk actions (Bulk Delete, Bulk Export, Bulk Status Update).
+  - [x] Instant 1-click Export to CSV, Excel, and PDF.
 
 ---
 
@@ -598,19 +598,19 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [ ] Execution audit trail: All AI-executed actions are logged in the system audit log with `executed_by: 'ai_on_behalf'` and the originating user ID.
 
 ### AI Document Preparation Engine
-- [ ] Generates professional formatted documents from tenant database data.
-- [ ] **Supported formats**: PDF (via WeasyPrint) and DOCX (via python-docx).
-- [ ] **Data access**: AI queries the tenant database through the Python calculation service to gather all required data.
-- [ ] **Template matching**: User can upload a sample document (PDF/DOCX). AI analyzes its structure (headers, tables, fonts, margins, logos) and generates new documents in that exact format with fresh data.
-- [ ] **Pre-built document types**:
-  - [ ] Payroll summary reports and individual payslips.
-  - [ ] Sales invoices and quotations.
-  - [ ] Purchase orders and delivery notes.
-  - [ ] Inventory stock reports and valuation summaries.
-  - [ ] Financial statements (P&L, Balance Sheet, Trial Balance).
-  - [ ] Employee contracts and offer letters.
-  - [ ] Attendance and leave summary reports.
-- [ ] **Custom freeform documents**: User describes any document in natural language, AI composes it from available data.
+- [x] Generates professional formatted documents from tenant database data.
+- [x] **Supported formats**: PDF (via WeasyPrint) and DOCX (via python-docx).
+- [x] **Data access**: AI queries the tenant database through the Python calculation service to gather all required data.
+- [x] **Template matching**: User can upload a sample document (PDF/DOCX). AI analyzes its structure (headers, tables, fonts, margins, logos) and generates new documents in that exact format with fresh data.
+- [x] **Pre-built document types**:
+  - [x] Payroll summary reports and individual payslips.
+  - [x] Sales invoices and quotations.
+  - [x] Purchase orders and delivery notes.
+  - [x] Inventory stock reports and valuation summaries.
+  - [x] Financial statements (P&L, Balance Sheet, Trial Balance).
+  - [x] Employee contracts and offer letters.
+  - [x] Attendance and leave summary reports.
+- [x] **Custom freeform documents**: User describes any document in natural language, AI composes it from available data.
 
 ### AI Settings (`/ai/settings`)
 - [x] Enable/disable individual AI capability tiers.
@@ -679,7 +679,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Progress tracker with completion percentage and overdue task alerts.
 - [x] **New Hire Welcome Portal**:
   - [x] Guided portal for new employees: document upload, policy acceptance, orientation video viewing, personal info completion.
-  - [ ] Digital contract signing with e-signature.
+  - [x] Digital contract signing with e-signature.
   - [x] Welcome packet with company handbook, org chart, and key contacts.
 - [x] **Probation Management**:
   - [x] Probation period tracking with configurable duration per employment type.

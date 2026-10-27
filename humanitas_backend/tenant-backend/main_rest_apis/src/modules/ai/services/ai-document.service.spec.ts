@@ -27,10 +27,10 @@ describe('AiDocumentService', () => {
   });
 
   describe('getBuiltinTemplates', () => {
-    it('should return all 6 enterprise templates', () => {
+    it('should return all 14 enterprise templates', () => {
       const templates = service.getBuiltinTemplates();
       expect(templates).toBeInstanceOf(Array);
-      expect(templates.length).toBe(6);
+      expect(templates.length).toBe(14);
 
       const templateIds = templates.map(t => t.id);
       expect(templateIds).toContain('employment_verification');
@@ -39,6 +39,14 @@ describe('AiDocumentService', () => {
       expect(templateIds).toContain('attendance_monthly_report');
       expect(templateIds).toContain('project_status_report');
       expect(templateIds).toContain('hr_analytics_executive_brief');
+      expect(templateIds).toContain('individual_payslip');
+      expect(templateIds).toContain('payroll_summary_report');
+      expect(templateIds).toContain('sales_invoice_quotation');
+      expect(templateIds).toContain('purchase_order_delivery');
+      expect(templateIds).toContain('inventory_stock_valuation');
+      expect(templateIds).toContain('financial_statements');
+      expect(templateIds).toContain('employee_contract_offer');
+      expect(templateIds).toContain('leave_attendance_report');
     });
 
     it('each template should have required properties and supportedFormats', () => {
@@ -85,6 +93,7 @@ describe('AiDocumentService', () => {
         filename: 'employment_verification.pdf',
       };
       jest.spyOn<any, any>(service, 'generatePdf').mockResolvedValue(mockResult);
+      jest.spyOn<any, any>(service, 'logDocumentGeneration').mockResolvedValue(undefined);
 
       const result = await service.generateFromTemplate(
         'tenant-1',
@@ -100,6 +109,8 @@ describe('AiDocumentService', () => {
         'tenant-1',
         'admin',
         expect.stringContaining('John Doe'),
+        undefined,
+        undefined,
       );
     });
 
@@ -109,6 +120,7 @@ describe('AiDocumentService', () => {
         filename: 'attendance_monthly_report.xlsx',
       };
       jest.spyOn<any, any>(service, 'generateExcel').mockResolvedValue(mockResult);
+      jest.spyOn<any, any>(service, 'logDocumentGeneration').mockResolvedValue(undefined);
 
       const result = await service.generateFromTemplate(
         'tenant-1',
@@ -123,6 +135,33 @@ describe('AiDocumentService', () => {
         'tenant-1',
         'admin',
         expect.stringContaining('2026'),
+        undefined,
+      );
+    });
+  });
+
+  describe('logDocumentGeneration', () => {
+    it('should query tenant database and insert audit log with executed_by ai_on_behalf', async () => {
+      const mockTenantConn = {
+        query: jest.fn().mockResolvedValue([]),
+      };
+      (mockDatabaseService.masterDataSource!.query as jest.Mock).mockResolvedValue([{ database_name: 'tenant_db_1' }]);
+      (mockDatabaseService.getTenantConnection as jest.Mock).mockResolvedValue(mockTenantConn);
+
+      await service.logDocumentGeneration(
+        'tenant-1',
+        'user-uuid-123',
+        'individual_payslip',
+        'pdf',
+        'payslip_oct_2026.pdf',
+        { employee_id: 'emp-1' },
+      );
+
+      expect(mockDatabaseService.getTenantConnection).toHaveBeenCalledWith('tenant_db_1');
+      expect(mockTenantConn.query).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS ai_document_audit_logs'));
+      expect(mockTenantConn.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO ai_document_audit_logs'),
+        ['tenant-1', 'user-uuid-123', 'individual_payslip', 'pdf', 'payslip_oct_2026.pdf', JSON.stringify({ employee_id: 'emp-1' })],
       );
     });
   });

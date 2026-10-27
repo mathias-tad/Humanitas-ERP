@@ -10,12 +10,14 @@ import {
   UseGuards,
   Request,
   Res,
+  Headers,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { PayrollScheduler } from './payroll.scheduler';
+import { BankTransferExportService, BankTransferFormat } from './bank-transfer-export.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
@@ -42,6 +44,7 @@ export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
     private readonly payrollScheduler: PayrollScheduler,
+    private readonly bankTransferExportService: BankTransferExportService,
   ) { }
 
   // ==================== INCOME TYPES ====================
@@ -398,6 +401,40 @@ export class PayrollController {
   @ApiOperation({ summary: 'Trigger auto payroll check (for testing)' })
   async triggerAutoPayroll(@Request() req: any) {
     return this.payrollScheduler.triggerAutoPayroll(req.user.tenantId);
+  }
+
+  @Get('export/bank-transfer')
+  @RequirePermissions('view_payroll')
+  @ApiOperation({ summary: 'Export Direct Bank Transfer file (NACHA, ABA, CBE, Awash, Dashen, Generic CSV)' })
+  async exportBankTransfer(
+    @Request() req: any,
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @Query('format') format: BankTransferFormat,
+    @Res() res: any,
+    @Headers('x-company-id') headerCompanyId?: string,
+    @Headers('x-branch-id') headerBranchId?: string,
+    @Query('companyId') queryCompanyId?: string,
+    @Query('branchId') queryBranchId?: string,
+  ) {
+    const companyId = queryCompanyId || headerCompanyId;
+    const branchId = queryBranchId || headerBranchId;
+
+    const result = await this.bankTransferExportService.generateBankTransferFile(
+      req.user.tenantId,
+      parseInt(month, 10),
+      parseInt(year, 10),
+      format || 'generic',
+      req.user.companyName || 'Humanitas Enterprise',
+      companyId,
+      branchId,
+    );
+
+    res.header('Content-Type', result.contentType);
+    res.header('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.header('x-record-count', String(result.recordCount));
+    res.header('x-total-amount', String(result.totalAmount));
+    res.send(result.content);
   }
 
   @Get('export')
