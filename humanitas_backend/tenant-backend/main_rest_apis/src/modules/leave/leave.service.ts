@@ -229,73 +229,78 @@ export class LeaveService {
 
   // Get current user's leave balances
   async getMyLeaveBalances(tenantId: string, userId: string) {
-    const connection =
-      await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
+    try {
+      const connection =
+        await this.databaseService.getTenantConnectionById(tenantId);
+      await this.ensureLeaveTables(connection);
 
-    const currentYear = new Date().getFullYear();
+      const currentYear = new Date().getFullYear();
 
-    // First, get leave types from settings
-    const settingsResult = await connection.query(`
-      SELECT data FROM settings WHERE category = 'hr'
-    `);
-
-    let leaveTypes: any[] = [];
-    if (settingsResult && settingsResult.length > 0 && settingsResult[0].data) {
-      const hrSettings = settingsResult[0].data;
-      leaveTypes = hrSettings.leave_types || [];
-    }
-
-    // Get existing balances
-    const balances = await connection.query(
-      `
-      SELECT * FROM leave_balances 
-      WHERE user_id = $1 AND year = $2
-    `,
-      [userId, currentYear],
-    );
-
-    // Create/update balances for each leave type
-    const result: any[] = [];
-    for (const leaveType of leaveTypes) {
-      let balance = (balances || []).find(
-        (b: any) => b.leave_type_id === leaveType.id,
-      );
-
-      if (!balance) {
-        // Create balance for this leave type
-        await connection.query(
-          `
-          INSERT INTO leave_balances (user_id, leave_type_id, leave_type_name, total_days, used_days, year)
-          VALUES ($1, $2, $3, $4, 0, $5)
-          ON CONFLICT (user_id, leave_type_id, year) DO NOTHING
-        `,
-          [
-            userId,
-            leaveType.id,
-            leaveType.name,
-            leaveType.days_per_year,
-            currentYear,
-          ],
-        );
-
-        balance = {
-          leave_type_id: leaveType.id,
-          leave_type_name: leaveType.name,
-          total_days: leaveType.days_per_year,
-          used_days: 0,
-          year: currentYear,
-        };
+      // First, get leave types from settings
+      let settingsResult: any[] = [];
+      try {
+        settingsResult = await connection.query(`
+          SELECT data FROM settings WHERE category = 'hr'
+        `);
+      } catch {
+        settingsResult = [];
       }
 
-      result.push({
-        ...balance,
-        is_paid: leaveType.is_paid,
-        available_days: balance.total_days - balance.used_days,
-      });
-    }
+      let leaveTypes: any[] = [];
+      if (settingsResult && settingsResult.length > 0 && settingsResult[0].data) {
+        const hrSettings = settingsResult[0].data;
+        leaveTypes = hrSettings.leave_types || [];
+      }
 
-    return result;
+      // Get existing balances
+      let balances: any[] = [];
+      try {
+        balances = await connection.query(
+          `SELECT * FROM leave_balances WHERE user_id = $1 AND year = $2`,
+          [userId, currentYear],
+        );
+      } catch {
+        balances = [];
+      }
+
+      // Create/update balances for each leave type
+      const result: any[] = [];
+      for (const leaveType of leaveTypes) {
+        let balance = (balances || []).find(
+          (b: any) => b.leave_type_id === leaveType.id,
+        );
+
+        if (!balance) {
+          try {
+            await connection.query(
+              `INSERT INTO leave_balances (user_id, leave_type_id, leave_type_name, total_days, used_days, year)
+               VALUES ($1, $2, $3, $4, 0, $5)
+               ON CONFLICT (user_id, leave_type_id, year) DO NOTHING`,
+              [userId, leaveType.id, leaveType.name, leaveType.days_per_year, currentYear],
+            );
+          } catch { /* ignore insert conflicts */ }
+
+          balance = {
+            leave_type_id: leaveType.id,
+            leave_type_name: leaveType.name,
+            total_days: leaveType.days_per_year || 0,
+            used_days: 0,
+            year: currentYear,
+          };
+        }
+
+        result.push({
+          ...balance,
+          is_paid: leaveType.is_paid,
+          available_days: (balance.total_days || 0) - (balance.used_days || 0),
+        });
+      }
+
+      return result;
+    } catch (err) {
+      console.error('[LeaveService] getMyLeaveBalances error:', err.message);
+      return []; // Return empty array instead of 500
+    }
   }
 
   // Apply for leave

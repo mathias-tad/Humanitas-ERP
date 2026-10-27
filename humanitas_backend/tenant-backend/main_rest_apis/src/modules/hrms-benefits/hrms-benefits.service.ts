@@ -305,50 +305,55 @@ export class HrmsBenefitsService {
     hasManagePerm: boolean,
     filters?: { user_id?: string; plan_id?: string; status?: string; company_id?: string },
   ) {
-    const connection = await this.getConnection(tenantId);
-    let query = `
-      SELECT 
-        be.*,
-        bp.name AS plan_name,
-        bp.code AS plan_code,
-        bp.plan_type,
-        bp.tier AS plan_tier,
-        bp.provider_name,
-        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS employee_name,
-        u.email AS employee_email,
-        u.department AS employee_department,
-        (SELECT COUNT(*) FROM benefit_dependents bd WHERE bd.enrollment_id = be.id AND bd.is_covered = TRUE) AS covered_dependents_count
-      FROM benefit_enrollments be
-      JOIN benefit_plans bp ON be.plan_id = bp.id
-      JOIN users u ON be.user_id = u.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-    let pIdx = 1;
+    try {
+      const connection = await this.getConnection(tenantId);
+      let query = `
+        SELECT 
+          be.*,
+          bp.name AS plan_name,
+          bp.code AS plan_code,
+          bp.plan_type,
+          bp.tier AS plan_tier,
+          bp.provider_name,
+          COALESCE(u.full_name, '') AS employee_name,
+          u.email AS employee_email,
+          u.department AS employee_department,
+          (SELECT COUNT(*) FROM benefit_dependents bd WHERE bd.enrollment_id = be.id AND bd.is_covered = TRUE) AS covered_dependents_count
+        FROM benefit_enrollments be
+        JOIN benefit_plans bp ON be.plan_id = bp.id
+        JOIN users u ON be.user_id = u.id
+        WHERE 1=1
+      `;
+      const params: any[] = [];
+      let pIdx = 1;
 
-    if (!hasManagePerm) {
-      query += ` AND be.user_id = $${pIdx++}`;
-      params.push(currentUserId);
-    } else if (filters?.user_id) {
-      query += ` AND be.user_id = $${pIdx++}`;
-      params.push(filters.user_id);
-    }
+      if (!hasManagePerm) {
+        query += ` AND be.user_id = $${pIdx++}`;
+        params.push(currentUserId);
+      } else if (filters?.user_id) {
+        query += ` AND be.user_id = $${pIdx++}`;
+        params.push(filters.user_id);
+      }
 
-    if (filters?.plan_id) {
-      query += ` AND be.plan_id = $${pIdx++}`;
-      params.push(filters.plan_id);
-    }
-    if (filters?.status) {
-      query += ` AND be.status = $${pIdx++}`;
-      params.push(filters.status);
-    }
-    if (filters?.company_id) {
-      query += ` AND be.company_id = $${pIdx++}`;
-      params.push(filters.company_id);
-    }
+      if (filters?.plan_id) {
+        query += ` AND be.plan_id = $${pIdx++}`;
+        params.push(filters.plan_id);
+      }
+      if (filters?.status) {
+        query += ` AND be.status = $${pIdx++}`;
+        params.push(filters.status);
+      }
+      if (filters?.company_id) {
+        query += ` AND be.company_id = $${pIdx++}`;
+        params.push(filters.company_id);
+      }
 
-    query += ` ORDER BY be.created_at DESC`;
-    return connection.query(query, params);
+      query += ` ORDER BY be.created_at DESC`;
+      return await connection.query(query, params);
+    } catch (err) {
+      console.error('[HrmsBenefitsService] getEnrollments error:', err.message);
+      return [];
+    }
   }
 
   async getEnrollmentById(
@@ -368,7 +373,7 @@ export class HrmsBenefitsService {
         bp.provider_name,
         bp.is_family_covered,
         bp.max_dependents,
-        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS employee_name,
+        COALESCE(u.full_name, '') AS employee_name,
         u.email AS employee_email,
         u.department AS employee_department
        FROM benefit_enrollments be
@@ -494,7 +499,7 @@ export class HrmsBenefitsService {
       SELECT 
         be.id AS enrollment_id,
         be.user_id,
-        CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS employee_name,
+        COALESCE(u.full_name, '') AS employee_name,
         u.email,
         u.department,
         bp.name AS benefit_name,

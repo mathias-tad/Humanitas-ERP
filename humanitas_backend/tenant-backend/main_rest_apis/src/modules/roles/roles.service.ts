@@ -355,6 +355,64 @@ export class RolesService {
 
     // Seed default holidays for existing tenants
     await this.holidaysService.seedDefaultHolidays(connection);
+
+    // ===== FORCE-PATCH: Ensure Employee role always has all self-service permissions =====
+    // This runs on every boot and bypasses migration tracking to fix existing tenants
+    const employeeForcePermissions = [
+      'view_leave', 'request_leave',
+      'view_self_service', 'edit_my_profile',
+      'file_grievance', 'view_grievances',
+      'view_benefit_plans', 'view_my_benefits',
+      'view_training_courses', 'view_my_training', 'enroll_training', 'view_skills',
+      'view_my_reviews',
+      'view_my_expenses', 'submit_expenses',
+      'view_my_assets', 'view_assets',
+      'view_surveys', 'participate_survey', 'view_survey_results',
+      'view_onboarding',
+      'use_ai', 'ai_help',
+      'view_notification_preferences',
+      'view_approval_requests',
+      'view_my_documents',
+    ];
+
+    const managerForcePermissions = [
+      'view_leave', 'approve_leave', 'view_my_leave',
+      'view_onboarding',
+      'file_grievance', 'view_grievances', 'investigate_grievances', 'view_grievance_reports',
+      'view_benefit_plans', 'view_my_benefits', 'manage_enrollments', 'view_benefit_reports',
+      'view_training_courses', 'view_my_training', 'enroll_training', 'view_skills', 'view_training_reports',
+      'manage_training',
+      'view_my_reviews', 'view_reviews', 'calibrate_reviews',
+      'view_my_expenses', 'submit_expenses', 'view_expenses', 'approve_expenses',
+      'view_my_assets', 'view_assets',
+      'view_surveys', 'participate_survey', 'view_survey_results',
+      'use_ai', 'ai_help',
+      'view_notification_preferences',
+      'view_approval_requests', 'approve_requests',
+    ];
+
+    try {
+      for (const perm of employeeForcePermissions) {
+        await connection.query(`
+          UPDATE roles 
+          SET permissions = permissions || $1::jsonb
+          WHERE name = 'Employee' 
+            AND NOT (permissions @> $1::jsonb)
+        `, [JSON.stringify([perm])]);
+      }
+      for (const perm of managerForcePermissions) {
+        await connection.query(`
+          UPDATE roles 
+          SET permissions = permissions || $1::jsonb
+          WHERE name = 'Manager' 
+            AND NOT (permissions @> $1::jsonb)
+        `, [JSON.stringify([perm])]);
+      }
+    } catch (forceErr) {
+      // Non-fatal — log but don't throw
+      console.error('[RolesService] Force-patch permissions failed:', forceErr.message);
+    }
+    // ===== END FORCE-PATCH =====
   }
 
   private async seedDefaultRoles(connection: any): Promise<void> {
