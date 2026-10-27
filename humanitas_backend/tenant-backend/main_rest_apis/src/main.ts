@@ -106,26 +106,46 @@ async function bootstrap() {
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      if (origin.endsWith('.ziontech.tech') || origin === 'https://ziontech.tech') {
+      // Match *.ziontech.tech (including any subdomain, optional port, and protocol)
+      if (
+        /^https?:\/\/([a-zA-Z0-9-]+\.)*ziontech\.tech(:\d+)?$/i.test(origin) ||
+        origin.toLowerCase() === 'https://ziontech.tech' ||
+        origin.toLowerCase() === 'http://ziontech.tech'
+      ) {
         return callback(null, true);
       }
       if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
         return callback(null, true);
       }
-      return callback(new Error(`Origin '${origin}' not allowed by CORS policy`), false);
+      // Return null, false to reject origin without throwing unhandled 500 error in Fastify
+      return callback(null, false);
     },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
       'Content-Type',
+      'content-type',
       'Authorization',
+      'authorization',
       'X-Tenant-ID',
+      'x-tenant-id',
+      'X-Tenant-Slug',
       'x-tenant-slug',
+      'X-Company-ID',
       'x-company-id',
+      'X-Branch-ID',
       'x-branch-id',
+      'Accept',
+      'accept',
+      'Origin',
+      'origin',
       'Pragma',
+      'pragma',
       'Cache-Control',
+      'cache-control',
       'If-Modified-Since',
+      'if-modified-since',
       'X-Requested-With',
+      'x-requested-with',
     ],
     credentials: true,
   });

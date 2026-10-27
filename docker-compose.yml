@@ -60,7 +60,7 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - JWT_REFRESH_EXPIRES_IN=7d
       - CALCULATION_SERVICE_URL=http://python-api:8000
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:1300}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas.ziontech.tech,https://admin.humanitas.ziontech.tech,https://api.humanitas.ziontech.tech,https://api-admin.humanitas.ziontech.tech,https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:1300}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
     depends_on:

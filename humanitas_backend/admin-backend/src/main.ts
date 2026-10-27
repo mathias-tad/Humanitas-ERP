@@ -54,12 +54,31 @@ async function bootstrap() {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (parsedOrigins.includes(origin)) return callback(null, true);
-      if (origin.endsWith('.ziontech.tech') || origin === 'https://ziontech.tech') return callback(null, true);
+      if (
+        /^https?:\/\/([a-zA-Z0-9-]+\.)*ziontech\.tech(:\d+)?$/i.test(origin) ||
+        origin.toLowerCase() === 'https://ziontech.tech' ||
+        origin.toLowerCase() === 'http://ziontech.tech'
+      ) {
+        return callback(null, true);
+      }
       if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return callback(null, true);
-      return callback(new Error(`Origin '${origin}' not allowed by CORS policy`), false);
+      return callback(null, false);
     },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'content-type',
+      'Authorization',
+      'authorization',
+      'X-Tenant-ID',
+      'x-tenant-id',
+      'x-tenant-slug',
+      'x-company-id',
+      'x-branch-id',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
     credentials: true,
   });
 
