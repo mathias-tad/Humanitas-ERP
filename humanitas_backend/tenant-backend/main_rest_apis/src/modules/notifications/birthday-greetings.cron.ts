@@ -76,7 +76,7 @@ export class BirthdayGreetingsCron {
     this.logger.log(`Found ${celebrants.length} birthday celebrant(s) today for tenant ${tenant.slug}`);
 
     const appUrl = process.env.APP_URL || 'https://app.humanitas.io';
-    const companyName = tenant.name || 'Humanitas';
+    const companyName = tenant.company_name || tenant.slug || 'Humanitas';
 
     for (const celebrant of celebrants) {
       // 1. Send personal birthday greeting directly to the celebrant

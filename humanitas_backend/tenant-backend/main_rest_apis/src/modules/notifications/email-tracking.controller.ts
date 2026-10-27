@@ -1,5 +1,4 @@
 import { Controller, Get, Post, Param, Query, Body, Res, Headers } from '@nestjs/common';
-import { Response } from 'express';
 import { NotificationReportsService } from './notification-reports.service';
 
 const TRANSPARENT_1PX_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -12,14 +11,20 @@ export class EmailTrackingController {
   async trackOpen(
     @Param('messageId') messageId: string,
     @Query('tenantId') queryTenantId: string,
-    @Res() res: Response,
+    @Res() res: any,
   ) {
     if (queryTenantId && messageId) {
       await this.notificationReportsService.recordEmailOpen(queryTenantId, messageId);
     }
-    res.setHeader('Content-Type', 'image/gif');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.send(TRANSPARENT_1PX_GIF);
+    if (res.setHeader) {
+      res.setHeader('Content-Type', 'image/gif');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.send(TRANSPARENT_1PX_GIF);
+    } else if (res.header) {
+      res.header('Content-Type', 'image/gif');
+      res.header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.send(TRANSPARENT_1PX_GIF);
+    }
   }
 
   @Post('webhook/bounce')

@@ -17,7 +17,8 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PayrollService } from './payroll.service';
 import { PayrollScheduler } from './payroll.scheduler';
-import { BankTransferExportService, BankTransferFormat } from './bank-transfer-export.service';
+import { BankTransferExportService } from './bank-transfer-export.service';
+import type { BankTransferFormat } from './bank-transfer-export.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
@@ -410,7 +411,7 @@ export class PayrollController {
     @Request() req: any,
     @Query('month') month: string,
     @Query('year') year: string,
-    @Query('format') format: BankTransferFormat,
+    @Query('format') format: string,
     @Res() res: any,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -424,7 +425,7 @@ export class PayrollController {
       req.user.tenantId,
       parseInt(month, 10),
       parseInt(year, 10),
-      format || 'generic',
+      (format as BankTransferFormat) || 'generic',
       req.user.companyName || 'Humanitas Enterprise',
       companyId,
       branchId,

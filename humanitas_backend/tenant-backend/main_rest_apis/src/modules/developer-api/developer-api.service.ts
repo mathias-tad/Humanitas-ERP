@@ -389,7 +389,7 @@ export class DeveloperApiService {
       return evs.includes(eventName) || evs.includes('*');
     });
 
-    const results = [];
+    const results: any[] = [];
     for (const wh of matching) {
       const delivery = await this.sendWebhookRequest(connection, wh, eventName, eventPayload);
       results.push(delivery);

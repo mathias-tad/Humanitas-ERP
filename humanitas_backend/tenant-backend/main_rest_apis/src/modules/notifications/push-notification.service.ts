@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
+import { getMessaging, type MulticastMessage } from 'firebase-admin/messaging';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DatabaseService } from '../database/database.service';
@@ -23,7 +24,7 @@ export interface PushNotificationPayload {
 @Injectable()
 export class PushNotificationService {
   private readonly logger = new Logger(PushNotificationService.name);
-  private firebaseApp: admin.app.App | null = null;
+  private firebaseApp: App | null = null;
   private isInitialized = false;
 
   constructor(private readonly databaseService: DatabaseService) {
@@ -32,8 +33,9 @@ export class PushNotificationService {
 
   private initFirebase() {
     try {
-      if (admin.apps.length > 0) {
-        this.firebaseApp = admin.apps[0];
+      const existingApps = getApps();
+      if (existingApps.length > 0) {
+        this.firebaseApp = existingApps[0];
         this.isInitialized = true;
         this.logger.log('Firebase Admin SDK already initialized');
         return;
@@ -43,8 +45,8 @@ export class PushNotificationService {
       const serviceAccountPath = path.resolve(__dirname, 'firebase-service-account.json');
       if (fs.existsSync(serviceAccountPath)) {
         const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-        this.firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
+        this.firebaseApp = initializeApp({
+          credential: cert(serviceAccount),
           projectId: serviceAccount.project_id || 'humanitas-be2bf',
         });
         this.isInitialized = true;
@@ -148,7 +150,7 @@ export class PushNotificationService {
     }
 
     try {
-      const message: admin.messaging.MulticastMessage = {
+      const message: MulticastMessage = {
         tokens,
         notification: {
           title: payload.title,
@@ -178,7 +180,7 @@ export class PushNotificationService {
         },
       };
 
-      const response = await admin.messaging().sendEachForMulticast(message);
+      const response = await getMessaging(this.firebaseApp).sendEachForMulticast(message);
       let sent = response.successCount;
       let failed = response.failureCount;
 

@@ -994,7 +994,7 @@ export class PmsService {
             order: { start_date: 'ASC' },
         });
 
-        const results = [];
+        const results: any[] = [];
         for (const sprint of sprints) {
             const tasks = await taskRepo.find({
                 where: { sprint_id: sprint.id, tenant_id: tenantId },
@@ -1116,7 +1116,7 @@ export class PmsService {
                 sprint_id: t.sprint_id,
                 assignee: t.assignee ? {
                     id: t.assignee.id,
-                    name: `${t.assignee.first_name || ''} ${t.assignee.last_name || ''}`.trim() || t.assignee.email,
+                    name: t.assignee.full_name || t.assignee.email,
                 } : null,
             };
         });
@@ -1157,7 +1157,7 @@ export class PmsService {
             where: { project_id: projectId, tenant_id: tenantId },
         });
 
-        const events = [];
+        const events: any[] = [];
 
         for (const sprint of sprints) {
             if (sprint.start_date) {
@@ -1188,7 +1188,7 @@ export class PmsService {
                     is_milestone: Boolean(task.is_milestone),
                     entity_id: task.id,
                     assignee_name: task.assignee
-                        ? `${task.assignee.first_name || ''} ${task.assignee.last_name || ''}`.trim() || task.assignee.email
+                        ? task.assignee.full_name || task.assignee.email
                         : null,
                 });
             }
@@ -1311,18 +1311,12 @@ export class PmsService {
         startDate: string,
         endDate: string,
     ): Promise<{ invoiceRef: string; totalHours: number; message: string }> {
-        const connection = await this.getTenantRepo(tenantId, this.taskTimeLogRepo as any);
         const ref = `INV-PMS-${Date.now()}`;
         let totalHours = 0;
 
         try {
-            // Get billable hours in range
-            const conn = await (connection as any).connection?.driver?.connection
-                || (connection as any).manager?.connection?.driver?.connection;
-
-            // Use TypeORM query builder instead of raw SQL for safety
-            const repo = await this.getTenantRepo(tenantId, this.taskTimeLogRepo as any);
-            const logs = await (repo as any).createQueryBuilder('tl')
+            const repo = await this.getTenantRepo<TaskTimeLog>(tenantId, TaskTimeLog);
+            const logs = await repo.createQueryBuilder('tl')
                 .innerJoin('tl.task', 't')
                 .where('t.project_id = :projectId', { projectId })
                 .andWhere('tl.is_billable = :billable', { billable: true })
@@ -1334,7 +1328,7 @@ export class PmsService {
             for (const log of logs as any[]) {
                 totalHours += (log.hours_logged || 0);
                 log.invoice_ref = ref;
-                await (repo as any).save(log).catch(() => null);
+                await repo.save(log).catch(() => null);
             }
         } catch (_) {
             // Gracefully degrade if table doesn't exist yet
