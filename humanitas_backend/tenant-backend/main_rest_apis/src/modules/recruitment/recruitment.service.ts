@@ -600,8 +600,11 @@ export class RecruitmentService {
       }
     } else {
       if (this.tenantRepository) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantIdentifier);
         const tenant = await this.tenantRepository.findOne({
-          where: [{ slug: tenantIdentifier }, { id: tenantIdentifier } as any],
+          where: isUuid
+            ? [{ slug: tenantIdentifier }, { id: tenantIdentifier } as any]
+            : { slug: tenantIdentifier },
         });
         if (!tenant) {
           throw new NotFoundException(`Tenant not found: ${tenantIdentifier}`);

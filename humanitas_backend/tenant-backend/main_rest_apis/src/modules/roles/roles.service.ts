@@ -15,9 +15,16 @@ export class RolesService {
     private readonly holidaysService: HolidaysService,
   ) { }
 
+  private isUuid(val: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  }
+
   private async getTenantDatabaseName(tenantSlugOrId: string): Promise<string> {
+    const isUuid = this.isUuid(tenantSlugOrId);
     const tenant = await this.tenantRepository.findOne({
-      where: [{ slug: tenantSlugOrId }, { id: tenantSlugOrId }],
+      where: isUuid
+        ? [{ slug: tenantSlugOrId }, { id: tenantSlugOrId }]
+        : { slug: tenantSlugOrId },
     });
     if (!tenant) {
       throw new NotFoundException(`Tenant not found: ${tenantSlugOrId}`);

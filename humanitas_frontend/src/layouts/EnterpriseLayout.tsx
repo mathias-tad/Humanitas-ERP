@@ -30,20 +30,22 @@ function EnterpriseLayoutContent() {
 
       {/* Main Right Workspace Area */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden min-w-0">
-        {/* Top Global Command Header */}
-        <EnterpriseTopHeader
-          onOpenAiWidget={() => aiWidgetRef.current?.open()}
-          onOpenChatDrawer={() => {
-            // Dispatch custom event to toggle chat widget if needed
-            window.dispatchEvent(new CustomEvent("toggle-chat-drawer"));
-          }}
-        />
+        {/* Top Global Command Header & Topbar Navigation (Strictly pinned, never moves on scroll) */}
+        <div className="shrink-0 sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md">
+          <EnterpriseTopHeader
+            onOpenAiWidget={() => aiWidgetRef.current?.open()}
+            onOpenChatDrawer={() => {
+              // Dispatch custom event to toggle chat widget if needed
+              window.dispatchEvent(new CustomEvent("toggle-chat-drawer"));
+            }}
+          />
 
-        {/* Horizontal Navigation Bar (rendered when user selects Topbar layout) */}
-        {isTopbar && <TopbarModuleNavigation />}
+          {/* Horizontal Navigation Bar (rendered when user selects Topbar layout) */}
+          {isTopbar && <TopbarModuleNavigation />}
+        </div>
 
         {/* Dynamic Page Workspace Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background/50">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-background/50">
           <Outlet />
         </main>
       </div>
