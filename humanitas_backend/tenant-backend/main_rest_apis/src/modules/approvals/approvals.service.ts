@@ -386,11 +386,11 @@ export class ApprovalsService {
     `;
     const params: any[] = [];
 
-    if (options.status) {
+    if (options.status && options.status !== 'all') {
       params.push(options.status);
       query += ` AND r.status = $${params.length}`;
     }
-    if (options.workflow_type) {
+    if (options.workflow_type && options.workflow_type !== 'all') {
       params.push(options.workflow_type);
       query += ` AND r.workflow_type = $${params.length}`;
     }
@@ -398,13 +398,13 @@ export class ApprovalsService {
       params.push(options.submitter_id);
       query += ` AND r.submitter_id = $${params.length}`;
     }
-    if (options.company_id) {
+    if (options.company_id && options.company_id !== 'all') {
       params.push(options.company_id);
-      query += ` AND (r.company_id = $${params.length} OR r.company_id IS NULL)`;
+      query += ` AND (r.company_id::text = $${params.length}::text OR r.company_id IS NULL)`;
     }
-    if (options.branch_id) {
+    if (options.branch_id && options.branch_id !== 'all') {
       params.push(options.branch_id);
-      query += ` AND (r.branch_id = $${params.length} OR r.branch_id IS NULL)`;
+      query += ` AND (r.branch_id::text = $${params.length}::text OR r.branch_id IS NULL)`;
     }
 
     if (options.my_pending && options.user_id) {

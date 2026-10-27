@@ -853,9 +853,9 @@ export function useApprovalRequests(filters?: ApprovalRequestFilters) {
       const params = new URLSearchParams();
       if (companyId) params.append('companyId', companyId);
       if (branchId) params.append('branchId', branchId);
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.workflow_type) params.append('workflow_type', filters.workflow_type);
-      if (filters?.scope) params.append('scope', filters.scope);
+      if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters?.workflow_type && filters.workflow_type !== 'all') params.append('workflow_type', filters.workflow_type);
+      if (filters?.scope && filters.scope !== 'all') params.append('scope', filters.scope);
       if (filters?.search) params.append('search', filters.search);
 
       const q = params.toString() ? `?${params.toString()}` : '';
@@ -1002,7 +1002,7 @@ export function useMyPendingApprovalsCount() {
       ).length;
 
       const res = await safeFetcher<{ count: number }>(
-        `${API_BASE_URL}/approvals/pending-count`,
+        `${API_BASE_URL}/approvals/my-pending-count`,
         { count: fallbackCount }
       );
       return res.count !== undefined ? res.count : fallbackCount;

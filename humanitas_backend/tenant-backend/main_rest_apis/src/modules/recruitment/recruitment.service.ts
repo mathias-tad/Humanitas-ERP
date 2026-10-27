@@ -651,12 +651,12 @@ export class RecruitmentService {
       query += ` AND scheduled_at <= $${pIdx++}`;
       params.push(filter.end_date);
     }
-    if (filter.company_id) {
-      query += ` AND (company_id = $${pIdx++} OR company_id IS NULL)`;
+    if (filter.company_id && filter.company_id !== 'all') {
+      query += ` AND (company_id::text = $${pIdx++}::text OR company_id IS NULL)`;
       params.push(filter.company_id);
     }
-    if (filter.branch_id) {
-      query += ` AND (branch_id = $${pIdx++} OR branch_id IS NULL)`;
+    if (filter.branch_id && filter.branch_id !== 'all') {
+      query += ` AND (branch_id::text = $${pIdx++}::text OR branch_id IS NULL)`;
       params.push(filter.branch_id);
     }
 
@@ -798,12 +798,12 @@ export class RecruitmentService {
       query += ` AND status = $${pIdx++}`;
       params.push(filter.status);
     }
-    if (filter.company_id) {
-      query += ` AND (company_id = $${pIdx++} OR company_id IS NULL)`;
+    if (filter.company_id && filter.company_id !== 'all') {
+      query += ` AND (company_id::text = $${pIdx++}::text OR company_id IS NULL)`;
       params.push(filter.company_id);
     }
-    if (filter.branch_id) {
-      query += ` AND (branch_id = $${pIdx++} OR branch_id IS NULL)`;
+    if (filter.branch_id && filter.branch_id !== 'all') {
+      query += ` AND (branch_id::text = $${pIdx++}::text OR branch_id IS NULL)`;
       params.push(filter.branch_id);
     }
 
@@ -1098,12 +1098,12 @@ export class RecruitmentService {
       intQuery += ` AND job_id = $${iIdx++}`;
       intParams.push(filter.job_id);
     }
-    if (filter.company_id) {
-      intQuery += ` AND (company_id = $${iIdx++} OR company_id IS NULL)`;
+    if (filter.company_id && filter.company_id !== 'all') {
+      intQuery += ` AND (company_id::text = $${iIdx++}::text OR company_id IS NULL)`;
       intParams.push(filter.company_id);
     }
-    if (filter.branch_id) {
-      intQuery += ` AND (branch_id = $${iIdx++} OR branch_id IS NULL)`;
+    if (filter.branch_id && filter.branch_id !== 'all') {
+      intQuery += ` AND (branch_id::text = $${iIdx++}::text OR branch_id IS NULL)`;
       intParams.push(filter.branch_id);
     }
     const intRes = await connection.query(intQuery, intParams);
@@ -1123,12 +1123,12 @@ export class RecruitmentService {
       offQuery += ` AND job_id = $${oIdx++}`;
       offParams.push(filter.job_id);
     }
-    if (filter.company_id) {
-      offQuery += ` AND (company_id = $${oIdx++} OR company_id IS NULL)`;
+    if (filter.company_id && filter.company_id !== 'all') {
+      offQuery += ` AND (company_id::text = $${oIdx++}::text OR company_id IS NULL)`;
       offParams.push(filter.company_id);
     }
-    if (filter.branch_id) {
-      offQuery += ` AND (branch_id = $${oIdx++} OR branch_id IS NULL)`;
+    if (filter.branch_id && filter.branch_id !== 'all') {
+      offQuery += ` AND (branch_id::text = $${oIdx++}::text OR branch_id IS NULL)`;
       offParams.push(filter.branch_id);
     }
     const offRes = await connection.query(offQuery, offParams);

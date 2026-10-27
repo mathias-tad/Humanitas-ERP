@@ -109,6 +109,7 @@ export class ApprovalsController {
     @Query('workflow_type') workflowType?: string,
     @Query('submitter_id') submitterId?: string,
     @Query('my_pending') myPending?: string,
+    @Query('scope') scope?: string,
   ) {
     const user = req.user || {};
     return this.approvalsService.getRequests(tenantId, {
@@ -117,10 +118,32 @@ export class ApprovalsController {
       submitter_id: submitterId,
       company_id: companyIdHeader,
       branch_id: branchIdHeader,
-      my_pending: myPending === 'true',
+      my_pending: myPending === 'true' || scope === 'pending_my_action',
       user_role: user.role,
       user_id: user.sub || user.id,
     });
+  }
+
+  @Get('pending-count')
+  @RequirePermissions('view_approval_requests')
+  @ApiOperation({ summary: 'Get count of pending requests awaiting action' })
+  async getPendingCount(
+    @Headers('x-tenant-id') tenantId: string,
+    @Req() req: any,
+  ) {
+    const user = req.user || {};
+    return this.approvalsService.getMyPendingCount(tenantId, user.sub || user.id, user.role);
+  }
+
+  @Get('my-pending-count')
+  @RequirePermissions('view_approval_requests')
+  @ApiOperation({ summary: 'Get count of pending requests awaiting action' })
+  async getMyPendingCountTop(
+    @Headers('x-tenant-id') tenantId: string,
+    @Req() req: any,
+  ) {
+    const user = req.user || {};
+    return this.approvalsService.getMyPendingCount(tenantId, user.sub || user.id, user.role);
   }
 
   @Get('requests/my-pending-count')

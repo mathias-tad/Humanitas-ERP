@@ -180,17 +180,23 @@ export class HrmsGrievancesService {
     filters?: { status?: string; category?: string; company_id?: string; branch_id?: string },
   ) {
     const connection = await this.getConnection(tenantId);
+    const submitterNameSql = hasManagePerm
+      ? `CASE 
+          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, u.first_name, ''), ' (Masked/Anonymous)')
+          ELSE COALESCE(u.full_name, u.first_name, '')
+        END`
+      : `CASE 
+          WHEN g.is_anonymous = TRUE THEN 'Anonymous Submitter'
+          ELSE COALESCE(u.full_name, u.first_name, '')
+        END`;
+
     let query = `
       SELECT 
         g.*,
-        CASE 
-          WHEN g.is_anonymous = TRUE AND $2 = FALSE THEN 'Anonymous Submitter'
-          WHEN g.is_anonymous = TRUE AND $2 = TRUE THEN CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''), ' (Masked/Anonymous)')
-          ELSE CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))
-        END AS submitter_name,
+        ${submitterNameSql} AS submitter_name,
         u.email AS submitter_email,
         u.department AS submitter_department,
-        CONCAT(COALESCE(inv.first_name, ''), ' ', COALESCE(inv.last_name, '')) AS investigator_name,
+        COALESCE(inv.full_name, inv.first_name, '') AS investigator_name,
         (SELECT COUNT(*) FROM grievance_attachments ga WHERE ga.grievance_id = g.id) AS attachments_count,
         CASE 
           WHEN g.status != 'closed' AND NOW() > g.sla_resolution_deadline THEN TRUE
@@ -201,11 +207,12 @@ export class HrmsGrievancesService {
       LEFT JOIN users inv ON g.assigned_investigator_id = inv.id
       WHERE 1=1
     `;
-    const params: any[] = [currentUserId, hasManagePerm];
-    let paramIndex = 3;
+    const params: any[] = [];
+    let paramIndex = 1;
 
     if (!hasManagePerm) {
-      query += ` AND g.user_id = $1`;
+      query += ` AND g.user_id = $${paramIndex++}`;
+      params.push(currentUserId);
     }
 
     if (filters?.status) {
@@ -240,17 +247,23 @@ export class HrmsGrievancesService {
     hasManagePerm: boolean,
   ) {
     const connection = await this.getConnection(tenantId);
+    const submitterNameSql = hasManagePerm
+      ? `CASE 
+          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, u.first_name, ''), ' (Anonymous)')
+          ELSE COALESCE(u.full_name, u.first_name, '')
+        END`
+      : `CASE 
+          WHEN g.is_anonymous = TRUE THEN 'Anonymous Submitter'
+          ELSE COALESCE(u.full_name, u.first_name, '')
+        END`;
+
     const rows = await connection.query(
       `SELECT 
         g.*,
-        CASE 
-          WHEN g.is_anonymous = TRUE AND $2 = FALSE THEN 'Anonymous Submitter'
-          WHEN g.is_anonymous = TRUE AND $2 = TRUE THEN CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''), ' (Anonymous)')
-          ELSE CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))
-        END AS submitter_name,
+        ${submitterNameSql} AS submitter_name,
         u.email AS submitter_email,
         u.department AS submitter_department,
-        CONCAT(COALESCE(inv.first_name, ''), ' ', COALESCE(inv.last_name, '')) AS investigator_name,
+        COALESCE(inv.full_name, inv.first_name, '') AS investigator_name,
         CASE 
           WHEN g.status != 'closed' AND NOW() > g.sla_resolution_deadline THEN TRUE
           ELSE FALSE
@@ -259,7 +272,7 @@ export class HrmsGrievancesService {
        LEFT JOIN users u ON g.user_id = u.id
        LEFT JOIN users inv ON g.assigned_investigator_id = inv.id
        WHERE g.id = $1`,
-      [id, hasManagePerm],
+      [id],
     );
 
     if (!rows || rows.length === 0) {

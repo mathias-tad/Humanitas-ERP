@@ -68,7 +68,7 @@ export class HrmsReportsService {
          COUNT(CASE WHEN u.hire_date >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as new_hires_month,
          AVG(CASE 
            WHEN u.hire_date IS NOT NULL 
-           THEN EXTRACT(EPOCH FROM (CURRENT_DATE - u.hire_date)) / (365.25 * 86400)
+           THEN ROUND((CURRENT_DATE - u.hire_date::date) / 365.25, 1)
            ELSE 1.2
          END) as avg_tenure_years,
          SUM(CASE WHEN u.is_active = true THEN COALESCE(u.basic_salary, 0) ELSE 0 END) as total_basic_payroll
@@ -334,7 +334,7 @@ export class HrmsReportsService {
       `SELECT 
          COALESCE(u.department, 'Operations') as department,
          COUNT(ar.id) as total_attendance,
-         COUNT(CASE WHEN ar.status = 'late' OR (ar.late_minutes IS NOT NULL AND ar.late_minutes > 0) THEN 1 END) as late_count,
+         COUNT(CASE WHEN ar.status ILIKE 'late' THEN 1 END) as late_count,
          COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) as absent_count,
          SUM(COALESCE(ar.overtime_hours, 0)) as overtime_hours
        FROM attendance_records ar

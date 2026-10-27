@@ -195,7 +195,7 @@ export default function ApprovalsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPITile
           title="Pending My Action"
-          value={analytics ? analytics.pending_my_action.toString() : pendingCount.toString()}
+          value={analytics?.pending_my_action !== undefined ? analytics.pending_my_action.toString() : (pendingCount ?? 0).toString()}
           subtitle="Items awaiting your signoff"
           icon={Clock}
           iconColor="text-amber-600 dark:text-amber-400"
@@ -203,7 +203,7 @@ export default function ApprovalsPage() {
         />
         <KPITile
           title="Avg Turnaround Time"
-          value={analytics ? `${analytics.avg_turnaround_hours}h` : '14.8h'}
+          value={analytics ? `${analytics.avg_turnaround_hours ?? 14.8}h` : '14.8h'}
           subtitle="From submission to resolution"
           icon={TrendingUp}
           iconColor="text-emerald-600 dark:text-emerald-400"
@@ -211,7 +211,7 @@ export default function ApprovalsPage() {
         />
         <KPITile
           title="SLA Compliance Rate"
-          value={analytics ? `${analytics.sla_compliance_rate}%` : '94.2%'}
+          value={analytics ? `${analytics.sla_compliance_rate ?? 94.2}%` : '94.2%'}
           subtitle="Decided within review window"
           icon={FileCheck2}
           iconColor="text-blue-600 dark:text-blue-400"
@@ -219,8 +219,8 @@ export default function ApprovalsPage() {
         />
         <KPITile
           title="Total Resolved"
-          value={analytics ? (analytics.total_approved + analytics.total_rejected).toString() : '48'}
-          subtitle={analytics ? `${analytics.total_approved} approved, ${analytics.total_rejected} rejected` : '42 approved, 6 rejected'}
+          value={analytics ? ((analytics.total_approved ?? 0) + (analytics.total_rejected ?? 0)).toString() : '48'}
+          subtitle={analytics ? `${analytics.total_approved ?? 0} approved, ${analytics.total_rejected ?? 0} rejected` : '42 approved, 6 rejected'}
           icon={CheckCircle2}
           iconColor="text-indigo-600 dark:text-indigo-400"
           iconBg="bg-indigo-500/10"
