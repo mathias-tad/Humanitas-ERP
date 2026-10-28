@@ -709,10 +709,16 @@ export function useApprovalWorkflows() {
       if (companyId) params.append('companyId', companyId);
       if (branchId) params.append('branchId', branchId);
       const q = params.toString() ? `?${params.toString()}` : '';
-      return safeFetcher<ApprovalWorkflow[]>(
+      const res = await safeFetcher<any>(
         `${API_BASE_URL}/approvals/workflows${q}`,
         workflowsStore
       );
+      const items = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.workflows)
+        ? res.workflows
+        : (Array.isArray(res?.data) ? res.data : workflowsStore));
+      return Array.isArray(items) ? items : workflowsStore;
     },
   });
 }
@@ -888,7 +894,15 @@ export function useApprovalRequests(filters?: ApprovalRequestFilters) {
         );
       }
 
-      return safeFetcher<ApprovalRequest[]>(`${API_BASE_URL}/approvals/requests${q}`, filtered);
+      const res = await safeFetcher<any>(`${API_BASE_URL}/approvals/requests${q}`, filtered);
+      const items = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.requests)
+        ? res.requests
+        : (Array.isArray(res?.items)
+        ? res.items
+        : (Array.isArray(res?.data) ? res.data : filtered)));
+      return Array.isArray(items) ? items : filtered;
     },
   });
 }
@@ -1001,11 +1015,14 @@ export function useMyPendingApprovalsCount() {
         (r) => r.can_user_act && (r.status === 'pending' || r.status === 'escalated')
       ).length;
 
-      const res = await safeFetcher<{ count: number }>(
+      const res = await safeFetcher<any>(
         `${API_BASE_URL}/approvals/my-pending-count`,
         { count: fallbackCount }
       );
-      return res.count !== undefined ? res.count : fallbackCount;
+      if (typeof res === 'number') return res;
+      if (res?.count !== undefined) return Number(res.count);
+      if (res?.pending_count !== undefined) return Number(res.pending_count);
+      return fallbackCount;
     },
   });
 }
@@ -1019,13 +1036,35 @@ export function useApprovalAnalytics() {
 
   return useQuery<ApprovalAnalytics>({
     queryKey: ['approval-analytics', companyId, branchId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ApprovalAnalytics> => {
       const total = requestsStore.length;
       const pendingMyAction = requestsStore.filter((r) => r.can_user_act && (r.status === 'pending' || r.status === 'escalated')).length;
       const mySubmitted = requestsStore.filter((r) => r.requester_id === 'usr-current').length;
       const approved = requestsStore.filter((r) => r.status === 'approved').length;
       const rejected = requestsStore.filter((r) => r.status === 'rejected').length;
       const escalated = requestsStore.filter((r) => r.status === 'escalated' || r.is_escalated).length;
+
+      const fallbackByType: ApprovalAnalytics['by_type'] = [
+        { workflow_type: 'purchase_order', label: 'Purchase Orders', total: 18, pending: 4, approved: 12, rejected: 2 },
+        { workflow_type: 'sales_discount', label: 'Sales Discounts', total: 14, pending: 3, approved: 9, rejected: 2 },
+        { workflow_type: 'leave_request', label: 'Leave Requests', total: 32, pending: 5, approved: 26, rejected: 1 },
+        { workflow_type: 'inventory_writeoff', label: 'Inventory Write-offs', total: 8, pending: 1, approved: 6, rejected: 1 },
+        { workflow_type: 'general_journal', label: 'General Journal', total: 6, pending: 2, approved: 4, rejected: 0 },
+      ];
+      const fallbackTurnaround = [
+        { type: 'Leave Requests', hours: 4.2 },
+        { type: 'Sales Discounts', hours: 8.5 },
+        { type: 'Purchase Orders', hours: 22.4 },
+        { type: 'General Journal', hours: 16.0 },
+        { type: 'Inventory Write-offs', hours: 18.2 },
+      ];
+      const fallbackVelocity = [
+        { date: 'Mon', approved: 8, rejected: 1, submitted: 10 },
+        { date: 'Tue', approved: 12, rejected: 2, submitted: 14 },
+        { date: 'Wed', approved: 9, rejected: 0, submitted: 11 },
+        { date: 'Thu', approved: 15, rejected: 3, submitted: 16 },
+        { date: 'Fri', approved: 11, rejected: 1, submitted: 13 },
+      ];
 
       const fallbackAnalytics: ApprovalAnalytics = {
         total_requests: total,
@@ -1036,33 +1075,61 @@ export function useApprovalAnalytics() {
         escalated_count: escalated,
         avg_turnaround_hours: 14.8,
         sla_compliance_rate: 94.2,
-        by_type: [
-          { workflow_type: 'purchase_order', label: 'Purchase Orders', total: 18, pending: 4, approved: 12, rejected: 2 },
-          { workflow_type: 'sales_discount', label: 'Sales Discounts', total: 14, pending: 3, approved: 9, rejected: 2 },
-          { workflow_type: 'leave_request', label: 'Leave Requests', total: 32, pending: 5, approved: 26, rejected: 1 },
-          { workflow_type: 'inventory_writeoff', label: 'Inventory Write-offs', total: 8, pending: 1, approved: 6, rejected: 1 },
-          { workflow_type: 'general_journal', label: 'General Journal', total: 6, pending: 2, approved: 4, rejected: 0 },
-        ],
-        turnaround_by_type: [
-          { type: 'Leave Requests', hours: 4.2 },
-          { type: 'Sales Discounts', hours: 8.5 },
-          { type: 'Purchase Orders', hours: 22.4 },
-          { type: 'General Journal', hours: 16.0 },
-          { type: 'Inventory Write-offs', hours: 18.2 },
-        ],
-        recent_velocity: [
-          { date: 'Mon', approved: 8, rejected: 1, submitted: 10 },
-          { date: 'Tue', approved: 12, rejected: 2, submitted: 14 },
-          { date: 'Wed', approved: 9, rejected: 0, submitted: 11 },
-          { date: 'Thu', approved: 15, rejected: 3, submitted: 16 },
-          { date: 'Fri', approved: 11, rejected: 1, submitted: 13 },
-        ],
+        by_type: fallbackByType,
+        turnaround_by_type: fallbackTurnaround,
+        recent_velocity: fallbackVelocity,
       };
 
-      return safeFetcher<ApprovalAnalytics>(
+      const res = await safeFetcher<any>(
         `${API_BASE_URL}/approvals/analytics`,
         fallbackAnalytics
       );
+
+      let byType: ApprovalAnalytics['by_type'] = fallbackByType;
+      if (Array.isArray(res?.by_type) && res.by_type.length > 0) {
+        byType = res.by_type.map((b: any) => ({
+          workflow_type: (b.workflow_type || 'purchase_order') as ApprovalWorkflowType,
+          label: String(b.label || b.workflow_type || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          total: Number(b.total || 0),
+          pending: Number(b.pending || 0),
+          approved: Number(b.approved || 0),
+          rejected: Number(b.rejected || 0),
+        }));
+      } else if (Array.isArray(res?.by_workflow_type) && res.by_workflow_type.length > 0) {
+        byType = res.by_workflow_type.map((b: any) => ({
+          workflow_type: (b.workflow_type || 'purchase_order') as ApprovalWorkflowType,
+          label: String(b.workflow_type || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          total: parseInt(b.total || '0', 10),
+          pending: parseInt(b.pending || '0', 10),
+          approved: parseInt(b.approved || '0', 10),
+          rejected: parseInt(b.rejected || '0', 10),
+        }));
+      } else if (Array.isArray(res?.type_breakdown) && res.type_breakdown.length > 0) {
+        byType = res.type_breakdown.map((b: any) => ({
+          workflow_type: (b.workflow_type || 'purchase_order') as ApprovalWorkflowType,
+          label: String(b.workflow_type || '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          total: parseInt(b.count || '0', 10),
+          pending: 0,
+          approved: parseInt(b.approved_count || '0', 10),
+          rejected: 0,
+        }));
+      }
+
+      const result: ApprovalAnalytics = {
+        total_requests: Number(res?.total_requests ?? total),
+        pending_my_action: Number(res?.pending_my_action ?? res?.pending_requests ?? res?.total_pending ?? pendingMyAction),
+        my_submitted: Number(res?.my_submitted ?? mySubmitted),
+        total_approved: Number(res?.total_approved ?? res?.approved_requests ?? approved),
+        total_rejected: Number(res?.total_rejected ?? res?.rejected_requests ?? rejected),
+        escalated_count: Number(res?.escalated_count ?? escalated),
+        avg_turnaround_hours: Number(res?.avg_turnaround_hours ?? res?.avg_cycle_time_hours ?? 14.8),
+        sla_compliance_rate: Number(res?.sla_compliance_rate ?? (res?.approval_rate ?? 94.2)),
+        by_type: byType,
+        turnaround_by_type: Array.isArray(res?.turnaround_by_type) && res.turnaround_by_type.length > 0 ? res.turnaround_by_type : fallbackTurnaround,
+        recent_velocity: Array.isArray(res?.recent_velocity) && res.recent_velocity.length > 0 ? res.recent_velocity : fallbackVelocity,
+      };
+
+      return result;
     },
   });
 }

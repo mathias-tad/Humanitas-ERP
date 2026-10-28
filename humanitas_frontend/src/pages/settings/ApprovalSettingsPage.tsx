@@ -54,7 +54,8 @@ const WORKFLOW_TYPE_OPTIONS: { value: ApprovalWorkflowType; label: string; desc:
 ];
 
 export default function ApprovalSettingsPage() {
-  const { data: workflows = [], isLoading } = useApprovalWorkflows();
+  const { data: rawWorkflows = [], isLoading } = useApprovalWorkflows();
+  const workflows: ApprovalWorkflow[] = Array.isArray(rawWorkflows) ? rawWorkflows : (rawWorkflows as any)?.workflows || [];
   const createMutation = useCreateApprovalWorkflow();
   const updateMutation = useUpdateApprovalWorkflow();
   const deleteMutation = useDeleteApprovalWorkflow();
@@ -315,7 +316,7 @@ export default function ApprovalSettingsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {workflows.map((wf) => {
+            {workflows.map((wf: ApprovalWorkflow) => {
               const typeOption = WORKFLOW_TYPE_OPTIONS.find((t) => t.value === wf.workflow_type);
 
               return (
@@ -371,7 +372,7 @@ export default function ApprovalSettingsPage() {
                           Approval Chain ({wf.steps?.length || 0} Stages)
                         </span>
                         <div className="flex flex-wrap items-center gap-2 pt-1">
-                          {wf.steps?.map((st, i) => (
+                          {wf.steps?.map((st: ApprovalWorkflowStep, i: number) => (
                             <React.Fragment key={st.id || i}>
                               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-surface-1 text-xs">
                                 <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-[10px]">

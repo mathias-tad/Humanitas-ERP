@@ -344,45 +344,50 @@ export const ApprovalRequestDetailModal: React.FC<ApprovalRequestDetailModalProp
             </h4>
 
             <div className="space-y-2 border rounded-xl p-4 bg-surface-1 border-border">
-              {request.history && request.history.length > 0 ? (
-                request.history.map((h, i) => (
-                  <div
-                    key={h.id || i}
-                    className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0"
-                  >
-                    <div className="p-1.5 rounded-full bg-muted text-muted-foreground shrink-0 mt-0.5">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs font-semibold text-foreground">
-                          {h.actor_name}{' '}
-                          {h.actor_role && (
-                            <span className="text-muted-foreground font-normal">
-                              ({h.actor_role})
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground shrink-0">
-                          {new Date(h.created_at).toLocaleString()}
-                        </div>
+              {(() => {
+                const historyList = Array.isArray(request.history)
+                  ? request.history
+                  : (Array.isArray((request as any).actions) ? (request as any).actions : []);
+                return historyList && historyList.length > 0 ? (
+                  historyList.map((h: any, i: number) => (
+                    <div
+                      key={h.id || i}
+                      className="flex items-start gap-3 py-2 border-b border-border/50 last:border-0"
+                    >
+                      <div className="p-1.5 rounded-full bg-muted text-muted-foreground shrink-0 mt-0.5">
+                        <MessageSquare className="w-3.5 h-3.5" />
                       </div>
-                      <div className="text-xs font-medium text-primary capitalize mt-0.5">
-                        Action: {h.action}
-                      </div>
-                      {h.comment && (
-                        <div className="text-xs text-muted-foreground italic mt-1 bg-surface-2 p-2 rounded border border-border/40">
-                          "{h.comment}"
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs font-semibold text-foreground">
+                            {h.actor_name || h.approver_name || 'System'}{' '}
+                            {(h.actor_role || h.approver_role) && (
+                              <span className="text-muted-foreground font-normal">
+                                ({h.actor_role || h.approver_role})
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground shrink-0">
+                            {new Date(h.created_at).toLocaleString()}
+                          </div>
                         </div>
-                      )}
+                        <div className="text-xs font-medium text-primary capitalize mt-0.5">
+                          Action: {h.action}
+                        </div>
+                        {(h.comment || h.comments) && (
+                          <div className="text-xs text-muted-foreground italic mt-1 bg-surface-2 p-2 rounded border border-border/40">
+                            "{h.comment || h.comments}"
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-muted-foreground py-2 text-center">
+                    No historical actions logged yet.
                   </div>
-                ))
-              ) : (
-                <div className="text-xs text-muted-foreground py-2 text-center">
-                  No historical actions logged yet.
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 

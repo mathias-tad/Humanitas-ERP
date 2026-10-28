@@ -76,24 +76,28 @@ export default function ApprovalsPage() {
   };
 
   // Queries
-  const { data: pendingRequests = [], isLoading: pendingLoading } = useApprovalRequests({
+  const { data: rawPendingRequests = [], isLoading: pendingLoading } = useApprovalRequests({
     scope: 'pending_my_action',
     workflow_type: selectedWorkflowType,
     search: searchQuery,
   });
 
-  const { data: submittedRequests = [], isLoading: submittedLoading } = useApprovalRequests({
+  const { data: rawSubmittedRequests = [], isLoading: submittedLoading } = useApprovalRequests({
     scope: 'my_submitted',
     workflow_type: selectedWorkflowType,
     search: searchQuery,
   });
 
-  const { data: allRequests = [], isLoading: allLoading } = useApprovalRequests({
+  const { data: rawAllRequests = [], isLoading: allLoading } = useApprovalRequests({
     scope: 'all',
     workflow_type: selectedWorkflowType,
     status: statusFilter,
     search: searchQuery,
   });
+
+  const pendingRequests: ApprovalRequest[] = Array.isArray(rawPendingRequests) ? rawPendingRequests : (rawPendingRequests as any)?.requests || [];
+  const submittedRequests: ApprovalRequest[] = Array.isArray(rawSubmittedRequests) ? rawSubmittedRequests : (rawSubmittedRequests as any)?.requests || [];
+  const allRequests: ApprovalRequest[] = Array.isArray(rawAllRequests) ? rawAllRequests : (rawAllRequests as any)?.requests || [];
 
   const { data: pendingCount = 0 } = useMyPendingApprovalsCount();
   const { data: analytics } = useApprovalAnalytics();
@@ -642,7 +646,7 @@ export default function ApprovalsPage() {
               </h3>
 
               <div className="space-y-3 pt-2">
-                {analytics?.by_type.map((bt) => (
+                {(analytics?.by_type || []).map((bt: any) => (
                   <div key={bt.workflow_type} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-foreground">{bt.label}</span>
@@ -680,7 +684,7 @@ export default function ApprovalsPage() {
               </h3>
 
               <div className="space-y-3 pt-2">
-                {analytics?.turnaround_by_type.map((tat) => (
+                {(analytics?.turnaround_by_type || []).map((tat: any) => (
                   <div key={tat.type} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-foreground">{tat.type}</span>
@@ -706,7 +710,7 @@ export default function ApprovalsPage() {
             </h3>
 
             <div className="grid grid-cols-5 gap-3 pt-2 text-center">
-              {analytics?.recent_velocity.map((v) => (
+              {(analytics?.recent_velocity || []).map((v: any) => (
                 <div key={v.date} className="p-4 rounded-xl bg-surface-1 border border-border space-y-2">
                   <div className="text-xs font-bold text-muted-foreground">{v.date}</div>
                   <div className="text-xl font-extrabold text-foreground">{v.approved}</div>
