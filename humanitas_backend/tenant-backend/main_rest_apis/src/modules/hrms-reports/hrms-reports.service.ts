@@ -87,12 +87,13 @@ export class HrmsReportsService {
     // 2. Absenteeism rate in last 30 days
     let absenteeismRate = 2.4; // fallback standard
     try {
-      const attScope = this.buildScopeFilter('ar.', companyIds, branchIds, undefined);
+      const attScope = this.buildScopeFilter('u.', companyIds, branchIds, undefined);
       const attRows = await conn.query(
         `SELECT 
-           COUNT(*) as total_records,
-           COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) as absent_records
+           COUNT(ar.id) as total_records,
+           COUNT(CASE WHEN LOWER(ar.status) = 'absent' THEN 1 END) as absent_records
          FROM attendance_records ar
+         JOIN users u ON ar.user_id = u.id
          WHERE ar.date >= CURRENT_DATE - INTERVAL '30 days' ${attScope.clause}`,
         attScope.params,
       );
@@ -317,9 +318,10 @@ export class HrmsReportsService {
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
     const companyIds = this.parseScopeIds(filter.company_id);
     const branchIds = this.parseScopeIds(filter.branch_id);
-    const scope = this.buildScopeFilter('ar.', companyIds, branchIds, undefined);
+    // Scope via users table — attendance_records has no company_id/branch_id columns
+    const scope = this.buildScopeFilter('u.', companyIds, branchIds, undefined);
 
-    // Weekday Heatmap (Present, Late, Absent rates)
+    // Weekday Heatmap (Present, Late, Absent rates) — static baseline
     const weekdayHeatmap = [
       { day: 'Monday', presentRate: 94.2, lateRate: 4.8, absentRate: 1.0 },
       { day: 'Tuesday', presentRate: 96.5, lateRate: 2.5, absentRate: 1.0 },
@@ -329,22 +331,47 @@ export class HrmsReportsService {
       { day: 'Saturday', presentRate: 88.5, lateRate: 7.0, absentRate: 4.5 },
     ];
 
-    // Department Punctuality
-    const deptPunctuality = await conn.query(
-      `SELECT 
-         COALESCE(u.department, 'Operations') as department,
-         COUNT(ar.id) as total_attendance,
-         COUNT(CASE WHEN ar.status ILIKE 'late' THEN 1 END) as late_count,
-         COUNT(CASE WHEN ar.status = 'absent' THEN 1 END) as absent_count,
-         SUM(COALESCE(ar.overtime_hours, 0)) as overtime_hours
-       FROM attendance_records ar
-       JOIN users u ON ar.user_id = u.id
-       WHERE ar.date >= CURRENT_DATE - INTERVAL '30 days' ${scope.clause}
-       GROUP BY u.department
-       ORDER BY total_attendance DESC
-       LIMIT 8`,
-      scope.params,
-    );
+    // Department Punctuality with graceful fallback when overtime_hours column missing
+    let deptPunctuality: any[] = [];
+    try {
+      deptPunctuality = await conn.query(
+        `SELECT
+           COALESCE(u.department, 'Operations') AS department,
+           COUNT(ar.id) AS total_attendance,
+           COUNT(CASE WHEN LOWER(ar.status) = 'late' THEN 1 END) AS late_count,
+           COUNT(CASE WHEN LOWER(ar.status) = 'absent' THEN 1 END) AS absent_count,
+           SUM(COALESCE(ar.overtime_hours, 0)) AS overtime_hours
+         FROM attendance_records ar
+         JOIN users u ON ar.user_id = u.id
+         WHERE ar.date >= CURRENT_DATE - INTERVAL '30 days' ${scope.clause}
+         GROUP BY u.department
+         ORDER BY total_attendance DESC
+         LIMIT 8`,
+        scope.params,
+      );
+    } catch (e1) {
+      this.logger.debug(`Attendance analytics (with overtime_hours) failed: ${e1.message}. Retrying without.`);
+      try {
+        deptPunctuality = await conn.query(
+          `SELECT
+             COALESCE(u.department, 'Operations') AS department,
+             COUNT(ar.id) AS total_attendance,
+             COUNT(CASE WHEN LOWER(ar.status) = 'late' THEN 1 END) AS late_count,
+             COUNT(CASE WHEN LOWER(ar.status) = 'absent' THEN 1 END) AS absent_count,
+             0 AS overtime_hours
+           FROM attendance_records ar
+           JOIN users u ON ar.user_id = u.id
+           WHERE ar.date >= CURRENT_DATE - INTERVAL '30 days' ${scope.clause}
+           GROUP BY u.department
+           ORDER BY total_attendance DESC
+           LIMIT 8`,
+          scope.params,
+        );
+      } catch (e2) {
+        this.logger.warn(`Attendance analytics department query failed: ${e2.message}`);
+        deptPunctuality = [];
+      }
+    }
 
     let totalOvertimeHours = 0;
     const departmentStats = deptPunctuality.map((r: any) => {
@@ -368,6 +395,8 @@ export class HrmsReportsService {
       totalOvertimeHours: Math.round(totalOvertimeHours * 10) / 10,
     };
   }
+
+
 
   async getPayrollAnalytics(tenantId: string, filter: HrmsReportsFilterDto) {
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
