@@ -311,7 +311,7 @@ export class SelfServiceService {
 
     values.push(userId);
     await connection.query(
-      `UPDATE users SET ${fields.join(', ')} WHERE id::text = $${idx}::text`,
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`,
       values,
     );
 
@@ -411,7 +411,7 @@ export class SelfServiceService {
       const allowedCols = ['account_number', 'bank_name', 'tin', 'national_id'];
       if (allowedCols.includes(changeReq.field_name)) {
         await connection.query(
-          `UPDATE users SET ${changeReq.field_name} = $1 WHERE id::text = $2::text`,
+          `UPDATE users SET ${changeReq.field_name} = $1 WHERE id = $2`,
           [changeReq.proposed_value, changeReq.user_id],
         );
       }
