@@ -53,6 +53,14 @@ export class CreateQuestionDto {
 }
 
 export class CreateSurveyDto {
+  @IsOptional()
+  @IsString()
+  company_id?: string;
+
+  @IsOptional()
+  @IsString()
+  branch_id?: string;
+
   @IsString()
   title: string;
 

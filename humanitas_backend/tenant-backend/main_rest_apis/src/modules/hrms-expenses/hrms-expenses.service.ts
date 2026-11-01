@@ -146,13 +146,13 @@ export class HrmsExpensesService {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT er.*,
-        u.first_name, u.last_name, u.email, u.department,
-        appr.first_name as approver_first_name, appr.last_name as approver_last_name,
+        COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department,
+        COALESCE(appr.full_name, '') as approver_name, COALESCE(appr.full_name, '') as approver_first_name, '' as approver_last_name,
         (SELECT COUNT(*) FROM expense_items ei WHERE ei.report_id = er.id) as item_count,
         (SELECT COUNT(*) FROM expense_items ei WHERE ei.report_id = er.id AND ei.policy_violation = TRUE) as violation_count
       FROM expense_reports er
-      JOIN users u ON u.id = er.employee_id
-      LEFT JOIN users appr ON appr.id = er.approved_by
+      JOIN users u ON u.id::text = er.employee_id::text
+      LEFT JOIN users appr ON appr.id::text = er.approved_by::text
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -184,11 +184,11 @@ export class HrmsExpensesService {
     const connection = await this.getConnection(tenantId);
     const reportRes = await connection.query(`
       SELECT er.*,
-        u.first_name, u.last_name, u.email, u.department,
-        appr.first_name as approver_first_name, appr.last_name as approver_last_name
+        COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department,
+        COALESCE(appr.full_name, '') as approver_name, COALESCE(appr.full_name, '') as approver_first_name, '' as approver_last_name
       FROM expense_reports er
-      JOIN users u ON u.id = er.employee_id
-      LEFT JOIN users appr ON appr.id = er.approved_by
+      JOIN users u ON u.id::text = er.employee_id::text
+      LEFT JOIN users appr ON appr.id::text = er.approved_by::text
       WHERE er.id = $1
     `, [reportId]);
 
@@ -481,7 +481,7 @@ export class HrmsExpensesService {
     const deptSpendRes = await connection.query(`
       SELECT u.department, COALESCE(SUM(er.total_amount), 0) as spend, COUNT(er.id) as report_count
       FROM expense_reports er
-      JOIN users u ON u.id = er.employee_id
+      JOIN users u ON u.id::text = er.employee_id::text
       WHERE 1=1 ${whereCompany}
       GROUP BY u.department
       ORDER BY spend DESC

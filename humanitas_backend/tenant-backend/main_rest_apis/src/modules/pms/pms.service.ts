@@ -1036,11 +1036,12 @@ export class PmsService {
         const tasks = await connection.query(`
             SELECT 
                 t.*,
-                u.first_name AS assignee_first_name,
-                u.last_name AS assignee_last_name,
+                COALESCE(u.full_name, '') AS assignee_name,
+                COALESCE(u.full_name, '') AS assignee_first_name,
+                '' AS assignee_last_name,
                 u.email AS assignee_email
             FROM pms_tasks t
-            LEFT JOIN users u ON u.id = t.assignee_id
+            LEFT JOIN users u ON u.id::text = t.assignee_id::text
             WHERE t.project_id = $1 AND t.tenant_id = $2 AND t.sprint_id IS NULL
             ORDER BY COALESCE(t.backlog_order, 0) ASC, t.created_at ASC
         `, [projectId, tenantId]);
@@ -1212,12 +1213,13 @@ export class PmsService {
                 COALESCE(l.hourly_rate, 0) AS hourly_rate,
                 l.started_at,
                 t.title AS task_title,
-                u.first_name,
-                u.last_name,
+                COALESCE(u.full_name, '') AS user_name,
+                COALESCE(u.full_name, '') AS first_name,
+                '' AS last_name,
                 u.email
             FROM pms_task_time_logs l
             INNER JOIN pms_tasks t ON t.id = l.task_id
-            LEFT JOIN users u ON u.id = l.user_id
+            LEFT JOIN users u ON u.id::text = l.user_id::text
             WHERE t.project_id = $1 AND t.tenant_id = $2
             ORDER BY l.started_at DESC
         `, [projectId, tenantId]);

@@ -27,15 +27,27 @@ import {
 export class HrmsSurveysController {
   constructor(private readonly surveysService: HrmsSurveysService) {}
 
+  private getTenantId(req: any, headerTenantId?: string): string {
+    return (
+      headerTenantId ||
+      req?.user?.tenantId ||
+      req?.user?.tenant_id ||
+      req?.headers?.['x-tenant-id'] ||
+      'default'
+    );
+  }
+
   @Get('analytics')
   @RequirePermissions('view_survey_results')
   async getAnalytics(
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-company-id') headerCompanyId: string,
-    @Headers('x-branch-id') headerBranchId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
+    @Headers('x-company-id') headerCompanyId?: string,
+    @Headers('x-branch-id') headerBranchId?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const companyId = queryCompanyId || headerCompanyId;
     const branchId = queryBranchId || headerBranchId;
     const data = await this.surveysService.getSurveyAnalytics(tenantId, companyId, branchId);
@@ -45,9 +57,11 @@ export class HrmsSurveysController {
   @Get('actions')
   @RequirePermissions('view_surveys')
   async getActionItems(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
     @Query('survey_id') surveyId?: string
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const data = await this.surveysService.getActionItems(tenantId, surveyId);
     return { data };
   }
@@ -55,11 +69,12 @@ export class HrmsSurveysController {
   @Post('actions')
   @RequirePermissions('manage_survey_actions')
   async createActionItem(
-    @Headers('x-tenant-id') tenantId: string,
-    @Body() dto: CreateSurveyActionItemDto,
-    @Request() req: any
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Body() dto: CreateSurveyActionItemDto
   ) {
-    const createdBy = req.user.sub || req.user.id || req.user.sub;
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const createdBy = req.user?.sub || req.user?.id;
     const data = await this.surveysService.createActionItem(tenantId, dto, createdBy);
     return { data, message: 'Survey follow-up action created successfully' };
   }
@@ -67,10 +82,12 @@ export class HrmsSurveysController {
   @Put('actions/:id')
   @RequirePermissions('manage_survey_actions')
   async updateActionItem(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateSurveyActionItemDto
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const data = await this.surveysService.updateActionItem(tenantId, id, dto);
     return { data, message: 'Action item updated successfully' };
   }
@@ -78,13 +95,15 @@ export class HrmsSurveysController {
   @Get()
   @RequirePermissions('view_surveys')
   async getSurveys(
-    @Headers('x-tenant-id') tenantId: string,
-    @Headers('x-company-id') headerCompanyId: string,
-    @Headers('x-branch-id') headerBranchId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
+    @Headers('x-company-id') headerCompanyId?: string,
+    @Headers('x-branch-id') headerBranchId?: string,
     @Query('status') status?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const companyId = queryCompanyId || headerCompanyId;
     const branchId = queryBranchId || headerBranchId;
     const data = await this.surveysService.getSurveys(tenantId, status, companyId, branchId);
@@ -94,11 +113,12 @@ export class HrmsSurveysController {
   @Get(':id')
   @RequirePermissions('view_surveys')
   async getSurveyById(
-    @Headers('x-tenant-id') tenantId: string,
-    @Param('id') id: string,
-    @Request() req: any
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Param('id') id: string
   ) {
-    const currentUserId = req.user.sub || req.user.id || req.user.sub;
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const currentUserId = req.user?.sub || req.user?.id;
     const data = await this.surveysService.getSurveyById(tenantId, id, currentUserId);
     return { data };
   }
@@ -106,38 +126,44 @@ export class HrmsSurveysController {
   @Get(':id/results')
   @RequirePermissions('view_survey_results')
   async getSurveyResults(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const data = await this.surveysService.getSurveyResults(tenantId, id);
     return { data };
+  }
+
+  @Post(':id/respond')
+  @RequirePermissions('view_surveys')
+  async submitResponse(
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
+    @Param('id') id: string,
+    @Body() dto: SubmitSurveyResponseDto
+  ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const userId = req.user?.sub || req.user?.id;
+    const payload = { ...dto, survey_id: id };
+    const data = await this.surveysService.submitResponse(tenantId, payload, userId);
+    return data;
   }
 
   @Post()
   @RequirePermissions('manage_surveys')
   async createSurvey(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId: string,
     @Headers('x-company-id') headerCompanyId: string,
     @Headers('x-branch-id') headerBranchId: string,
-    @Body() dto: CreateSurveyDto,
-    @Request() req: any
+    @Body() dto: CreateSurveyDto
   ) {
-    const createdBy = req.user.sub || req.user.id || req.user.sub;
-    const companyId = headerCompanyId;
-    const branchId = headerBranchId;
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const createdBy = req.user?.sub || req.user?.id;
+    const companyId = dto.company_id || headerCompanyId;
+    const branchId = dto.branch_id || headerBranchId;
     const data = await this.surveysService.createSurvey(tenantId, dto, createdBy, companyId, branchId);
-    return { data, message: 'Survey published successfully' };
-  }
-
-  @Post('respond')
-  @RequirePermissions('participate_survey')
-  async submitResponse(
-    @Headers('x-tenant-id') tenantId: string,
-    @Body() dto: SubmitSurveyResponseDto,
-    @Request() req: any
-  ) {
-    const userId = req.user.sub || req.user.id || req.user.sub;
-    const data = await this.surveysService.submitResponse(tenantId, dto, userId);
-    return { data, message: 'Response recorded successfully' };
+    return { data, message: 'Survey created successfully' };
   }
 }

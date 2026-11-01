@@ -37,7 +37,7 @@ export class HrmsAssetsService {
           code VARCHAR(50),
           description TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
@@ -62,7 +62,7 @@ export class HrmsAssetsService {
           current_assigned_user_id VARCHAR(36),
           created_by VARCHAR(36),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
@@ -116,7 +116,7 @@ export class HrmsAssetsService {
 
         for (const cat of defaults) {
           await connection.query(
-            `INSERT INTO asset_categories (id, name, code, description) VALUES (?, ?, ?, ?)`,
+            `INSERT INTO asset_categories (id, name, code, description) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
             [cat.id, cat.name, cat.code, cat.description]
           );
         }
@@ -136,10 +136,10 @@ export class HrmsAssetsService {
     const id = randomUUID();
     const code = dto.code || dto.name.substring(0, 3).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
     await conn.query(
-      `INSERT INTO asset_categories (id, name, code, description) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO asset_categories (id, name, code, description) VALUES ($1, $2, $3, $4)`,
       [id, dto.name, code, dto.description || null]
     );
-    const rows = await conn.query(`SELECT * FROM asset_categories WHERE id = ?`, [id]);
+    const rows = await conn.query(`SELECT * FROM asset_categories WHERE id = $1`, [id]);
     return rows[0];
   }
 
@@ -155,37 +155,43 @@ export class HrmsAssetsService {
         a.*,
         c.name as category_name,
         c.code as category_code,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.email as assigned_user_email,
         u.department as assigned_user_department
       FROM company_assets a
       LEFT JOIN asset_categories c ON a.category_id = c.id
-      LEFT JOIN users u ON a.current_assigned_user_id = u.id
+      LEFT JOIN users u ON a.current_assigned_user_id::text = u.id::text
       WHERE 1=1
     `;
     const params: any[] = [];
+    let pIdx = 1;
 
     if (companyId) {
-      query += ` AND (a.company_id = ? OR a.company_id IS NULL)`;
+      query += ` AND (a.company_id = $${pIdx} OR a.company_id IS NULL)`;
       params.push(companyId);
+      pIdx++;
     }
     if (branchId) {
-      query += ` AND (a.branch_id = ? OR a.branch_id IS NULL)`;
+      query += ` AND (a.branch_id = $${pIdx} OR a.branch_id IS NULL)`;
       params.push(branchId);
+      pIdx++;
     }
     if (filters?.category_id && filters.category_id !== 'all') {
-      query += ` AND a.category_id = ?`;
+      query += ` AND a.category_id = $${pIdx}`;
       params.push(filters.category_id);
+      pIdx++;
     }
     if (filters?.status && filters.status !== 'all') {
-      query += ` AND a.status = ?`;
+      query += ` AND a.status = $${pIdx}`;
       params.push(filters.status);
+      pIdx++;
     }
     if (filters?.search) {
-      query += ` AND (a.name LIKE ? OR a.asset_tag LIKE ? OR a.serial_number LIKE ? OR a.model LIKE ?)`;
-      const term = `%${filters.search}%`;
-      params.push(term, term, term, term);
+      query += ` AND (a.name ILIKE $${pIdx} OR a.asset_tag ILIKE $${pIdx} OR a.serial_number ILIKE $${pIdx} OR a.model ILIKE $${pIdx})`;
+      params.push(`%${filters.search}%`);
+      pIdx++;
     }
 
     query += ` ORDER BY a.created_at DESC`;
@@ -200,14 +206,15 @@ export class HrmsAssetsService {
         a.*,
         c.name as category_name,
         c.code as category_code,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.email as assigned_user_email,
         u.department as assigned_user_department
       FROM company_assets a
       LEFT JOIN asset_categories c ON a.category_id = c.id
-      LEFT JOIN users u ON a.current_assigned_user_id = u.id
-      WHERE a.id = ?
+      LEFT JOIN users u ON a.current_assigned_user_id::text = u.id::text
+      WHERE a.id = $1
     `,
       [id]
     );
@@ -219,17 +226,17 @@ export class HrmsAssetsService {
     const asset = rows[0];
     const assignments = await conn.query(
       `
-      SELECT aa.*, u.first_name, u.last_name, u.email, u.department
+      SELECT aa.*, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department
       FROM asset_assignments aa
-      LEFT JOIN users u ON aa.user_id = u.id
-      WHERE aa.asset_id = ?
+      LEFT JOIN users u ON aa.user_id::text = u.id::text
+      WHERE aa.asset_id = $1
       ORDER BY aa.assigned_date DESC
     `,
       [id]
     );
 
     const maintenance = await conn.query(
-      `SELECT * FROM asset_maintenance_logs WHERE asset_id = ? ORDER BY service_date DESC`,
+      `SELECT * FROM asset_maintenance_logs WHERE asset_id = $1 ORDER BY service_date DESC`,
       [id]
     );
 
@@ -263,7 +270,7 @@ export class HrmsAssetsService {
         id, company_id, branch_id, category_id, name, model, serial_number,
         asset_tag, qr_code_data, status, current_condition, purchase_cost,
         purchase_date, warranty_expiry, location, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     `,
       [
         id,
@@ -291,62 +298,63 @@ export class HrmsAssetsService {
 
   async updateAsset(tenantId: string, id: string, dto: UpdateAssetDto) {
     const conn = await this.getConnection(tenantId);
-    const existing = await conn.query(`SELECT * FROM company_assets WHERE id = ?`, [id]);
+    const existing = await conn.query(`SELECT * FROM company_assets WHERE id = $1`, [id]);
     if (!existing || existing.length === 0) {
       throw new NotFoundException(`Asset with ID ${id} not found`);
     }
 
     const updates: string[] = [];
     const params: any[] = [];
+    let pIdx = 1;
 
     if (dto.name !== undefined) {
-      updates.push('name = ?');
+      updates.push(`name = $${pIdx++}`);
       params.push(dto.name);
     }
     if (dto.category_id !== undefined) {
-      updates.push('category_id = ?');
+      updates.push(`category_id = $${pIdx++}`);
       params.push(dto.category_id);
     }
     if (dto.model !== undefined) {
-      updates.push('model = ?');
+      updates.push(`model = $${pIdx++}`);
       params.push(dto.model);
     }
     if (dto.serial_number !== undefined) {
-      updates.push('serial_number = ?');
+      updates.push(`serial_number = $${pIdx++}`);
       params.push(dto.serial_number);
     }
     if (dto.status !== undefined) {
-      updates.push('status = ?');
+      updates.push(`status = $${pIdx++}`);
       params.push(dto.status);
     }
     if (dto.condition !== undefined) {
-      updates.push('current_condition = ?');
+      updates.push(`current_condition = $${pIdx++}`);
       params.push(dto.condition);
     }
     if (dto.purchase_cost !== undefined) {
-      updates.push('purchase_cost = ?');
+      updates.push(`purchase_cost = $${pIdx++}`);
       params.push(dto.purchase_cost);
     }
     if (dto.purchase_date !== undefined) {
-      updates.push('purchase_date = ?');
+      updates.push(`purchase_date = $${pIdx++}`);
       params.push(dto.purchase_date);
     }
     if (dto.warranty_expiry !== undefined) {
-      updates.push('warranty_expiry = ?');
+      updates.push(`warranty_expiry = $${pIdx++}`);
       params.push(dto.warranty_expiry);
     }
     if (dto.location !== undefined) {
-      updates.push('location = ?');
+      updates.push(`location = $${pIdx++}`);
       params.push(dto.location);
     }
     if (dto.notes !== undefined) {
-      updates.push('notes = ?');
+      updates.push(`notes = $${pIdx++}`);
       params.push(dto.notes);
     }
 
     if (updates.length > 0) {
       params.push(id);
-      await conn.query(`UPDATE company_assets SET ${updates.join(', ')} WHERE id = ?`, params);
+      await conn.query(`UPDATE company_assets SET ${updates.join(', ')} WHERE id = $${pIdx}`, params);
     }
 
     return this.getAssetById(tenantId, id);
@@ -354,7 +362,7 @@ export class HrmsAssetsService {
 
   async assignAsset(tenantId: string, assetId: string, dto: AssignAssetDto, assignedBy?: string) {
     const conn = await this.getConnection(tenantId);
-    const assets = await conn.query(`SELECT * FROM company_assets WHERE id = ?`, [assetId]);
+    const assets = await conn.query(`SELECT * FROM company_assets WHERE id = $1`, [assetId]);
     if (!assets || assets.length === 0) {
       throw new NotFoundException(`Asset with ID ${assetId} not found`);
     }
@@ -369,7 +377,7 @@ export class HrmsAssetsService {
 
     // Deactivate previous active assignment if any
     await conn.query(
-      `UPDATE asset_assignments SET is_active = FALSE WHERE asset_id = ? AND is_active = TRUE`,
+      `UPDATE asset_assignments SET is_active = FALSE WHERE asset_id = $1 AND is_active = TRUE`,
       [assetId]
     );
 
@@ -377,7 +385,7 @@ export class HrmsAssetsService {
       `
       INSERT INTO asset_assignments (
         id, asset_id, user_id, assigned_by, assigned_date, expected_return_date, is_active, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, TRUE, ?)
+      ) VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7)
     `,
       [
         assignmentId,
@@ -392,7 +400,7 @@ export class HrmsAssetsService {
 
     // Update asset status
     await conn.query(
-      `UPDATE company_assets SET status = ?, current_assigned_user_id = ? WHERE id = ?`,
+      `UPDATE company_assets SET status = $1, current_assigned_user_id = $2 WHERE id = $3`,
       [AssetStatus.ASSIGNED, dto.user_id, assetId]
     );
 
@@ -401,7 +409,7 @@ export class HrmsAssetsService {
 
   async returnAsset(tenantId: string, assetId: string, dto: ReturnAssetDto, receivedBy?: string) {
     const conn = await this.getConnection(tenantId);
-    const assets = await conn.query(`SELECT * FROM company_assets WHERE id = ?`, [assetId]);
+    const assets = await conn.query(`SELECT * FROM company_assets WHERE id = $1`, [assetId]);
     if (!assets || assets.length === 0) {
       throw new NotFoundException(`Asset with ID ${assetId} not found`);
     }
@@ -413,8 +421,8 @@ export class HrmsAssetsService {
     await conn.query(
       `
       UPDATE asset_assignments
-      SET is_active = FALSE, returned_date = ?, return_condition = ?, received_by = ?, notes = CONCAT(COALESCE(notes, ''), ' ', COALESCE(?, ''))
-      WHERE asset_id = ? AND is_active = TRUE
+      SET is_active = FALSE, returned_date = $1, return_condition = $2, received_by = $3, notes = CONCAT(COALESCE(notes, ''), ' ', COALESCE($4, ''))
+      WHERE asset_id = $5 AND is_active = TRUE
     `,
       [returnedDate, returnCondition, receivedBy || null, dto.notes || '', assetId]
     );
@@ -430,8 +438,8 @@ export class HrmsAssetsService {
     await conn.query(
       `
       UPDATE company_assets
-      SET status = ?, current_condition = ?, current_assigned_user_id = NULL
-      WHERE id = ?
+      SET status = $1, current_condition = $2, current_assigned_user_id = NULL
+      WHERE id = $3
     `,
       [newStatus, returnCondition, assetId]
     );
@@ -452,7 +460,7 @@ export class HrmsAssetsService {
         aa.expected_return_date,
         aa.acknowledged_at
       FROM company_assets a
-      JOIN asset_assignments aa ON a.id = aa.asset_id AND aa.is_active = TRUE AND aa.user_id = ?
+      JOIN asset_assignments aa ON a.id = aa.asset_id AND aa.is_active = TRUE AND aa.user_id::text = $1::text
       LEFT JOIN asset_categories c ON a.category_id = c.id
       ORDER BY aa.assigned_date DESC
     `,
@@ -466,8 +474,8 @@ export class HrmsAssetsService {
     await conn.query(
       `
       UPDATE asset_assignments
-      SET acknowledged_at = ?
-      WHERE id = ? AND user_id = ?
+      SET acknowledged_at = $1
+      WHERE id = $2 AND user_id::text = $3::text
     `,
       [now, assignmentId, userId]
     );
@@ -488,7 +496,7 @@ export class HrmsAssetsService {
       `
       INSERT INTO asset_maintenance_logs (
         id, asset_id, title, description, cost, service_provider, service_date, next_service_date, status, logged_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `,
       [
         id,
@@ -504,7 +512,7 @@ export class HrmsAssetsService {
       ]
     );
 
-    return conn.query(`SELECT * FROM asset_maintenance_logs WHERE id = ?`, [id]).then((r) => r[0]);
+    return conn.query(`SELECT * FROM asset_maintenance_logs WHERE id = $1`, [id]).then((r) => r[0]);
   }
 
   async getMaintenanceLogs(tenantId: string, assetId?: string) {
@@ -516,7 +524,7 @@ export class HrmsAssetsService {
     `;
     const params: any[] = [];
     if (assetId) {
-      query += ` WHERE ml.asset_id = ?`;
+      query += ` WHERE ml.asset_id = $1`;
       params.push(assetId);
     }
     query += ` ORDER BY ml.service_date DESC`;
@@ -525,9 +533,9 @@ export class HrmsAssetsService {
 
   async deleteAsset(tenantId: string, id: string) {
     const conn = await this.getConnection(tenantId);
-    await conn.query(`DELETE FROM asset_maintenance_logs WHERE asset_id = ?`, [id]);
-    await conn.query(`DELETE FROM asset_assignments WHERE asset_id = ?`, [id]);
-    await conn.query(`DELETE FROM company_assets WHERE id = ?`, [id]);
+    await conn.query(`DELETE FROM asset_maintenance_logs WHERE asset_id = $1`, [id]);
+    await conn.query(`DELETE FROM asset_assignments WHERE asset_id = $1`, [id]);
+    await conn.query(`DELETE FROM company_assets WHERE id = $1`, [id]);
     return { success: true };
   }
 
@@ -535,14 +543,17 @@ export class HrmsAssetsService {
     const conn = await this.getConnection(tenantId);
     let filterClause = '';
     const params: any[] = [];
+    let pIdx = 1;
 
     if (companyId) {
-      filterClause += ` AND (company_id = ? OR company_id IS NULL)`;
+      filterClause += ` AND (company_id = $${pIdx} OR company_id IS NULL)`;
       params.push(companyId);
+      pIdx++;
     }
     if (branchId) {
-      filterClause += ` AND (branch_id = ? OR branch_id IS NULL)`;
+      filterClause += ` AND (branch_id = $${pIdx} OR branch_id IS NULL)`;
       params.push(branchId);
+      pIdx++;
     }
 
     const counts = await conn.query(
@@ -560,6 +571,20 @@ export class HrmsAssetsService {
       params
     );
 
+    let catFilter = '';
+    const catParams: any[] = [];
+    let catPIdx = 1;
+    if (companyId) {
+      catFilter += ` AND (a.company_id = $${catPIdx} OR a.company_id IS NULL)`;
+      catParams.push(companyId);
+      catPIdx++;
+    }
+    if (branchId) {
+      catFilter += ` AND (a.branch_id = $${catPIdx} OR a.branch_id IS NULL)`;
+      catParams.push(branchId);
+      catPIdx++;
+    }
+
     const categoryBreakdown = await conn.query(
       `
       SELECT 
@@ -568,11 +593,11 @@ export class HrmsAssetsService {
         SUM(a.purchase_cost) as total_cost
       FROM company_assets a
       JOIN asset_categories c ON a.category_id = c.id
-      WHERE 1=1 ${filterClause}
+      WHERE 1=1 ${catFilter}
       GROUP BY c.id, c.name
       ORDER BY asset_count DESC
     `,
-      params
+      catParams
     );
 
     const conditionBreakdown = await conn.query(

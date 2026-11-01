@@ -767,9 +767,9 @@ export class AiActionService {
           const { ds } = await getConn();
           const windowDays = days || 30;
           const rows = await ds.query(
-            `SELECT d.id, d.title, d.category, d.document_type, d.expiry_date, u.first_name, u.last_name, u.department
+            `SELECT d.id, d.title, d.category, d.document_type, d.expiry_date, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.department
              FROM employee_documents d
-             JOIN users u ON d.user_id = u.id
+             JOIN users u ON d.user_id::text = u.id::text
              WHERE d.expiry_date IS NOT NULL AND d.expiry_date <= (CURRENT_DATE + INTERVAL '${windowDays} days')
              ORDER BY d.expiry_date ASC LIMIT 10`
           );
@@ -1105,11 +1105,11 @@ export class AiActionService {
           const { ds } = await getConn();
           const pendingFeedbacks = await ds.query(`
             SELECT rf.id, rf.reviewer_type, rc.title as cycle_title, rc.due_date,
-                   u.first_name, u.last_name
+                   COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name
             FROM pms_review_feedbacks rf
             JOIN pms_review_cycles rc ON rc.id = rf.cycle_id
             JOIN pms_employee_reviews er ON er.id = rf.review_id
-            JOIN users u ON u.id = er.employee_id
+            JOIN users u ON u.id::text = er.employee_id::text
             WHERE rf.reviewer_id = $1 AND rf.status = 'pending'
           `, [currentUserId]);
 

@@ -447,8 +447,9 @@ export class HrmsOnboardingService {
     const query = `
       SELECT 
         eo.*,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.email,
         u.department,
         u.position,
@@ -461,11 +462,11 @@ export class HrmsOnboardingService {
           ELSE 0.0
         END as completion_percentage
       FROM employee_onboarding eo
-      LEFT JOIN users u ON eo.user_id = u.id
+      LEFT JOIN users u ON eo.user_id::text = u.id::text
       LEFT JOIN onboarding_templates t ON eo.template_id = t.id
       LEFT JOIN onboarding_tasks tsk ON eo.id = tsk.onboarding_id
       WHERE ${conditions.join(' AND ')}
-      GROUP BY eo.id, u.first_name, u.last_name, u.email, u.department, u.position, t.name
+      GROUP BY eo.id, u.full_name, u.email, u.department, u.position, t.name
       ORDER BY eo.created_at DESC
     `;
 
@@ -477,14 +478,15 @@ export class HrmsOnboardingService {
     const rows = await connection.query(
       `SELECT 
          eo.*,
-         u.first_name,
-         u.last_name,
+         COALESCE(u.full_name, '') as employee_name,
+         COALESCE(u.full_name, '') as first_name,
+         '' as last_name,
          u.email,
          u.department,
          u.position,
          t.name as template_name
        FROM employee_onboarding eo
-       LEFT JOIN users u ON eo.user_id = u.id
+       LEFT JOIN users u ON eo.user_id::text = u.id::text
        LEFT JOIN onboarding_templates t ON eo.template_id = t.id
        WHERE eo.id = $1`,
       [id],
@@ -675,8 +677,9 @@ export class HrmsOnboardingService {
     const query = `
       SELECT 
         ef.*,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.email,
         u.department,
         u.position,
@@ -690,10 +693,10 @@ export class HrmsOnboardingService {
         END as completion_percentage,
         (SELECT COUNT(*)::int FROM exit_interviews ei WHERE ei.offboarding_id = ef.id) as exit_interview_count
       FROM employee_offboarding ef
-      LEFT JOIN users u ON ef.user_id = u.id
+      LEFT JOIN users u ON ef.user_id::text = u.id::text
       LEFT JOIN onboarding_templates t ON ef.template_id = t.id
       LEFT JOIN offboarding_tasks tsk ON ef.id = tsk.offboarding_id
-      GROUP BY ef.id, u.first_name, u.last_name, u.email, u.department, u.position, t.name
+      GROUP BY ef.id, u.full_name, u.email, u.department, u.position, t.name
       ORDER BY ef.created_at DESC
     `;
 
@@ -705,14 +708,15 @@ export class HrmsOnboardingService {
     const rows = await connection.query(
       `SELECT 
          ef.*,
-         u.first_name,
-         u.last_name,
+         COALESCE(u.full_name, '') as employee_name,
+         COALESCE(u.full_name, '') as first_name,
+         '' as last_name,
          u.email,
          u.department,
          u.position,
          t.name as template_name
        FROM employee_offboarding ef
-       LEFT JOIN users u ON ef.user_id = u.id
+       LEFT JOIN users u ON ef.user_id::text = u.id::text
        LEFT JOIN onboarding_templates t ON ef.template_id = t.id
        WHERE ef.id = $1`,
       [id],
@@ -1049,7 +1053,7 @@ export class HrmsOnboardingService {
       SELECT
         eo.id,
         eo.user_id,
-        COALESCE(u.full_name, CONCAT(u.first_name, ' ', u.last_name)) AS employee_name,
+        COALESCE(u.full_name, '') AS employee_name,
         eo.last_working_day,
         eo.status,
         COUNT(ot.id)::int AS total_tasks,
@@ -1063,9 +1067,9 @@ export class HrmsOnboardingService {
           ELSE 0.0
         END AS compliance_pct
       FROM employee_offboarding eo
-      LEFT JOIN users u ON u.id = eo.user_id
+      LEFT JOIN users u ON u.id::text = eo.user_id::text
       LEFT JOIN offboarding_tasks ot ON ot.offboarding_id = eo.id
-      GROUP BY eo.id, eo.user_id, u.full_name, u.first_name, u.last_name, eo.last_working_day, eo.status, eo.created_at
+      GROUP BY eo.id, eo.user_id, u.full_name, eo.last_working_day, eo.status, eo.created_at
       ORDER BY eo.created_at DESC
       LIMIT 100
     `);

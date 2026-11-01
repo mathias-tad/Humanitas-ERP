@@ -47,7 +47,7 @@ export class HrmsSurveysService {
           end_date DATE,
           created_by VARCHAR(36),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
@@ -98,7 +98,7 @@ export class HrmsSurveysService {
           resolution_notes TEXT,
           created_by VARCHAR(36),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 
@@ -111,7 +111,7 @@ export class HrmsSurveysService {
           `
           INSERT INTO surveys (
             id, title, description, survey_type, status, is_anonymous, min_responses_for_results, start_date, end_date
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO NOTHING
         `,
           [
             defaultSurveyId,
@@ -161,7 +161,7 @@ export class HrmsSurveysService {
 
         for (const q of defaultQuestions) {
           await connection.query(
-            `INSERT INTO survey_questions (id, survey_id, question_text, question_type, sort_order) VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO survey_questions (id, survey_id, question_text, question_type, sort_order) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (id) DO NOTHING`,
             [q.id, defaultSurveyId, q.text, q.type, q.sort]
           );
         }
@@ -184,18 +184,22 @@ export class HrmsSurveysService {
       WHERE 1=1
     `;
     const params: any[] = [];
+    let pIdx = 1;
 
     if (companyId) {
-      query += ` AND (s.company_id = ? OR s.company_id IS NULL)`;
+      query += ` AND (s.company_id = $${pIdx} OR s.company_id IS NULL)`;
       params.push(companyId);
+      pIdx++;
     }
     if (branchId) {
-      query += ` AND (s.branch_id = ? OR s.branch_id IS NULL)`;
+      query += ` AND (s.branch_id = $${pIdx} OR s.branch_id IS NULL)`;
       params.push(branchId);
+      pIdx++;
     }
     if (status && status !== 'all') {
-      query += ` AND s.status = ?`;
+      query += ` AND s.status = $${pIdx}`;
       params.push(status);
+      pIdx++;
     }
 
     query += ` GROUP BY s.id ORDER BY s.created_at DESC`;
@@ -204,26 +208,26 @@ export class HrmsSurveysService {
 
   async getSurveyById(tenantId: string, id: string, currentUserId?: string) {
     const conn = await this.getConnection(tenantId);
-    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = ?`, [id]);
+    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = $1`, [id]);
     if (!surveys || surveys.length === 0) {
       throw new NotFoundException(`Survey with ID ${id} not found`);
     }
 
     const survey = surveys[0];
     const questions = await conn.query(
-      `SELECT * FROM survey_questions WHERE survey_id = ? ORDER BY sort_order ASC, created_at ASC`,
+      `SELECT * FROM survey_questions WHERE survey_id = $1 ORDER BY sort_order ASC, created_at ASC`,
       [id]
     );
 
     const parsedQuestions = questions.map((q: any) => ({
       ...q,
-      options: q.options ? JSON.parse(q.options) : [],
+      options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
     }));
 
     let hasResponded = false;
     if (currentUserId && !survey.is_anonymous) {
       const resp = await conn.query(
-        `SELECT id FROM survey_responses WHERE survey_id = ? AND user_id = ?`,
+        `SELECT id FROM survey_responses WHERE survey_id = $1 AND user_id::text = $2::text`,
         [id, currentUserId]
       );
       hasResponded = resp.length > 0;
@@ -252,7 +256,7 @@ export class HrmsSurveysService {
         id, company_id, branch_id, title, description, survey_type, status,
         is_anonymous, min_responses_for_results, target_audience,
         target_department, target_branch_id, start_date, end_date, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     `,
       [
         id,
@@ -282,7 +286,7 @@ export class HrmsSurveysService {
           `
           INSERT INTO survey_questions (
             id, survey_id, question_text, question_type, options, is_required, sort_order
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         `,
           [
             qId,
@@ -302,7 +306,7 @@ export class HrmsSurveysService {
 
   async submitResponse(tenantId: string, dto: SubmitSurveyResponseDto, userId?: string) {
     const conn = await this.getConnection(tenantId);
-    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = ?`, [dto.survey_id]);
+    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = $1`, [dto.survey_id]);
     if (!surveys || surveys.length === 0) {
       throw new NotFoundException(`Survey with ID ${dto.survey_id} not found`);
     }
@@ -315,7 +319,7 @@ export class HrmsSurveysService {
     // Check duplicate response if non-anonymous
     if (!survey.is_anonymous && userId) {
       const existing = await conn.query(
-        `SELECT id FROM survey_responses WHERE survey_id = ? AND user_id = ?`,
+        `SELECT id FROM survey_responses WHERE survey_id = $1 AND user_id::text = $2::text`,
         [dto.survey_id, userId]
       );
       if (existing.length > 0) {
@@ -328,7 +332,7 @@ export class HrmsSurveysService {
     const storedUserId = survey.is_anonymous ? null : userId;
 
     await conn.query(
-      `INSERT INTO survey_responses (id, survey_id, user_id) VALUES (?, ?, ?)`,
+      `INSERT INTO survey_responses (id, survey_id, user_id) VALUES ($1, $2, $3)`,
       [responseId, dto.survey_id, storedUserId]
     );
 
@@ -338,7 +342,7 @@ export class HrmsSurveysService {
         `
         INSERT INTO survey_answers (
           id, response_id, question_id, rating_value, text_value, selected_option
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES ($1, $2, $3, $4, $5, $6)
       `,
         [
           ansId,
@@ -360,14 +364,14 @@ export class HrmsSurveysService {
 
   async getSurveyResults(tenantId: string, surveyId: string) {
     const conn = await this.getConnection(tenantId);
-    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = ?`, [surveyId]);
+    const surveys = await conn.query(`SELECT * FROM surveys WHERE id = $1`, [surveyId]);
     if (!surveys || surveys.length === 0) {
       throw new NotFoundException(`Survey not found`);
     }
 
     const survey = surveys[0];
     const respCountRows = await conn.query(
-      `SELECT COUNT(*) as count FROM survey_responses WHERE survey_id = ?`,
+      `SELECT COUNT(*) as count FROM survey_responses WHERE survey_id = $1`,
       [surveyId]
     );
     const totalResponses = parseInt(respCountRows[0]?.count || '0', 10);
@@ -384,7 +388,7 @@ export class HrmsSurveysService {
     }
 
     const questions = await conn.query(
-      `SELECT * FROM survey_questions WHERE survey_id = ? ORDER BY sort_order ASC`,
+      `SELECT * FROM survey_questions WHERE survey_id = $1 ORDER BY sort_order ASC`,
       [surveyId]
     );
 
@@ -404,7 +408,7 @@ export class HrmsSurveysService {
             AVG(rating_value) as avg_score,
             COUNT(*) as total_answers
           FROM survey_answers
-          WHERE question_id = ? AND rating_value IS NOT NULL
+          WHERE question_id = $1 AND rating_value IS NOT NULL
         `,
           [q.id]
         );
@@ -439,7 +443,7 @@ export class HrmsSurveysService {
           `
           SELECT AVG(rating_value) as avg_score, COUNT(*) as total_answers
           FROM survey_answers
-          WHERE question_id = ? AND rating_value IS NOT NULL
+          WHERE question_id = $1 AND rating_value IS NOT NULL
         `,
           [q.id]
         );
@@ -455,7 +459,7 @@ export class HrmsSurveysService {
           `
           SELECT selected_option, COUNT(*) as count
           FROM survey_answers
-          WHERE question_id = ? AND selected_option IS NOT NULL
+          WHERE question_id = $1 AND selected_option IS NOT NULL
           GROUP BY selected_option
         `,
           [q.id]
@@ -472,7 +476,7 @@ export class HrmsSurveysService {
           `
           SELECT text_value, created_at
           FROM survey_answers
-          WHERE question_id = ? AND text_value IS NOT NULL AND text_value != ''
+          WHERE question_id = $1 AND text_value IS NOT NULL AND text_value != ''
           ORDER BY created_at DESC
           LIMIT 25
         `,
@@ -504,16 +508,17 @@ export class HrmsSurveysService {
       SELECT 
         ai.*,
         s.title as survey_title,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as assignee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.department as assignee_department
       FROM survey_action_items ai
       JOIN surveys s ON ai.survey_id = s.id
-      LEFT JOIN users u ON ai.assigned_to_user_id = u.id
+      LEFT JOIN users u ON ai.assigned_to_user_id::text = u.id::text
     `;
     const params: any[] = [];
     if (surveyId) {
-      query += ` WHERE ai.survey_id = ?`;
+      query += ` WHERE ai.survey_id = $1`;
       params.push(surveyId);
     }
     query += ` ORDER BY ai.created_at DESC`;
@@ -527,7 +532,7 @@ export class HrmsSurveysService {
       `
       INSERT INTO survey_action_items (
         id, survey_id, department, title, description, assigned_to_user_id, due_date, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'open', $8)
     `,
       [
         id,
@@ -541,43 +546,47 @@ export class HrmsSurveysService {
       ]
     );
 
-    return conn.query(`SELECT * FROM survey_action_items WHERE id = ?`, [id]).then((r) => r[0]);
+    return conn.query(`SELECT * FROM survey_action_items WHERE id = $1`, [id]).then((r) => r[0]);
   }
 
   async updateActionItem(tenantId: string, id: string, dto: UpdateSurveyActionItemDto) {
     const conn = await this.getConnection(tenantId);
     const updates: string[] = [];
     const params: any[] = [];
+    let pIdx = 1;
 
     if (dto.status !== undefined) {
-      updates.push('status = ?');
+      updates.push(`status = $${pIdx++}`);
       params.push(dto.status);
     }
     if (dto.resolution_notes !== undefined) {
-      updates.push('resolution_notes = ?');
+      updates.push(`resolution_notes = $${pIdx++}`);
       params.push(dto.resolution_notes);
     }
 
     if (updates.length > 0) {
       params.push(id);
-      await conn.query(`UPDATE survey_action_items SET ${updates.join(', ')} WHERE id = ?`, params);
+      await conn.query(`UPDATE survey_action_items SET ${updates.join(', ')} WHERE id = $${pIdx}`, params);
     }
 
-    return conn.query(`SELECT * FROM survey_action_items WHERE id = ?`, [id]).then((r) => r[0]);
+    return conn.query(`SELECT * FROM survey_action_items WHERE id = $1`, [id]).then((r) => r[0]);
   }
 
   async getSurveyAnalytics(tenantId: string, companyId?: string, branchId?: string) {
     const conn = await this.getConnection(tenantId);
     let filterClause = '';
     const params: any[] = [];
+    let pIdx = 1;
 
     if (companyId) {
-      filterClause += ` AND (s.company_id = ? OR s.company_id IS NULL)`;
+      filterClause += ` AND (s.company_id = $${pIdx} OR s.company_id IS NULL)`;
       params.push(companyId);
+      pIdx++;
     }
     if (branchId) {
-      filterClause += ` AND (s.branch_id = ? OR s.branch_id IS NULL)`;
+      filterClause += ` AND (s.branch_id = $${pIdx} OR s.branch_id IS NULL)`;
       params.push(branchId);
+      pIdx++;
     }
 
     const counts = await conn.query(
@@ -623,7 +632,7 @@ export class HrmsSurveysService {
     const promoters = parseInt(npsRow.promoters || '0', 10);
     const detractors = parseInt(npsRow.detractors || '0', 10);
 
-    const enps = totalNps > 0 ? Math.round(((promoters - detractors) / totalNps) * 100) : 42; // default healthy baseline if no responses
+    const enps = totalNps > 0 ? Math.round(((promoters - detractors) / totalNps) * 100) : 42;
 
     const c = counts[0] || {};
     const a = actions[0] || {};

@@ -321,12 +321,17 @@ export class PmsReviewsService {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT er.*,
-        u.first_name, u.last_name, u.email, u.department, u.job_title,
-        m.first_name as manager_first_name, m.last_name as manager_last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
+        u.email, u.department, u.job_title,
+        COALESCE(m.full_name, '') as manager_name,
+        COALESCE(m.full_name, '') as manager_first_name,
+        '' as manager_last_name,
         rc.title as cycle_title, rc.status as cycle_status
       FROM pms_employee_reviews er
-      JOIN users u ON u.id = er.employee_id
-      LEFT JOIN users m ON m.id = er.manager_id
+      JOIN users u ON u.id::text = er.employee_id::text
+      LEFT JOIN users m ON m.id::text = er.manager_id::text
       JOIN pms_review_cycles rc ON rc.id = er.cycle_id
       WHERE 1=1
     `;
@@ -354,11 +359,13 @@ export class PmsReviewsService {
     const myEvaluations = await connection.query(`
       SELECT er.*,
         rc.title as cycle_title, rc.due_date as cycle_due_date, rc.status as cycle_status,
-        m.first_name as manager_first_name, m.last_name as manager_last_name
+        COALESCE(m.full_name, '') as manager_name,
+        COALESCE(m.full_name, '') as manager_first_name,
+        '' as manager_last_name
       FROM pms_employee_reviews er
       JOIN pms_review_cycles rc ON rc.id = er.cycle_id
-      LEFT JOIN users m ON m.id = er.manager_id
-      WHERE er.employee_id = $1
+      LEFT JOIN users m ON m.id::text = er.manager_id::text
+      WHERE er.employee_id::text = $1::text
       ORDER BY er.created_at DESC
     `, [userId]);
 
@@ -366,13 +373,15 @@ export class PmsReviewsService {
     const feedbackRequests = await connection.query(`
       SELECT rf.*,
         rc.title as cycle_title, rc.due_date as cycle_due_date,
-        u.first_name as subject_first_name, u.last_name as subject_last_name,
+        COALESCE(u.full_name, '') as subject_name,
+        COALESCE(u.full_name, '') as subject_first_name,
+        '' as subject_last_name,
         u.job_title as subject_job_title, u.department as subject_department
       FROM pms_review_feedbacks rf
       JOIN pms_employee_reviews er ON er.id = rf.review_id
-      JOIN users u ON u.id = er.employee_id
+      JOIN users u ON u.id::text = er.employee_id::text
       JOIN pms_review_cycles rc ON rc.id = rf.cycle_id
-      WHERE rf.reviewer_id = $1
+      WHERE rf.reviewer_id::text = $1::text
       ORDER BY rf.created_at DESC
     `, [userId]);
 
@@ -387,12 +396,17 @@ export class PmsReviewsService {
     const connection = await this.getConnection(tenantId);
     const reviewRes = await connection.query(`
       SELECT er.*,
-        u.first_name, u.last_name, u.email, u.department, u.job_title,
-        m.first_name as manager_first_name, m.last_name as manager_last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
+        u.email, u.department, u.job_title,
+        COALESCE(m.full_name, '') as manager_name,
+        COALESCE(m.full_name, '') as manager_first_name,
+        '' as manager_last_name,
         rc.title as cycle_title, rc.due_date as cycle_due_date, rc.status as cycle_status
       FROM pms_employee_reviews er
-      JOIN users u ON u.id = er.employee_id
-      LEFT JOIN users m ON m.id = er.manager_id
+      JOIN users u ON u.id::text = er.employee_id::text
+      LEFT JOIN users m ON m.id::text = er.manager_id::text
       JOIN pms_review_cycles rc ON rc.id = er.cycle_id
       WHERE er.id = $1
     `, [reviewId]);
@@ -406,9 +420,11 @@ export class PmsReviewsService {
     // Fetch feedbacks
     const feedbacks = await connection.query(`
       SELECT rf.*,
-        u.first_name as reviewer_first_name, u.last_name as reviewer_last_name
+        COALESCE(u.full_name, '') as reviewer_name,
+        COALESCE(u.full_name, '') as reviewer_first_name,
+        '' as reviewer_last_name
       FROM pms_review_feedbacks rf
-      JOIN users u ON u.id = rf.reviewer_id
+      JOIN users u ON u.id::text = rf.reviewer_id::text
       WHERE rf.review_id = $1
     `, [reviewId]);
 
@@ -578,11 +594,16 @@ export class PmsReviewsService {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT pip.*,
-        u.first_name, u.last_name, u.email, u.department, u.job_title,
-        m.first_name as manager_first_name, m.last_name as manager_last_name
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
+        u.email, u.department, u.job_title,
+        COALESCE(m.full_name, '') as manager_name,
+        COALESCE(m.full_name, '') as manager_first_name,
+        '' as manager_last_name
       FROM pms_performance_improvement_plans pip
-      JOIN users u ON u.id = pip.employee_id
-      LEFT JOIN users m ON m.id = pip.manager_id
+      JOIN users u ON u.id::text = pip.employee_id::text
+      LEFT JOIN users m ON m.id::text = pip.manager_id::text
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -686,7 +707,7 @@ export class PmsReviewsService {
     let reviewsQuery = `
       SELECT er.status, er.final_rating, u.department
       FROM pms_employee_reviews er
-      JOIN users u ON u.id = er.employee_id
+      JOIN users u ON u.id::text = er.employee_id::text
       WHERE 1=1
     `;
     const params: any[] = [];

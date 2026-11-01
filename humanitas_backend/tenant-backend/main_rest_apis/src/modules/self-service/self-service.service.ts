@@ -63,8 +63,8 @@ export class SelfServiceService {
 
     // 1. User basic info
     const users = await connection.query(
-      `SELECT id, first_name, last_name, email, position, department, hire_date
-       FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT id, COALESCE(full_name, '') as full_name, COALESCE(full_name, '') as first_name, '' as last_name, email, position, department, hire_date
+       FROM users WHERE id::text = $1::text LIMIT 1`,
       [userId],
     );
     if (!users || users.length === 0) {
@@ -77,7 +77,7 @@ export class SelfServiceService {
     try {
       leaveBalances = await connection.query(
         `SELECT leave_type, allocated_days, used_days, remaining_days
-         FROM leave_balances WHERE user_id = $1`,
+         FROM leave_balances WHERE user_id::text = $1::text`,
         [userId],
       );
     } catch (e) {
@@ -88,7 +88,7 @@ export class SelfServiceService {
     let pendingLeaveCount = 0;
     try {
       const lr = await connection.query(
-        `SELECT COUNT(*) AS count FROM leave_requests WHERE user_id = $1 AND status = 'pending'`,
+        `SELECT COUNT(*) AS count FROM leave_requests WHERE user_id::text = $1::text AND status = 'pending'`,
         [userId],
       );
       pendingLeaveCount = parseInt(lr[0]?.count || '0', 10);
@@ -99,7 +99,7 @@ export class SelfServiceService {
     let pendingChangesCount = 0;
     try {
       const pc = await connection.query(
-        `SELECT COUNT(*) AS count FROM profile_change_requests WHERE user_id = $1 AND status = 'pending'`,
+        `SELECT COUNT(*) AS count FROM profile_change_requests WHERE user_id::text = $1::text AND status = 'pending'`,
         [userId],
       );
       pendingChangesCount = parseInt(pc[0]?.count || '0', 10);
@@ -118,7 +118,7 @@ export class SelfServiceService {
       const att = await connection.query(
         `SELECT status, COUNT(*) AS count
          FROM attendance_records
-         WHERE user_id = $1 
+         WHERE user_id::text = $1::text 
            AND date >= date_trunc('month', CURRENT_DATE)
          GROUP BY status`,
         [userId],
@@ -132,7 +132,7 @@ export class SelfServiceService {
       // Calculate recent streak
       const recent = await connection.query(
         `SELECT status FROM attendance_records
-         WHERE user_id = $1 AND date <= CURRENT_DATE
+         WHERE user_id::text = $1::text AND date <= CURRENT_DATE
          ORDER BY date DESC LIMIT 14`,
         [userId],
       );
@@ -153,7 +153,7 @@ export class SelfServiceService {
         `SELECT pi.net_pay, pi.gross_pay, pi.total_deductions, pr.month, pr.year, pr.status
          FROM payroll_items pi
          JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-         WHERE pi.user_id = $1
+         WHERE pi.user_id::text = $1::text
          ORDER BY pr.year DESC, pr.month DESC LIMIT 1`,
         [userId],
       );
@@ -190,7 +190,7 @@ export class SelfServiceService {
       const records = await connection.query(
         `SELECT date, status, actual_in, actual_out
          FROM attendance_records
-         WHERE user_id = $1 
+         WHERE user_id::text = $1::text 
            AND date >= (CURRENT_DATE - INTERVAL '${daysBack} days')
          ORDER BY date ASC`,
         [userId],
@@ -209,7 +209,7 @@ export class SelfServiceService {
                 pr.month, pr.year, pr.status
          FROM payroll_items pi
          JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-         WHERE pi.user_id = $1
+         WHERE pi.user_id::text = $1::text
          ORDER BY pr.year DESC, pr.month DESC`,
         [userId],
       );
@@ -253,11 +253,11 @@ export class SelfServiceService {
   async getProfile(tenantId: string, userId: string) {
     const connection = await this.getConnection(tenantId);
     const users = await connection.query(
-      `SELECT id, first_name, last_name, email, phone, address, city, state, country, 
+      `SELECT id, COALESCE(full_name, '') as full_name, COALESCE(full_name, '') as first_name, '' as last_name, email, phone, address, city, state, country, 
               postal_code, gender, marital_status, nationality, national_id,
               emergency_contact_name, emergency_contact_phone, emergency_contact_relationship,
               hire_date, position, department, tin, account_number, bank_name
-       FROM users WHERE id = $1 LIMIT 1`,
+       FROM users WHERE id::text = $1::text LIMIT 1`,
       [userId],
     );
     if (!users || users.length === 0) {
@@ -267,7 +267,7 @@ export class SelfServiceService {
     const pendingRequests = await connection.query(
       `SELECT id, field_name, current_value, proposed_value, reason, status, created_at
        FROM profile_change_requests
-       WHERE user_id = $1 AND status = 'pending'
+       WHERE user_id::text = $1::text AND status = 'pending'
        ORDER BY created_at DESC`,
       [userId],
     );
@@ -311,7 +311,7 @@ export class SelfServiceService {
 
     values.push(userId);
     await connection.query(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`,
+      `UPDATE users SET ${fields.join(', ')} WHERE id::text = $${idx}::text`,
       values,
     );
 
@@ -327,7 +327,7 @@ export class SelfServiceService {
 
     // Get current value from users
     const users = await connection.query(
-      `SELECT ${dto.field_name} AS val FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT ${dto.field_name} AS val FROM users WHERE id::text = $1::text LIMIT 1`,
       [userId],
     );
     const currentVal = users?.[0]?.val || null;
@@ -360,9 +360,9 @@ export class SelfServiceService {
 
     if (isAdmin) {
       return await connection.query(
-        `SELECT pcr.*, u.first_name, u.last_name, u.email, u.department, u.position
+        `SELECT pcr.*, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department, u.position
          FROM profile_change_requests pcr
-         JOIN users u ON pcr.user_id = u.id
+         JOIN users u ON pcr.user_id::text = u.id::text
          WHERE pcr.status = $1
          ORDER BY pcr.created_at ASC`,
         [status],
@@ -370,7 +370,7 @@ export class SelfServiceService {
     } else {
       return await connection.query(
         `SELECT * FROM profile_change_requests
-         WHERE user_id = $1
+         WHERE user_id::text = $1::text
          ORDER BY created_at DESC`,
         [userId],
       );
@@ -411,7 +411,7 @@ export class SelfServiceService {
       const allowedCols = ['account_number', 'bank_name', 'tin', 'national_id'];
       if (allowedCols.includes(changeReq.field_name)) {
         await connection.query(
-          `UPDATE users SET ${changeReq.field_name} = $1 WHERE id = $2`,
+          `UPDATE users SET ${changeReq.field_name} = $1 WHERE id::text = $2::text`,
           [changeReq.proposed_value, changeReq.user_id],
         );
       }
@@ -434,7 +434,7 @@ export class SelfServiceService {
                 COUNT(*) FILTER (WHERE status = 'present') AS on_time,
                 COUNT(*) FILTER (WHERE status = 'late') AS late
          FROM attendance_records
-         WHERE user_id = $1 AND date >= (CURRENT_DATE - INTERVAL '180 days')`,
+         WHERE user_id::text = $1::text AND date >= (CURRENT_DATE - INTERVAL '180 days')`,
         [userId],
       );
       const total = parseInt(totalScheduled[0]?.total || '0', 10);
@@ -451,7 +451,7 @@ export class SelfServiceService {
         `SELECT pr.month, pr.year, pi.net_pay, pi.gross_pay
          FROM payroll_items pi
          JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-         WHERE pi.user_id = $1
+         WHERE pi.user_id::text = $1::text
          ORDER BY pr.year DESC, pr.month DESC LIMIT 6`,
         [userId],
       );

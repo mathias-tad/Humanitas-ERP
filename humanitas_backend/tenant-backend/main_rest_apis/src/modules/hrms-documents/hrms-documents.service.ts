@@ -343,8 +343,7 @@ Employee Acknowledgment: ____________________ Date: ____________`,
       conditions.push(`(
         d.title ILIKE $${idx} OR
         d.document_type ILIKE $${idx} OR
-        u.first_name ILIKE $${idx} OR
-        u.last_name ILIKE $${idx} OR
+        COALESCE(u.full_name, '') ILIKE $${idx} OR
         u.email ILIKE $${idx}
       )`);
       params.push(`%${filters.search}%`);
@@ -354,13 +353,15 @@ Employee Acknowledgment: ____________________ Date: ____________`,
     const query = `
       SELECT 
         d.*,
-        u.first_name,
-        u.last_name,
+        COALESCE(u.full_name, '') as employee_name,
+        COALESCE(u.full_name, '') as first_name,
+        '' as last_name,
         u.email,
         u.department,
         u.position,
-        v.first_name as verified_by_first_name,
-        v.last_name as verified_by_last_name,
+        COALESCE(v.full_name, '') as verified_by_name,
+        COALESCE(v.full_name, '') as verified_by_first_name,
+        '' as verified_by_last_name,
         CASE
           WHEN d.expiry_date IS NULL THEN 'no_expiry'
           WHEN d.expiry_date < CURRENT_DATE THEN 'expired'
@@ -372,8 +373,8 @@ Employee Acknowledgment: ____________________ Date: ____________`,
           ELSE NULL
         END as days_until_expiry
       FROM employee_documents d
-      JOIN users u ON d.user_id = u.id
-      LEFT JOIN users v ON d.verified_by = v.id
+      JOIN users u ON d.user_id::text = u.id::text
+      LEFT JOIN users v ON d.verified_by::text = v.id::text
       WHERE ${conditions.join(' AND ')}
       ORDER BY d.created_at DESC
     `;
@@ -384,9 +385,9 @@ Employee Acknowledgment: ____________________ Date: ____________`,
   async getDocumentById(tenantId: string, id: string) {
     const connection = await this.getConnection(tenantId);
     const docs = await connection.query(
-      `SELECT d.*, u.first_name, u.last_name, u.email, u.department, u.position
+      `SELECT d.*, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department, u.position
        FROM employee_documents d
-       JOIN users u ON d.user_id = u.id
+       JOIN users u ON d.user_id::text = u.id::text
        WHERE d.id = $1`,
       [id],
     );
@@ -504,10 +505,10 @@ Employee Acknowledgment: ____________________ Date: ____________`,
     const upcomingDocs = await connection.query(
       `SELECT 
         d.id, d.title, d.category, d.document_type, d.expiry_date,
-        u.id as user_id, u.first_name, u.last_name, u.department,
+        u.id as user_id, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.department,
         (d.expiry_date - CURRENT_DATE) as days_remaining
        FROM employee_documents d
-       JOIN users u ON d.user_id = u.id
+       JOIN users u ON d.user_id::text = u.id::text
        WHERE ${whereClause} AND d.expiry_date <= (CURRENT_DATE + INTERVAL '90 days')
        ORDER BY d.expiry_date ASC
        LIMIT 10`,
@@ -836,11 +837,11 @@ ${signatureHtml}
     const query = `
       SELECT
         la.*,
-        CONCAT(u.first_name, ' ', u.last_name) AS generated_for_name,
-        CONCAT(gb.first_name, ' ', gb.last_name) AS generated_by_name
+        COALESCE(u.full_name, '') AS generated_for_name,
+        COALESCE(gb.full_name, '') AS generated_by_name
       FROM letter_audit_log la
-      LEFT JOIN users u ON la.generated_for_user_id = u.id
-      LEFT JOIN users gb ON la.generated_by = gb.id
+      LEFT JOIN users u ON la.generated_for_user_id::text = u.id::text
+      LEFT JOIN users gb ON la.generated_by::text = gb.id::text
       WHERE ${conditions.join(' AND ')}
       ORDER BY la.generated_at DESC
       LIMIT 200
@@ -856,16 +857,17 @@ ${signatureHtml}
       SELECT * FROM (
         SELECT
           u.id,
-          u.first_name,
-          u.last_name,
+          COALESCE(u.full_name, '') as employee_name,
+          COALESCE(u.full_name, '') as first_name,
+          '' as last_name,
           u.department,
-          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id = u.id AND d.category = 'contract' AND (d.status = 'active' OR d.status IS NULL)) as has_contract,
-          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id = u.id AND d.category = 'identification') as has_id
+          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id::text = u.id::text AND d.category = 'contract' AND (d.status = 'active' OR d.status IS NULL)) as has_contract,
+          (SELECT COUNT(*)::int FROM employee_documents d WHERE d.user_id::text = u.id::text AND d.category = 'identification') as has_id
         FROM users u
         WHERE (u.is_active = TRUE OR u.status = 'active' OR u.is_active IS NULL)
       ) emp_docs
       WHERE has_contract = 0 OR has_id = 0
-      ORDER BY first_name ASC
+      ORDER BY employee_name ASC
       LIMIT 100
     `;
     return connection.query(query);
@@ -883,9 +885,9 @@ ${signatureHtml}
     const clause = dayIntervals ? `AND (${dayIntervals})` : '';
 
     return connection.query(`
-      SELECT d.*, u.first_name, u.last_name, u.email, u.department
+      SELECT d.*, COALESCE(u.full_name, '') as employee_name, COALESCE(u.full_name, '') as first_name, '' as last_name, u.email, u.department
       FROM employee_documents d
-      JOIN users u ON d.user_id = u.id
+      JOIN users u ON d.user_id::text = u.id::text
       WHERE d.expiry_date IS NOT NULL ${clause}
       ORDER BY d.expiry_date ASC
     `);
@@ -969,9 +971,9 @@ ${signatureHtml}
         d.title,
         d.file_url,
         d.file_name,
-        CONCAT(u.first_name, ' ', u.last_name) AS user_name
+        COALESCE(u.full_name, '') AS user_name
       FROM employee_documents d
-      JOIN users u ON d.user_id = u.id
+      JOIN users u ON d.user_id::text = u.id::text
       WHERE ${conditions.join(' AND ')}
       ORDER BY d.created_at DESC
     `;
