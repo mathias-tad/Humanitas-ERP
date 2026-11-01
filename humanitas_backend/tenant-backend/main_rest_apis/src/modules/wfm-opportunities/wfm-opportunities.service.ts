@@ -727,8 +727,7 @@ export class WfmOpportunitiesService {
 
       // Direct Notification to user on both desktop and mobile
       try {
-        await this.notificationsService.createNotification(tenantId, {
-          userId,
+        await this.notificationsService.createNotification(tenantId, userId, {
           type: 'wfm_claim_decision',
           title: `✅ ${opportunity.type} Claim Auto-Approved!`,
           message: `Your ${opportunity.type} claim for ${oppDateStr} (${opportunity.title}) has been automatically approved and scheduled!`,
@@ -1030,8 +1029,7 @@ export class WfmOpportunitiesService {
 
       // Notify employee on both desktop and mobile
       try {
-        await this.notificationsService.createNotification(tenantId, {
-          userId: claim.user_id,
+        await this.notificationsService.createNotification(tenantId, claim.user_id, {
           type: 'wfm_claim_decision',
           title: `✅ ${claim.type} Claim Approved!`,
           message: `Your manager approved your ${claim.type} claim for ${oppDateStr} (${claim.title}). Schedule & payroll updated.`,
@@ -1062,8 +1060,7 @@ export class WfmOpportunitiesService {
 
       // Notify employee on both desktop and mobile
       try {
-        await this.notificationsService.createNotification(tenantId, {
-          userId: claim.user_id,
+        await this.notificationsService.createNotification(tenantId, claim.user_id, {
           type: 'wfm_claim_decision',
           title: `❌ ${claim.type} Claim Not Approved`,
           message: `Your ${claim.type} claim for ${oppDateStr} was not approved: ${dto.review_notes || 'No reason provided'}.`,

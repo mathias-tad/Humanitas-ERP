@@ -293,8 +293,8 @@ describe('WfmOpportunitiesService', () => {
       expect(res.claim.status).toBe('approved');
       expect(mockNotificationsService.createNotification).toHaveBeenCalledWith(
         't1',
+        'emp-1',
         expect.objectContaining({
-          userId: 'emp-1',
           type: 'wfm_claim_decision',
           title: expect.stringContaining('Claim Auto-Approved'),
         }),
@@ -344,8 +344,8 @@ describe('WfmOpportunitiesService', () => {
       expect(reviewRes.status).toBe('approved');
       expect(mockNotificationsService.createNotification).toHaveBeenCalledWith(
         't1',
+        'emp-2',
         expect.objectContaining({
-          userId: 'emp-2',
           type: 'wfm_claim_decision',
           title: expect.stringContaining('Claim Approved'),
         }),
@@ -379,8 +379,8 @@ describe('WfmOpportunitiesService', () => {
       expect(reviewRes.status).toBe('rejected');
       expect(mockNotificationsService.createNotification).toHaveBeenCalledWith(
         't1',
+        'emp-3',
         expect.objectContaining({
-          userId: 'emp-3',
           type: 'wfm_claim_decision',
           title: expect.stringContaining('Claim Not Approved'),
         }),
