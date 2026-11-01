@@ -4,7 +4,7 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+const uuidv4 = () => crypto.randomUUID();
 
 /**
  * SECURITY: Permission-gated AI action tools.
@@ -66,6 +66,7 @@ const TOOL_PERMISSION_MAP: Record<string, string[]> = {
   get_recruitment_analytics: ['manage_recruitment', 'view_recruitment'],
   get_pending_approvals:     ['approve_requests', 'view_approval_requests'],
   get_approval_analytics:    ['view_approval_rules'],
+  get_ai_audit_logs:         ['view_logs', 'manage_system', '*'],
 };
 
 @Injectable()
@@ -149,6 +150,7 @@ export class AiActionService {
             INSERT INTO users (id, email, password_hash, full_name, position, department, is_active, must_change_password, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, true, true, NOW(), NOW())
           `, [id, email, passwordHash, full_name, position || null, department || null]);
+          await this.logAuditAction(ds, currentUserId, 'user', id, { full_name, email, position, department });
           this.logger.log(`[AI-ACTION] User created by ${currentUserId} in tenant ${tenantSlug}: ${email}`);
           // SECURITY: Do NOT return the password in the AI response — instruct the admin to trigger a password reset email.
           return `Successfully created user ${full_name} (${email}). A password reset email must be sent to the user via the Admin > Users panel so they can set their own password.`;
@@ -182,6 +184,7 @@ export class AiActionService {
           fields.push('updated_at = NOW()');
           values.push(user_id);
           await ds.query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+          await this.logAuditAction(ds, currentUserId, 'user', user_id, { position, department, is_active });
           return `Successfully updated user ${user_id}.`;
         } catch (err) {
           return `Failed to update user: ${err.message}`;
@@ -204,6 +207,7 @@ export class AiActionService {
         try {
           const { ds } = await getConn();
           await ds.query(`UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1`, [user_id]);
+          await this.logAuditAction(ds, currentUserId, 'user', user_id, { is_active: false });
           return `Successfully deactivated user ${user_id}.`;
         } catch (err) {
           return `Failed to deactivate user: ${err.message}`;
@@ -232,6 +236,7 @@ export class AiActionService {
             INSERT INTO leave_requests (id, user_id, leave_type_name, start_date, end_date, days, reason, status, approval_status, current_step, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'Pending', 'Pending', 0, NOW(), NOW())
           `, [id, targetUserId, leave_type_name, start_date, end_date, days, reason || null]);
+          await this.logAuditAction(ds, currentUserId, 'leave_request', id, { targetUserId, leave_type_name, start_date, end_date, days });
           return `Successfully submitted a ${leave_type_name} leave request from ${start_date} to ${end_date} (${days} day(s)).`;
         } catch (err) {
           return `Failed to submit leave request: ${err.message}`;
@@ -258,6 +263,7 @@ export class AiActionService {
             UPDATE leave_requests SET status = 'Approved', approval_status = 'Approved', approved_by = $1, approved_at = NOW(), updated_at = NOW()
             WHERE id = $2
           `, [currentUserId, leave_request_id]);
+          await this.logAuditAction(ds, currentUserId, 'leave_request', leave_request_id, { status: 'Approved' });
           return `Successfully approved leave request ${leave_request_id}.`;
         } catch (err) {
           return `Failed to approve leave request: ${err.message}`;
@@ -280,6 +286,7 @@ export class AiActionService {
             UPDATE leave_requests SET status = 'Rejected', approval_status = 'Rejected', rejection_reason = $1, approved_by = $2, approved_at = NOW(), updated_at = NOW()
             WHERE id = $3
           `, [rejection_reason || null, currentUserId, leave_request_id]);
+          await this.logAuditAction(ds, currentUserId, 'leave_request', leave_request_id, { status: 'Rejected', rejection_reason });
           return `Successfully rejected leave request ${leave_request_id}.`;
         } catch (err) {
           return `Failed to reject leave request: ${err.message}`;
@@ -313,6 +320,7 @@ export class AiActionService {
             INSERT INTO announcements (id, title, content, priority, target_type, created_by, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
           `, [id, title, content, priority || 'normal', target_type || 'all', currentUserId]);
+          await this.logAuditAction(ds, currentUserId, 'announcement', id, { title, priority, target_type });
           return `Successfully posted announcement: "${title}".`;
         } catch (err) {
           return `Failed to post announcement: ${err.message}`;
@@ -342,6 +350,7 @@ export class AiActionService {
             INSERT INTO loans (id, user_id, loan_type, description, total_amount, monthly_deduction, remaining_balance, term_months, start_date, status, approval_status, current_step, requested_by, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $5, $7, $8, 'active', 'pending', 1, $9, NOW(), NOW())
           `, [id, targetUserId, loan_type || 'personal', description || null, total_amount, monthly_deduction, term_months || 1, start_date || today, currentUserId]);
+          await this.logAuditAction(ds, currentUserId, 'loan', id, { targetUserId, total_amount, monthly_deduction, term_months });
           return `Successfully created loan of ${total_amount} for user ${targetUserId} with ${monthly_deduction}/month deduction.`;
         } catch (err) {
           return `Failed to create loan: ${err.message}`;
@@ -373,6 +382,7 @@ export class AiActionService {
             INSERT INTO payroll_runs (id, month, year, status, run_at, created_by)
             VALUES ($1, $2, $3, 'pending', NOW(), $4)
           `, [id, month, year, currentUserId]);
+          await this.logAuditAction(ds, currentUserId, 'payroll_run', id, { month, year });
           return `Successfully initiated payroll run for ${month}/${year}. Status: pending.`;
         } catch (err) {
           return `Failed to initiate payroll run: ${err.message}`;
@@ -398,6 +408,7 @@ export class AiActionService {
             INSERT INTO pms_projects (id, tenant_id, name, description, status, priority, start_date, target_end_date, created_by, created_at, updated_at)
             VALUES ($1, $2, $3, $4, 'Planning', $5, $6, $7, $8, NOW(), NOW())
           `, [id, tenantId, name, description || null, priority || 'Medium', start_date || null, target_end_date || null, currentUserId]);
+          await this.logAuditAction(ds, currentUserId, 'project', id, { name, priority, start_date, target_end_date });
           return `Successfully created project "${name}".`;
         } catch (err) {
           return `Failed to create project: ${err.message}`;
@@ -425,6 +436,7 @@ export class AiActionService {
             INSERT INTO pms_tasks (id, tenant_id, title, description, assignee_id, project_id, estimated_hours, priority, status, due_date, reporter_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'To Do', $9, $10, NOW(), NOW())
           `, [id, tenantId, title, description || null, assignee_id || null, project_id || null, estimated_hours || null, priority || 'Medium', due_date || null, currentUserId]);
+          await this.logAuditAction(ds, currentUserId, 'task', id, { title, project_id, assignee_id, priority });
           return `Successfully created task "${title}".`;
         } catch (err) {
           return `Failed to create task: ${err.message}`;
@@ -454,6 +466,7 @@ export class AiActionService {
             UPDATE pms_tasks SET status = $1, status_changed_at = NOW(), status_changed_by = $2, return_comment = $3${completedClause}, updated_at = NOW()
             WHERE id = $4
           `, [status, currentUserId, return_comment || null, task_id]);
+          await this.logAuditAction(ds, currentUserId, 'task', task_id, { status, return_comment });
           return `Successfully updated task ${task_id} status to "${status}".`;
         } catch (err) {
           return `Failed to update task status: ${err.message}`;
@@ -482,6 +495,7 @@ export class AiActionService {
             VALUES ($1, $2, $3, $4, false, true, $5, NOW(), NOW())
             ON CONFLICT (user_id, date) DO UPDATE SET shift_id = EXCLUDED.shift_id, is_override = true, note = EXCLUDED.note, updated_at = NOW()
           `, [id, targetUserId, shift_id, date, note || null]);
+          await this.logAuditAction(ds, currentUserId, 'schedule', id, { targetUserId, shift_id, date, note });
           return `Successfully assigned shift to user ${targetUserId} on ${date}.`;
         } catch (err) {
           return `Failed to assign shift: ${err.message}`;
@@ -510,6 +524,7 @@ export class AiActionService {
             VALUES ($1, $2, NULL, $3, true, true, $4, NOW(), NOW())
             ON CONFLICT (user_id, date) DO UPDATE SET shift_id = NULL, is_day_off = true, is_override = true, note = EXCLUDED.note, updated_at = NOW()
           `, [id, targetUserId, date, note || null]);
+          await this.logAuditAction(ds, currentUserId, 'schedule', id, { targetUserId, date, is_day_off: true, note });
           return `Successfully marked ${date} as a day off for user ${targetUserId}.`;
         } catch (err) {
           return `Failed to mark day off: ${err.message}`;
@@ -538,6 +553,7 @@ export class AiActionService {
             VALUES ($1, $2, $3, $4, $5, $6, 0, 0, 'Pending', NOW(), NOW())
             ON CONFLICT (user_id, date) DO UPDATE SET normal_ot_hours = EXCLUDED.normal_ot_hours, night_ot_hours = EXCLUDED.night_ot_hours, holiday_ot_hours = EXCLUDED.holiday_ot_hours, updated_at = NOW()
           `, [id, targetUserId, date, normal_ot_hours || 0, night_ot_hours || 0, holiday_ot_hours || 0]);
+          await this.logAuditAction(ds, currentUserId, 'overtime', id, { targetUserId, date, normal_ot_hours, night_ot_hours, holiday_ot_hours });
           return `Successfully logged overtime for user ${targetUserId} on ${date}.`;
         } catch (err) {
           return `Failed to log overtime: ${err.message}`;
@@ -566,6 +582,7 @@ export class AiActionService {
             INSERT INTO shifts (id, name, start_time, end_time, color, is_overnight, description, grace_minutes, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
           `, [id, name, start_time, end_time, color || '#3B82F6', is_overnight || false, description || null, grace_minutes || 15]);
+          await this.logAuditAction(ds, currentUserId, 'shift', id, { name, start_time, end_time });
           return `Successfully created shift "${name}" (${start_time} - ${end_time}).`;
         } catch (err) {
           return `Failed to create shift: ${err.message}`;
@@ -596,6 +613,7 @@ export class AiActionService {
             INSERT INTO pms_sprints (id, tenant_id, project_id, name, goal, start_date, end_date, status, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, 'Planning', NOW(), NOW())
           `, [id, tenantId, project_id, name, goal || null, start_date, end_date]);
+          await this.logAuditAction(ds, currentUserId, 'sprint', id, { project_id, name, start_date, end_date });
           return `Successfully created sprint "${name}" for project ${project_id}.`;
         } catch (err) {
           return `Failed to create sprint: ${err.message}`;
@@ -624,6 +642,7 @@ export class AiActionService {
             VALUES ($1, $2, $3, false, NOW())
             ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role
           `, [project_id, user_id, role || 'Member']);
+          await this.logAuditAction(ds, currentUserId, 'project_member', `${project_id}_${user_id}`, { project_id, user_id, role });
           return `Successfully added user ${user_id} to project ${project_id} as ${role || 'Member'}.`;
         } catch (err) {
           return `Failed to add project member: ${err.message}`;
@@ -648,6 +667,7 @@ export class AiActionService {
           await ds.query(`
             UPDATE leave_requests SET status = 'Cancelled', updated_at = NOW() WHERE id = $1
           `, [leave_request_id]);
+          await this.logAuditAction(ds, currentUserId, 'leave_request', leave_request_id, { status: 'Cancelled' });
           return `Successfully cancelled leave request ${leave_request_id}.`;
         } catch (err) {
           return `Failed to cancel leave request: ${err.message}`;
@@ -672,6 +692,7 @@ export class AiActionService {
             INSERT INTO holidays (id, name, date, description, is_recurring, type, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
           `, [id, name, date, description || null, is_recurring !== false, type || 'public']);
+          await this.logAuditAction(ds, currentUserId, 'holiday', id, { name, date, type });
           return `Successfully added holiday "${name}" on ${date}.`;
         } catch (err) {
           return `Failed to add holiday: ${err.message}`;
@@ -918,6 +939,8 @@ export class AiActionService {
             ) RETURNING ticket_number
           `, [ticketNumber, currentUserId, is_anonymous || false, category, subject, description, priority || 'medium']);
 
+          await this.logAuditAction(ds, currentUserId, 'grievance', ticketNumber, { category, subject, is_anonymous: !!is_anonymous, priority: priority || 'medium' });
+
           return `Grievance successfully filed under ticket ${res[0]?.ticket_number || ticketNumber}. You can track progress under /hrms/grievances.`;
         } catch (err) {
           return `Failed to file grievance: ${err.message}`;
@@ -1058,6 +1081,7 @@ export class AiActionService {
              VALUES ($1, $2, $3, $4, 'confirmed', 0, false, false)`,
             [id, course_id, targetUserId, currentUserId],
           );
+          await this.logAuditAction(ds, currentUserId, 'training_enrollment', id, { course_id, targetUserId });
           return `Successfully enrolled user ${targetUserId} in training course ${course_id}.`;
         } catch (err) {
           return `Failed to enroll in training: ${err.message}`;
@@ -1541,6 +1565,41 @@ export class AiActionService {
       }
     );
 
+    const getAiAuditLogsTool = tool(
+      async ({ limit }) => {
+        try {
+          const { ds } = await getConn();
+          await this.ensureAuditTable(ds);
+          const rows = await ds.query(
+            `SELECT l.id, l.action_type, l.performed_by, l.executed_by, l.entity_type, l.entity_id, l.details, l.created_at,
+                    COALESCE(u.full_name, u.email, 'System') as user_name
+             FROM system_audit_logs l
+             LEFT JOIN users u ON l.performed_by::text = u.id::text
+             WHERE l.executed_by = 'ai_on_behalf'
+             ORDER BY l.created_at DESC
+             LIMIT $1`,
+            [limit || 15]
+          );
+          if (!rows || rows.length === 0) {
+            return 'No AI-executed actions found in the system audit trail.';
+          }
+          const entries = rows.map((r: any) =>
+            `- [${new Date(r.created_at).toLocaleString()}] ${r.action_type.toUpperCase()} on ${r.entity_type} (ID: ${r.entity_id}) by ${r.user_name} (AI on behalf): ${JSON.stringify(r.details)}`
+          ).join('\n');
+          return `Recent AI-Executed Actions (${rows.length}):\n${entries}`;
+        } catch (err) {
+          return `Failed to fetch AI audit logs: ${err.message}`;
+        }
+      },
+      {
+        name: 'get_ai_audit_logs',
+        description: 'Query the system audit log for actions performed by the AI assistant on behalf of users (executed_by: "ai_on_behalf").',
+        schema: z.object({
+          limit: z.number().optional().describe('Maximum number of log entries to retrieve (default: 15)'),
+        }),
+      }
+    );
+
     // Build the full tool registry (name → tool instance)
     const allTools: Record<string, any> = {
       create_user:           createUserTool,
@@ -1594,6 +1653,7 @@ export class AiActionService {
       get_recruitment_analytics: getRecruitmentAnalyticsTool,
       get_pending_approvals:     getPendingApprovalsTool,
       get_approval_analytics:    getApprovalAnalyticsTool,
+      get_ai_audit_logs:         getAiAuditLogsTool,
     };
 
     // SECURITY: Return ONLY the tools the user is permitted to invoke.

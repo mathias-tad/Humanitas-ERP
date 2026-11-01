@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,6 +18,18 @@ export class ChatRequestDto {
   @IsString()
   @IsOptional()
   conversationId?: string;
+
+  @IsString()
+  @IsOptional()
+  currentRoute?: string;
+
+  @IsString()
+  @IsOptional()
+  currentModule?: string;
+
+  @IsString()
+  @IsOptional()
+  platform?: string;
 }
 
 @Controller('ai')
@@ -31,8 +43,16 @@ export class AiController {
   async chat(@Req() req, @Body() body: ChatRequestDto) {
     const user = req.user;
     return this.aiService.processRequest(
-      user.tenantId, user.tenantSlug, user.sub, user.role, body.message,
-      user.full_name || 'User', body.conversationId
+      user.tenantId,
+      user.tenantSlug,
+      user.sub,
+      user.role,
+      body.message,
+      user.full_name || 'User',
+      body.conversationId,
+      body.currentRoute,
+      body.currentModule,
+      body.platform,
     );
   }
 
@@ -47,15 +67,58 @@ export class AiController {
     const user = req.user;
     if (!file) {
       return this.aiService.processRequest(
-        user.tenantId, user.tenantSlug, user.sub, user.role, body.message,
-        user.full_name || 'User', body.conversationId
+        user.tenantId,
+        user.tenantSlug,
+        user.sub,
+        user.role,
+        body.message,
+        user.full_name || 'User',
+        body.conversationId,
+        body.currentRoute,
+        body.currentModule,
+        body.platform,
       );
     }
     return this.aiService.processRequestWithFile(
-      user.tenantId, user.tenantSlug, user.sub, user.role, body.message || '',
+      user.tenantId,
+      user.tenantSlug,
+      user.sub,
+      user.role,
+      body.message || '',
       user.full_name || 'User',
-      file.buffer, file.mimetype, file.originalname,
-      body.conversationId
+      file.buffer,
+      file.mimetype,
+      file.originalname,
+      body.conversationId,
+      body.currentRoute,
+      body.currentModule,
+      body.platform,
     );
+  }
+
+  @Get('knowledge')
+  @Permissions('use_ai')
+  async getKnowledge(
+    @Req() req,
+    @Query('q') query?: string,
+    @Query('module') moduleKey?: string,
+    @Query('platform') platform?: string,
+  ) {
+    const user = req.user;
+    return this.aiService.getKnowledgeEntries(user.tenantSlug, query, moduleKey, platform);
+  }
+
+  @Post('knowledge')
+  @Permissions('manage_system', 'manage_ai', '*')
+  async registerKnowledgeEntry(@Req() req, @Body() entry: any) {
+    const user = req.user;
+    return this.aiService.upsertKnowledgeEntry(user.tenantSlug, entry);
+  }
+
+  @Get('audit-logs')
+  @Permissions('view_logs', 'manage_system', '*')
+  async getAuditLogs(@Req() req, @Query('limit') limit?: number) {
+    const user = req.user;
+    return this.aiService.getAuditLogs(user.tenantSlug, limit ? Number(limit) : 50);
   }
 }

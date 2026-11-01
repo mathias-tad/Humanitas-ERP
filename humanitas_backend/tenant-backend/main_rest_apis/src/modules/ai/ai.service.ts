@@ -106,6 +106,9 @@ export class AiService {
     message: string,
     userName: string,
     conversationId?: string,
+    currentRoute?: string,
+    currentModule?: string,
+    platform?: string,
   ): Promise<{ response: string; conversationId: string }> {
     // 0. Check Budget
     const budget = await this.usageService.checkTokenBudget(tenantId);
@@ -164,6 +167,9 @@ export class AiService {
         userId,
         userPermissions,
         aiCapabilities,
+        currentRoute,
+        currentModule,
+        platform,
       );
 
       // Save AI response
@@ -228,6 +234,9 @@ export class AiService {
     fileMimetype: string,
     fileOriginalname: string,
     conversationId?: string,
+    currentRoute?: string,
+    currentModule?: string,
+    platform?: string,
   ): Promise<{ response: string; conversationId: string }> {
     const parsed = await this.fileParserService.extractText(fileBuffer, fileMimetype, fileOriginalname);
 
@@ -250,7 +259,7 @@ ${truncated}
 User message: ${message || 'Please analyse this document and provide a summary.'}`;
     }
 
-    return this.processRequest(tenantId, tenantSlug, userId, userRole, enrichedMessage, userName, conversationId);
+    return this.processRequest(tenantId, tenantSlug, userId, userRole, enrichedMessage, userName, conversationId, currentRoute, currentModule, platform);
   }
 
   /**
@@ -267,6 +276,9 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     userId: string,
     userPermissions: string[] = [],
     aiCapabilities: { canHelp: boolean; canPerformActions: boolean; canGenerateDocs: boolean } = { canHelp: true, canPerformActions: true, canGenerateDocs: true },
+    currentRoute?: string,
+    currentModule?: string,
+    platform?: string,
   ): Promise<string> {
     let llm: any;
 
@@ -390,6 +402,12 @@ You are powered by the AI Provider: ${settings.provider.toUpperCase()}, using Mo
 Context about the user making this request:
 ${roleContext}
 
+=== CURRENT USER SESSION & ACTIVE SCREEN CONTEXT ===
+- Platform: ${platform || 'web'}
+- Active Business Module: ${currentModule || 'General'}
+- Active Route / Screen: ${currentRoute || '/dashboard'}
+Context-Awareness Directive: When the user asks context-dependent questions like "how do I add something here?", "what can I do on this page?", or asks for assistance without naming a specific module, tailor your answer directly to their active route (${currentRoute || '/dashboard'}) and module (${currentModule || 'General'}). Always use the \`lookup_system_guide\` tool to retrieve exact button names, locations, and how-to steps for Web and Mobile.
+
 === HUMANITAS ENTERPRISE UI & DESIGN ARCHITECTURE ===
 - **Visual Design System**: "Shiny Gold Luxe" theme with lustrous metallic gold primary accents (#D4AF37), gold glowing highlights, and full dual-mode support (Light mode crisp slate / Dark mode deep onyx).
 - **Navigation Model (Dynamics 365 Architecture)**:
@@ -489,5 +507,86 @@ CRITICAL RULES — MANDATORY, NON-NEGOTIABLE:
 
     const finalMessage = result.messages[result.messages.length - 1];
     return finalMessage.content as string;
+  }
+
+  private async getConnection(tenantSlug: string) {
+    const rows = await (this.databaseService as any).masterDataSource.query(
+      `SELECT id, database_name FROM tenants WHERE slug = $1`,
+      [tenantSlug],
+    );
+    if (!rows || !rows.length) throw new Error(`Tenant "${tenantSlug}" not found`);
+    const ds = await this.databaseService.getTenantConnection(rows[0].database_name);
+    return { ds, tenantId: rows[0].id };
+  }
+
+  async getKnowledgeEntries(tenantSlug: string, query?: string, moduleKey?: string, platform?: string) {
+    const { ds } = await this.getConnection(tenantSlug);
+    let sql = `SELECT * FROM ai_knowledge_entries WHERE 1=1`;
+    const params: any[] = [];
+    let idx = 1;
+    if (moduleKey) {
+      sql += ` AND module_key = $${idx++}`;
+      params.push(moduleKey);
+    }
+    if (query) {
+      sql += ` AND (feature_name ILIKE $${idx} OR page_purpose ILIKE $${idx} OR route_path ILIKE $${idx})`;
+      params.push(`%${query}%`);
+      idx++;
+    }
+    if (platform && platform !== 'both') {
+      sql += ` AND (platform = 'both' OR platform = $${idx++})`;
+      params.push(platform);
+    }
+    sql += ` ORDER BY feature_name ASC`;
+    return ds.query(sql, params).catch(() => []);
+  }
+
+  async upsertKnowledgeEntry(tenantSlug: string, entry: any) {
+    const { ds } = await this.getConnection(tenantSlug);
+    const sql = `
+      INSERT INTO ai_knowledge_entries (
+        module_key, feature_name, route_path, mobile_screen_name, mobile_nav_path,
+        platform, page_purpose, available_actions, button_locations,
+        required_permissions, step_by_step_instructions, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+      ON CONFLICT (module_key, feature_name) DO UPDATE SET
+        route_path = EXCLUDED.route_path,
+        mobile_screen_name = EXCLUDED.mobile_screen_name,
+        mobile_nav_path = EXCLUDED.mobile_nav_path,
+        platform = EXCLUDED.platform,
+        page_purpose = EXCLUDED.page_purpose,
+        available_actions = EXCLUDED.available_actions,
+        button_locations = EXCLUDED.button_locations,
+        required_permissions = EXCLUDED.required_permissions,
+        step_by_step_instructions = EXCLUDED.step_by_step_instructions,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    const rows = await ds.query(sql, [
+      entry.module_key,
+      entry.feature_name,
+      entry.route_path,
+      entry.mobile_screen_name || null,
+      entry.mobile_nav_path || null,
+      entry.platform || 'both',
+      entry.page_purpose,
+      JSON.stringify(entry.available_actions || []),
+      JSON.stringify(entry.button_locations || []),
+      JSON.stringify(entry.required_permissions || []),
+      JSON.stringify(entry.step_by_step_instructions || {}),
+    ]);
+    return rows[0];
+  }
+
+  async getAuditLogs(tenantSlug: string, limit: number = 50) {
+    const { ds } = await this.getConnection(tenantSlug);
+    return ds.query(`
+      SELECT l.id, l.action_type, l.performed_by, l.executed_by, l.entity_type, l.entity_id, l.details, l.created_at,
+             COALESCE(u.full_name, u.email, 'System') as user_name
+      FROM system_audit_logs l
+      LEFT JOIN users u ON l.performed_by::text = u.id::text
+      ORDER BY l.created_at DESC
+      LIMIT $1
+    `, [limit]).catch(() => []);
   }
 }

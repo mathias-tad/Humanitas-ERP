@@ -43,19 +43,42 @@ export const aiChatService = {
     return response;
   },
 
-  async sendMessage(message: string, conversationId?: string): Promise<{ response: string; conversationId: string }> {
+  async sendMessage(
+    message: string,
+    conversationId?: string,
+    currentRoute?: string,
+    currentModule?: string,
+    platform: string = 'web',
+  ): Promise<{ response: string; conversationId: string }> {
+    const activeRoute = currentRoute || (typeof window !== 'undefined' ? window.location.pathname : '/dashboard');
+    const activeModule = currentModule || (typeof window !== 'undefined' ? (window.location.pathname.split('/')[1] || 'dashboard') : 'dashboard');
     const response = await api.post<{ response: string; conversationId: string }>('/ai/chat', {
       message,
       conversationId,
+      currentRoute: activeRoute,
+      currentModule: activeModule,
+      platform,
     });
     return response;
   },
 
-  async sendMessageWithFile(message: string, file: File, conversationId?: string): Promise<{ response: string; conversationId: string }> {
+  async sendMessageWithFile(
+    message: string,
+    file: File,
+    conversationId?: string,
+    currentRoute?: string,
+    currentModule?: string,
+    platform: string = 'web',
+  ): Promise<{ response: string; conversationId: string }> {
+    const activeRoute = currentRoute || (typeof window !== 'undefined' ? window.location.pathname : '/dashboard');
+    const activeModule = currentModule || (typeof window !== 'undefined' ? (window.location.pathname.split('/')[1] || 'dashboard') : 'dashboard');
     const formData = new FormData();
     formData.append('message', message);
     formData.append('file', file);
     if (conversationId) formData.append('conversationId', conversationId);
+    formData.append('currentRoute', activeRoute);
+    formData.append('currentModule', activeModule);
+    formData.append('platform', platform);
 
     const baseUrl = import.meta.env.VITE_API_URL || 'https://humanitas.ziontech.tech/api/v1';
     const tenantSlug = getCurrentTenantSlug() || '';
@@ -226,5 +249,17 @@ export const aiChatService = {
     a.download = `ai-document.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
+  },
+
+  async getKnowledge(query?: string, moduleKey?: string, platform?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (moduleKey) params.append('module', moduleKey);
+    if (platform) params.append('platform', platform);
+    return api.get<any[]>(`/ai/knowledge?${params.toString()}`);
+  },
+
+  async getAuditLogs(limit: number = 25): Promise<any[]> {
+    return api.get<any[]>(`/ai/audit-logs?limit=${limit}`);
   },
 };

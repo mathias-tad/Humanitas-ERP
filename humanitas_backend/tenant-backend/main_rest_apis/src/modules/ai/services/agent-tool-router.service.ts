@@ -1,15 +1,126 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { DatabaseService } from '../../database/database.service';
 
 @Injectable()
 export class AgentToolRouterService {
+  private readonly logger = new Logger(AgentToolRouterService.name);
+
   constructor(private databaseService: DatabaseService) {}
 
+  private async getConnection(tenantSlug: string) {
+    const rows = await (this.databaseService as any).masterDataSource.query(
+      `SELECT id, database_name FROM tenants WHERE slug = $1`,
+      [tenantSlug],
+    );
+    if (!rows || !rows.length) throw new Error(`Tenant "${tenantSlug}" not found`);
+    const ds = await this.databaseService.getTenantConnection(rows[0].database_name);
+    return { ds, tenantId: rows[0].id };
+  }
+
   getTools(tenantSlug: string, userPermissions: string) {
+    const getConn = () => this.getConnection(tenantSlug);
+
+    const lookupSystemGuideTool = tool(
+      async ({ query, platform, module }) => {
+        try {
+          const { ds } = await getConn();
+          let sql = `
+            SELECT module_key, feature_name, route_path, mobile_screen_name, mobile_nav_path,
+                   platform, page_purpose, available_actions, button_locations,
+                   required_permissions, step_by_step_instructions
+            FROM ai_knowledge_entries
+            WHERE 1=1
+          `;
+          const params: any[] = [];
+          let idx = 1;
+
+          if (module) {
+            sql += ` AND (module_key ILIKE $${idx} OR feature_name ILIKE $${idx})`;
+            params.push(`%${module}%`);
+            idx++;
+          }
+
+          if (query) {
+            sql += ` AND (
+              module_key ILIKE $${idx} OR
+              feature_name ILIKE $${idx} OR
+              page_purpose ILIKE $${idx} OR
+              route_path ILIKE $${idx} OR
+              mobile_screen_name ILIKE $${idx}
+            )`;
+            params.push(`%${query}%`);
+            idx++;
+          }
+
+          if (platform && platform !== 'both') {
+            sql += ` AND (platform = 'both' OR platform = $${idx})`;
+            params.push(platform);
+            idx++;
+          }
+
+          sql += ` ORDER BY feature_name ASC LIMIT 5`;
+
+          const rows = await ds.query(sql, params).catch(() => []);
+
+          if (!rows || rows.length === 0) {
+            return `No exact knowledge entry found for query "${query || module || ''}". Guide the user to the App Launcher (9-dot switcher) or Global Command Palette (Ctrl + K) to search across all modules.`;
+          }
+
+          return rows.map((r: any) => {
+            const webSteps = r.step_by_step_instructions?.web && Array.isArray(r.step_by_step_instructions.web)
+              ? `\n  - **Web Step-by-Step Instructions**:\n    ` + r.step_by_step_instructions.web.join('\n    ')
+              : '';
+            const mobileSteps = r.step_by_step_instructions?.mobile && Array.isArray(r.step_by_step_instructions.mobile)
+              ? `\n  - **Mobile Step-by-Step Instructions**:\n    ` + r.step_by_step_instructions.mobile.join('\n    ')
+              : '';
+            const buttons = Array.isArray(r.button_locations)
+              ? r.button_locations.map((b: any) => `**"${b.label}"** at ${b.location}`).join(', ')
+              : 'Standard buttons';
+            const perms = Array.isArray(r.required_permissions) ? r.required_permissions.join(', ') : 'None';
+
+            return `### Feature: ${r.feature_name} (Module: ${r.module_key})
+- **Purpose**: ${r.page_purpose}
+- **Web Route**: [${r.route_path}](${r.route_path})
+- **Mobile Screen**: \`${r.mobile_screen_name || 'N/A'}\` (Path: ${r.mobile_nav_path || 'Bottom Navigation'})
+- **Button Locations & Labels**: ${buttons}
+- **Required Permissions**: \`${perms}\`${webSteps}${mobileSteps}`;
+          }).join('\n\n---\n\n');
+        } catch (err) {
+          return `Knowledge lookup error: ${err.message}`;
+        }
+      },
+      {
+        name: 'lookup_system_guide',
+        description: 'Lookup the official system guide, step-by-step how-to instructions, button locations, and required permissions for any feature or action on Web and Mobile.',
+        schema: z.object({
+          query: z.string().describe('Feature, keyword, or action to look up (e.g. "add employee", "request leave", "run payroll", "biometric devices", "reviews")'),
+          platform: z.enum(['web', 'mobile', 'both']).optional().describe('Target platform (default: both)'),
+          module: z.string().optional().describe('Optional module filter (e.g. "hrms", "payroll", "pms", "attendance")'),
+        }),
+      }
+    );
+
     const navigateSystemTool = tool(
       async ({ destination }) => {
+        // First try dynamic lookup from ai_knowledge_entries
+        try {
+          const { ds } = await getConn();
+          const rows = await ds.query(
+            `SELECT feature_name, route_path, mobile_screen_name, mobile_nav_path, page_purpose
+             FROM ai_knowledge_entries
+             WHERE module_key ILIKE $1 OR feature_name ILIKE $1 OR route_path ILIKE $1
+             LIMIT 1`,
+            [`%${destination}%`]
+          ).catch(() => []);
+
+          if (rows && rows.length > 0) {
+            const entry = rows[0];
+            return `Navigation details for **${entry.feature_name}**:\n- **Web Route**: ${entry.route_path}\n- **Mobile Screen**: ${entry.mobile_screen_name} (Path: ${entry.mobile_nav_path})\n- **Purpose**: ${entry.page_purpose}`;
+          }
+        } catch (_) {}
+
         const routes: Record<string, string> = {
           dashboard: '/app/dashboard',
           hr: '/app/hr',
@@ -181,7 +292,15 @@ export class AgentToolRouterService {
     );
 
     // Filter tools based on permissions if needed
-    const tools = [navigateSystemTool, generateDocumentTool, viewHrAnalyticsTool, viewDocumentVaultTool, attritionRiskTool, reviewSummaryTool];
+    const tools = [
+      lookupSystemGuideTool,
+      navigateSystemTool,
+      generateDocumentTool,
+      viewHrAnalyticsTool,
+      viewDocumentVaultTool,
+      attritionRiskTool,
+      reviewSummaryTool,
+    ];
     return tools;
   }
 }
