@@ -80,10 +80,6 @@ class _SchedulingScreenState extends ConsumerState<SchedulingScreen>
             },
           ),
         ],
-        title: Text(
-          'Shifts & Roster',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary,

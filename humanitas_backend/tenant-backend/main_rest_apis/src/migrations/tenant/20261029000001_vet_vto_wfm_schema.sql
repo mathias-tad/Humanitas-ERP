@@ -119,12 +119,15 @@ END $$;
 
 -- 5. AI Knowledge Base Entries for WFM Opportunities
 INSERT INTO ai_knowledge_entries (
-  module_key, route_path, page_title, page_purpose, available_actions,
-  button_locations, required_permissions, step_by_step_instructions, platform
+  module_key, feature_name, route_path, mobile_screen_name, mobile_nav_path, platform,
+  page_purpose, available_actions, button_locations, required_permissions, step_by_step_instructions
 ) VALUES (
   'scheduling',
-  '/scheduling/opportunities',
   'Voluntary Extra Time (VET) & Voluntary Time Off (VTO) Hub',
+  '/scheduling/opportunities',
+  'VetVtoScreen',
+  'Bottom Bar -> Scheduling -> VET & VTO Hub / Quick Action',
+  'both',
   'Allows employees to browse and claim extra overtime shifts (VET) or voluntary time-off slots (VTO), while giving managers real-time shift staffing flex tools with fatigue compliance guardrails and payroll overtime calculation integration.',
   '["claim_vet_opportunity", "claim_vto_opportunity", "cancel_wfm_claim", "broadcast_opportunity", "review_wfm_claim", "configure_wfm_settings"]'::jsonb,
   '[
@@ -149,14 +152,15 @@ INSERT INTO ai_knowledge_entries (
       "Tap ''Claim'' on any open VET shift or VTO slot to submit your request.",
       "Instant push notification alerts will confirm your approved shift assignment or excused absence."
     ]
-  }'::jsonb,
-  'both'
-) ON CONFLICT (module_key, route_path) DO UPDATE SET
-  page_title = EXCLUDED.page_title,
+  }'::jsonb
+) ON CONFLICT (module_key, feature_name) DO UPDATE SET
+  route_path = EXCLUDED.route_path,
+  mobile_screen_name = EXCLUDED.mobile_screen_name,
+  mobile_nav_path = EXCLUDED.mobile_nav_path,
+  platform = EXCLUDED.platform,
   page_purpose = EXCLUDED.page_purpose,
   available_actions = EXCLUDED.available_actions,
   button_locations = EXCLUDED.button_locations,
   required_permissions = EXCLUDED.required_permissions,
   step_by_step_instructions = EXCLUDED.step_by_step_instructions,
-  platform = EXCLUDED.platform,
   updated_at = CURRENT_TIMESTAMP;
