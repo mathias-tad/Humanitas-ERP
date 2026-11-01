@@ -148,7 +148,7 @@ describe('PmsService Unit Tests', () => {
       const totalDays = 10;
       const dailyBurnRate = totalStoryPoints / totalDays;
 
-      const idealBurndown = [];
+      const idealBurndown: number[] = [];
       for (let i = 0; i <= totalDays; i++) {
         idealBurndown.push(Math.max(0, Math.round((totalStoryPoints - (i * dailyBurnRate)) * 10) / 10));
       }

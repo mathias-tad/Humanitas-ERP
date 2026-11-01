@@ -5,7 +5,7 @@ import { AiSettingsFetchService } from './ai-settings-fetch.service';
 
 describe('AiDocumentService', () => {
   let service: AiDocumentService;
-  let mockDatabaseService: Partial<DatabaseService>;
+  let mockDatabaseService: any;
   let mockAiSettingsFetch: Partial<AiSettingsFetchService>;
 
   beforeEach(() => {

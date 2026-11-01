@@ -100,7 +100,7 @@ export class HrmsBenefitsController {
     @Query('status') status?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 
@@ -127,7 +127,7 @@ export class HrmsBenefitsController {
     @Param('id') id: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 
@@ -163,7 +163,7 @@ export class HrmsBenefitsController {
     @Body() dto: AddDependentDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 
@@ -183,7 +183,7 @@ export class HrmsBenefitsController {
     @Param('id') dependentId: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 

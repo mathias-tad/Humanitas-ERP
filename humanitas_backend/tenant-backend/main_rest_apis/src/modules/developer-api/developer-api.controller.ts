@@ -28,17 +28,23 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 export class DeveloperApiController {
   constructor(private readonly developerApiService: DeveloperApiService) {}
 
-  // ── API Key Endpoints ──────────────────────────────────────────────────────
+  private getTenantId(req: any, headerTenantId?: string): string {
+    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  }
+
+  // ── API Key Endpoints ───────────────────────────────────────────────────────
 
   @Get('keys')
   @RequirePermissions('view_developer_api')
   async getApiKeys(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const companyId = queryCompanyId || headerCompanyId;
     const branchId = queryBranchId || headerBranchId;
     return this.developerApiService.getApiKeys(tenantId, companyId, branchId);
@@ -47,30 +53,35 @@ export class DeveloperApiController {
   @Post('keys')
   @RequirePermissions('manage_developer_api')
   async createApiKey(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Body() dto: CreateApiKeyDto,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
-    const userId = req.user?.id || req.user?.userId;
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
     return this.developerApiService.createApiKey(tenantId, userId, dto);
   }
 
   @Delete('keys/:id')
   @RequirePermissions('manage_developer_api')
   async revokeApiKey(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Param('id') id: string,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.revokeApiKey(tenantId, id);
   }
 
   @Get('keys/:id/logs')
   @RequirePermissions('view_developer_api')
   async getApiKeyLogs(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Param('id') id: string,
+    @Headers('x-tenant-id') headerTenantId?: string,
     @Query('limit') limit?: number,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.getApiKeyLogs(tenantId, id, limit ? Number(limit) : 50);
   }
 
@@ -79,12 +90,14 @@ export class DeveloperApiController {
   @Get('webhooks')
   @RequirePermissions('view_developer_api')
   async getWebhooks(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     const companyId = queryCompanyId || headerCompanyId;
     const branchId = queryBranchId || headerBranchId;
     return this.developerApiService.getWebhooks(tenantId, companyId, branchId);
@@ -93,39 +106,46 @@ export class DeveloperApiController {
   @Post('webhooks')
   @RequirePermissions('manage_developer_api')
   async createWebhook(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Body() dto: CreateWebhookDto,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
-    const userId = req.user?.id || req.user?.userId;
+    const tenantId = this.getTenantId(req, headerTenantId);
+    const userId = req.user?.sub || req.user?.id || req.user?.userId;
     return this.developerApiService.createWebhook(tenantId, userId, dto);
   }
 
   @Put('webhooks/:id')
   @RequirePermissions('manage_developer_api')
   async updateWebhook(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Param('id') id: string,
     @Body() dto: UpdateWebhookDto,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.updateWebhook(tenantId, id, dto);
   }
 
   @Delete('webhooks/:id')
   @RequirePermissions('manage_developer_api')
   async deleteWebhook(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Param('id') id: string,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.deleteWebhook(tenantId, id);
   }
 
   @Post('webhooks/test')
   @RequirePermissions('manage_developer_api')
   async testWebhook(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Body() dto: TestWebhookDto,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.testWebhook(tenantId, dto);
   }
 
@@ -134,11 +154,13 @@ export class DeveloperApiController {
   @Get('deliveries')
   @RequirePermissions('view_developer_api')
   async getDeliveries(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
+    @Headers('x-tenant-id') headerTenantId?: string,
     @Query('webhook_id') webhookId?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.getWebhookDeliveries(
       tenantId,
       webhookId,
@@ -150,9 +172,11 @@ export class DeveloperApiController {
   @Post('deliveries/:id/retry')
   @RequirePermissions('manage_developer_api')
   async retryDelivery(
-    @Headers('x-tenant-id') tenantId: string,
+    @Request() req: any,
     @Param('id') id: string,
+    @Headers('x-tenant-id') headerTenantId?: string,
   ) {
+    const tenantId = this.getTenantId(req, headerTenantId);
     return this.developerApiService.retryWebhookDelivery(tenantId, id);
   }
 }

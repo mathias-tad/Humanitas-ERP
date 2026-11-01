@@ -72,7 +72,7 @@ export class HrmsImportExportController {
     @Body() dto: ValidateImportDto,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.service.validateImport(tenantId, dto, userId, headerCompanyId, headerBranchId);
     return { data, message: 'File validated. Review preview and error breakdown before committing.' };
   }
@@ -84,7 +84,7 @@ export class HrmsImportExportController {
     @Body() dto: CommitImportDto,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.service.commitImport(tenantId, dto, userId);
     return { data };
   }
@@ -96,7 +96,7 @@ export class HrmsImportExportController {
     @Param('id') id: string,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.service.rollbackImport(tenantId, id, userId);
     return { data };
   }
@@ -110,7 +110,7 @@ export class HrmsImportExportController {
     @Body() dto: TriggerExportDto,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.service.triggerExport(tenantId, dto, userId, headerCompanyId, headerBranchId);
     return { data, message: 'Data export generated successfully' };
   }
@@ -129,7 +129,7 @@ export class HrmsImportExportController {
     @Body() dto: CreateExportTemplateDto,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.service.createExportTemplate(tenantId, dto, userId);
     return { data };
   }

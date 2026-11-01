@@ -53,7 +53,7 @@ export class HrmsAssetsController {
     @Headers('x-tenant-id') tenantId: string,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.assetsService.getMyAssets(tenantId, userId);
     return { data };
   }
@@ -65,7 +65,7 @@ export class HrmsAssetsController {
     @Param('assignmentId') assignmentId: string,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.assetsService.acknowledgeAsset(tenantId, assignmentId, userId);
     return { data, message: 'Asset custody acknowledged successfully' };
   }
@@ -137,7 +137,7 @@ export class HrmsAssetsController {
     @Body() dto: CreateAssetDto,
     @Request() req: any
   ) {
-    const createdBy = req.user.id || req.user.sub;
+    const createdBy = req.user.sub || req.user.id || req.user.sub;
     const companyId = dto.company_id || headerCompanyId;
     const branchId = dto.branch_id || headerBranchId;
     const data = await this.assetsService.createAsset(
@@ -179,7 +179,7 @@ export class HrmsAssetsController {
     @Body() dto: AssignAssetDto,
     @Request() req: any
   ) {
-    const assignedBy = req.user.id || req.user.sub;
+    const assignedBy = req.user.sub || req.user.id || req.user.sub;
     const data = await this.assetsService.assignAsset(tenantId, id, dto, assignedBy);
     return { data, message: 'Asset assigned successfully' };
   }
@@ -192,7 +192,7 @@ export class HrmsAssetsController {
     @Body() dto: ReturnAssetDto,
     @Request() req: any
   ) {
-    const receivedBy = req.user.id || req.user.sub;
+    const receivedBy = req.user.sub || req.user.id || req.user.sub;
     const data = await this.assetsService.returnAsset(tenantId, id, dto, receivedBy);
     return { data, message: 'Asset returned successfully' };
   }
@@ -205,7 +205,7 @@ export class HrmsAssetsController {
     @Body() dto: CreateMaintenanceLogDto,
     @Request() req: any
   ) {
-    const loggedBy = req.user.id || req.user.sub;
+    const loggedBy = req.user.sub || req.user.id || req.user.sub;
     const data = await this.assetsService.createMaintenanceLog(tenantId, id, dto, loggedBy);
     return { data, message: 'Maintenance record logged successfully' };
   }

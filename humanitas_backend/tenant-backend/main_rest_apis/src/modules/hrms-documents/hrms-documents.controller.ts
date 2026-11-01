@@ -60,7 +60,7 @@ export class HrmsDocumentsController {
     query.branch_id = query.branch_id || headerBranchId;
 
     if (!isPrivileged) {
-      query.userId = req.user?.id;
+      query.userId = (req.user?.sub || req.user?.id);
     }
 
     return this.documentsService.getDocuments(tenantId, query);
@@ -232,7 +232,7 @@ export class HrmsDocumentsController {
   @RequirePermissions('generate_employee_letters')
   async generateLetter(@Request() req: any, @Body() dto: GenerateLetterDto) {
     const tenantId = req.user?.tenantId || req.user?.tenant_id;
-    return this.documentsService.generateLetter(tenantId, dto, req.user?.id);
+    return this.documentsService.generateLetter(tenantId, dto, (req.user?.sub || req.user?.id));
   }
 
   // ── CREATE DOCUMENT ───────────────────────────────────────────────────────
@@ -249,11 +249,11 @@ export class HrmsDocumentsController {
       permissions.includes('manage_employee_documents') ||
       permissions.includes('manage_documents');
 
-    if (!isPrivileged && dto.userId !== req.user?.id) {
+    if (!isPrivileged && dto.userId !== (req.user?.sub || req.user?.id)) {
       throw new ForbiddenException('You are not authorized to upload documents for other employees');
     }
 
-    return this.documentsService.createDocument(tenantId, dto, req.user?.id);
+    return this.documentsService.createDocument(tenantId, dto, (req.user?.sub || req.user?.id));
   }
 
   // ── :id PARAMETERIZED ROUTES (always last) ────────────────────────────────
@@ -271,7 +271,7 @@ export class HrmsDocumentsController {
       permissions.includes('view_employee_documents') ||
       permissions.includes('view_documents');
 
-    if (!isPrivileged && doc.user_id !== req.user?.id) {
+    if (!isPrivileged && doc.user_id !== (req.user?.sub || req.user?.id)) {
       throw new ForbiddenException('You are not authorized to view this document');
     }
 
@@ -291,7 +291,7 @@ export class HrmsDocumentsController {
     return this.documentsService.addDocumentVersion(tenantId, id, {
       file_url: body.file_url,
       file_name: body.file_name,
-      uploaded_by: req.user?.id,
+      uploaded_by: (req.user?.sub || req.user?.id),
       uploadedByName: req.user?.name || req.user?.full_name || req.user?.email,
       change_notes: body.change_notes,
       file_size: body.file_size,
@@ -313,7 +313,7 @@ export class HrmsDocumentsController {
     @Body() dto: VerifyDocumentDto,
   ) {
     const tenantId = req.user?.tenantId || req.user?.tenant_id;
-    return this.documentsService.verifyDocument(tenantId, id, dto, req.user?.id);
+    return this.documentsService.verifyDocument(tenantId, id, dto, (req.user?.sub || req.user?.id));
   }
 
   @Delete(':id')

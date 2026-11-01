@@ -182,12 +182,12 @@ export class HrmsGrievancesService {
     const connection = await this.getConnection(tenantId);
     const submitterNameSql = hasManagePerm
       ? `CASE 
-          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, u.first_name, ''), ' (Masked/Anonymous)')
-          ELSE COALESCE(u.full_name, u.first_name, '')
+          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, ''), ' (Masked/Anonymous)')
+          ELSE COALESCE(u.full_name, '')
         END`
       : `CASE 
           WHEN g.is_anonymous = TRUE THEN 'Anonymous Submitter'
-          ELSE COALESCE(u.full_name, u.first_name, '')
+          ELSE COALESCE(u.full_name, '')
         END`;
 
     let query = `
@@ -196,15 +196,15 @@ export class HrmsGrievancesService {
         ${submitterNameSql} AS submitter_name,
         u.email AS submitter_email,
         u.department AS submitter_department,
-        COALESCE(inv.full_name, inv.first_name, '') AS investigator_name,
+        COALESCE(inv.full_name, '') AS investigator_name,
         (SELECT COUNT(*) FROM grievance_attachments ga WHERE ga.grievance_id = g.id) AS attachments_count,
         CASE 
           WHEN g.status != 'closed' AND NOW() > g.sla_resolution_deadline THEN TRUE
           ELSE FALSE
         END AS is_sla_breached
       FROM grievances g
-      LEFT JOIN users u ON g.user_id = u.id
-      LEFT JOIN users inv ON g.assigned_investigator_id = inv.id
+      LEFT JOIN users u ON g.user_id::text = u.id::text
+      LEFT JOIN users inv ON g.assigned_investigator_id::text = inv.id::text
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -249,12 +249,12 @@ export class HrmsGrievancesService {
     const connection = await this.getConnection(tenantId);
     const submitterNameSql = hasManagePerm
       ? `CASE 
-          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, u.first_name, ''), ' (Anonymous)')
-          ELSE COALESCE(u.full_name, u.first_name, '')
+          WHEN g.is_anonymous = TRUE THEN CONCAT(COALESCE(u.full_name, ''), ' (Anonymous)')
+          ELSE COALESCE(u.full_name, '')
         END`
       : `CASE 
           WHEN g.is_anonymous = TRUE THEN 'Anonymous Submitter'
-          ELSE COALESCE(u.full_name, u.first_name, '')
+          ELSE COALESCE(u.full_name, '')
         END`;
 
     const rows = await connection.query(
@@ -263,14 +263,14 @@ export class HrmsGrievancesService {
         ${submitterNameSql} AS submitter_name,
         u.email AS submitter_email,
         u.department AS submitter_department,
-        COALESCE(inv.full_name, inv.first_name, '') AS investigator_name,
+        COALESCE(inv.full_name, '') AS investigator_name,
         CASE 
           WHEN g.status != 'closed' AND NOW() > g.sla_resolution_deadline THEN TRUE
           ELSE FALSE
         END AS is_sla_breached
        FROM grievances g
-       LEFT JOIN users u ON g.user_id = u.id
-       LEFT JOIN users inv ON g.assigned_investigator_id = inv.id
+       LEFT JOIN users u ON g.user_id::text = u.id::text
+       LEFT JOIN users inv ON g.assigned_investigator_id::text = inv.id::text
        WHERE g.id = $1`,
       [id],
     );
@@ -287,9 +287,9 @@ export class HrmsGrievancesService {
 
     // Get timeline
     let timelineQuery = `
-      SELECT gt.*, CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS actor_name
+      SELECT gt.*, COALESCE(u.full_name, '') AS actor_name
       FROM grievance_timeline gt
-      LEFT JOIN users u ON gt.actor_id = u.id
+      LEFT JOIN users u ON gt.actor_id::text = u.id::text
       WHERE gt.grievance_id = $1
     `;
     const timelineParams: any[] = [id];

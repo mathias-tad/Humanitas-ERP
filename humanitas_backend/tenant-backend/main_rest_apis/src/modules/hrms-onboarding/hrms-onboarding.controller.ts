@@ -120,7 +120,7 @@ export class HrmsOnboardingController {
 
     // Normal employee only sees their own onboarding record
     if (!isPrivileged) {
-      filters.user_id = req.user?.id;
+      filters.user_id = (req.user?.sub || req.user?.id);
     }
 
     return this.onboardingService.getOnboardings(tenantId, filters);
@@ -145,7 +145,7 @@ export class HrmsOnboardingController {
     @Body() dto: StartOnboardingDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const createdBy = req.user?.id;
+    const createdBy = (req.user?.sub || req.user?.id);
     return this.onboardingService.startOnboarding(tenantId, dto, createdBy);
   }
 
@@ -159,7 +159,7 @@ export class HrmsOnboardingController {
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     if (!dto.completed_by) {
-      dto.completed_by = req.user?.id;
+      dto.completed_by = (req.user?.sub || req.user?.id);
     }
     return this.onboardingService.updateOnboardingTask(tenantId, taskId, dto);
   }
@@ -206,7 +206,7 @@ export class HrmsOnboardingController {
     @Body() dto: StartOffboardingDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const initiatedBy = req.user?.id;
+    const initiatedBy = (req.user?.sub || req.user?.id);
     return this.onboardingService.startOffboarding(tenantId, dto, initiatedBy);
   }
 
@@ -230,7 +230,7 @@ export class HrmsOnboardingController {
     @Body() dto: SubmitExitInterviewDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user?.id;
+    const userId = (req.user?.sub || req.user?.id);
     return this.onboardingService.submitExitInterview(tenantId, dto, userId);
   }
 
@@ -244,7 +244,7 @@ export class HrmsOnboardingController {
     @Query('userId') userId?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const targetId = userId || req.user?.id;
+    const targetId = userId || (req.user?.sub || req.user?.id);
     return this.onboardingService.getWelcomePortalStatus(tenantId, targetId);
   }
 
@@ -258,7 +258,7 @@ export class HrmsOnboardingController {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     return this.onboardingService.updateWelcomePortalStep(
       tenantId,
-      req.user?.id,
+      (req.user?.sub || req.user?.id),
       body.step,
       body.value,
       body.e_signature,
@@ -356,7 +356,7 @@ export class HrmsOnboardingController {
     @Body() body: { user_id: string },
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const initiatedBy = req.user?.id;
+    const initiatedBy = (req.user?.sub || req.user?.id);
     return this.onboardingService.execute1ClickSeparation(tenantId, body.user_id, initiatedBy);
   }
 }

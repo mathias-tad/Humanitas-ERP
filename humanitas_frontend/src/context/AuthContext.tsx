@@ -387,5 +387,13 @@ export function getAuthHeaders(): HeadersInit {
   const branchId = localStorage.getItem(ACTIVE_BRANCH_KEY);
   if (compId) headers['x-company-id'] = compId;
   if (branchId) headers['x-branch-id'] = branchId;
+  const tenantInfo = localStorage.getItem(TENANT_KEY);
+  if (tenantInfo) {
+    try {
+      const parsed = JSON.parse(tenantInfo);
+      if (parsed.id) headers['x-tenant-id'] = parsed.id;
+      if (parsed.slug) headers['x-tenant-slug'] = parsed.slug;
+    } catch {}
+  }
   return headers;
 }

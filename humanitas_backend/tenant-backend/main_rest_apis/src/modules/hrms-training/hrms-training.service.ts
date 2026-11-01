@@ -396,11 +396,11 @@ export class HrmsTrainingService {
     let query = `
       SELECT e.*, c.title as course_title, c.category as course_category,
              c.duration_hours, c.is_mandatory, c.passing_score,
-             u.full_name as user_name, u.email as user_email, u.department as user_department,
+             COALESCE(u.full_name, '') as user_name, u.email as user_email, u.department as user_department,
              s.start_time as session_start_time, s.venue_or_link as session_venue
       FROM training_enrollments e
       JOIN training_courses c ON e.course_id = c.id
-      JOIN users u ON e.user_id = u.id
+      JOIN users u ON e.user_id::text = u.id::text
       LEFT JOIN training_sessions s ON e.session_id = s.id
       WHERE 1=1
     `;
@@ -429,10 +429,10 @@ export class HrmsTrainingService {
     const rows = await connection.query(
       `SELECT e.*, c.title as course_title, c.category as course_category,
               c.duration_hours, c.is_mandatory, c.passing_score,
-              u.full_name as user_name, u.email as user_email, u.department as user_department
+              COALESCE(u.full_name, '') as user_name, u.email as user_email, u.department as user_department
        FROM training_enrollments e
        JOIN training_courses c ON e.course_id = c.id
-       JOIN users u ON e.user_id = u.id
+       JOIN users u ON e.user_id::text = u.id::text
        WHERE e.id = $1`,
       [id],
     );
@@ -475,9 +475,9 @@ export class HrmsTrainingService {
   async getEmployeeSkills(tenantId: string, userId?: string) {
     const connection = await this.getConnection(tenantId);
     let query = `
-      SELECT s.*, u.full_name as user_name, u.department as user_department
+      SELECT s.*, COALESCE(u.full_name, '') as user_name, u.department as user_department
       FROM employee_skills s
-      JOIN users u ON s.user_id = u.id
+      JOIN users u ON s.user_id::text = u.id::text
       WHERE 1=1
     `;
     const params: any[] = [];

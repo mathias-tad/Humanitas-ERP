@@ -83,7 +83,7 @@ describe('SelfServiceService', () => {
       expect(res.attendance_summary.present).toBe(18);
       expect(res.attendance_summary.late).toBe(2);
       expect(res.attendance_summary.streak).toBe(3);
-      expect(res.latest_payslip.net_pay).toBe('4500.00');
+      expect((res.latest_payslip as any)?.net_pay).toBe('4500.00');
     });
 
     it('should throw NotFoundException if user not found', async () => {

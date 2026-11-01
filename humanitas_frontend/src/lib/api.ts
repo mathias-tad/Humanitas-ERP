@@ -19,6 +19,19 @@ export function getCurrentTenantSlug(): string | null {
   return null;
 }
 
+export function getCurrentTenantId(): string | null {
+  try {
+    const stored = localStorage.getItem('tenant_info');
+    if (stored) {
+      const tenant = JSON.parse(stored);
+      return tenant.id || null;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
+
 // Try to refresh token
 export async function tryRefreshToken(): Promise<boolean> {
   try {
@@ -56,6 +69,10 @@ export async function apiRequest<T = unknown>(
     const tenantSlug = getCurrentTenantSlug();
     if (tenantSlug) {
       (requestHeaders as Record<string, string>)['x-tenant-slug'] = tenantSlug;
+    }
+    const tenantId = getCurrentTenantId();
+    if (tenantId) {
+      (requestHeaders as Record<string, string>)['x-tenant-id'] = tenantId;
     }
   }
 

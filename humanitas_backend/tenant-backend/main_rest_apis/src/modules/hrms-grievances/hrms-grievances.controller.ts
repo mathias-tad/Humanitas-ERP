@@ -44,7 +44,7 @@ export class HrmsGrievancesController {
     @Body() dto: FileGrievanceDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const companyId = req.user.company_id || companyIdHeader;
     const branchId = req.user.branch_id || branchIdHeader;
     return this.grievancesService.fileGrievance(tenantId, userId, dto, companyId, branchId);
@@ -61,7 +61,7 @@ export class HrmsGrievancesController {
     @Query('category') category?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 
@@ -102,7 +102,7 @@ export class HrmsGrievancesController {
     @Param('id') id: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
     const permissions: string[] = req.user.permissions || [];
 
@@ -123,7 +123,7 @@ export class HrmsGrievancesController {
     @Body() dto: UpdateGrievanceStatusDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     return this.grievancesService.updateStatus(tenantId, id, userId, dto);
   }
 
@@ -136,7 +136,7 @@ export class HrmsGrievancesController {
     @Body() dto: AssignInvestigatorDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     return this.grievancesService.assignInvestigator(tenantId, id, userId, dto);
   }
 
@@ -149,7 +149,7 @@ export class HrmsGrievancesController {
     @Body() dto: ProposeResolutionDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     return this.grievancesService.proposeResolution(tenantId, id, userId, dto);
   }
 
@@ -162,7 +162,7 @@ export class HrmsGrievancesController {
     @Body() dto: SubmitSatisfactionFeedbackDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     return this.grievancesService.submitFeedback(tenantId, id, userId, dto);
   }
 
@@ -175,7 +175,7 @@ export class HrmsGrievancesController {
     @Body() dto: AddGrievanceNoteDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     return this.grievancesService.addNote(tenantId, id, userId, dto);
   }
 }

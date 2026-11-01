@@ -130,7 +130,7 @@ export class HrmsTrainingController {
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
     // Regular learners only view their own enrollments
-    const targetUserId = hasManage ? user_id : req.user.id;
+    const targetUserId = hasManage ? user_id : req.user.sub || req.user.id;
     return this.trainingService.getEnrollments(tenantId, {
       course_id,
       user_id: targetUserId,
@@ -145,7 +145,7 @@ export class HrmsTrainingController {
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    return this.trainingService.getEnrollments(tenantId, { user_id: req.user.id });
+    return this.trainingService.getEnrollments(tenantId, { user_id: req.user.sub || req.user.id });
   }
 
   @Get('enrollments/:id')
@@ -171,11 +171,11 @@ export class HrmsTrainingController {
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.id;
+    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub || req.user.id;
     return this.trainingService.enrollLearner(
       tenantId,
       { ...dto, user_id: targetUserId },
-      req.user.id,
+      req.user.sub || req.user.id,
     );
   }
 
@@ -205,7 +205,7 @@ export class HrmsTrainingController {
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage ? user_id : (user_id || req.user.id);
+    const targetUserId = hasManage ? user_id : (user_id || req.user.sub || req.user.id);
     return this.trainingService.getEmployeeSkills(tenantId, targetUserId);
   }
 
@@ -221,13 +221,13 @@ export class HrmsTrainingController {
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.id;
+    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub || req.user.id;
     const isVerified = hasManage ? dto.verified : false;
 
     return this.trainingService.upsertEmployeeSkill(
       tenantId,
       { ...dto, user_id: targetUserId, verified: isVerified },
-      req.user.id,
+      req.user.sub || req.user.id,
     );
   }
 

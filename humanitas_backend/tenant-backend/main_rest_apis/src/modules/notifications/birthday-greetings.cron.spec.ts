@@ -47,7 +47,7 @@ describe('BirthdayGreetingsCron', () => {
   });
 
   it('should skip processing if tenant has deactivated birthday greetings', async () => {
-    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as Tenant;
+    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as unknown as Tenant;
     mockNotificationsService.getBirthdayGreetingSettings.mockResolvedValue({
       enabled: false,
       notifyColleagues: true,
@@ -60,7 +60,7 @@ describe('BirthdayGreetingsCron', () => {
   });
 
   it('should send greeting to celebrant and alerts to colleagues when enabled (default)', async () => {
-    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as Tenant;
+    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as unknown as Tenant;
     mockNotificationsService.getBirthdayGreetingSettings.mockResolvedValue({
       enabled: true,
       notifyColleagues: true,
@@ -134,7 +134,7 @@ describe('BirthdayGreetingsCron', () => {
   });
 
   it('should not notify colleagues when notifyColleagues is set to false', async () => {
-    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as Tenant;
+    const testTenant = { id: 'tenant-1', slug: 'acme', name: 'Acme Corp', is_active: true } as unknown as Tenant;
     mockNotificationsService.getBirthdayGreetingSettings.mockResolvedValue({
       enabled: true,
       notifyColleagues: false,

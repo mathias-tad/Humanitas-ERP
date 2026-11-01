@@ -6,7 +6,6 @@ import {
   Param,
   Body,
   Query,
-  Headers,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -32,84 +31,71 @@ export class SelfServiceController {
 
   @Get('dashboard')
   @RequirePermissions('view_self_service')
-  async getDashboard(
-    @Headers('x-tenant-id') tenantId: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user.id;
+  async getDashboard(@Request() req: any) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     return this.selfServiceService.getDashboard(tenantId, userId);
   }
 
   @Get('attendance-heatmap')
   @RequirePermissions('view_self_service')
   async getAttendanceHeatmap(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Query('days') days?: string,
   ) {
-    const userId = req.user.id;
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     const daysBack = days ? parseInt(days, 10) : 90;
-    return this.selfServiceService.getAttendanceHeatmap(
-      tenantId,
-      userId,
-      daysBack,
-    );
+    return this.selfServiceService.getAttendanceHeatmap(tenantId, userId, daysBack);
   }
 
   @Get('payslips')
   @RequirePermissions('view_self_service')
-  async getPayslips(
-    @Headers('x-tenant-id') tenantId: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user.id;
+  async getPayslips(@Request() req: any) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     return this.selfServiceService.getPayslips(tenantId, userId);
   }
 
   @Get('profile')
   @RequirePermissions('view_self_service')
-  async getProfile(
-    @Headers('x-tenant-id') tenantId: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user.id;
+  async getProfile(@Request() req: any) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     return this.selfServiceService.getProfile(tenantId, userId);
   }
 
   @Put('profile')
   @RequirePermissions('edit_my_profile')
   async updateProfile(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Body() dto: UpdateProfileSelfDto,
   ) {
-    const userId = req.user.id;
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     return this.selfServiceService.updateProfile(tenantId, userId, dto);
   }
 
   @Post('change-request')
   @RequirePermissions('edit_my_profile')
   async requestSensitiveChange(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Body() dto: RequestSensitiveChangeDto,
   ) {
-    const userId = req.user.id;
-    return this.selfServiceService.requestSensitiveChange(
-      tenantId,
-      userId,
-      dto,
-    );
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
+    return this.selfServiceService.requestSensitiveChange(tenantId, userId, dto);
   }
 
   @Get('change-requests')
   @RequirePermissions('view_self_service')
   async getChangeRequests(
-    @Headers('x-tenant-id') tenantId: string,
     @Request() req: any,
     @Query('status') status?: string,
   ) {
+    const tenantId = req.user.tenantId;
     const user = req.user;
+    const userId = user.sub || user.id;
     const userRole = (user?.role || '').toLowerCase();
     const isManagerOrAdmin =
       userRole === 'admin' ||
@@ -120,7 +106,7 @@ export class SelfServiceController {
 
     return this.selfServiceService.getChangeRequests(
       tenantId,
-      user.id,
+      userId,
       isManagerOrAdmin,
       status || 'pending',
     );
@@ -129,27 +115,20 @@ export class SelfServiceController {
   @Put('change-requests/:id/review')
   @RequirePermissions('manage_profile_requests')
   async reviewChangeRequest(
-    @Headers('x-tenant-id') tenantId: string,
     @Param('id') id: string,
     @Request() req: any,
     @Body() dto: ReviewSensitiveChangeDto,
   ) {
-    const reviewerId = req.user.id;
-    return this.selfServiceService.reviewChangeRequest(
-      tenantId,
-      id,
-      reviewerId,
-      dto,
-    );
+    const tenantId = req.user.tenantId;
+    const reviewerId = req.user.sub || req.user.id;
+    return this.selfServiceService.reviewChangeRequest(tenantId, id, reviewerId, dto);
   }
 
   @Get('analytics')
   @RequirePermissions('view_self_service')
-  async getAnalytics(
-    @Headers('x-tenant-id') tenantId: string,
-    @Request() req: any,
-  ) {
-    const userId = req.user.id;
+  async getAnalytics(@Request() req: any) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user.sub || req.user.id;
     return this.selfServiceService.getAnalytics(tenantId, userId);
   }
 }

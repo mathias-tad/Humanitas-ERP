@@ -81,7 +81,7 @@ export class PayrollScheduler {
           );
 
           const settingsResult = await connection.query(`
-            SELECT value FROM settings WHERE key = 'hr_settings'
+            SELECT data FROM settings WHERE category = 'hr' LIMIT 1
           `);
 
           if (!settingsResult || settingsResult.length === 0) {
@@ -89,9 +89,9 @@ export class PayrollScheduler {
           }
 
           const hrSettings =
-            typeof settingsResult[0].value === 'string'
-              ? JSON.parse(settingsResult[0].value)
-              : settingsResult[0].value;
+            typeof settingsResult[0].data === 'string'
+              ? JSON.parse(settingsResult[0].data)
+              : settingsResult[0].data;
 
           const autoPayrollEnabled = hrSettings.auto_payroll_enabled === true;
           const payrollRunDay = hrSettings.payroll_run_day || 25;

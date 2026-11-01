@@ -79,7 +79,7 @@ export class LeaveScheduler {
 
           // Get tenant's HR settings
           const settingsResult = await connection.query(`
-            SELECT value FROM settings WHERE key = 'hr_settings'
+            SELECT data FROM settings WHERE category = 'hr' LIMIT 1
           `);
 
           if (!settingsResult || settingsResult.length === 0) {
@@ -87,9 +87,9 @@ export class LeaveScheduler {
           }
 
           const hrSettings =
-            typeof settingsResult[0].value === 'string'
-              ? JSON.parse(settingsResult[0].value)
-              : settingsResult[0].value;
+            typeof settingsResult[0].data === 'string'
+              ? JSON.parse(settingsResult[0].data)
+              : settingsResult[0].data;
 
           const leaveCalculationDay = hrSettings.leave_calculation_day || 1;
           const leaveIncreasePerYear = hrSettings.leave_increase_per_year || 1;
@@ -231,7 +231,7 @@ export class LeaveScheduler {
 
     // Get HR settings
     const settingsResult = await connection.query(`
-      SELECT value FROM settings WHERE key = 'hr_settings'
+      SELECT data FROM settings WHERE category = 'hr' LIMIT 1
     `);
 
     if (!settingsResult || settingsResult.length === 0) {
@@ -239,9 +239,9 @@ export class LeaveScheduler {
     }
 
     const hrSettings =
-      typeof settingsResult[0].value === 'string'
-        ? JSON.parse(settingsResult[0].value)
-        : settingsResult[0].value;
+      typeof settingsResult[0].data === 'string'
+        ? JSON.parse(settingsResult[0].data)
+        : settingsResult[0].data;
 
     const leaveIncreasePerYear = hrSettings.leave_increase_per_year || 1;
     const leaveTypes = hrSettings.leave_types || [];

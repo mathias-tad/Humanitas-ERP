@@ -59,7 +59,7 @@ export class HrmsSurveysController {
     @Body() dto: CreateSurveyActionItemDto,
     @Request() req: any
   ) {
-    const createdBy = req.user.id || req.user.sub;
+    const createdBy = req.user.sub || req.user.id || req.user.sub;
     const data = await this.surveysService.createActionItem(tenantId, dto, createdBy);
     return { data, message: 'Survey follow-up action created successfully' };
   }
@@ -98,7 +98,7 @@ export class HrmsSurveysController {
     @Param('id') id: string,
     @Request() req: any
   ) {
-    const currentUserId = req.user.id || req.user.sub;
+    const currentUserId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.surveysService.getSurveyById(tenantId, id, currentUserId);
     return { data };
   }
@@ -122,7 +122,7 @@ export class HrmsSurveysController {
     @Body() dto: CreateSurveyDto,
     @Request() req: any
   ) {
-    const createdBy = req.user.id || req.user.sub;
+    const createdBy = req.user.sub || req.user.id || req.user.sub;
     const companyId = headerCompanyId;
     const branchId = headerBranchId;
     const data = await this.surveysService.createSurvey(tenantId, dto, createdBy, companyId, branchId);
@@ -136,7 +136,7 @@ export class HrmsSurveysController {
     @Body() dto: SubmitSurveyResponseDto,
     @Request() req: any
   ) {
-    const userId = req.user.id || req.user.sub;
+    const userId = req.user.sub || req.user.id || req.user.sub;
     const data = await this.surveysService.submitResponse(tenantId, dto, userId);
     return { data, message: 'Response recorded successfully' };
   }
