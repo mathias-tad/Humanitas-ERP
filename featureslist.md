@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 45 | 45 | 0 | 100% |
+| HRMS & Recruitment | 52 | 52 | 0 | 100% |
 | Project Management (PMS) | 28 | 28 | 0 | 100% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **759** | **454** | **305** | **60%** |
+| **TOTAL** | **766** | **461** | **305** | **60%** |
 
 ---
 
@@ -428,6 +428,14 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Overtime cost analysis by department and period.
   - [x] Payroll cost breakdown report (gross, deductions, net by department).
   - [x] Employee turnover and retention rate analysis.
+- [x] **Workforce Management (WFM) — Voluntary Extra Time (VET) & Voluntary Time Off (VTO)**:
+  - [x] Broadcast opportunities engine for managers to post extra overtime shifts (VET) or excused voluntary time-off (VTO) with slots and multipliers (1.25x - 2.5x).
+  - [x] Self-service claim portal on Web and Mobile with instant auto-approval or manager review workflows.
+  - [x] Fatigue and labor compliance guardrails enforcing max weekly overtime hours and minimum rest intervals between consecutive shifts.
+  - [x] Automated scheduling integration updating `schedules` table with shift assignments and excused absence flags.
+  - [x] Automated payroll overtime integration calculating hourly rates, multipliers, and upserting into `overtime_entries`.
+  - [x] Multi-channel notification dispatch to all department users on broadcast, claim submission, decision, and slot re-opening via WebSocket in-app and FCM push.
+  - [x] Flexible tenant configuration for claim strategies (FCFS, Seniority, Fairness), auto-approvals, PTO funding for VTO, and cancellation cutoffs.
 
 ---
 

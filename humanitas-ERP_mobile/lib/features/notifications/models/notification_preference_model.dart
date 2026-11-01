@@ -73,6 +73,11 @@ const Map<String, String> kNotificationCategoryLabels = {
   'api_key_provisioned': 'API Key Provisioned',
   'birthday_greeting': 'Birthday Greeting',
   'colleague_birthday_alert': "Colleague's Birthday Alert",
+  'vet_opportunity_broadcast': 'VET Overtime Shifts Available',
+  'vto_opportunity_broadcast': 'VTO Time-Off Slots Available',
+  'wfm_claim_decision': 'VET/VTO Claim Decision',
+  'wfm_slot_reopened': 'VET/VTO Slot Re-Opened',
+  'wfm_claim_submitted': 'Pending VET/VTO Claim Review',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -88,6 +93,11 @@ const Map<String, String> kNotificationCategoryGroups = {
   'birthday_greeting': 'Personal & Self-Service',
   'colleague_birthday_alert': 'Personal & Self-Service',
   'pms_task_assigned': 'Personal & Self-Service',
+  'vet_opportunity_broadcast': 'Personal & Self-Service',
+  'vto_opportunity_broadcast': 'Personal & Self-Service',
+  'wfm_claim_decision': 'Personal & Self-Service',
+  'wfm_slot_reopened': 'Personal & Self-Service',
+  'wfm_claim_submitted': 'Approvals & Management',
   'leave_approval_requests': 'Approvals & Management',
   'expense_approval_requests': 'Approvals & Management',
   'grievance_filed': 'Approvals & Management',

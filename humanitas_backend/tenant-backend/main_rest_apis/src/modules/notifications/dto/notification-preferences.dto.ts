@@ -29,6 +29,12 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   birthday_greeting:       null,
   colleague_birthday_alert: null,
 
+  // WFM & VET/VTO (Available to employees)
+  vet_opportunity_broadcast: null,
+  vto_opportunity_broadcast: null,
+  wfm_claim_decision:        null,
+  wfm_slot_reopened:         null,
+
   // Manager/HR level
   leave_approval_requests:   'approve_leave',
   expense_approval_requests: 'approve_expenses',
@@ -39,6 +45,7 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   recruitment_offer_generated:     'manage_recruitment',
   recruitment_candidate_hired:     'manage_recruitment',
   approval_request_created:        'approve_requests',
+  wfm_claim_submitted:             'manage_wfm_claims',
 
   // PMS Agile & Sprints
   pms_task_assigned:         'view_tasks',
@@ -94,6 +101,11 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   recruitment_candidate_hired:     'hrms',
   birthday_greeting:               'hrms',
   colleague_birthday_alert:        'hrms',
+  vet_opportunity_broadcast:       'hrms',
+  vto_opportunity_broadcast:       'hrms',
+  wfm_claim_decision:              'hrms',
+  wfm_slot_reopened:               'hrms',
+  wfm_claim_submitted:             'hrms',
 
   // PMS
   task_assignment_alerts:    'pms',

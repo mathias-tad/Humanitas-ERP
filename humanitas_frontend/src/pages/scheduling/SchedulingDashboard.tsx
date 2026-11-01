@@ -1,12 +1,8 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SchedulingAuditLogs } from './SchedulingAuditLogs';
-
 import { SchedulerView } from '@/components/scheduling/SchedulerView';
 import { ShiftManager } from '@/components/scheduling/ShiftManager';
-
-// Placeholder components for future implementation
-
+import OpportunitiesHub from './OpportunitiesHub';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export default function SchedulingDashboard() {
@@ -17,17 +13,18 @@ export default function SchedulingDashboard() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Scheduling & Rostering</h1>
                     <p className="text-muted-foreground mt-2">
-                        Manage shifts, create patterns, and assign schedules to employees.
+                        Manage shifts, create patterns, assign schedules, and flex workforce with VET & VTO opportunities.
                     </p>
                 </div>
             </div>
 
             <Tabs defaultValue="roster" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-[600px]">
                     <TabsTrigger value="roster">Roster</TabsTrigger>
                     {(hasPermission("view_shifts") || hasPermission("manage_shifts") || hasPermission("view_roster") || hasPermission("manage_roster")) && (
                         <TabsTrigger value="shifts">Shifts & Patterns</TabsTrigger>
                     )}
+                    <TabsTrigger value="vet-vto">VET & VTO Hub</TabsTrigger>
                     <TabsTrigger value="audit">History & Logs</TabsTrigger>
                 </TabsList>
 
@@ -40,6 +37,10 @@ export default function SchedulingDashboard() {
                         <ShiftManager />
                     </TabsContent>
                 )}
+
+                <TabsContent value="vet-vto" className="mt-6">
+                    <OpportunitiesHub />
+                </TabsContent>
 
                 <TabsContent value="audit" className="mt-6">
                     <SchedulingAuditLogs />

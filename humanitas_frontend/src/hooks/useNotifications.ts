@@ -53,6 +53,11 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   api_key_provisioned:             'API Key Provisioned',
   birthday_greeting:               'Birthday Greeting',
   colleague_birthday_alert:        "Colleague's Birthday Alert",
+  vet_opportunity_broadcast:       'VET Overtime Shifts Available',
+  vto_opportunity_broadcast:       'VTO Time-Off Slots Available',
+  wfm_claim_decision:              'VET/VTO Claim Decision',
+  wfm_slot_reopened:               'VET/VTO Slot Re-Opened',
+  wfm_claim_submitted:             'Pending VET/VTO Claim Review',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -67,6 +72,11 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   profile_update:            'When changes are made to your employee profile',
   birthday_greeting:         'Personal birthday greeting and warm wishes from the company',
   colleague_birthday_alert:  'Alert when a team colleague is celebrating their birthday today',
+  vet_opportunity_broadcast: 'Alert when extra overtime shifts (VET) are broadcast and available to claim in your department',
+  vto_opportunity_broadcast: 'Alert when voluntary time off (VTO) slots are broadcast and available to claim in your department',
+  wfm_claim_decision:        'Notification when your VET overtime shift or VTO time off claim is approved or rejected',
+  wfm_slot_reopened:         'Alert when a previously filled shift or voluntary time-off slot reopens due to cancellation',
+  wfm_claim_submitted:       'Alert when an employee submits a VET or VTO claim requiring supervisor review',
   leave_approval_requests:   'Pending leave requests awaiting your approval',
   expense_approval_requests: 'Pending expense reports awaiting your review',
   grievance_filed:           'When a new grievance is filed requiring your attention',
@@ -98,6 +108,8 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'asset_assigned', 'training_enrolled', 'profile_update',
     'birthday_greeting', 'colleague_birthday_alert',
     'pms_task_assigned',
+    'vet_opportunity_broadcast', 'vto_opportunity_broadcast',
+    'wfm_claim_decision', 'wfm_slot_reopened',
   ],
   'Approvals & Management': [
     'leave_approval_requests', 'expense_approval_requests',
@@ -105,6 +117,7 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'recruitment_interview_scheduled', 'recruitment_offer_generated', 'recruitment_candidate_hired',
     'approval_request_created', 'approval_request_decided', 'approval_escalation_alert',
     'pms_sprint_started', 'pms_sprint_completed', 'pms_milestone_due', 'pms_project_status_update',
+    'wfm_claim_submitted',
   ],
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',

@@ -66,6 +66,11 @@ const permissions: Permission[] = [
   { id: "manage_roster", name: "manage_roster", label: "Manage Roster (Create/Edit)", module: "Roster" },
   { id: "view_shifts", name: "view_shifts", label: "View Shifts & Patterns", module: "Roster" },
   { id: "manage_shifts", name: "manage_shifts", label: "Manage Shifts & Patterns", module: "Roster" },
+  { id: "view_wfm_opportunities", name: "view_wfm_opportunities", label: "View VET/VTO Opportunities", module: "Roster" },
+  { id: "claim_wfm_opportunities", name: "claim_wfm_opportunities", label: "Claim VET/VTO Opportunities", module: "Roster" },
+  { id: "broadcast_wfm_opportunities", name: "broadcast_wfm_opportunities", label: "Broadcast VET/VTO Opportunities", module: "Roster" },
+  { id: "manage_wfm_claims", name: "manage_wfm_claims", label: "Approve/Reject VET/VTO Claims", module: "Roster" },
+  { id: "manage_wfm_settings", name: "manage_wfm_settings", label: "Manage WFM & Fatigue Policies", module: "Roster" },
 
   // Leave
   { id: "view_leave", name: "view", label: "View All Leave Requests", module: "Leave" },

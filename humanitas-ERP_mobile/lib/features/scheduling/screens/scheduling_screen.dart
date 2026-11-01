@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../providers/scheduling_provider.dart';
 import 'admin_roster_screen.dart';
+import 'vet_vto_screen.dart';
 
 class SchedulingScreen extends ConsumerStatefulWidget {
   const SchedulingScreen({super.key});
@@ -32,7 +33,7 @@ class _SchedulingScreenState extends ConsumerState<SchedulingScreen>
         authState.hasAnyPermission(
             ['manage_roster', 'manage_shift_assignments', 'manage_schedules']);
     _tabController = TabController(
-      length: _showAdminTab ? 3 : 2,
+      length: _showAdminTab ? 4 : 3,
       vsync: this,
     );
   }
@@ -49,19 +50,36 @@ class _SchedulingScreenState extends ConsumerState<SchedulingScreen>
 
     final tabs = <Tab>[
       const Tab(text: 'My Roster'),
-      const Tab(text: 'All Shift Types'),
+      const Tab(text: 'All Shifts'),
+      const Tab(text: 'VET & VTO'),
       if (_showAdminTab) const Tab(text: 'Admin Roster'),
     ];
 
     final tabViews = <Widget>[
       const _MyRosterTab(),
       const _AllShiftsTab(),
+      const VetVtoScreen(),
       if (_showAdminTab) const AdminRosterScreen(),
     ];
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
+        title: Text(
+          'Shifts & Roster',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Open VET & VTO Hub',
+            icon: const Icon(Icons.flash_on),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const VetVtoScreen()),
+              );
+            },
+          ),
+        ],
         title: Text(
           'Shifts & Roster',
           style: GoogleFonts.inter(fontWeight: FontWeight.w700),

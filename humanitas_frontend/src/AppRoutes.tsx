@@ -35,6 +35,7 @@ import LeaveBalances from "./pages/leave/LeaveBalances";
 import MyPayslip from "./pages/payroll/MyPayslip";
 import RunPayroll from "./pages/payroll/RunPayroll";
 import SchedulingDashboard from "./pages/scheduling/SchedulingDashboard";
+import OpportunitiesHub from "./pages/scheduling/OpportunitiesHub";
 import Announcements from "./pages/Announcements";
 import Events from "./pages/Events";
 import { OvertimeMonitor } from "./pages/attendance/OvertimeMonitor";
@@ -265,11 +266,17 @@ function AppRoutes() {
         } />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/hr/scheduling" element={
-          <PermissionRoute module="hrms" permissions={["manage_roster", "view_roster", "view_shifts", "manage_shifts", "manage_schedules"]}>
+          <PermissionRoute module="hrms" permissions={["manage_roster", "view_roster", "view_shifts", "manage_shifts", "manage_schedules", "view_wfm_opportunities"]}>
             <SchedulingDashboard />
           </PermissionRoute>
         } />
         <Route path="/scheduling" element={<Navigate to="/hr/scheduling" replace />} />
+        <Route path="/scheduling/opportunities" element={
+          <PermissionRoute module="hrms" permissions={["view_wfm_opportunities"]}>
+            <OpportunitiesHub />
+          </PermissionRoute>
+        } />
+        <Route path="/hr/scheduling/opportunities" element={<Navigate to="/scheduling/opportunities" replace />} />
         <Route path="/devices" element={
           <PermissionRoute module="attendance" permissions={["view_devices", "manage_devices"]}>
             <Devices />
