@@ -98,6 +98,10 @@ export class WfmOpportunitiesService {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(opportunity_id, user_id)
       );
+      ALTER TABLE wfm_opportunities ADD COLUMN IF NOT EXISTS vto_compensation_type VARCHAR(20) DEFAULT 'unpaid';
+      ALTER TABLE wfm_settings ADD COLUMN IF NOT EXISTS default_vto_compensation VARCHAR(20) DEFAULT 'unpaid';
+      ALTER TABLE wfm_opportunity_claims ADD COLUMN IF NOT EXISTS hours NUMERIC(5,2);
+      ALTER TABLE wfm_opportunity_claims ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false;
     `);
 
     // Self-heal permissions for all active roles so existing tenants never get 403
@@ -273,13 +277,15 @@ export class WfmOpportunitiesService {
         vet_claim_strategy, vto_claim_strategy,
         vet_auto_approval, vto_auto_approval,
         max_weekly_ot_hours, min_rest_hours_between_shifts,
-        vto_allow_pto_funding, vet_cancellation_cutoff_hours, vto_cancellation_cutoff_hours
+        vto_allow_pto_funding, vet_cancellation_cutoff_hours, vto_cancellation_cutoff_hours,
+        default_vto_compensation
       ) VALUES (
         $1, $2, true, true,
         'fcfs', 'fcfs',
         true, true,
         20.00, 11.00,
-        false, 4, 2
+        false, 4, 2,
+        'unpaid'
       ) RETURNING *
     `, [companyId || null, branchId || null]);
 
@@ -315,8 +321,9 @@ export class WfmOpportunitiesService {
         notify_via_push = COALESCE($12, notify_via_push),
         notify_via_email = COALESCE($13, notify_via_email),
         notify_via_in_app = COALESCE($14, notify_via_in_app),
+        default_vto_compensation = COALESCE($15, default_vto_compensation),
         updated_at = NOW()
-      WHERE id = $15
+      WHERE id = $16
       RETURNING *
     `, [
       dto.vet_enabled,
@@ -333,6 +340,7 @@ export class WfmOpportunitiesService {
       dto.notify_via_push,
       dto.notify_via_email,
       dto.notify_via_in_app,
+      dto.default_vto_compensation,
       current.id,
     ]);
 
@@ -388,17 +396,24 @@ export class WfmOpportunitiesService {
       }
     }
 
+    // Determine VTO compensation type (unpaid vs paid)
+    const vtoCompensationType = dto.type === 'VTO'
+      ? (dto.vto_compensation_type || settings.default_vto_compensation || 'unpaid')
+      : 'paid';
+
     const result = await connection.query(`
       INSERT INTO wfm_opportunities (
         company_id, branch_id, department_id, type, title,
         date, shift_id, start_time, end_time, hours,
         slots_available, slots_claimed, ot_rate_multiplier, ot_category,
+        vto_compensation_type,
         urgency, status, reason, notes, expires_at, created_by
       ) VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8, $9, $10,
         $11, 0, $12, $13,
-        $14, 'open', $15, $16, $17, $18
+        $14,
+        $15, 'open', $16, $17, $18, $19
       ) RETURNING *
     `, [
       dto.company_id || null,
@@ -414,6 +429,7 @@ export class WfmOpportunitiesService {
       dto.slots_available,
       multiplier,
       otCategory,
+      vtoCompensationType,
       dto.urgency || 'normal',
       dto.reason || null,
       dto.notes || null,
@@ -565,6 +581,7 @@ export class WfmOpportunitiesService {
         o.hours,
         o.ot_rate_multiplier,
         o.ot_category,
+        o.vto_compensation_type,
         s.name AS shift_name
       FROM wfm_opportunity_claims c
       JOIN wfm_opportunities o ON c.opportunity_id = o.id
@@ -625,6 +642,12 @@ export class WfmOpportunitiesService {
     const settings = await this.getSettings(tenantId, opportunity.company_id || userCompanyId, opportunity.branch_id || userBranchId);
 
     // 4. VET Fatigue & Rest Period Validations
+    const oppHours = Number(opportunity.hours);
+    const claimedHours = dto.hours != null ? Number(dto.hours) : oppHours;
+    if (claimedHours <= 0 || claimedHours > oppHours) {
+      throw new BadRequestException(`Claimed hours must be between 0.5 and the maximum opportunity hours (${oppHours}h).`);
+    }
+
     if (opportunity.type === 'VET') {
       if (!settings.vet_enabled) {
         throw new BadRequestException('Voluntary Extra Time claims are disabled by tenant policy');
@@ -650,12 +673,11 @@ export class WfmOpportunitiesService {
         [userId, mondayStr, sundayStr],
       );
       const currentWeeklyOt = Number(otWeekQuery[0]?.total_weekly_ot || 0);
-      const shiftHours = Number(opportunity.hours);
 
-      if (currentWeeklyOt + shiftHours > Number(settings.max_weekly_ot_hours)) {
+      if (currentWeeklyOt + claimedHours > Number(settings.max_weekly_ot_hours)) {
         throw new BadRequestException(
           `Cannot claim VET: Exceeds weekly overtime limit of ${settings.max_weekly_ot_hours}h. ` +
-          `Your current scheduled OT this week is ${currentWeeklyOt}h, claiming ${shiftHours}h would total ${currentWeeklyOt + shiftHours}h.`,
+          `Your current scheduled OT this week is ${currentWeeklyOt}h, claiming ${claimedHours}h would total ${currentWeeklyOt + claimedHours}h.`,
         );
       }
 
@@ -715,9 +737,9 @@ export class WfmOpportunitiesService {
           [userId],
         );
         const remainingDays = Number(leaveBalance[0]?.remaining_days || 0);
-        const daysNeeded = Number(opportunity.hours) / 8.0;
+        const daysNeeded = claimedHours / 8.0;
         if (remainingDays < daysNeeded) {
-          throw new BadRequestException(`Insufficient PTO balance (${remainingDays} days available, ${daysNeeded} days needed).`);
+          throw new BadRequestException(`Insufficient PTO balance (${remainingDays} days available, ${daysNeeded.toFixed(2)} days needed).`);
         }
       }
     }
@@ -730,6 +752,10 @@ export class WfmOpportunitiesService {
 
     const claimStatus = isAutoApproved ? 'approved' : 'pending';
 
+    const isPaid = opportunity.type === 'VET'
+      ? true
+      : (opportunity.vto_compensation_type === 'paid' || Boolean(dto.use_pto_balance));
+
     // 7. Create or update the claim record
     let claimResult;
     if (existingClaim.length > 0) {
@@ -738,15 +764,19 @@ export class WfmOpportunitiesService {
         SET
           status = $1,
           use_pto_balance = $2,
+          hours = $3,
+          is_paid = $4,
           claimed_at = NOW(),
-          company_id = $3,
-          branch_id = $4,
+          company_id = $5,
+          branch_id = $6,
           updated_at = NOW()
-        WHERE id = $5
+        WHERE id = $7
         RETURNING *
       `, [
         claimStatus,
         Boolean(dto.use_pto_balance),
+        claimedHours,
+        isPaid,
         opportunity.company_id || userCompanyId || null,
         opportunity.branch_id || userBranchId || null,
         existingClaim[0].id,
@@ -755,10 +785,10 @@ export class WfmOpportunitiesService {
       claimResult = await connection.query(`
         INSERT INTO wfm_opportunity_claims (
           opportunity_id, user_id, claim_type, status,
-          use_pto_balance, company_id, branch_id
+          use_pto_balance, hours, is_paid, company_id, branch_id
         ) VALUES (
           $1, $2, $3, $4,
-          $5, $6, $7
+          $5, $6, $7, $8, $9
         ) RETURNING *
       `, [
         opportunityId,
@@ -766,6 +796,8 @@ export class WfmOpportunitiesService {
         opportunity.type,
         claimStatus,
         Boolean(dto.use_pto_balance),
+        claimedHours,
+        isPaid,
         opportunity.company_id || userCompanyId || null,
         opportunity.branch_id || userBranchId || null,
       ]);
@@ -917,7 +949,7 @@ export class WfmOpportunitiesService {
 
       const hourlyRate = monthlyHours > 0 ? basicSalary / monthlyHours : 0;
       const multiplier = Number(opportunity.ot_rate_multiplier || 1.5);
-      const hours = Number(opportunity.hours);
+      const hours = Number(claim.hours || opportunity.hours);
       const totalAmount = Number((hours * multiplier * hourlyRate).toFixed(2));
 
       // Determine category column
@@ -966,14 +998,19 @@ export class WfmOpportunitiesService {
         SET
           schedule_id = $1,
           overtime_entry_id = $2,
+          hours = $3,
+          is_paid = true,
           status = 'approved',
           reviewed_at = NOW(),
           updated_at = NOW()
-        WHERE id = $3
-      `, [scheduleId, otEntryId, claim.id]);
+        WHERE id = $4
+      `, [scheduleId, otEntryId, hours, claim.id]);
     }
 
     if (opportunity.type === 'VTO') {
+      const hours = Number(claim.hours || opportunity.hours);
+      const isPaid = opportunity.vto_compensation_type === 'paid' || (claim.use_pto_balance && settings.vto_allow_pto_funding);
+
       // 1. Scheduling Integration: Mark day off (excused)
       const schedUpdate = await connection.query(`
         UPDATE schedules
@@ -985,7 +1022,7 @@ export class WfmOpportunitiesService {
         WHERE user_id = $2 AND date = $3
         RETURNING id
       `, [
-        `VTO Approved: Voluntary Excused Time Off (${opportunity.title})`,
+        `VTO Approved: Voluntary Excused Time Off (${isPaid ? 'Paid' : 'Unpaid'}) - ${opportunity.title}`,
         claim.user_id,
         oppDateStr,
       ]);
@@ -997,14 +1034,18 @@ export class WfmOpportunitiesService {
         UPDATE attendance_records
         SET
           status = 'Excused',
-          remarks = 'VTO Approved (Voluntary Excused Time Off)',
+          remarks = $1,
           updated_at = NOW()
-        WHERE user_id = $1 AND date = $2
-      `, [claim.user_id, oppDateStr]);
+        WHERE user_id = $2 AND date = $3
+      `, [
+        `VTO Approved (${isPaid ? 'Paid' : 'Unpaid'}) - ${opportunity.title}`,
+        claim.user_id,
+        oppDateStr,
+      ]);
 
       // 3. PTO Balance deduction if opted
       if (claim.use_pto_balance && settings.vto_allow_pto_funding) {
-        const daysToDeduct = Number(opportunity.hours) / 8.0;
+        const daysToDeduct = hours / 8.0;
         await connection.query(`
           UPDATE leave_balances
           SET
@@ -1019,10 +1060,12 @@ export class WfmOpportunitiesService {
         SET
           schedule_id = $1,
           status = 'approved',
+          hours = $2,
+          is_paid = $3,
           reviewed_at = NOW(),
           updated_at = NOW()
-        WHERE id = $2
-      `, [scheduleId, claim.id]);
+        WHERE id = $4
+      `, [scheduleId, hours, isPaid, claim.id]);
     }
   }
 
@@ -1041,6 +1084,7 @@ export class WfmOpportunitiesService {
 
     const claimRows = await connection.query(
       `SELECT c.*, o.title, o.type, o.date, o.hours, o.ot_rate_multiplier, o.ot_category,
+              o.vto_compensation_type,
               o.shift_id, o.slots_available, o.slots_claimed, o.company_id, o.branch_id
        FROM wfm_opportunity_claims c
        JOIN wfm_opportunities o ON c.opportunity_id = o.id
@@ -1289,6 +1333,7 @@ export class WfmOpportunitiesService {
         o.hours,
         o.ot_rate_multiplier,
         o.ot_category,
+        o.vto_compensation_type,
         COALESCE((
           SELECT SUM(normal_ot_hours + night_ot_hours + holiday_ot_hours + dayoff_ot_hours)
           FROM overtime_entries oe

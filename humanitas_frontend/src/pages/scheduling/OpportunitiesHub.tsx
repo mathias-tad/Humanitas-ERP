@@ -83,6 +83,7 @@ export default function OpportunitiesHub() {
     slots_available: 2,
     ot_rate_multiplier: 0,
     ot_category: 'normal' as 'normal' | 'night' | 'dayoff' | 'holiday',
+    vto_compensation_type: 'unpaid' as 'unpaid' | 'paid',
     urgency: 'normal' as 'normal' | 'high' | 'critical',
     reason: '',
     notes: '',
@@ -133,6 +134,7 @@ export default function OpportunitiesHub() {
       type: newType,
       hours: newType === 'VET' ? (prev.hours === 4 ? 8 : prev.hours || 8) : (prev.hours === 8 ? 4 : prev.hours || 4),
       ot_rate_multiplier: rate,
+      vto_compensation_type: newType === 'VTO' ? (settings?.default_vto_compensation || 'unpaid') : 'paid',
     }));
   };
 
@@ -176,10 +178,12 @@ export default function OpportunitiesHub() {
   const [selectedClaimForReview, setSelectedClaimForReview] = useState<any>(null);
   const [reviewAction, setReviewAction] = useState<'approved' | 'rejected'>('approved');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [claimHours, setClaimHours] = useState<number>(0);
 
   // Handle Claim
   const handleOpenClaimDialog = (opp: WfmOpportunity) => {
     setSelectedOpp(opp);
+    setClaimHours(Number(opp.hours));
     setUsePto(false);
     setClaimDialogOpen(true);
   };
@@ -190,6 +194,7 @@ export default function OpportunitiesHub() {
       const res = await claimMutation.mutateAsync({
         id: selectedOpp.id,
         use_pto_balance: usePto,
+        hours: claimHours || Number(selectedOpp.hours),
       });
       toast.success(res.message || 'Claim submitted successfully!');
       setClaimDialogOpen(false);
@@ -419,12 +424,26 @@ export default function OpportunitiesHub() {
                     />
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start gap-2">
-                        <Badge
-                          variant="secondary"
-                          className={isVet ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'}
-                        >
-                          {isVet ? 'VET • Extra Overtime' : 'VTO • Voluntary Off'}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <Badge
+                            variant="secondary"
+                            className={isVet ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'}
+                          >
+                            {isVet ? 'VET • Extra Overtime' : 'VTO • Voluntary Off'}
+                          </Badge>
+                          {!isVet && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] ${
+                                opp.vto_compensation_type === 'paid'
+                                  ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10'
+                                  : 'border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/10'
+                              }`}
+                            >
+                              {opp.vto_compensation_type === 'paid' ? 'Company-Paid' : 'Unpaid VTO'}
+                            </Badge>
+                          )}
+                        </div>
                         {opp.urgency === 'critical' && (
                           <Badge variant="destructive" className="flex items-center gap-1 text-[10px]">
                             <Flame className="w-3 h-3" /> Critical
@@ -887,20 +906,65 @@ export default function OpportunitiesHub() {
               <div className="bg-muted/40 p-3 rounded-md space-y-1 text-sm">
                 <div className="font-semibold">{selectedOpp.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  Date: {selectedOpp.date} • {selectedOpp.hours} Hours
+                  Date: {selectedOpp.date} • {selectedOpp.hours} Hours Available
                 </div>
                 {selectedOpp.type === 'VET' && (
                   <div className="text-xs font-medium text-primary">
-                    Rate Multiplier: {selectedOpp.ot_rate_multiplier}x ({selectedOpp.ot_category})
+                    Overtime Multiplier: {selectedOpp.ot_rate_multiplier}x ({selectedOpp.ot_category})
+                  </div>
+                )}
+                {selectedOpp.type === 'VTO' && (
+                  <div className="text-xs font-medium">
+                    Policy: {selectedOpp.vto_compensation_type === 'paid' ? 'Company-Paid VTO (100% pay, zero salary deduction)' : 'Unpaid VTO (Salary deducted unless PTO funded)'}
                   </div>
                 )}
               </div>
 
-              {selectedOpp.type === 'VTO' && settings?.vto_allow_pto_funding && (
+              {/* Hours to Claim input */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Hours to Claim *</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  min="0.5"
+                  max={Number(selectedOpp.hours)}
+                  value={claimHours}
+                  onChange={(e) => setClaimHours(Math.min(Number(selectedOpp.hours), Math.max(0.5, Number(e.target.value))))}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Specify how many hours you want to claim (up to {selectedOpp.hours}h maximum).
+                </p>
+              </div>
+
+              {selectedOpp.type === 'VTO' && selectedOpp.vto_compensation_type === 'paid' && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Company-Sponsored Paid Time Off</span>
+                    <p className="text-emerald-800/90 dark:text-emerald-300/90">
+                      Your full basic salary is preserved with zero deductions on payroll run day. No PTO balance is required.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedOpp.type === 'VTO' && selectedOpp.vto_compensation_type !== 'paid' && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold">Unpaid Voluntary Time Off</span>
+                    <p className="text-amber-800/90 dark:text-amber-300/90">
+                      Unworked hours will be deducted from your salary on payroll run day unless you elect to fund it with your available PTO balance below.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedOpp.type === 'VTO' && selectedOpp.vto_compensation_type !== 'paid' && settings?.vto_allow_pto_funding && (
                 <div className="flex items-center justify-between border p-3 rounded-md">
                   <div>
                     <Label className="text-sm">Fund with Paid Leave Balance (PTO)</Label>
-                    <p className="text-xs text-muted-foreground">Deduct from your available annual leave days</p>
+                    <p className="text-xs text-muted-foreground">Cover these {claimHours}h using your accrued leave balance to prevent salary deductions</p>
                   </div>
                   <Switch checked={usePto} onCheckedChange={setUsePto} />
                 </div>
@@ -1172,6 +1236,50 @@ export default function OpportunitiesHub() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* VTO Compensation Policy */}
+            {broadcastForm.type === 'VTO' && (
+              <div className="space-y-2 pt-1">
+                <Label>VTO Compensation Policy *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastForm({ ...broadcastForm, vto_compensation_type: 'unpaid' })}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      broadcastForm.vto_compensation_type === 'unpaid'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/30'
+                        : 'border-border/60 hover:border-border hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Unpaid VTO</span>
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 text-amber-600">Standard</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Hours deducted from basic salary on payroll day. Staff may fund with PTO if allowed.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setBroadcastForm({ ...broadcastForm, vto_compensation_type: 'paid' })}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      broadcastForm.vto_compensation_type === 'paid'
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/30'
+                        : 'border-border/60 hover:border-border hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Company-Paid VTO</span>
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-600">Sponsored</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      100% covered by company. Full salary maintained with zero deductions on payroll day.
+                    </p>
+                  </button>
+                </div>
               </div>
             )}
 

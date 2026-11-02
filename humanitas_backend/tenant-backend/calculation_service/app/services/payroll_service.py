@@ -605,6 +605,41 @@ class PayrollService:
                 except Exception as e:
                     print(f"[Payroll] Could not fetch penalties for {emp.full_name}: {e}")
                     # Continue without penalties rather than failing entire payroll
+
+                # Process Unpaid VTO (Voluntary Time Off) deductions
+                try:
+                    vto_result = await session.execute(
+                        text("""
+                            SELECT c.id, COALESCE(c.hours, o.hours, 0) as hours, o.date, o.title
+                            FROM wfm_opportunity_claims c
+                            JOIN wfm_opportunities o ON c.opportunity_id = o.id
+                            WHERE c.user_id = :user_id
+                              AND c.claim_type = 'VTO'
+                              AND c.status = 'approved'
+                              AND (c.is_paid = false OR c.is_paid IS NULL)
+                              AND (c.use_pto_balance = false OR c.use_pto_balance IS NULL)
+                              AND (o.vto_compensation_type = 'unpaid' OR o.vto_compensation_type IS NULL)
+                              AND o.date >= :start_date AND o.date <= :end_date
+                        """),
+                        {"user_id": str(emp.id), "start_date": effective_start_date, "end_date": end_date}
+                    )
+                    vto_claims = vto_result.fetchall()
+                    if vto_claims and len(vto_claims) > 0:
+                        hourly_rate = full_basic_salary / work_hours_per_month if work_hours_per_month > 0 else 0
+                        for vto in vto_claims:
+                            vto_hrs = float(vto.hours or 0)
+                            vto_amt = round(vto_hrs * hourly_rate, 2)
+                            penalty_deduction += vto_amt
+                            penalty_breakdown.append({
+                                "type": "Unpaid VTO",
+                                "amount": vto_amt,
+                                "hours": vto_hrs,
+                                "reason": f"Unpaid Voluntary Time Off ({vto_hrs}h) - {vto.title}",
+                                "date": str(vto.date)
+                            })
+                        print(f"[Payroll] Applied {len(vto_claims)} unpaid VTO deductions for {emp.full_name}")
+                except Exception as e:
+                    print(f"[Payroll] Could not process unpaid VTO deductions for {emp.full_name}: {e}")
                 
                 # Apply Deduction Base Logic
                 total_penalties = loan_deduction + late_deduction + penalty_deduction

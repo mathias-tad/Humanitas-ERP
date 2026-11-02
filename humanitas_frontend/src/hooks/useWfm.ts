@@ -20,6 +20,7 @@ export interface WfmSettings {
   notify_via_push: boolean;
   notify_via_email: boolean;
   notify_via_in_app: boolean;
+  default_vto_compensation?: 'unpaid' | 'paid';
   payroll_ot_rates?: {
     normal: number | null;
     night: number | null;
@@ -47,6 +48,7 @@ export interface WfmOpportunity {
   slots_remaining: number;
   ot_rate_multiplier: number;
   ot_category: 'normal' | 'night' | 'dayoff' | 'holiday';
+  vto_compensation_type?: 'unpaid' | 'paid';
   urgency: 'normal' | 'high' | 'critical';
   status: 'open' | 'filled' | 'cancelled' | 'expired';
   reason?: string;
@@ -66,6 +68,8 @@ export interface WfmClaim {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   claimed_at: string;
   use_pto_balance: boolean;
+  is_paid?: boolean;
+  vto_compensation_type?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   review_notes?: string;
@@ -233,7 +237,7 @@ export function useClaimOpportunity() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, use_pto_balance }: { id: string; use_pto_balance?: boolean }) => {
+    mutationFn: async ({ id, use_pto_balance, hours }: { id: string; use_pto_balance?: boolean; hours?: number }) => {
       const res = await fetch(`${API_BASE_URL}/wfm/opportunities/${id}/claim`, {
         method: 'POST',
         credentials: 'include',
@@ -241,7 +245,7 @@ export function useClaimOpportunity() {
           'Content-Type': 'application/json',
           ...getAuthHeaders(),
         },
-        body: JSON.stringify({ use_pto_balance }),
+        body: JSON.stringify({ use_pto_balance, hours }),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));

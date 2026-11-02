@@ -36,6 +36,10 @@ export class CreateOpportunityDto {
   slots_available: number;
 
   @IsOptional()
+  @IsIn(['unpaid', 'paid'])
+  vto_compensation_type?: 'unpaid' | 'paid';
+
+  @IsOptional()
   @IsNumber()
   ot_rate_multiplier?: number;
 

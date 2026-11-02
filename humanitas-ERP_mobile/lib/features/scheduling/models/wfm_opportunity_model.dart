@@ -16,6 +16,7 @@ class WfmOpportunityModel {
   final int slotsRemaining;
   final double otRateMultiplier;
   final String otCategory;
+  final String vtoCompensationType;
   final String urgency;
   final String status;
   final String? reason;
@@ -41,6 +42,7 @@ class WfmOpportunityModel {
     required this.slotsRemaining,
     required this.otRateMultiplier,
     required this.otCategory,
+    this.vtoCompensationType = 'unpaid',
     required this.urgency,
     required this.status,
     this.reason,
@@ -68,6 +70,7 @@ class WfmOpportunityModel {
       slotsRemaining: int.tryParse(json['slots_remaining']?.toString() ?? '1') ?? 1,
       otRateMultiplier: double.tryParse(json['ot_rate_multiplier']?.toString() ?? '1.5') ?? 1.5,
       otCategory: json['ot_category']?.toString() ?? 'normal',
+      vtoCompensationType: json['vto_compensation_type']?.toString() ?? 'unpaid',
       urgency: json['urgency']?.toString() ?? 'normal',
       status: json['status']?.toString() ?? 'open',
       reason: json['reason']?.toString(),
@@ -86,6 +89,8 @@ class WfmClaimModel {
   final String status;
   final String claimedAt;
   final bool usePtoBalance;
+  final bool isPaid;
+  final String vtoCompensationType;
   final String? reviewNotes;
   final String? opportunityTitle;
   final String? opportunityDate;
@@ -100,6 +105,8 @@ class WfmClaimModel {
     required this.status,
     required this.claimedAt,
     this.usePtoBalance = false,
+    this.isPaid = false,
+    this.vtoCompensationType = 'unpaid',
     this.reviewNotes,
     this.opportunityTitle,
     this.opportunityDate,
@@ -116,6 +123,8 @@ class WfmClaimModel {
       status: json['status']?.toString() ?? 'pending',
       claimedAt: json['claimed_at']?.toString() ?? '',
       usePtoBalance: json['use_pto_balance'] == true,
+      isPaid: json['is_paid'] == true,
+      vtoCompensationType: json['vto_compensation_type']?.toString() ?? 'unpaid',
       reviewNotes: json['review_notes']?.toString(),
       opportunityTitle: json['opportunity_title']?.toString(),
       opportunityDate: json['opportunity_date']?.toString(),
@@ -167,12 +176,14 @@ class WfmSettingsModel {
   final String? id;
   final bool vetEnabled;
   final bool vtoEnabled;
+  final String defaultVtoCompensation;
   final PayrollOtRatesModel payrollOtRates;
 
   const WfmSettingsModel({
     this.id,
     this.vetEnabled = true,
     this.vtoEnabled = true,
+    this.defaultVtoCompensation = 'unpaid',
     this.payrollOtRates = const PayrollOtRatesModel(),
   });
 
@@ -181,6 +192,7 @@ class WfmSettingsModel {
       id: json['id']?.toString(),
       vetEnabled: json['vet_enabled'] != false,
       vtoEnabled: json['vto_enabled'] != false,
+      defaultVtoCompensation: json['default_vto_compensation']?.toString() ?? 'unpaid',
       payrollOtRates: PayrollOtRatesModel.fromJson(
         json['payroll_ot_rates'] is Map<String, dynamic>
             ? json['payroll_ot_rates'] as Map<String, dynamic>

@@ -36,10 +36,13 @@ class WfmRepository {
     }
   }
 
-  Future<Map<String, dynamic>> claimOpportunity(String opportunityId, {bool usePtoBalance = false}) async {
+  Future<Map<String, dynamic>> claimOpportunity(String opportunityId, {bool usePtoBalance = false, double? hours}) async {
     final response = await _apiClient.dio.post(
       '/wfm/opportunities/$opportunityId/claim',
-      data: {'use_pto_balance': usePtoBalance},
+      data: {
+        'use_pto_balance': usePtoBalance,
+        if (hours != null) 'hours': hours,
+      },
     );
     return response.data as Map<String, dynamic>;
   }

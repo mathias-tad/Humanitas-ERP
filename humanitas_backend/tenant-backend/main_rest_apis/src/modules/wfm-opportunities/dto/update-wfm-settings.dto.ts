@@ -40,6 +40,10 @@ export class UpdateWfmSettingsDto {
   vto_allow_pto_funding?: boolean;
 
   @IsOptional()
+  @IsIn(['unpaid', 'paid'])
+  default_vto_compensation?: 'unpaid' | 'paid';
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   vet_cancellation_cutoff_hours?: number;

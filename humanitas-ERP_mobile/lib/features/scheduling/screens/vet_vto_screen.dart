@@ -31,83 +31,234 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
 
   Future<void> _handleClaim(WfmOpportunityModel opp) async {
     bool usePto = false;
+    final hoursController = TextEditingController(text: opp.hours.toString());
+    final isCompanyPaidVto = opp.type == 'VTO' && opp.vtoCompensationType == 'paid';
+    final isVet = opp.type == 'VET';
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            'Claim ${opp.type} Slot',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                opp.title,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Date: ${opp.date} • ${opp.hours} Hours',
-                style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
-              ),
-              if (opp.type == 'VET') ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Rate Multiplier: ${opp.otRateMultiplier}x (${opp.otCategory})',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+        builder: (context, setDialogState) {
+          final enteredHours = double.tryParse(hoursController.text) ?? 0.0;
+          final isHoursValid = enteredHours > 0 && enteredHours <= opp.hours;
+
+          return AlertDialog(
+            title: Text(
+              'Claim ${opp.type} Slot',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    opp.title,
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-                ),
-              ],
-              if (opp.type == 'VTO') ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Checkbox(
-                      value: usePto,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          usePto = val ?? false;
-                        });
-                      },
+                  const SizedBox(height: 6),
+                  Text(
+                    'Date: ${opp.date} • Available: ${opp.hours} Hours',
+                    style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Policy Info Banner
+                  if (isVet) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.bolt, size: 16, color: Colors.blue.shade800),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${opp.otRateMultiplier}x Multiplier (${opp.otCategory.toUpperCase()})',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Overtime pay is calculated based on your claimed hours multiplied by your hourly rate.',
+                            style: GoogleFonts.inter(fontSize: 11, color: Colors.blue.shade900),
+                          ),
+                        ],
+                      ),
                     ),
-                    Expanded(
-                      child: Text(
-                        'Fund with Paid Leave (PTO)',
-                        style: GoogleFonts.inter(fontSize: 13),
+                  ] else if (isCompanyPaidVto) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 16, color: Colors.green.shade800),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Company-Paid VTO',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '100% fully covered by company. No deduction will be made on your salary on payroll run day.',
+                            style: GoogleFonts.inter(fontSize: 11, color: Colors.green.shade900),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade300),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 16, color: Colors.amber.shade900),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Unpaid Voluntary Time Off',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Unworked hours will be deducted on payroll run day unless funded with your paid leave (PTO) balance.',
+                            style: GoogleFonts.inter(fontSize: 11, color: Colors.amber.shade900),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: opp.type == 'VET' ? Colors.blue.shade700 : Colors.teal.shade700,
-                foregroundColor: Colors.white,
+
+                  const SizedBox(height: 14),
+
+                  // Claim Hours Input
+                  Text(
+                    'Hours to Claim (Max: ${opp.hours}h)',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: hoursController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setDialogState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'Enter hours (e.g. ${opp.hours})',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      errorText: !isHoursValid
+                          ? 'Hours must be between 0.5 and ${opp.hours}'
+                          : null,
+                    ),
+                  ),
+
+                  // VTO PTO toggle
+                  if (opp.type == 'VTO' && !isCompanyPaidVto) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white10
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: usePto,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                usePto = val ?? false;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fund with Paid Leave (PTO)',
+                                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                Text(
+                                  'Use accrued PTO balance so this time off is fully paid without salary deduction.',
+                                  style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              child: const Text('Confirm Claim'),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isHoursValid ? () => Navigator.of(ctx).pop(true) : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: opp.type == 'VET' ? Colors.blue.shade700 : Colors.teal.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Confirm Claim'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
     if (confirmed == true) {
+      final claimHours = double.tryParse(hoursController.text) ?? opp.hours;
       try {
         final repo = ref.read(wfmRepositoryProvider);
-        final res = await repo.claimOpportunity(opp.id, usePtoBalance: usePto);
+        final res = await repo.claimOpportunity(
+          opp.id,
+          usePtoBalance: usePto,
+          hours: claimHours,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -178,6 +329,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
     String broadcastType = 'VET';
     String otCategory = 'normal';
     String urgency = 'normal';
+    String vtoCompensationType = settings.defaultVtoCompensation;
     final titleController = TextEditingController();
     final hoursController = TextEditingController(text: '8');
     final slotsController = TextEditingController(text: '2');
@@ -455,6 +607,109 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                           ],
                         ),
 
+                        // VTO Compensation Policy Selector
+                        if (!isVet) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'VTO Compensation Policy *',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() => vtoCompensationType = 'unpaid'),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: vtoCompensationType == 'unpaid'
+                                          ? Colors.amber.withOpacity(0.15)
+                                          : (isDark ? Colors.white10 : Colors.grey.shade100),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: vtoCompensationType == 'unpaid'
+                                            ? Colors.amber.shade700
+                                            : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.money_off, size: 16, color: Colors.amber.shade800),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Unpaid VTO',
+                                              style: GoogleFonts.inter(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                color: Colors.amber.shade900,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          'Unworked hours are deducted on payroll run unless funded with PTO.',
+                                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setSheetState(() => vtoCompensationType = 'paid'),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: vtoCompensationType == 'paid'
+                                          ? Colors.green.withOpacity(0.15)
+                                          : (isDark ? Colors.white10 : Colors.grey.shade100),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: vtoCompensationType == 'paid'
+                                            ? Colors.green.shade700
+                                            : Colors.transparent,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.verified, size: 16, color: Colors.green.shade800),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Company-Paid VTO',
+                                              style: GoogleFonts.inter(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                color: Colors.green.shade900,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          'Sponsored downtime. 100% full pay with no salary deduction.',
+                                          style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
                         // VET Overtime Rate Category and Multiplier Display
                         if (isVet) ...[
                           const SizedBox(height: 16),
@@ -617,6 +872,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                       'slots_available': int.tryParse(slotsController.text) ?? 2,
                                       'ot_category': otCategory,
                                       'ot_rate_multiplier': isVet ? currentRate : 1.0,
+                                      'vto_compensation_type': broadcastType == 'VTO' ? vtoCompensationType : 'unpaid',
                                       'reason': reasonController.text.trim(),
                                       'urgency': urgency,
                                     });
@@ -652,7 +908,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                 ? (isRateConfigured
                                     ? 'Broadcast Paid VET Shift (${currentRate}x OT)'
                                     : 'Rate Not Set in Settings')
-                                : 'Broadcast Voluntary Time Off (VTO)',
+                                : 'Broadcast ${vtoCompensationType == 'paid' ? 'Company-Paid' : 'Unpaid'} VTO',
                             style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -793,22 +1049,48 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: isVet
-                                                  ? Colors.blue.withOpacity(0.12)
-                                                  : Colors.teal.withOpacity(0.12),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              isVet ? 'VET • Extra Overtime' : 'VTO • Voluntary Off',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: isVet ? Colors.blue.shade700 : Colors.teal.shade700,
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: isVet
+                                                      ? Colors.blue.withOpacity(0.12)
+                                                      : Colors.teal.withOpacity(0.12),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  isVet ? 'VET • Extra Overtime' : 'VTO • Voluntary Off',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: isVet ? Colors.blue.shade700 : Colors.teal.shade700,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              if (!isVet) ...[
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: opp.vtoCompensationType == 'paid'
+                                                        ? Colors.green.withOpacity(0.15)
+                                                        : Colors.amber.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    opp.vtoCompensationType == 'paid' ? 'Company-Paid' : 'Unpaid',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: opp.vtoCompensationType == 'paid'
+                                                          ? Colors.green.shade800
+                                                          : Colors.amber.shade900,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
                                           ),
                                           if (opp.urgency == 'critical')
                                             Container(
@@ -866,10 +1148,18 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                                   style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
                                                 ),
                                                 Text(
-                                                  isVet ? '${opp.otRateMultiplier}x OT Rate' : 'Excused Absence',
+                                                  isVet
+                                                      ? '${opp.otRateMultiplier}x OT Rate'
+                                                      : (opp.vtoCompensationType == 'paid'
+                                                          ? 'Company-Paid (No deduction)'
+                                                          : 'Unpaid (PTO optional)'),
                                                   style: GoogleFonts.inter(
                                                     fontSize: 12,
-                                                    color: isVet ? AppColors.primary : Colors.teal.shade700,
+                                                    color: isVet
+                                                        ? AppColors.primary
+                                                        : (opp.vtoCompensationType == 'paid'
+                                                            ? Colors.green.shade700
+                                                            : Colors.amber.shade900),
                                                     fontWeight: FontWeight.w700,
                                                   ),
                                                 ),
@@ -960,7 +1250,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                             ),
                             subtitle: Text(
-                              'Date: ${c.opportunityDate ?? ''} • ${c.hours ?? 0}h',
+                              'Date: ${c.opportunityDate ?? ''} • ${c.hours ?? 0}h • ${c.claimType == 'VET' ? '${c.otRateMultiplier ?? 1.5}x Overtime' : (c.isPaid ? 'Paid VTO' : (c.usePtoBalance ? 'VTO (Funded via PTO)' : 'Unpaid VTO'))}',
                               style: GoogleFonts.inter(fontSize: 12),
                             ),
                             trailing: Row(

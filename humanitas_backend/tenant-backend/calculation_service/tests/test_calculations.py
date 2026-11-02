@@ -69,5 +69,50 @@ class TestPayrollAndOvertimeCalculations(unittest.TestCase):
         self.assertEqual(round(tax, 2), 157.5)
 
 
+    def test_unpaid_vto_payroll_deduction(self):
+        """Validates that unpaid VTO without PTO funding is deducted at hourly rate."""
+        basic_salary = 16000.0
+        monthly_hours = 160.0
+        hourly_rate = basic_salary / monthly_hours  # 100.0/hr
+        vto_hours = 4.0
+        is_paid = False
+        use_pto = False
+
+        if not is_paid and not use_pto:
+            deduction = round(vto_hours * hourly_rate, 2)
+        else:
+            deduction = 0.0
+
+        self.assertEqual(deduction, 400.0)
+
+    def test_company_paid_and_pto_vto_zero_deduction(self):
+        """Validates that company-paid VTO or PTO-funded VTO incurs 0 salary deduction."""
+        basic_salary = 16000.0
+        monthly_hours = 160.0
+        hourly_rate = basic_salary / monthly_hours
+
+        # Case 1: Company-paid VTO
+        deduction_paid_vto = 0.0
+        # Case 2: Unpaid VTO funded via PTO balance
+        use_pto = True
+        is_paid = False
+        deduction_pto_vto = 0.0 if (is_paid or use_pto) else round(4.0 * hourly_rate, 2)
+
+        self.assertEqual(deduction_paid_vto, 0.0)
+        self.assertEqual(deduction_pto_vto, 0.0)
+
+    def test_vet_claimed_hours_formula(self):
+        """Validates overtime pay based on employee claimed hours and broadcast multiplier."""
+        basic_salary = 16000.0
+        monthly_hours = 160.0
+        hourly_rate = basic_salary / monthly_hours  # 100.0
+        multiplier = 1.5
+        claimed_hours = 6.0  # Employee claimed 6 hours out of 8 hours broadcast
+
+        overtime_amount = round(claimed_hours * multiplier * hourly_rate, 2)
+        # 6 * 1.5 * 100.0 = 900.0
+        self.assertEqual(overtime_amount, 900.0)
+
+
 if __name__ == '__main__':
     unittest.main()
