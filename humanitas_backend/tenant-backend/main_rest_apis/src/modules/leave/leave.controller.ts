@@ -271,6 +271,7 @@ export class LeaveController {
       carried_over: number;
       used_days: number;
       year?: number;
+      total_days?: number;
     },
   ) {
     return this.leaveService.registerInitialBalance(

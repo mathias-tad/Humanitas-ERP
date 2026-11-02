@@ -879,6 +879,7 @@ export class LeaveService {
       carried_over: number;
       used_days: number;
       year?: number;
+      total_days?: number;
     },
   ) {
     const connection =
@@ -938,7 +939,10 @@ export class LeaveService {
     // Pro-rated annual leave + carried over
     const proRatedAnnualLeave =
       Math.round((currentAnnualLeave / 12) * monthsWorkedThisYear * 100) / 100;
-    const totalDays = proRatedAnnualLeave + (data.carried_over || 0);
+    const totalDays =
+      data.total_days !== undefined && data.total_days !== null
+        ? Number(data.total_days)
+        : proRatedAnnualLeave + (data.carried_over || 0);
 
     // Add carried_over column if not exists
     try {
