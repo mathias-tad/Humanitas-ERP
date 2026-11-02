@@ -81,6 +81,8 @@ export class ModuleSubscriptionGuard implements CanActivate {
       'presence',
       'messaging',
       'announcements',
+      'scheduling',
+      'wfm',
     ];
     const req = requiredModule.toLowerCase().trim();
     if (CORE_MODULES.includes(req)) {
@@ -154,7 +156,7 @@ export class ModuleSubscriptionGuard implements CanActivate {
         feats.includes(req) ||
         (req === 'hrms' && (feats.includes('hr') || feats.includes('hrms') || feats.includes('attendance') || feats.includes('leave') || feats.includes('payroll'))) ||
         (req === 'hr' && (feats.includes('hr') || feats.includes('hrms'))) ||
-        (feats.includes('hrms') && ['attendance', 'leave', 'scheduling', 'messaging'].includes(req))
+        (feats.includes('hrms') && ['attendance', 'leave', 'scheduling', 'messaging', 'wfm'].includes(req))
       ) {
         return true;
       }
@@ -211,6 +213,16 @@ export class ModuleSubscriptionGuard implements CanActivate {
       return true;
     }
 
+    // Check if tenant has hrms subscribed which covers scheduling & wfm
+    if (['scheduling', 'wfm'].includes(req)) {
+      const hrmsSub = await connection.query(
+        `SELECT is_active FROM tenant_modules WHERE module_key IN ('hrms', 'hr', 'scheduling', 'wfm') AND is_active = true LIMIT 1`,
+      );
+      if (hrmsSub && hrmsSub.length > 0) {
+        return true;
+      }
+    }
+
     // If tenant_modules has records configured, but not this module, reject
     const countResult = await connection.query(
       `SELECT COUNT(*) as count FROM tenant_modules`,
@@ -233,6 +245,8 @@ export class ModuleSubscriptionGuard implements CanActivate {
       'hrms',
       'attendance',
       'leave',
+      'scheduling',
+      'wfm',
     ];
 
     if (defaultCoreModules.includes(req)) {

@@ -99,6 +99,28 @@ export class WfmOpportunitiesService {
         UNIQUE(opportunity_id, user_id)
       );
     `);
+
+    // Self-heal permissions for all active roles so existing tenants never get 403
+    try {
+      await connection.query(`
+        UPDATE roles 
+        SET permissions = permissions || '["view_wfm_opportunities", "claim_wfm_opportunities"]'::jsonb
+        WHERE is_active = true 
+          AND NOT (permissions @> '["view_wfm_opportunities"]'::jsonb);
+
+        UPDATE roles 
+        SET permissions = permissions || '["broadcast_wfm_opportunities", "manage_wfm_claims"]'::jsonb
+        WHERE is_active = true 
+          AND (LOWER(name) LIKE '%admin%' OR LOWER(name) LIKE '%manager%' OR LOWER(name) LIKE '%lead%' OR LOWER(name) LIKE '%supervisor%')
+          AND NOT (permissions @> '["broadcast_wfm_opportunities"]'::jsonb);
+
+        UPDATE roles 
+        SET permissions = permissions || '["manage_wfm_settings"]'::jsonb
+        WHERE is_active = true 
+          AND (LOWER(name) LIKE '%admin%' OR LOWER(name) LIKE '%owner%')
+          AND NOT (permissions @> '["manage_wfm_settings"]'::jsonb);
+      `);
+    } catch (_) {}
   }
 
   /**

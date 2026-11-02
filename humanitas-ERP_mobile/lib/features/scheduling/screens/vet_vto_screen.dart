@@ -673,9 +673,12 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = ref.watch(authProvider);
-    final canBroadcast = auth.isOwnerOrAdmin ||
-        auth.hasPermission('broadcast_wfm_opportunities') ||
-        auth.hasPermission('manage_schedules');
+    final canBroadcast = auth.hasAnyPermission([
+      'broadcast_wfm_opportunities',
+      'manage_schedules',
+      'manage_shifts',
+      'manage_roster',
+    ]);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,

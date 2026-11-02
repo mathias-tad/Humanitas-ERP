@@ -235,6 +235,12 @@ export class RolesService {
       // AI Intelligence Settings
       'view_ai_settings',
       'manage_ai_settings',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
+      'broadcast_wfm_opportunities',
+      'manage_wfm_claims',
+      'manage_wfm_settings',
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
@@ -275,6 +281,8 @@ export class RolesService {
       'manage_approval_rules',
       'manage_developer_api',
       'manage_ai_settings',
+      // WFM Workforce Management
+      'manage_wfm_settings',
     ];
 
     // Permissions allowed for Employee role
@@ -306,6 +314,9 @@ export class RolesService {
       'ai_help',
       'view_notification_preferences',
       'view_approval_requests',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
     ];
 
     for (const permission of newPermissions) {
@@ -373,6 +384,9 @@ export class RolesService {
       'view_notification_preferences',
       'view_approval_requests',
       'view_my_documents',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
     ];
 
     const managerForcePermissions = [
@@ -389,6 +403,12 @@ export class RolesService {
       'use_ai', 'ai_help',
       'view_notification_preferences',
       'view_approval_requests', 'approve_requests',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
+      'broadcast_wfm_opportunities',
+      'manage_wfm_claims',
+      'manage_wfm_settings',
     ];
 
     try {
@@ -626,6 +646,12 @@ export class RolesService {
       // Developer API & Webhooks
       'view_developer_api',
       'manage_developer_api',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
+      'broadcast_wfm_opportunities',
+      'manage_wfm_claims',
+      'manage_wfm_settings',
     ];
 
     const managerPermissions = [
@@ -698,6 +724,12 @@ export class RolesService {
       'approve_requests',
       'view_approval_requests',
       'view_developer_api',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
+      'broadcast_wfm_opportunities',
+      'manage_wfm_claims',
+      'manage_wfm_settings',
     ];
 
     const employeePermissions = [
@@ -723,6 +755,9 @@ export class RolesService {
       'ai_help',
       'view_notification_preferences',
       'view_approval_requests',
+      // WFM Workforce Management
+      'view_wfm_opportunities',
+      'claim_wfm_opportunities',
     ];
 
     const defaultRoles = [

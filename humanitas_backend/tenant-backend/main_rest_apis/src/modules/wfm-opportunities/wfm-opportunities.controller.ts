@@ -27,7 +27,7 @@ export class WfmOpportunitiesController {
   constructor(private readonly wfmService: WfmOpportunitiesService) {}
 
   @Get('settings')
-  @RequirePermissions('view_wfm_opportunities')
+  @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'manage_wfm_settings', 'manage_schedules')
   getSettings(@Req() req: any, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const companyId = req.headers['x-company-id'] || qCompanyId;
@@ -36,7 +36,7 @@ export class WfmOpportunitiesController {
   }
 
   @Put('settings')
-  @RequirePermissions('manage_wfm_settings')
+  @RequirePermissions('manage_wfm_settings', 'manage_schedules')
   updateSettings(@Req() req: any, @Body() dto: UpdateWfmSettingsDto) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const userId = req.user?.sub;
@@ -44,7 +44,7 @@ export class WfmOpportunitiesController {
   }
 
   @Post('opportunities')
-  @RequirePermissions('broadcast_wfm_opportunities')
+  @RequirePermissions('broadcast_wfm_opportunities', 'manage_schedules')
   broadcastOpportunity(@Req() req: any, @Body() dto: CreateOpportunityDto) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const userId = req.user?.sub;
@@ -54,7 +54,7 @@ export class WfmOpportunitiesController {
   }
 
   @Get('opportunities')
-  @RequirePermissions('view_wfm_opportunities')
+  @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
   getOpportunities(
     @Req() req: any,
     @Query('type') type?: string,
@@ -83,7 +83,7 @@ export class WfmOpportunitiesController {
   }
 
   @Delete('opportunities/:id')
-  @RequirePermissions('broadcast_wfm_opportunities')
+  @RequirePermissions('broadcast_wfm_opportunities', 'manage_schedules')
   cancelOpportunity(@Req() req: any, @Param('id') id: string) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const userId = req.user?.sub;
@@ -91,7 +91,7 @@ export class WfmOpportunitiesController {
   }
 
   @Get('my-claims')
-  @RequirePermissions('view_wfm_opportunities')
+  @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
   getMyClaims(@Req() req: any) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const userId = req.user?.sub;
@@ -99,7 +99,7 @@ export class WfmOpportunitiesController {
   }
 
   @Post('opportunities/:id/claim')
-  @RequirePermissions('claim_wfm_opportunities')
+  @RequirePermissions('claim_wfm_opportunities', 'view_wfm_opportunities', 'view_schedules')
   claimOpportunity(
     @Req() req: any,
     @Param('id') id: string,
@@ -113,7 +113,7 @@ export class WfmOpportunitiesController {
   }
 
   @Delete('claims/:claimId/cancel')
-  @RequirePermissions('claim_wfm_opportunities')
+  @RequirePermissions('claim_wfm_opportunities', 'view_wfm_opportunities', 'view_schedules')
   cancelClaim(@Req() req: any, @Param('claimId') claimId: string) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const userId = req.user?.sub;
@@ -121,7 +121,7 @@ export class WfmOpportunitiesController {
   }
 
   @Get('claims')
-  @RequirePermissions('manage_wfm_claims')
+  @RequirePermissions('manage_wfm_claims', 'broadcast_wfm_opportunities', 'manage_schedules')
   getClaimsReviewQueue(
     @Req() req: any,
     @Query('status') status?: string,
@@ -142,7 +142,7 @@ export class WfmOpportunitiesController {
   }
 
   @Post('claims/:claimId/review')
-  @RequirePermissions('manage_wfm_claims')
+  @RequirePermissions('manage_wfm_claims', 'broadcast_wfm_opportunities', 'manage_schedules')
   reviewClaim(
     @Req() req: any,
     @Param('claimId') claimId: string,
@@ -154,7 +154,7 @@ export class WfmOpportunitiesController {
   }
 
   @Get('stats')
-  @RequirePermissions('view_wfm_opportunities')
+  @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
   getWfmStats(@Req() req: any, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
     const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
     const companyId = req.headers['x-company-id'] || qCompanyId;

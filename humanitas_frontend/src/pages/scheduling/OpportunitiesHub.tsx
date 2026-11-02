@@ -146,6 +146,10 @@ export default function OpportunitiesHub() {
   };
 
   const handleShiftSelect = (shiftId: string) => {
+    if (shiftId === 'none' || !shiftId) {
+      setBroadcastForm((prev) => ({ ...prev, shift_id: '' }));
+      return;
+    }
     const s = shifts.find((sh) => sh.id === shiftId);
     if (s) {
       setBroadcastForm((prev) => ({
@@ -1033,14 +1037,14 @@ export default function OpportunitiesHub() {
               <div className="space-y-1">
                 <Label>Shift (Optional)</Label>
                 <Select
-                  value={broadcastForm.shift_id}
+                  value={broadcastForm.shift_id || 'none'}
                   onValueChange={handleShiftSelect}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select existing shift" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Shift / Custom Times</SelectItem>
+                    <SelectItem value="none">No Shift / Custom Times</SelectItem>
                     {shifts.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name} ({s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)})

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers/api_client_provider.dart';
+import '../../../core/providers/providers.dart';
 import '../models/wfm_opportunity_model.dart';
 import '../repositories/wfm_repository.dart';
 
