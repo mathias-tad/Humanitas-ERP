@@ -491,8 +491,56 @@ class PayrollService:
                 
                 late_deduction = round(late_minutes) * late_penalty_per_minute
                 
-                # TODO: Implement Advanced Overtime (complex - skipped for now)
-                overtime_pay = 0
+                # Fetch approved Overtime (both daily attendance OT and VET opportunity OT)
+                overtime_pay = 0.0
+                ot_normal_hours = 0.0
+                ot_night_hours = 0.0
+                ot_dayoff_hours = 0.0
+                ot_holiday_hours = 0.0
+                ot_total_hours = 0.0
+                ot_breakdown = {}
+                
+                try:
+                    ot_result = await session.execute(
+                        text("""
+                            SELECT 
+                                COALESCE(SUM(total_amount), 0) as total_ot_amount,
+                                COALESCE(SUM(normal_ot_hours), 0) as normal_hours,
+                                COALESCE(SUM(night_ot_hours), 0) as night_hours,
+                                COALESCE(SUM(dayoff_ot_hours), 0) as dayoff_hours,
+                                COALESCE(SUM(holiday_ot_hours), 0) as holiday_hours
+                            FROM overtime_entries
+                            WHERE user_id = :user_id
+                              AND date >= :start_date AND date <= :end_date
+                              AND status = 'Approved'
+                        """),
+                        {"user_id": str(emp.id), "start_date": effective_start_date, "end_date": end_date}
+                    )
+                    ot_row = ot_result.fetchone()
+                    if ot_row and float(ot_row.total_ot_amount or 0) > 0:
+                        overtime_pay = float(ot_row.total_ot_amount)
+                        ot_normal_hours = float(ot_row.normal_hours or 0)
+                        ot_night_hours = float(ot_row.night_hours or 0)
+                        ot_dayoff_hours = float(ot_row.dayoff_hours or 0)
+                        ot_holiday_hours = float(ot_row.holiday_hours or 0)
+                        ot_total_hours = ot_normal_hours + ot_night_hours + ot_dayoff_hours + ot_holiday_hours
+                        ot_breakdown = {
+                            "total_amount": overtime_pay,
+                            "total_hours": ot_total_hours,
+                            "normal_hours": ot_normal_hours,
+                            "night_hours": ot_night_hours,
+                            "dayoff_hours": ot_dayoff_hours,
+                            "holiday_hours": ot_holiday_hours
+                        }
+                        allowances_breakdown.append({
+                            "name": "Overtime",
+                            "amount": overtime_pay,
+                            "is_taxable": True,
+                            "is_pensionable": False
+                        })
+                        print(f"[Payroll] Applied approved overtime of {overtime_pay} ({ot_total_hours}h) for {emp.full_name}")
+                except Exception as e:
+                    print(f"[Payroll] Could not process overtime for {emp.full_name}: {e}")
                 
                 # Get approved leave days
                 leave_result = await session.execute(
@@ -558,8 +606,8 @@ class PayrollService:
                 pension_employer = basic_salary * employer_pension_rate
                 
                 # Calculate taxable income - BEFORE pension deduction
-                # Taxable income = Basic salary + Taxable allowances
-                taxable_income = basic_salary + pro_rata_taxable_allowances
+                # Taxable income = Basic salary + Taxable allowances + Overtime pay
+                taxable_income = basic_salary + pro_rata_taxable_allowances + overtime_pay
                 
                 # Calculate income tax
                 income_tax = self.calculate_income_tax(
@@ -569,8 +617,8 @@ class PayrollService:
                     pro_rata_factor
                 )
                 
-                # Gross salary
-                gross_salary = basic_salary + pro_rata_total_allowances
+                # Gross salary = Basic salary + Total allowances + Overtime pay
+                gross_salary = basic_salary + pro_rata_total_allowances + overtime_pay
                 
                 # Fetch penalties - ensure table has required columns first
                 penalty_deduction = 0
@@ -671,7 +719,7 @@ class PayrollService:
                             loan_deduction, late_deduction, other_deductions,
                             total_deductions, net_salary, days_worked, days_absent, late_minutes,
                             allowances_breakdown, loans_breakdown, penalty_breakdown,
-                            tin, account_number
+                            tin, account_number, overtime_amount, overtime_breakdown
                         ) VALUES(
                             :payroll_run_id, :user_id, :basic_salary, :total_allowances,
                             :taxable_allowances, :non_taxable_allowances, :pensionable_income, :taxable_income,
@@ -679,7 +727,7 @@ class PayrollService:
                             :loan_deduction, :late_deduction, :penalty_deduction,
                             :total_deductions, :net_salary, :days_worked, :days_absent, :late_minutes,
                             :allowances_breakdown, :loans_breakdown, :penalty_breakdown,
-                            :tin, :account_number
+                            :tin, :account_number, :overtime_amount, :overtime_breakdown
                         )
                     """),
                     {
@@ -707,7 +755,9 @@ class PayrollService:
                         "loans_breakdown": json.dumps(loans_breakdown),
                         "penalty_breakdown": json.dumps(penalty_breakdown),
                         "tin": emp.tin,
-                        "account_number": emp.account_number
+                        "account_number": emp.account_number,
+                        "overtime_amount": overtime_pay,
+                        "overtime_breakdown": json.dumps(ot_breakdown)
                     }
                 )
                 
@@ -847,12 +897,14 @@ class PayrollService:
     async def ensure_payroll_tables(self, session):
         """Ensure payroll tables exist with all required columns"""
         try:
-            # Add TIN and account_number to payroll_items
+            # Add TIN, account_number, penalty and overtime columns to payroll_items
             await session.execute(text("""
                 ALTER TABLE payroll_items 
                 ADD COLUMN IF NOT EXISTS tin VARCHAR(50),
                 ADD COLUMN IF NOT EXISTS account_number VARCHAR(50),
-                ADD COLUMN IF NOT EXISTS penalty_breakdown JSONB DEFAULT '[]'::jsonb
+                ADD COLUMN IF NOT EXISTS penalty_breakdown JSONB DEFAULT '[]'::jsonb,
+                ADD COLUMN IF NOT EXISTS overtime_amount DECIMAL(15, 2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS overtime_breakdown JSONB DEFAULT '{}'::jsonb
             """))
             
             # Add penalty tracking columns to user_penalties

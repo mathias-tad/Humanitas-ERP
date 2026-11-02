@@ -84,6 +84,12 @@ export class PayrollItem {
   @Column({ name: 'penalties_breakdown', type: 'jsonb', default: [] })
   penaltiesBreakdown: object[];
 
+  @Column({ name: 'overtime_amount', type: 'decimal', precision: 15, scale: 2, default: 0 })
+  overtimeAmount: number;
+
+  @Column({ name: 'overtime_breakdown', type: 'jsonb', default: {} })
+  overtimeBreakdown: object;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

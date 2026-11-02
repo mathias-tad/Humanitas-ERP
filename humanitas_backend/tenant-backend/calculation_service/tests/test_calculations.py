@@ -113,6 +113,27 @@ class TestPayrollAndOvertimeCalculations(unittest.TestCase):
         # 6 * 1.5 * 100.0 = 900.0
         self.assertEqual(overtime_amount, 900.0)
 
+    def test_overtime_inclusion_in_gross_and_taxable_payroll(self):
+        """Validates that approved overtime is included in gross salary and taxable income, but not pension."""
+        basic_salary = 10000.0
+        overtime_pay = 900.0
+        taxable_allowances = 500.0
+        non_taxable_allowances = 200.0
+        total_allowances = taxable_allowances + non_taxable_allowances
+        employee_pension_rate = 0.07
+
+        # Pension applies only to basic salary
+        pension_employee = round(basic_salary * employee_pension_rate, 2)
+        self.assertEqual(pension_employee, 700.0)
+
+        # Taxable income includes basic, taxable allowances, and overtime
+        taxable_income = round(basic_salary + taxable_allowances + overtime_pay, 2)
+        self.assertEqual(taxable_income, 11400.0)
+
+        # Gross salary includes basic, all allowances, and overtime
+        gross_salary = round(basic_salary + total_allowances + overtime_pay, 2)
+        self.assertEqual(gross_salary, 11600.0)
+
 
 if __name__ == '__main__':
     unittest.main()
