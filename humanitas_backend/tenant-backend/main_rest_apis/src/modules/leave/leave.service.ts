@@ -75,7 +75,14 @@ export class LeaveService {
       const result = await connection.query(`
         SELECT data FROM settings WHERE category = 'hr'
       `);
-      return result?.[0]?.data || {};
+      const data = result?.[0]?.data || {};
+      if (Array.isArray(data.leave_types)) {
+        data.leave_types = data.leave_types.map((lt: any, idx: number) => ({
+          ...lt,
+          id: lt.id || lt.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_') || `leave_type_${idx}`,
+        }));
+      }
+      return data;
     } catch (e) {
       return {};
     }
@@ -236,21 +243,9 @@ export class LeaveService {
 
       const currentYear = new Date().getFullYear();
 
-      // First, get leave types from settings
-      let settingsResult: any[] = [];
-      try {
-        settingsResult = await connection.query(`
-          SELECT data FROM settings WHERE category = 'hr'
-        `);
-      } catch {
-        settingsResult = [];
-      }
-
-      let leaveTypes: any[] = [];
-      if (settingsResult && settingsResult.length > 0 && settingsResult[0].data) {
-        const hrSettings = settingsResult[0].data;
-        leaveTypes = hrSettings.leave_types || [];
-      }
+      // First, get leave types from settings (normalized with IDs)
+      const hrSettings = await this.getHRSettings(connection);
+      const leaveTypes = hrSettings.leave_types || [];
 
       // Get existing balances
       let balances: any[] = [];
@@ -894,9 +889,12 @@ export class LeaveService {
     const leaveTypes = hrSettings.leave_types || [];
     const leaveIncreasePerYear = hrSettings.leave_increase_per_year || 0;
 
-    // Find leave type
+    // Find leave type by id, slug or name
     const leaveType = leaveTypes.find(
-      (lt: any) => lt.id === data.leave_type_id,
+      (lt: any) =>
+        lt.id === data.leave_type_id ||
+        lt.name === data.leave_type_id ||
+        lt.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_') === data.leave_type_id,
     );
     if (!leaveType) {
       throw new BadRequestException('Invalid leave type');

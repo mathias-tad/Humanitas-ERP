@@ -197,21 +197,21 @@ export default function LeaveBalances() {
               <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <div className="text-sm text-gray-500">Hire Date</div>
-                  <div className={`font-medium ${!balanceData.user.hire_date ? 'text-red-500' : ''}`}>
-                    {balanceData.user.hire_date ? formatDate(balanceData.user.hire_date) : "Not Set!"}
+                  <div className={`font-medium ${!balanceData.user?.hire_date ? 'text-red-500' : ''}`}>
+                    {balanceData.user?.hire_date ? formatDate(balanceData.user.hire_date) : "Not Set!"}
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Years of Service</div>
-                  <div className="font-medium">{balanceData.user.years_of_service} years</div>
+                  <div className="font-medium">{balanceData.user?.years_of_service ?? 0} years</div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Annual Leave Increase</div>
-                  <div className="font-medium">+{balanceData.settings.leave_increase_per_year} days/year</div>
+                  <div className="font-medium">+{balanceData.settings?.leave_increase_per_year ?? 0} days/year</div>
                 </div>
               </div>
 
-              {!balanceData.user.hire_date && (
+              {!balanceData.user?.hire_date && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
                   <strong>Warning:</strong> This user's hire date is not set. Please update their profile in User Management before calculating leave balances.
                 </div>
@@ -221,8 +221,8 @@ export default function LeaveBalances() {
               <div className="flex justify-end">
                 <Button
                   onClick={handleAutoCalculate}
-                  disabled={isSaving || !balanceData.user.hire_date}
-                  title={!balanceData.user.hire_date ? "Set hire date first" : ""}
+                  disabled={isSaving || !balanceData.user?.hire_date}
+                  title={!balanceData.user?.hire_date ? "Set hire date first" : ""}
                 >
                   <Calculator className="h-4 w-4 mr-2" />
                   Auto-Calculate All Balances
@@ -243,21 +243,28 @@ export default function LeaveBalances() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {balanceData.balances
+                    {(balanceData.balances || [])
                       .filter((balance) => {
+                        if (!balance) return false;
                         // Filter out Maternity leave for non-female employees
-                        if (balance.leave_type_name.toLowerCase().includes('maternity')) {
-                          return balanceData.user.gender?.toLowerCase() === 'female';
+                        if (balance.leave_type_name?.toLowerCase().includes('maternity')) {
+                          return balanceData.user?.gender?.toLowerCase() === 'female';
                         }
                         return true;
                       })
-                      .map((balance) => {
-                        const isAnnualLeave = balance.leave_type_name.toLowerCase().includes('annual');
+                      .map((balance, index) => {
+                        const isAnnualLeave = Boolean(balance.leave_type_name?.toLowerCase().includes('annual'));
                         // For annual leave: show calculated value, for others: show base fixed value
                         const entitledDays: number = (isAnnualLeave ? balance.current_annual_leave : balance.base_annual_leave) ?? 0;
+                        const leaveTypeId = balance.leave_type_id || balance.leave_type_name || ('leave_' + index);
+                        const isEditingThis = Boolean(
+                          editingBalance &&
+                          editingBalance.leave_type_id &&
+                          editingBalance.leave_type_id === leaveTypeId
+                        );
 
                         return (
-                          <TableRow key={balance.leave_type_id}>
+                          <TableRow key={leaveTypeId}>
                             <TableCell>
                               <div className="font-medium">{balance.leave_type_name}</div>
                               <div className="text-xs text-gray-500">
@@ -269,50 +276,58 @@ export default function LeaveBalances() {
                               <Badge variant="outline">{entitledDays}</Badge>
                             </TableCell>
                             <TableCell className="text-center">
-                              {editingBalance?.leave_type_id === balance.leave_type_id && isAnnualLeave ? (
+                              {isEditingThis && isAnnualLeave ? (
                                 <Input
                                   type="number"
                                   step="0.5"
                                   className="w-20 text-center"
-                                  value={editingBalance.carried_over}
+                                  value={editingBalance?.carried_over ?? 0}
                                   onChange={(e) =>
-                                    setEditingBalance({
-                                      ...editingBalance,
-                                      carried_over: parseFloat(e.target.value) || 0,
-                                    })
+                                    setEditingBalance((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            carried_over: parseFloat(e.target.value) || 0,
+                                          }
+                                        : null
+                                    )
                                   }
                                 />
                               ) : (
-                                isAnnualLeave ? balance.carried_over : "-"
+                                isAnnualLeave ? (balance.carried_over ?? 0) : "-"
                               )}
                             </TableCell>
                             <TableCell className="text-center">
-                              {editingBalance?.leave_type_id === balance.leave_type_id ? (
+                              {isEditingThis ? (
                                 <Input
                                   type="number"
                                   step="0.5"
                                   className="w-20 text-center"
-                                  value={editingBalance.used_days}
+                                  value={editingBalance?.used_days ?? 0}
                                   onChange={(e) =>
-                                    setEditingBalance({
-                                      ...editingBalance,
-                                      used_days: parseFloat(e.target.value) || 0,
-                                    })
+                                    setEditingBalance((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            used_days: parseFloat(e.target.value) || 0,
+                                          }
+                                        : null
+                                    )
                                   }
                                 />
                               ) : (
-                                balance.used_days
+                                balance.used_days ?? 0
                               )}
                             </TableCell>
                             <TableCell className="text-center">
-                              <Badge variant={balance.available_days > 0 ? "default" : "destructive"}>
+                              <Badge variant={(balance.available_days ?? 0) > 0 ? "default" : "destructive"}>
                                 {isAnnualLeave
-                                  ? balance.available_days
-                                  : entitledDays - balance.used_days}
+                                  ? (balance.available_days ?? 0)
+                                  : entitledDays - (balance.used_days ?? 0)}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              {editingBalance?.leave_type_id === balance.leave_type_id ? (
+                              {isEditingThis ? (
                                 <div className="flex gap-1 justify-end">
                                   <Button size="sm" onClick={handleSaveBalance} disabled={isSaving}>
                                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -327,9 +342,9 @@ export default function LeaveBalances() {
                                   variant="outline"
                                   onClick={() =>
                                     setEditingBalance({
-                                      leave_type_id: balance.leave_type_id,
-                                      carried_over: balance.carried_over || 0,
-                                      used_days: balance.used_days,
+                                      leave_type_id: leaveTypeId,
+                                      carried_over: balance.carried_over ?? 0,
+                                      used_days: balance.used_days ?? 0,
                                     })
                                   }
                                 >
@@ -348,7 +363,7 @@ export default function LeaveBalances() {
               <div className="rounded-lg bg-primary/5 p-4 text-sm">
                 <h4 className="font-medium text-blue-900 mb-2">How It Works</h4>
                 <ul className="text-blue-800 space-y-1">
-                  <li>• <strong>Annual Leave</strong>: Increases by {balanceData.settings.leave_increase_per_year} day(s) per year of service. Carried over balance applies.</li>
+                  <li>• <strong>Annual Leave</strong>: Increases by {balanceData.settings?.leave_increase_per_year ?? 0} day(s) per year of service. Carried over balance applies.</li>
                   <li>• <strong>Other Leaves</strong>: Fixed entitlement per year. No carry over.</li>
                   <li>• <strong>Maternity Leave</strong>: Only available for female employees.</li>
                 </ul>
