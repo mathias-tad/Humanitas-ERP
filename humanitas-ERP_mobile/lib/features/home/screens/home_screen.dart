@@ -15,6 +15,7 @@ import '../../ai/screens/ai_chat_screen.dart';
 import '../../notifications/screens/notifications_screen.dart';
 import '../../profile/screens/access_control_screen.dart';
 import '../../profile/screens/system_settings_screen.dart';
+import '../../profile/screens/hr_settings_screen.dart';
 import '../../scheduling/screens/scheduling_screen.dart';
 import '../../recruitment/screens/recruitment_screen.dart';
 import '../../announcements/screens/announcements_list_screen.dart';
@@ -35,6 +36,8 @@ class HomeScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasHR = authState.isModuleSubscribed('hrms') || authState.isModuleSubscribed('hr');
+    final hasPMS = authState.isModuleSubscribed('pms');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -234,43 +237,51 @@ class HomeScreen extends ConsumerWidget {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               children: [
-                _QuickActionItem(icon: Icons.qr_code_scanner_rounded, color: AppColors.primary,  label: 'Clock In',  onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QrScannerScreen(isClockIn: true)));
-                }),
-                _QuickActionItem(icon: Icons.calendar_month_rounded,   color: AppColors.primary,  label: 'Calendar',  onTap: () {
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.qr_code_scanner_rounded, color: AppColors.primary, label: 'Clock In', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const QrScannerScreen(isClockIn: true)));
+                  }),
+                _QuickActionItem(icon: Icons.calendar_month_rounded, color: AppColors.primary, label: 'Calendar', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
                 }),
-                _QuickActionItem(icon: Icons.calendar_month_outlined,  color: AppColors.primaryDark, label: 'Roster',   onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SchedulingScreen()));
-                }),
-                _QuickActionItem(icon: Icons.beach_access_rounded,     color: AppColors.teal,     label: 'Leave',     onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LeaveScreen()));
-                }),
-                _QuickActionItem(icon: Icons.receipt_long_rounded,     color: AppColors.success,  label: 'Payslip',   onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayslipsScreen()));
-                }),
-                _QuickActionItem(icon: Icons.request_quote_rounded,    color: AppColors.warning,  label: 'Loan',      onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoansScreen()));
-                }),
-                _QuickActionItem(icon: Icons.card_travel_rounded,       color: AppColors.teal,     label: 'Per Diem',  onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PerDiemScreen()));
-                }),
-                _QuickActionItem(icon: Icons.work_outline_rounded,     color: AppColors.primary,  label: 'Recruit',   onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecruitmentScreen()));
-                }),
-                _QuickActionItem(icon: Icons.task_alt_rounded,         color: AppColors.info,     label: 'Tasks',     onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyTasksScreen()));
-                }),
-                _QuickActionItem(icon: Icons.chat_bubble_outline,      color: AppColors.teal,     label: 'Messages',  onTap: () {
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.calendar_month_outlined, color: AppColors.primaryDark, label: 'Roster', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SchedulingScreen()));
+                  }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.beach_access_rounded, color: AppColors.teal, label: 'Leave', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LeaveScreen()));
+                  }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.receipt_long_rounded, color: AppColors.success, label: 'Payslip', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayslipsScreen()));
+                  }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.request_quote_rounded, color: AppColors.warning, label: 'Loan', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoansScreen()));
+                  }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.card_travel_rounded, color: AppColors.teal, label: 'Per Diem', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PerDiemScreen()));
+                  }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.work_outline_rounded, color: AppColors.primary, label: 'Recruit', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecruitmentScreen()));
+                  }),
+                if (hasPMS)
+                  _QuickActionItem(icon: Icons.task_alt_rounded, color: AppColors.info, label: 'Tasks', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyTasksScreen()));
+                  }),
+                _QuickActionItem(icon: Icons.chat_bubble_outline, color: AppColors.teal, label: 'Messages', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConversationsScreen()));
                 }),
-                _QuickActionItem(icon: Icons.smart_toy_outlined,       color: AppColors.primaryDark, label: 'AI',     onTap: () {
+                _QuickActionItem(icon: Icons.smart_toy_outlined, color: AppColors.primaryDark, label: 'AI', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiChatScreen()));
                 }),
-                _QuickActionItem(icon: Icons.event_outlined,           color: AppColors.info,     label: 'Events',    onTap: () {
+                _QuickActionItem(icon: Icons.event_outlined, color: AppColors.info, label: 'Events', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EventsListScreen()));
                 }),
-                _QuickActionItem(icon: Icons.campaign_outlined,        color: AppColors.warning,  label: 'News',      onTap: () {
+                _QuickActionItem(icon: Icons.campaign_outlined, color: AppColors.warning, label: 'News', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AnnouncementsListScreen()));
                 }),
                 _QuickActionItem(icon: Icons.admin_panel_settings_outlined, color: AppColors.primary, label: 'Access', onTap: () {
@@ -279,9 +290,10 @@ class HomeScreen extends ConsumerWidget {
                 _QuickActionItem(icon: Icons.settings_suggest_outlined, color: AppColors.teal, label: 'Settings', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SystemSettingsScreen()));
                 }),
-                _QuickActionItem(icon: Icons.fingerprint_rounded, color: AppColors.primaryDark, label: 'Devices', onTap: () {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DevicesScreen()));
-                }),
+                if (hasHR)
+                  _QuickActionItem(icon: Icons.fingerprint_rounded, color: AppColors.primaryDark, label: 'Devices', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DevicesScreen()));
+                  }),
               ],
             ),
 
@@ -306,15 +318,22 @@ class HomeScreen extends ConsumerWidget {
                   _QuickActionItem(icon: Icons.people_alt_rounded, color: AppColors.primary, label: 'Team', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UsersScreen()));
                   }),
-                  _QuickActionItem(icon: Icons.how_to_reg_rounded, color: AppColors.teal, label: 'Attendance', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAttendanceScreen()));
-                  }),
-                  _QuickActionItem(icon: Icons.beach_access_rounded, color: AppColors.warning, label: 'Leaves', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminLeaveScreen()));
-                  }),
-                  _QuickActionItem(icon: Icons.account_balance_wallet_rounded, color: AppColors.success, label: 'Payroll', onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPayrollScreen()));
-                  }),
+                  if (hasHR)
+                    _QuickActionItem(icon: Icons.how_to_reg_rounded, color: AppColors.teal, label: 'Attendance', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminAttendanceScreen()));
+                    }),
+                  if (hasHR)
+                    _QuickActionItem(icon: Icons.beach_access_rounded, color: AppColors.warning, label: 'Leaves', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminLeaveScreen()));
+                    }),
+                  if (hasHR)
+                    _QuickActionItem(icon: Icons.account_balance_wallet_rounded, color: AppColors.success, label: 'Payroll', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPayrollScreen()));
+                    }),
+                  if (hasHR)
+                    _QuickActionItem(icon: Icons.tune_rounded, color: AppColors.primaryDark, label: 'HR Settings', onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HrSettingsScreen()));
+                    }),
                 ],
               ),
             ],

@@ -16,6 +16,15 @@ import {
   Settings,
   Sparkles,
   CalendarClock,
+  FolderOpen,
+  UserPlus,
+  ShieldAlert,
+  HeartPulse,
+  GraduationCap,
+  Laptop,
+  Smile,
+  FileSpreadsheet,
+  Code2,
 } from "lucide-react";
 import {
   Collapsible,
@@ -97,12 +106,65 @@ export function HRCollapsible({
     { to: "/recruitment", icon: Sparkles, label: "AI Screening", permissions: ["manage_recruitment", "view_hrm_settings", "view_dashboard"] },
   ];
 
+  const allHrSettingsItems = [
+    { to: "/hr/settings", icon: Settings, label: "HR Settings", permissions: ["view_hrm_settings", "edit_hrm_settings", "view_payroll_settings"] },
+  ];
+
+  const allReportsItems = [
+    { to: "/hrms/reports", icon: FileBarChart, label: "People Analytics", permissions: ["view_hrms_reports"] },
+  ];
+
+  const allDocumentItems = [
+    { to: "/hrms/documents", icon: FolderOpen, label: "Document Vault", permissions: ["view_employee_documents", "view_my_documents", "manage_employee_documents"] },
+  ];
+
+  const allOnboardingItems = [
+    { to: "/hrms/onboarding", icon: UserPlus, label: "Onboarding", permissions: ["view_onboarding", "manage_onboarding"] },
+  ];
+
+  const allSelfServiceItems = [
+    { to: "/self-service", icon: UserCheck, label: "My Self-Service", permissions: ["view_self_service"] },
+  ];
+
+  const allGrievanceItems = [
+    { to: "/hrms/grievances", icon: ShieldAlert, label: "Grievances", permissions: ["view_grievances", "manage_grievances", "file_grievance"] },
+  ];
+
+  const allBenefitItems = [
+    { to: "/hrms/benefits", icon: HeartPulse, label: "Benefits & Insurance", permissions: ["view_benefit_plans", "view_my_benefits", "manage_benefits"] },
+  ];
+
+  const allTrainingItems = [
+    { to: "/hrms/training", icon: GraduationCap, label: "Training & LMS", permissions: ["view_training_courses", "view_my_training", "manage_training"] },
+  ];
+
+  const allExpenseItems = [
+    { to: "/hrms/expenses", icon: Receipt, label: "Expense Claims", permissions: ["view_expenses", "view_my_expenses", "submit_expenses"] },
+  ];
+
+  const allAssetItems = [
+    { to: "/hrms/assets", icon: Laptop, label: "Asset Tracking", permissions: ["view_assets", "view_my_assets"] },
+  ];
+
+  const allSurveyItems = [
+    { to: "/hrms/surveys", icon: Smile, label: "Pulse Surveys", permissions: ["view_surveys", "participate_survey"] },
+  ];
+
+  const allImportExportItems = [
+    { to: "/settings/import-export", icon: FileSpreadsheet, label: "Import / Export", permissions: ["view_import_export", "manage_import", "manage_export"] },
+  ];
+
+  const allDeveloperApiItems = [
+    { to: "/settings/developer-api", icon: Code2, label: "Developer API", permissions: ["view_developer_api", "manage_developer_api"] },
+  ];
+
   const { isModuleSubscribed } = useModules();
 
   const isPayrollSubscribed = isModuleSubscribed("payroll");
   const isAttendanceSubscribed = isModuleSubscribed("attendance");
   const isLeaveSubscribed = isModuleSubscribed("leave");
   const isRecruitmentSubscribed = isModuleSubscribed("recruitment");
+  const isHrmsSubscribed = isModuleSubscribed("hrms") || isModuleSubscribed("hr");
   const isSchedulingSubscribed = isModuleSubscribed("hrms") || isModuleSubscribed("hr") || isModuleSubscribed("attendance") || isModuleSubscribed("scheduling");
 
   // Filter items based on permissions AND module subscription
@@ -121,9 +183,48 @@ export function HRCollapsible({
   const recruitmentItems = isRecruitmentSubscribed
     ? allRecruitmentItems.filter(item => hasAnyPermission(item.permissions))
     : [];
+  const hrSettingsItems = isHrmsSubscribed
+    ? allHrSettingsItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const reportItems = isHrmsSubscribed
+    ? allReportsItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const documentItems = isHrmsSubscribed
+    ? allDocumentItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const onboardingItems = isHrmsSubscribed
+    ? allOnboardingItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const selfServiceItems = isHrmsSubscribed
+    ? allSelfServiceItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const grievanceItems = isHrmsSubscribed
+    ? allGrievanceItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const benefitItems = isHrmsSubscribed
+    ? allBenefitItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const trainingItems = isHrmsSubscribed
+    ? allTrainingItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const expenseItems = isHrmsSubscribed
+    ? allExpenseItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const assetItems = isHrmsSubscribed
+    ? allAssetItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const surveyItems = isHrmsSubscribed
+    ? allSurveyItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const importExportItems = isHrmsSubscribed
+    ? allImportExportItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
+  const developerApiItems = isHrmsSubscribed
+    ? allDeveloperApiItems.filter(item => hasAnyPermission(item.permissions))
+    : [];
 
   // Check if any HR section is accessible
-  const hasAnyHRAccess = payrollItems.length > 0 || attendanceItems.length > 0 || leaveItems.length > 0 || schedulingItems.length > 0 || recruitmentItems.length > 0;
+  const hasAnyHRAccess = payrollItems.length > 0 || attendanceItems.length > 0 || leaveItems.length > 0 || schedulingItems.length > 0 || recruitmentItems.length > 0 || reportItems.length > 0 || documentItems.length > 0 || onboardingItems.length > 0 || selfServiceItems.length > 0 || grievanceItems.length > 0 || benefitItems.length > 0 || trainingItems.length > 0 || expenseItems.length > 0 || assetItems.length > 0 || surveyItems.length > 0 || importExportItems.length > 0 || developerApiItems.length > 0 || hrSettingsItems.length > 0;
 
   if (!hasAnyHRAccess) {
     return null;
@@ -281,6 +382,270 @@ export function HRCollapsible({
                 ))}
               </div>
             )}
+
+            {/* People Analytics / Reports */}
+            {reportItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Analytics</div>
+                {reportItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Document Vault */}
+            {documentItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Documents</div>
+                {documentItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Onboarding & Offboarding */}
+            {onboardingItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Workflows</div>
+                {onboardingItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Self-Service Portal */}
+            {selfServiceItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Self-Service</div>
+                {selfServiceItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Grievances & Whistleblower */}
+            {grievanceItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Compliance</div>
+                {grievanceItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Benefits & Insurance */}
+            {benefitItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Benefits</div>
+                {benefitItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Training & LMS */}
+            {trainingItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Learning</div>
+                {trainingItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Expense Claims */}
+            {expenseItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Expenses</div>
+                {expenseItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Asset Items */}
+            {assetItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Assets</div>
+                {assetItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Survey Items */}
+            {surveyItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Surveys</div>
+                {surveyItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Import / Export Items */}
+            {importExportItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Data Management</div>
+                {importExportItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+
+            {/* Developer API Items */}
+            {developerApiItems.length > 0 && (
+              <div className="border-t pt-1 mt-1">
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Developer API</div>
+                {developerApiItems.map((item) => (
+                  <NavLink key={item.to} to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -388,6 +753,279 @@ export function HRCollapsible({
                           }`}
                       >
                         <item.icon className="h-4 w-4 text-yellow-500" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* People Analytics / Reports Items */}
+            {reportItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Document Vault Items */}
+            {documentItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Onboarding Items */}
+            {onboardingItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Self-Service Items */}
+            {selfServiceItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Grievance Items */}
+            {grievanceItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Benefit Items */}
+            {benefitItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Training Items */}
+            {trainingItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Expense Items */}
+            {expenseItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Asset Items */}
+            {assetItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Survey Items */}
+            {surveyItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Import / Export Items */}
+            {importExportItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* Developer API Items */}
+            {developerApiItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
+                        <span>{item.label}</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+
+            {/* HR Settings Items */}
+            {hrSettingsItems.map((item) => (
+              <SidebarMenuSubItem key={item.to}>
+                <SidebarMenuSubButton asChild className="!px-0">
+                  <NavLink to={item.to}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <item.icon className="h-4 w-4 text-primary" />
                         <span>{item.label}</span>
                       </div>
                     )}

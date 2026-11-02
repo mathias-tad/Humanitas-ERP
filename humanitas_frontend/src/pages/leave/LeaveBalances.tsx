@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { API_BASE_URL } from "@/config/api.config";
+import { getAuthHeaders } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +35,8 @@ import {
   ChevronUp,
   RotateCcw,
   Sparkles,
-  Info
+  Info,
+  AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLeave, type User } from "@/hooks/useLeave";
@@ -59,6 +63,43 @@ export default function LeaveBalances() {
   const [calcAccrualMode, setCalcAccrualMode] = useState<"full" | "prorated">("full");
   const [calcCarriedOver, setCalcCarriedOver] = useState<number>(0);
   const [calcLegacyUsed, setCalcLegacyUsed] = useState<number>(0);
+  const queryClient = useQueryClient();
+  const [isSavingHireDate, setIsSavingHireDate] = useState(false);
+
+  const handleSetOfficialHireDate = async (targetHireDate?: string): Promise<boolean> => {
+    const dateToSave = targetHireDate || calcHireDate;
+    if (!selectedUser || !dateToSave) {
+      toast.error("Please enter a valid Hire / Start Date");
+      return false;
+    }
+    setIsSavingHireDate(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/${selectedUser.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        credentials: "include",
+        body: JSON.stringify({ hire_date: dateToSave }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.message || "Failed to update employee hire date");
+      }
+      toast.success(`Official hire date set to ${dateToSave} for ${selectedUser.full_name}`);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["userBalances", selectedUser.id] }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+      ]);
+      return true;
+    } catch (err: any) {
+      toast.error(err.message || "Failed to set employee hire date");
+      return false;
+    } finally {
+      setIsSavingHireDate(false);
+    }
+  };
 
   const { usersQuery, useUserBalances, calculateBalancesMutation, updateBalanceMutation } = useLeave();
   const users = usersQuery.data || [];
@@ -176,10 +217,24 @@ export default function LeaveBalances() {
   const netStartingAvailable = totalGrossAllocated - (Number(calcLegacyUsed) || 0);
 
   // Apply Onboarding Balance Mutation
-  const handleApplyOnboardingBalance = () => {
+  const handleApplyOnboardingBalance = async () => {
     if (!selectedUser || !calcLeaveTypeId) {
       toast.error("Please select a leave type");
       return;
+    }
+
+    // Check if employee has an official hire date
+    const hasOfficialHireDate = Boolean(balanceData?.user?.hire_date);
+    if (!hasOfficialHireDate) {
+      if (!calcHireDate) {
+        toast.error("Employee hire date is not set. Please enter a 'Hire / Start Date' in the calculator to proceed.");
+        return;
+      }
+      // Automatically set and persist the official hire date right now!
+      const ok = await handleSetOfficialHireDate(calcHireDate);
+      if (!ok) {
+        return;
+      }
     }
 
     const payload = {
@@ -316,7 +371,7 @@ export default function LeaveBalances() {
 
       {/* Leave Balance Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="w-[96vw] max-w-6xl xl:max-w-7xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Calendar className="h-5 w-5 text-primary" />
@@ -356,11 +411,40 @@ export default function LeaveBalances() {
               </div>
 
               {!balanceData.user?.hire_date && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3.5 text-xs text-destructive flex items-center gap-2">
-                  <Info className="h-4 w-4 shrink-0" />
-                  <span>
-                    <strong>Warning:</strong> Employee hire date is missing in their profile. You can still set custom starting balances below or specify an ad-hoc hire date in the Onboarding Calculator.
-                  </span>
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold text-amber-800 dark:text-amber-300 text-sm">
+                        Official Hire Date Not Set in Profile
+                      </div>
+                      <p className="text-muted-foreground mt-0.5">
+                        {calcHireDate ? (
+                          <>
+                            Hire date set in calculator: <strong>{calcHireDate}</strong>. Save it as the employee&apos;s official hire date right here, or click <em>&ldquo;Set Hire Date &amp; Apply Balance&rdquo;</em> below to update and apply in one click.
+                          </>
+                        ) : (
+                          "Please select a 'Hire / Start Date' below to set the official hire date and calculate accurate tenure leave accruals."
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  {calcHireDate && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={isSavingHireDate}
+                      onClick={() => handleSetOfficialHireDate(calcHireDate)}
+                      className="shrink-0 h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-sm"
+                    >
+                      {isSavingHireDate ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Set as Official Hire Date
+                    </Button>
+                  )}
                 </div>
               )}
 
@@ -574,15 +658,15 @@ export default function LeaveBalances() {
                           <Button
                             size="sm"
                             onClick={handleApplyOnboardingBalance}
-                            disabled={isSaving}
+                            disabled={isSaving || isSavingHireDate || (!balanceData?.user?.hire_date && !calcHireDate)}
                             className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
                           >
-                            {isSaving ? (
+                            {isSaving || isSavingHireDate ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                             ) : (
                               <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                             )}
-                            Apply Onboarding Balance
+                            {!balanceData?.user?.hire_date ? "Set Hire Date & Apply Balance" : "Apply Onboarding Balance"}
                           </Button>
                         </div>
                       </div>

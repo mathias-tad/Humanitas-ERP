@@ -7,10 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:humanitas_mobile/core/providers/auth_provider.dart';
-import 'package:humanitas_mobile/features/auth/providers/auth_state.dart';
-import 'package:humanitas_mobile/features/auth/repositories/auth_repository.dart';
-import 'package:humanitas_mobile/main.dart';
+import 'package:humanitas_erp_mobile/core/providers/auth_provider.dart';
+import 'package:humanitas_erp_mobile/features/auth/providers/auth_state.dart';
+import 'package:humanitas_erp_mobile/features/auth/repositories/auth_repository.dart';
+import 'package:humanitas_erp_mobile/main.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   @override
