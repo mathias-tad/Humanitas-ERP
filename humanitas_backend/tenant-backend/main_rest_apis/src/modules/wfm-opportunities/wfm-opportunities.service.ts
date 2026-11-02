@@ -206,8 +206,42 @@ export class WfmOpportunitiesService {
     query += ` ORDER BY company_id NULLS LAST, branch_id NULLS LAST LIMIT 1`;
     const rows = await connection.query(query, params);
 
+    // Fetch payroll settings to source configured overtime multipliers without fallback
+    let payrollOtRates: {
+      normal: number | null;
+      night: number | null;
+      dayoff: number | null;
+      holiday: number | null;
+    } = {
+      normal: null,
+      night: null,
+      dayoff: null,
+      holiday: null,
+    };
+    try {
+      const payrollRes = await connection.query("SELECT data FROM settings WHERE category = 'payroll'");
+      const payrollSettings = payrollRes?.[0]?.data || {};
+      payrollOtRates = {
+        normal: payrollSettings.ot_rate_normal != null && !isNaN(Number(payrollSettings.ot_rate_normal))
+          ? Number(payrollSettings.ot_rate_normal)
+          : null,
+        night: payrollSettings.ot_rate_night != null && !isNaN(Number(payrollSettings.ot_rate_night))
+          ? Number(payrollSettings.ot_rate_night)
+          : null,
+        dayoff: payrollSettings.ot_rate_dayoff != null && !isNaN(Number(payrollSettings.ot_rate_dayoff))
+          ? Number(payrollSettings.ot_rate_dayoff)
+          : null,
+        holiday: payrollSettings.ot_rate_holiday != null && !isNaN(Number(payrollSettings.ot_rate_holiday))
+          ? Number(payrollSettings.ot_rate_holiday)
+          : null,
+      };
+    } catch (_) {}
+
     if (rows && rows.length > 0) {
-      return rows[0];
+      return {
+        ...rows[0],
+        payroll_ot_rates: payrollOtRates,
+      };
     }
 
     // Default configuration if no row exists yet
@@ -227,7 +261,10 @@ export class WfmOpportunitiesService {
       ) RETURNING *
     `, [companyId || null, branchId || null]);
 
-    return insertRes[0];
+    return {
+      ...insertRes[0],
+      payroll_ot_rates: payrollOtRates,
+    };
   }
 
   /**
@@ -300,15 +337,22 @@ export class WfmOpportunitiesService {
       throw new BadRequestException('Voluntary Time Off (VTO) broadcasts are currently disabled by tenant policy.');
     }
 
-    // Default OT Multiplier & Category if not specified
-    let multiplier = dto.ot_rate_multiplier;
-    let otCategory = dto.ot_category || 'normal';
+    // Determine OT Multiplier & Category from payroll settings without fallback
+    let multiplier = dto.ot_rate_multiplier != null ? Number(dto.ot_rate_multiplier) : null;
+    const otCategory = dto.ot_category || 'normal';
 
-    if (!multiplier) {
-      if (otCategory === 'holiday') multiplier = 2.5;
-      else if (otCategory === 'dayoff') multiplier = 2.0;
-      else if (otCategory === 'night') multiplier = 1.5;
-      else multiplier = 1.25;
+    if (dto.type === 'VET') {
+      const configuredRate = settings.payroll_ot_rates?.[otCategory];
+      if (multiplier == null || multiplier <= 0) {
+        multiplier = configuredRate != null ? Number(configuredRate) : null;
+      }
+      if (multiplier == null || multiplier <= 0) {
+        throw new BadRequestException(
+          `Overtime rate for '${otCategory}' is not configured in Settings → Payroll Settings. Please configure overtime rates before broadcasting VET opportunities.`
+        );
+      }
+    } else {
+      multiplier = 1.0;
     }
 
     // Fetch shift times if shift_id provided

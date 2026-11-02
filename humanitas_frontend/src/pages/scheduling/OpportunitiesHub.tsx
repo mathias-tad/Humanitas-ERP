@@ -34,6 +34,11 @@ import {
   Flame,
   TrendingUp,
   Award,
+  Zap,
+  Info,
+  AlertCircle,
+  AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function OpportunitiesHub() {
@@ -76,12 +81,92 @@ export default function OpportunitiesHub() {
     end_time: '17:00',
     hours: 8,
     slots_available: 2,
-    ot_rate_multiplier: 1.5,
+    ot_rate_multiplier: 0,
     ot_category: 'normal' as 'normal' | 'night' | 'dayoff' | 'holiday',
     urgency: 'normal' as 'normal' | 'high' | 'critical',
     reason: '',
     notes: '',
   });
+
+  // Payroll Overtime Multipliers sourced dynamically from tenant settings (without fallback)
+  const payrollOtRates = React.useMemo(() => ({
+    normal: settings?.payroll_ot_rates?.normal ?? null,
+    night: settings?.payroll_ot_rates?.night ?? null,
+    dayoff: settings?.payroll_ot_rates?.dayoff ?? null,
+    holiday: settings?.payroll_ot_rates?.holiday ?? null,
+  }), [settings?.payroll_ot_rates]);
+
+  const otCategories = [
+    {
+      key: 'normal' as const,
+      name: 'Standard Overtime',
+      desc: 'Regular daily/weekly extra hours',
+      rate: payrollOtRates.normal,
+    },
+    {
+      key: 'night' as const,
+      name: 'Night Shift Overtime',
+      desc: 'Unsocial overnight hours',
+      rate: payrollOtRates.night,
+    },
+    {
+      key: 'dayoff' as const,
+      name: 'Rest Day / Weekend Overtime',
+      desc: 'Scheduled weekly rest day work',
+      rate: payrollOtRates.dayoff,
+    },
+    {
+      key: 'holiday' as const,
+      name: 'Public Holiday Overtime',
+      desc: 'Statutory public holidays',
+      rate: payrollOtRates.holiday,
+    },
+  ];
+
+  const currentVetRate = payrollOtRates[broadcastForm.ot_category];
+  const isVetRateConfigured = currentVetRate !== null && currentVetRate > 0;
+
+  const handleTypeChange = (newType: 'VET' | 'VTO') => {
+    const rate = newType === 'VET' ? (payrollOtRates[broadcastForm.ot_category] ?? 0) : 1.0;
+    setBroadcastForm((prev) => ({
+      ...prev,
+      type: newType,
+      hours: newType === 'VET' ? (prev.hours === 4 ? 8 : prev.hours || 8) : (prev.hours === 8 ? 4 : prev.hours || 4),
+      ot_rate_multiplier: rate,
+    }));
+  };
+
+  const handleOtCategoryChange = (category: 'normal' | 'night' | 'dayoff' | 'holiday') => {
+    const rate = payrollOtRates[category] ?? 0;
+    setBroadcastForm((prev) => ({
+      ...prev,
+      ot_category: category,
+      ot_rate_multiplier: rate,
+    }));
+  };
+
+  const handleShiftSelect = (shiftId: string) => {
+    const s = shifts.find((sh) => sh.id === shiftId);
+    if (s) {
+      setBroadcastForm((prev) => ({
+        ...prev,
+        shift_id: shiftId,
+        start_time: s.start_time.slice(0, 5),
+        end_time: s.end_time.slice(0, 5),
+      }));
+    } else {
+      setBroadcastForm((prev) => ({ ...prev, shift_id: shiftId }));
+    }
+  };
+
+  const handleOpenBroadcastModal = () => {
+    const rate = broadcastForm.type === 'VET' ? (payrollOtRates[broadcastForm.ot_category] ?? 0) : 1.0;
+    setBroadcastForm((prev) => ({
+      ...prev,
+      ot_rate_multiplier: rate,
+    }));
+    setBroadcastOpen(true);
+  };
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedClaimForReview, setSelectedClaimForReview] = useState<any>(null);
@@ -123,12 +208,18 @@ export default function OpportunitiesHub() {
   // Handle Broadcast
   const handleBroadcastSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (broadcastForm.type === 'VET' && !isVetRateConfigured) {
+      toast.error(
+        `Overtime rate for '${otCategories.find((c) => c.key === broadcastForm.ot_category)?.name || broadcastForm.ot_category}' is not configured in Settings → Payroll Settings. Please configure overtime rates before broadcasting.`,
+      );
+      return;
+    }
     try {
       await broadcastMutation.mutateAsync({
         ...broadcastForm,
         hours: Number(broadcastForm.hours),
         slots_available: Number(broadcastForm.slots_available),
-        ot_rate_multiplier: Number(broadcastForm.ot_rate_multiplier),
+        ot_rate_multiplier: broadcastForm.type === 'VET' ? Number(currentVetRate) : 1.0,
       });
       toast.success('Opportunity broadcasted! Notifications sent to department.');
       setBroadcastOpen(false);
@@ -177,7 +268,7 @@ export default function OpportunitiesHub() {
         </div>
 
         {hasPermission('broadcast_wfm_opportunities') && (
-          <Button onClick={() => setBroadcastOpen(true)} className="flex items-center gap-2">
+          <Button onClick={handleOpenBroadcastModal} className="flex items-center gap-2">
             <PlusCircle className="w-4 h-4" />
             Broadcast Opportunity
           </Button>
@@ -507,7 +598,7 @@ export default function OpportunitiesHub() {
                       Monitor current VET and VTO broadcasts and fill rates across departments.
                     </CardDescription>
                   </div>
-                  <Button onClick={() => setBroadcastOpen(true)} size="sm">
+                  <Button onClick={handleOpenBroadcastModal} size="sm">
                     <PlusCircle className="w-4 h-4 mr-2" />
                     New Broadcast
                   </Button>
@@ -826,34 +917,111 @@ export default function OpportunitiesHub() {
 
       {/* Broadcast Opportunity Dialog */}
       <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Broadcast Workforce Opportunity</DialogTitle>
             <DialogDescription>
-              Open extra overtime shifts (VET) or voluntary time-off (VTO) slots for employees.
+              Open extra overtime shifts (VET) or voluntary time-off (VTO) slots for employees with automated department notifications.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleBroadcastSubmit} className="space-y-4 py-2">
+            {/* Opportunity Type Interactive Toggle */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Opportunity Type</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange('VET')}
+                  className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                    broadcastForm.type === 'VET'
+                      ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 ring-2 ring-amber-500/30'
+                      : 'border-border/60 hover:border-border hover:bg-muted/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${broadcastForm.type === 'VET' ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-sm">VET</span>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${broadcastForm.type === 'VET' ? 'border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/10' : ''}`}>
+                      Paid Overtime
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Voluntary Extra Time Shift</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange('VTO')}
+                  className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
+                    broadcastForm.type === 'VTO'
+                      ? 'border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/15 ring-2 ring-emerald-500/30'
+                      : 'border-border/60 hover:border-border hover:bg-muted/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${broadcastForm.type === 'VTO' ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-sm">VTO</span>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] ${broadcastForm.type === 'VTO' ? 'border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10' : ''}`}>
+                      Excused Absence
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Voluntary Time Off Flex</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Contextual Banner */}
+            {broadcastForm.type === 'VET' ? (
+              <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200 text-xs">
+                <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="font-semibold">Paid Overtime Shift Broadcast</div>
+                  <p className="text-amber-800/90 dark:text-amber-300/90">
+                    Extra hours worked will be compensated at the tenant's configured payroll overtime rate multiplier. Eligible department staff will receive instant notifications.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 text-xs">
+                <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="font-semibold">Voluntary Time Off Flex Broadcast</div>
+                  <p className="text-emerald-800/90 dark:text-emerald-300/90">
+                    Allows staff to take voluntary excused leave during reduced workflow without attendance penalty. Staff may choose to use accrued PTO if permitted by company policy.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Title with dynamic label & placeholder */}
+            <div className="space-y-1">
+              <Label>
+                {broadcastForm.type === 'VET' ? 'Overtime Shift Title *' : 'Voluntary Time Off Title *'}
+              </Label>
+              <Input
+                placeholder={
+                  broadcastForm.type === 'VET'
+                    ? 'e.g. Surge Support Overtime - Critical Backlog Dispatch / Weekend Coverage'
+                    : 'e.g. Low Volume Early Release - Friday Afternoon Production Flex'
+                }
+                value={broadcastForm.title}
+                onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                required
+              />
+            </div>
+
+            {/* Date and Shift */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Opportunity Type</Label>
-                <Select
-                  value={broadcastForm.type}
-                  onValueChange={(val: 'VET' | 'VTO') => setBroadcastForm({ ...broadcastForm, type: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VET">VET (Extra Overtime Shift)</SelectItem>
-                    <SelectItem value="VTO">VTO (Voluntary Time Off)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Date</Label>
+                <Label>Opportunity Date *</Label>
                 <Input
                   type="date"
                   value={broadcastForm.date}
@@ -861,29 +1029,18 @@ export default function OpportunitiesHub() {
                   required
                 />
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <Label>Broadcast Title</Label>
-              <Input
-                placeholder="e.g. Weekend Surge Support / Morning Coverage"
-                value={broadcastForm.title}
-                onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1">
-                <Label>Shift</Label>
+                <Label>Shift (Optional)</Label>
                 <Select
                   value={broadcastForm.shift_id}
-                  onValueChange={(val) => setBroadcastForm({ ...broadcastForm, shift_id: val })}
+                  onValueChange={handleShiftSelect}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select shift" />
+                    <SelectValue placeholder="Select existing shift" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="">No Shift / Custom Times</SelectItem>
                     {shifts.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name} ({s.start_time.slice(0, 5)} - {s.end_time.slice(0, 5)})
@@ -892,12 +1049,18 @@ export default function OpportunitiesHub() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
+            {/* Hours and Headcount (Slots) */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Hours</Label>
+                <Label>
+                  {broadcastForm.type === 'VET' ? 'Overtime Shift Duration (Hours) *' : 'Excused Absence Duration (Hours) *'}
+                </Label>
                 <Input
                   type="number"
                   step="0.5"
+                  min="0.5"
                   value={broadcastForm.hours}
                   onChange={(e) => setBroadcastForm({ ...broadcastForm, hours: Number(e.target.value) })}
                   required
@@ -905,7 +1068,9 @@ export default function OpportunitiesHub() {
               </div>
 
               <div className="space-y-1">
-                <Label>Slots Available</Label>
+                <Label>
+                  {broadcastForm.type === 'VET' ? 'Required Overtime Workers (Slots) *' : 'Approved Staff Count (Slots) *'}
+                </Label>
                 <Input
                   type="number"
                   min="1"
@@ -916,61 +1081,159 @@ export default function OpportunitiesHub() {
               </div>
             </div>
 
+            {/* VET Overtime Rate Configuration */}
             {broadcastForm.type === 'VET' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Overtime Multiplier</Label>
-                  <Select
-                    value={String(broadcastForm.ot_rate_multiplier)}
-                    onValueChange={(val) => setBroadcastForm({ ...broadcastForm, ot_rate_multiplier: Number(val) })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1.25">1.25x (Standard Overtime)</SelectItem>
-                      <SelectItem value="1.5">1.50x (Night Shift OT)</SelectItem>
-                      <SelectItem value="2.0">2.00x (Rest Day / Weekend OT)</SelectItem>
-                      <SelectItem value="2.5">2.50x (Public Holiday OT)</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-4 items-start">
+                  {/* Category selector sourced from payroll settings */}
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <span>Overtime Type (Payroll Policy)</span>
+                    </Label>
+                    <Select
+                      value={broadcastForm.ot_category}
+                      onValueChange={(val: any) => handleOtCategoryChange(val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {otCategories.map((cat) => (
+                          <SelectItem key={cat.key} value={cat.key}>
+                            {cat.name} {cat.rate != null ? `(${cat.rate}x)` : '(Not set ⚠️)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">
+                      {otCategories.find((c) => c.key === broadcastForm.ot_category)?.desc}
+                    </p>
+                  </div>
+
+                  {/* Multiplier display card */}
+                  <div className="space-y-1.5">
+                    <Label>Rate Multiplier</Label>
+                    {isVetRateConfigured ? (
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/40 min-h-[58px]">
+                        <div>
+                          <div className="text-xl font-bold tracking-tight text-foreground flex items-baseline gap-1">
+                            <span>{currentVetRate}x</span>
+                            <span className="text-xs font-normal text-muted-foreground">Hourly Rate</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">Settings → Payroll Settings</span>
+                        </div>
+                        <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px] bg-emerald-500/10">
+                          Auto-Sourced
+                        </Badge>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 rounded-lg border border-rose-500/30 bg-rose-500/10 min-h-[58px]">
+                        <div>
+                          <div className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                            Not set on Settings
+                          </div>
+                          <span className="text-[10px] text-rose-600/90 dark:text-rose-400/90">
+                            Multiplier not configured
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="border-rose-500/40 text-rose-600 dark:text-rose-400 text-[10px]">
+                          Action Required
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <Label>OT Category</Label>
-                  <Select
-                    value={broadcastForm.ot_category}
-                    onValueChange={(val: any) => setBroadcastForm({ ...broadcastForm, ot_category: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="normal">Standard Weekday</SelectItem>
-                      <SelectItem value="night">Night Shift</SelectItem>
-                      <SelectItem value="dayoff">Rest Day / Weekend</SelectItem>
-                      <SelectItem value="holiday">Public Holiday</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Warning announcement if rate is not set */}
+                {!isVetRateConfigured && (
+                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-900 dark:text-rose-200 text-xs space-y-1.5">
+                    <div className="font-semibold flex items-center gap-1.5 text-rose-700 dark:text-rose-300">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                      <span>Overtime Rate Not Set in Payroll Settings</span>
+                    </div>
+                    <p className="text-rose-800/90 dark:text-rose-300/90">
+                      The overtime multiplier for <strong>{otCategories.find((c) => c.key === broadcastForm.ot_category)?.name}</strong> has not been configured in your tenant's Payroll Settings. Please configure overtime rates before broadcasting.
+                    </p>
+                    <div className="pt-0.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs border-rose-500/40 text-rose-800 dark:text-rose-200 hover:bg-rose-500/20"
+                        onClick={() => window.open('/settings', '_blank')}
+                      >
+                        Configure in Payroll Settings <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VTO Policy Note */}
+            {broadcastForm.type === 'VTO' && (
+              <div className="flex items-center gap-3 p-3 rounded-xl border bg-muted/30 text-xs text-muted-foreground">
+                <Info className="w-4 h-4 text-primary shrink-0" />
+                <div>
+                  <span className="font-medium text-foreground">Absence Policy:</span> VTO does not use overtime multipliers. Time off is recorded as excused absence, and staff may choose to use accrued PTO if permitted by company policy.
                 </div>
               </div>
             )}
 
+            {/* Reason / Notes */}
             <div className="space-y-1">
-              <Label>Broadcast Reason / Notes</Label>
+              <Label>
+                {broadcastForm.type === 'VET' ? 'Business Need / Overtime Justification' : 'Reason for Voluntary Time Off / Operational Context'}
+              </Label>
               <Input
-                placeholder="Reason for opening slots (e.g. Influx of orders, Low support volume)"
+                placeholder={
+                  broadcastForm.type === 'VET'
+                    ? 'e.g. Critical backlog dispatch, weekend order surge, or emergency floor coverage...'
+                    : 'e.g. Production queue cleared early, line maintenance, or voluntary early release without penalty...'
+                }
                 value={broadcastForm.reason}
                 onChange={(e) => setBroadcastForm({ ...broadcastForm, reason: e.target.value })}
               />
+            </div>
+
+            {/* Urgency */}
+            <div className="space-y-1">
+              <Label>Broadcast Urgency / Priority</Label>
+              <Select
+                value={broadcastForm.urgency}
+                onValueChange={(val: any) => setBroadcastForm({ ...broadcastForm, urgency: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal (Standard broadcast)</SelectItem>
+                  <SelectItem value="high">High (Priority staffing)</SelectItem>
+                  <SelectItem value="critical">Critical (Immediate coverage required)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setBroadcastOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={broadcastMutation.isPending}>
-                {broadcastMutation.isPending ? 'Broadcasting...' : 'Broadcast to Department'}
+              <Button
+                type="submit"
+                disabled={broadcastMutation.isPending || (broadcastForm.type === 'VET' && !isVetRateConfigured)}
+              >
+                {broadcastMutation.isPending ? (
+                  'Broadcasting...'
+                ) : broadcastForm.type === 'VET' ? (
+                  isVetRateConfigured ? (
+                    `Broadcast Paid VET Shift (${currentVetRate}x OT)`
+                  ) : (
+                    'Cannot Broadcast: Rate Not Set in Settings'
+                  )
+                ) : (
+                  'Broadcast Voluntary Time Off (VTO)'
+                )}
               </Button>
             </DialogFooter>
           </form>

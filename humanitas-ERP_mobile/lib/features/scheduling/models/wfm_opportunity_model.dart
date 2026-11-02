@@ -124,3 +124,68 @@ class WfmClaimModel {
     );
   }
 }
+
+class PayrollOtRatesModel {
+  final double? normal;
+  final double? night;
+  final double? dayoff;
+  final double? holiday;
+
+  const PayrollOtRatesModel({
+    this.normal,
+    this.night,
+    this.dayoff,
+    this.holiday,
+  });
+
+  factory PayrollOtRatesModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const PayrollOtRatesModel();
+    return PayrollOtRatesModel(
+      normal: json['normal'] != null ? double.tryParse(json['normal'].toString()) : null,
+      night: json['night'] != null ? double.tryParse(json['night'].toString()) : null,
+      dayoff: json['dayoff'] != null ? double.tryParse(json['dayoff'].toString()) : null,
+      holiday: json['holiday'] != null ? double.tryParse(json['holiday'].toString()) : null,
+    );
+  }
+
+  double? getRate(String category) {
+    switch (category) {
+      case 'night':
+        return night;
+      case 'dayoff':
+        return dayoff;
+      case 'holiday':
+        return holiday;
+      case 'normal':
+      default:
+        return normal;
+    }
+  }
+}
+
+class WfmSettingsModel {
+  final String? id;
+  final bool vetEnabled;
+  final bool vtoEnabled;
+  final PayrollOtRatesModel payrollOtRates;
+
+  const WfmSettingsModel({
+    this.id,
+    this.vetEnabled = true,
+    this.vtoEnabled = true,
+    this.payrollOtRates = const PayrollOtRatesModel(),
+  });
+
+  factory WfmSettingsModel.fromJson(Map<String, dynamic> json) {
+    return WfmSettingsModel(
+      id: json['id']?.toString(),
+      vetEnabled: json['vet_enabled'] != false,
+      vtoEnabled: json['vto_enabled'] != false,
+      payrollOtRates: PayrollOtRatesModel.fromJson(
+        json['payroll_ot_rates'] is Map<String, dynamic>
+            ? json['payroll_ot_rates'] as Map<String, dynamic>
+            : null,
+      ),
+    );
+  }
+}

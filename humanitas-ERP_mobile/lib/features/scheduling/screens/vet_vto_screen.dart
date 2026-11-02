@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../models/wfm_opportunity_model.dart';
 import '../providers/wfm_provider.dart';
 
@@ -168,12 +169,525 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
     }
   }
 
+  Future<void> _openBroadcastSheet() async {
+    final settings = await ref.read(wfmSettingsProvider.future);
+    final payrollRates = settings.payrollOtRates;
+
+    if (!mounted) return;
+
+    String broadcastType = 'VET';
+    String otCategory = 'normal';
+    String urgency = 'normal';
+    final titleController = TextEditingController();
+    final hoursController = TextEditingController(text: '8');
+    final slotsController = TextEditingController(text: '2');
+    final reasonController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isVet = broadcastType == 'VET';
+            final currentRate = payrollRates.getRate(otCategory);
+            final isRateConfigured = currentRate != null && currentRate > 0;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.88,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E2D) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Broadcast Opportunity',
+                          style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      children: [
+                        // VET / VTO Segmented Control
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setSheetState(() {
+                                    broadcastType = 'VET';
+                                    hoursController.text = '8';
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isVet
+                                        ? Colors.amber.withOpacity(0.15)
+                                        : (isDark ? Colors.white10 : Colors.grey.shade100),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isVet ? Colors.amber.shade700 : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.bolt, size: 18, color: Colors.amber.shade800),
+                                          const SizedBox(width: 4),
+                                          Text('VET', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Paid Overtime',
+                                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setSheetState(() {
+                                    broadcastType = 'VTO';
+                                    hoursController.text = '4';
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: !isVet
+                                        ? Colors.teal.withOpacity(0.15)
+                                        : (isDark ? Colors.white10 : Colors.grey.shade100),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: !isVet ? Colors.teal.shade700 : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.beach_access, size: 18, color: Colors.teal.shade800),
+                                          const SizedBox(width: 4),
+                                          Text('VTO', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Excused Absence',
+                                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Context Banner
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isVet ? Colors.amber.withOpacity(0.1) : Colors.teal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isVet ? Colors.amber.shade300 : Colors.teal.shade300,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                isVet ? Icons.bolt : Icons.beach_access,
+                                size: 18,
+                                color: isVet ? Colors.amber.shade800 : Colors.teal.shade800,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isVet
+                                      ? 'Paid Overtime Shift: Extra hours worked will be compensated at the tenant\'s configured payroll rate multiplier.'
+                                      : 'Voluntary Time Off: Excused absence without attendance penalty. Staff can choose to fund via PTO.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isVet ? Colors.amber.shade900 : Colors.teal.shade900,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Dynamic Title Label & Placeholder
+                        Text(
+                          isVet ? 'Overtime Shift Title *' : 'Voluntary Time Off Title *',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: isVet
+                                ? 'e.g. Critical Backlog Clearance / Weekend Surge'
+                                : 'e.g. Low Volume Early Departure - Friday Flex',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Date picker
+                        Text(
+                          'Opportunity Date *',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                              lastDate: DateTime.now().add(const Duration(days: 60)),
+                            );
+                            if (picked != null) {
+                              setSheetState(() => selectedDate = picked);
+                            }
+                          },
+                          icon: const Icon(Icons.calendar_today, size: 16),
+                          label: Text(
+                            '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Hours and Slots Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isVet ? 'Duration (Hours) *' : 'Absence (Hours) *',
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: hoursController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    decoration: InputDecoration(
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isVet ? 'Workers (Slots) *' : 'Staff Count (Slots) *',
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: slotsController,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // VET Overtime Rate Category and Multiplier Display
+                        if (isVet) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'Overtime Type (Payroll Policy)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: otCategory,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'normal',
+                                child: Text('Standard Overtime (${payrollRates.normal != null ? '${payrollRates.normal}x' : 'Not set ⚠️'})'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'night',
+                                child: Text('Night Shift Overtime (${payrollRates.night != null ? '${payrollRates.night}x' : 'Not set ⚠️'})'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'dayoff',
+                                child: Text('Rest Day Overtime (${payrollRates.dayoff != null ? '${payrollRates.dayoff}x' : 'Not set ⚠️'})'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'holiday',
+                                child: Text('Public Holiday Overtime (${payrollRates.holiday != null ? '${payrollRates.holiday}x' : 'Not set ⚠️'})'),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setSheetState(() => otCategory = val);
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Dedicated Multiplier Display Box
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isRateConfigured
+                                  ? (isDark ? Colors.white10 : Colors.grey.shade100)
+                                  : Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isRateConfigured ? Colors.grey.shade300 : Colors.red.shade400,
+                              ),
+                            ),
+                            child: isRateConfigured
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${currentRate}x Hourly Rate',
+                                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16),
+                                          ),
+                                          Text(
+                                            'Sourced from Settings → Payroll Settings',
+                                            style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                          ),
+                                        ],
+                                      ),
+                                      Chip(
+                                        label: Text('Auto-Sourced', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600)),
+                                        backgroundColor: Colors.green.withOpacity(0.15),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.red),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Not set on Settings ⚠️',
+                                            style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.red.shade700, fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Overtime rate for this category is not set in Settings → Payroll Settings. Please configure before broadcasting.',
+                                        style: GoogleFonts.inter(fontSize: 11, color: Colors.red.shade700),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+
+                        // Reason / Notes
+                        Text(
+                          isVet ? 'Business Need / Justification' : 'Reason for Voluntary Time Off',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: reasonController,
+                          maxLines: 2,
+                          decoration: InputDecoration(
+                            hintText: isVet
+                                ? 'e.g. Surge in orders, emergency coverage...'
+                                : 'e.g. Low volume queue, scheduled maintenance...',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Urgency
+                        Text(
+                          'Priority / Urgency',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          value: urgency,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'normal', child: Text('Normal (Standard)')),
+                            DropdownMenuItem(value: 'high', child: Text('High (Priority)')),
+                            DropdownMenuItem(value: 'critical', child: Text('Critical (Urgent)'))
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setSheetState(() => urgency = val);
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Submit Button
+                        ElevatedButton(
+                          onPressed: (isVet && !isRateConfigured)
+                              ? null
+                              : () async {
+                                  if (titleController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please enter an opportunity title')),
+                                    );
+                                    return;
+                                  }
+                                  final dateStr =
+                                      '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                                  try {
+                                    final repo = ref.read(wfmRepositoryProvider);
+                                    await repo.broadcastOpportunity({
+                                      'type': broadcastType,
+                                      'title': titleController.text.trim(),
+                                      'date': dateStr,
+                                      'hours': double.tryParse(hoursController.text) ?? (isVet ? 8.0 : 4.0),
+                                      'slots_available': int.tryParse(slotsController.text) ?? 2,
+                                      'ot_category': otCategory,
+                                      'ot_rate_multiplier': isVet ? currentRate : 1.0,
+                                      'reason': reasonController.text.trim(),
+                                      'urgency': urgency,
+                                    });
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                      ref.invalidate(wfmOpportunitiesProvider);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Opportunity broadcasted! Notifications sent.'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (err) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed: $err'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isVet ? Colors.amber.shade700 : Colors.teal.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: Text(
+                            isVet
+                                ? (isRateConfigured
+                                    ? 'Broadcast Paid VET Shift (${currentRate}x OT)'
+                                    : 'Rate Not Set in Settings')
+                                : 'Broadcast Voluntary Time Off (VTO)',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = ref.watch(authProvider);
+    final canBroadcast = auth.isOwnerOrAdmin ||
+        auth.hasPermission('broadcast_wfm_opportunities') ||
+        auth.hasPermission('manage_schedules');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      floatingActionButton: canBroadcast
+          ? FloatingActionButton.extended(
+              onPressed: _openBroadcastSheet,
+              icon: const Icon(Icons.campaign_outlined),
+              label: Text('Broadcast', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            )
+          : null,
       appBar: AppBar(
         title: Text(
           'VET & VTO Opportunities',

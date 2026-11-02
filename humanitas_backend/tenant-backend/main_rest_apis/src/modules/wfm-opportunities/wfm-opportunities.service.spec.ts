@@ -67,6 +67,25 @@ describe('WfmOpportunitiesService', () => {
       const res = await service.getSettings('t1');
       expect(res.vet_enabled).toBe(true);
       expect(res.max_weekly_ot_hours).toBe('20.00');
+      expect(res.payroll_ot_rates).toBeDefined();
+      expect(res.payroll_ot_rates.normal).toBeNull();
+    });
+
+    it('should return configured overtime rates when present in payroll settings', async () => {
+      mockConnection.query.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT * FROM wfm_settings')) {
+          return [{ id: 'settings-1', vet_enabled: true }];
+        }
+        if (sql.includes("category = 'payroll'")) {
+          return [{ data: { ot_rate_normal: 1.5, ot_rate_night: 2.0 } }];
+        }
+        return [];
+      });
+
+      const res = await service.getSettings('t1');
+      expect(res.payroll_ot_rates.normal).toBe(1.5);
+      expect(res.payroll_ot_rates.night).toBe(2.0);
+      expect(res.payroll_ot_rates.dayoff).toBeNull();
     });
 
     it('should update WFM settings with new fatigue limits and strategies', async () => {
@@ -114,10 +133,33 @@ describe('WfmOpportunitiesService', () => {
       }, 'manager-1')).rejects.toThrow(BadRequestException);
     });
 
+    it('should block VET broadcast when overtime rate is not configured in payroll settings', async () => {
+      mockConnection.query.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT * FROM wfm_settings')) {
+          return [{ id: 'settings-1', vet_enabled: true, vto_enabled: true }];
+        }
+        return [];
+      });
+
+      await expect(service.broadcastOpportunity('t1', {
+        type: 'VET',
+        title: 'Emergency Shift',
+        date: '2026-11-05',
+        hours: 8,
+        slots_available: 2,
+        ot_category: 'night',
+      }, 'manager-1')).rejects.toThrow(
+        /Overtime rate for 'night' is not configured in Settings → Payroll Settings/
+      );
+    });
+
     it('should broadcast VET opportunity, notify department users, and emit websocket event', async () => {
       mockConnection.query.mockImplementation((sql: string) => {
         if (sql.includes('SELECT * FROM wfm_settings')) {
           return [{ id: 'settings-1', vet_enabled: true, vto_enabled: true }];
+        }
+        if (sql.includes("category = 'payroll'")) {
+          return [{ data: { ot_rate_night: 1.5 } }];
         }
         if (sql.includes('INSERT INTO wfm_opportunities')) {
           return [{

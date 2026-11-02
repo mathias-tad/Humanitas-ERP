@@ -17,3 +17,8 @@ final myWfmClaimsProvider = FutureProvider.autoDispose<List<WfmClaimModel>>((ref
   final repo = ref.watch(wfmRepositoryProvider);
   return repo.getMyClaims();
 });
+
+final wfmSettingsProvider = FutureProvider.autoDispose<WfmSettingsModel>((ref) async {
+  final repo = ref.watch(wfmRepositoryProvider);
+  return repo.getSettings();
+});

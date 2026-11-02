@@ -20,6 +20,12 @@ export interface WfmSettings {
   notify_via_push: boolean;
   notify_via_email: boolean;
   notify_via_in_app: boolean;
+  payroll_ot_rates?: {
+    normal: number | null;
+    night: number | null;
+    dayoff: number | null;
+    holiday: number | null;
+  };
 }
 
 export interface WfmOpportunity {

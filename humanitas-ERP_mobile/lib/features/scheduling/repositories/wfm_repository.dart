@@ -47,4 +47,21 @@ class WfmRepository {
   Future<void> cancelClaim(String claimId) async {
     await _apiClient.dio.delete('/wfm/claims/$claimId/cancel');
   }
+
+  Future<WfmSettingsModel> getSettings() async {
+    try {
+      final response = await _apiClient.dio.get('/wfm/settings');
+      if (response.data is Map<String, dynamic>) {
+        return WfmSettingsModel.fromJson(response.data as Map<String, dynamic>);
+      }
+      return const WfmSettingsModel();
+    } catch (_) {
+      return const WfmSettingsModel();
+    }
+  }
+
+  Future<WfmOpportunityModel> broadcastOpportunity(Map<String, dynamic> payload) async {
+    final response = await _apiClient.dio.post('/wfm/opportunities', data: payload);
+    return WfmOpportunityModel.fromJson(response.data as Map<String, dynamic>);
+  }
 }
