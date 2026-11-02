@@ -862,7 +862,7 @@ export default function OpportunitiesHub() {
                     <div className="space-y-1">
                       <Label>VET Claim Prioritization Strategy</Label>
                       <Select
-                        value={settings.vet_claim_strategy}
+                        value={settings.vet_claim_strategy || 'fcfs'}
                         onValueChange={(val: any) => updateSettingsMutation.mutate({ vet_claim_strategy: val })}
                       >
                         <SelectTrigger>

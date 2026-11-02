@@ -1,12 +1,16 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:humanitas_erp_mobile/core/providers/auth_provider.dart';
-import 'package:humanitas_erp_mobile/features/auth/providers/auth_state.dart';
-import 'package:humanitas_erp_mobile/features/auth/repositories/auth_repository.dart';
-import 'package:humanitas_erp_mobile/main.dart';
+import 'package:humanitas_mobile/core/providers/auth_provider.dart';
+import 'package:humanitas_mobile/features/auth/providers/auth_state.dart';
+import 'package:humanitas_mobile/features/auth/repositories/auth_repository.dart';
+import 'package:humanitas_mobile/main.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   @override
@@ -24,9 +28,27 @@ class _TestAuthNotifier extends AuthNotifier {
   }
 }
 
+/// Returns a 1×1 transparent PNG as bytes so Image.asset never throws in tests.
+Future<Uint8List> _transparentPng() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawColor(Colors.transparent, BlendMode.src);
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(1, 1);
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
+}
+
 void main() {
-  setUpAll(() {
+  setUpAll(() async {
     GoogleFonts.config.allowRuntimeFetching = false;
+
+    // Provide a fake 1×1 PNG for every asset path so Image.asset doesn't throw.
+    final fakeImageBytes = await _transparentPng();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler('flutter/assets', (ByteData? message) async {
+      return fakeImageBytes.buffer.asByteData();
+    });
   });
 
   testWidgets('App renders splash screen', (WidgetTester tester) async {

@@ -7,6 +7,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { Tenant } from './modules/auth/entities/tenant.entity';
 import { CalculationLog } from './modules/system-logs/entities/calculation-log.entity';
+import { RolesService } from './modules/roles/roles.service';
+import { DatabaseService } from './modules/database/database.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { SetupModule } from './modules/setup/setup.module';
 import { HealthModule } from './modules/health/health.module';
@@ -32,6 +34,7 @@ import { PmsModule } from './modules/pms/pms.module';
 import { BiometricDevicesModule } from './modules/biometric-devices/biometric-devices.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { AiModule } from './modules/ai/ai.module';
 import { HrmsReportsModule } from './modules/hrms-reports/hrms-reports.module';
 import { HrmsDocumentsModule } from './modules/hrms-documents/hrms-documents.module';
 import { HrmsOnboardingModule } from './modules/hrms-onboarding/hrms-onboarding.module';
@@ -44,7 +47,6 @@ import { HrmsExpensesModule } from './modules/hrms-expenses/hrms-expenses.module
 import { HrmsAssetsModule } from './modules/hrms-assets/hrms-assets.module';
 import { HrmsSurveysModule } from './modules/hrms-surveys/hrms-surveys.module';
 import { HrmsImportExportModule } from './modules/hrms-import-export/hrms-import-export.module';
-import { AiModule } from './modules/ai/ai.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { DeveloperApiModule } from './modules/developer-api/developer-api.module';
 import { WfmOpportunitiesModule } from './modules/wfm-opportunities/wfm-opportunities.module';
@@ -153,6 +155,7 @@ dns.setDefaultResultOrder('ipv4first');
     PmsModule,
     BiometricDevicesModule,
     RecruitmentModule,
+    AiModule,
     HrmsReportsModule,
     HrmsDocumentsModule,
     HrmsOnboardingModule,
@@ -165,7 +168,6 @@ dns.setDefaultResultOrder('ipv4first');
     HrmsAssetsModule,
     HrmsSurveysModule,
     HrmsImportExportModule,
-    AiModule,
     ApprovalsModule,
     DeveloperApiModule,
     WfmOpportunitiesModule,
@@ -182,7 +184,11 @@ dns.setDefaultResultOrder('ipv4first');
 export class AppModule implements OnModuleInit {
   private readonly logger = new Logger(AppModule.name);
 
-  constructor(private dataSource: DataSource) {}
+  constructor(
+    private dataSource: DataSource,
+    private rolesService: RolesService,
+    private databaseService: DatabaseService,
+  ) {}
 
   async onModuleInit() {
     this.logger.log('='.repeat(60));
@@ -207,6 +213,28 @@ export class AppModule implements OnModuleInit {
         this.logger.log('tenants table: EXISTS');
         const count = await this.dataSource.query(`SELECT COUNT(*) FROM tenants`);
         this.logger.log(`Total tenants: ${count[0].count}`);
+
+        // ── Run permission migrations for ALL existing tenants ──────────────
+        // This ensures every tenant's default roles (Administrator, Manager,
+        // Employee) always have the latest permissions without requiring them
+        // to visit the Roles page first.
+        try {
+          const tenants = await this.dataSource.query(
+            `SELECT id, slug, database_name FROM tenants WHERE is_active = true`,
+          );
+          this.logger.log(`Running permission migrations for ${tenants.length} tenant(s)...`);
+          for (const tenant of tenants) {
+            try {
+              const connection = await this.databaseService.getTenantConnection(tenant.database_name);
+              await this.rolesService.migrateNewPermissions(connection);
+            } catch (tenantErr) {
+              this.logger.warn(`Permission migration skipped for tenant "${tenant.slug}": ${tenantErr.message}`);
+            }
+          }
+          this.logger.log('Permission migrations complete.');
+        } catch (migErr) {
+          this.logger.warn(`Startup permission migration failed: ${migErr.message}`);
+        }
       } else {
         this.logger.warn('tenants table: NOT FOUND — ensure admin-backend is deployed and has created the tables');
       }
