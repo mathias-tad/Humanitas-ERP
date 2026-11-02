@@ -23,6 +23,16 @@ class WfmOpportunityModel {
   final bool hasClaimed;
   final String? myClaimId;
   final String? myClaimStatus;
+  final String? expiresAt;
+
+  bool get isExpired {
+    if (status == 'expired') return true;
+    if (expiresAt != null) {
+      final exp = DateTime.tryParse(expiresAt!);
+      if (exp != null && exp.isBefore(DateTime.now())) return true;
+    }
+    return false;
+  }
 
   const WfmOpportunityModel({
     required this.id,
@@ -49,6 +59,7 @@ class WfmOpportunityModel {
     this.hasClaimed = false,
     this.myClaimId,
     this.myClaimStatus,
+    this.expiresAt,
   });
 
   factory WfmOpportunityModel.fromJson(Map<String, dynamic> json) {
@@ -77,6 +88,7 @@ class WfmOpportunityModel {
       hasClaimed: json['has_claimed'] == true,
       myClaimId: json['my_claim_id']?.toString(),
       myClaimStatus: json['my_claim_status']?.toString(),
+      expiresAt: json['expires_at']?.toString(),
     );
   }
 }

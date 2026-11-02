@@ -87,6 +87,8 @@ export default function OpportunitiesHub() {
     urgency: 'normal' as 'normal' | 'high' | 'critical',
     reason: '',
     notes: '',
+    expiry_option: 'shift_start' as 'shift_start' | '1h_before' | '2h_before' | '24h_before' | 'custom',
+    expires_at: '',
   });
 
   // Payroll Overtime Multipliers sourced dynamically from tenant settings (without fallback)
@@ -224,11 +226,28 @@ export default function OpportunitiesHub() {
       return;
     }
     try {
+      let computedExpiresAt: string | undefined = undefined;
+      if (broadcastForm.expiry_option === 'custom' && broadcastForm.expires_at) {
+        computedExpiresAt = new Date(broadcastForm.expires_at).toISOString();
+      } else {
+        const shiftTime = broadcastForm.start_time || '09:00';
+        const shiftDate = new Date(`${broadcastForm.date}T${shiftTime}`);
+        if (broadcastForm.expiry_option === '1h_before') {
+          shiftDate.setHours(shiftDate.getHours() - 1);
+        } else if (broadcastForm.expiry_option === '2h_before') {
+          shiftDate.setHours(shiftDate.getHours() - 2);
+        } else if (broadcastForm.expiry_option === '24h_before') {
+          shiftDate.setHours(shiftDate.getHours() - 24);
+        }
+        computedExpiresAt = shiftDate.toISOString();
+      }
+
       await broadcastMutation.mutateAsync({
         ...broadcastForm,
         hours: Number(broadcastForm.hours),
         slots_available: Number(broadcastForm.slots_available),
         ot_rate_multiplier: broadcastForm.type === 'VET' ? Number(currentVetRate) : 1.0,
+        expires_at: computedExpiresAt,
       });
       toast.success('Opportunity broadcasted! Notifications sent to department.');
       setBroadcastOpen(false);
@@ -416,6 +435,7 @@ export default function OpportunitiesHub() {
                 const isVet = opp.type === 'VET';
                 const isClaimed = opp.has_claimed;
                 const isFilled = opp.slots_remaining <= 0;
+                const isExpired = opp.status === 'expired' || (opp.expires_at ? new Date(opp.expires_at) < new Date() : false);
 
                 return (
                   <Card key={opp.id} className="relative overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -443,6 +463,11 @@ export default function OpportunitiesHub() {
                               {opp.vto_compensation_type === 'paid' ? 'Company-Paid' : 'Unpaid VTO'}
                             </Badge>
                           )}
+                          {isExpired && (
+                            <Badge variant="outline" className="text-[10px] border-rose-500/40 text-rose-600 bg-rose-500/10">
+                              Expired
+                            </Badge>
+                          )}
                         </div>
                         {opp.urgency === 'critical' && (
                           <Badge variant="destructive" className="flex items-center gap-1 text-[10px]">
@@ -461,6 +486,18 @@ export default function OpportunitiesHub() {
                         {opp.date}
                         {opp.start_time && opp.end_time && ` • ${opp.start_time.slice(0, 5)} - ${opp.end_time.slice(0, 5)}`}
                       </CardDescription>
+                      {opp.expires_at && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-1">
+                          <Clock className="w-3 h-3 text-muted-foreground/70" />
+                          {isExpired ? (
+                            <span className="text-destructive font-medium">Claims Closed (Expired)</span>
+                          ) : (
+                            <span>
+                              Closes: {new Date(opp.expires_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </CardHeader>
 
                     <CardContent className="space-y-4 pb-4">
@@ -503,7 +540,11 @@ export default function OpportunitiesHub() {
 
                       {/* Action */}
                       <div className="pt-2">
-                        {isClaimed ? (
+                        {isExpired ? (
+                          <Button variant="outline" disabled className="w-full text-xs text-muted-foreground">
+                            Expired
+                          </Button>
+                        ) : isClaimed ? (
                           <Button variant="outline" disabled className="w-full text-xs">
                             Claimed ({opp.my_claim_status})
                           </Button>
@@ -1325,6 +1366,53 @@ export default function OpportunitiesHub() {
                   <SelectItem value="critical">Critical (Immediate coverage required)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Expiration & Cutoff Window */}
+            <div className="space-y-2 p-3 rounded-xl border bg-muted/20">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-primary" />
+                  <span>Claim Deadline & Expiration *</span>
+                </Label>
+                <span className="text-[11px] text-muted-foreground">
+                  When claims automatically close
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={broadcastForm.expiry_option}
+                  onValueChange={(val: any) => setBroadcastForm({ ...broadcastForm, expiry_option: val })}
+                >
+                  <SelectTrigger className="text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shift_start">At Shift Start (Default)</SelectItem>
+                    <SelectItem value="1h_before">1 Hour Before Shift</SelectItem>
+                    <SelectItem value="2h_before">2 Hours Before Shift</SelectItem>
+                    <SelectItem value="24h_before">24 Hours Before Shift</SelectItem>
+                    <SelectItem value="custom">Custom Date & Time</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {broadcastForm.expiry_option === 'custom' ? (
+                  <Input
+                    type="datetime-local"
+                    value={broadcastForm.expires_at}
+                    onChange={(e) => setBroadcastForm({ ...broadcastForm, expires_at: e.target.value })}
+                    className="text-xs"
+                    required
+                  />
+                ) : (
+                  <div className="text-xs text-muted-foreground flex items-center px-3 border rounded-md bg-muted/40">
+                    Auto-computed from shift start
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Once the deadline passes, unfilled slots expire automatically and cannot be claimed retroactively.
+              </p>
             </div>
 
             <DialogFooter className="pt-2">

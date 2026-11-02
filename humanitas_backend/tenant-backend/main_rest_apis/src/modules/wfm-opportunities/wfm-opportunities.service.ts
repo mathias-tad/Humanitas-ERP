@@ -102,6 +102,7 @@ export class WfmOpportunitiesService {
       ALTER TABLE wfm_settings ADD COLUMN IF NOT EXISTS default_vto_compensation VARCHAR(20) DEFAULT 'unpaid';
       ALTER TABLE wfm_opportunity_claims ADD COLUMN IF NOT EXISTS hours NUMERIC(5,2);
       ALTER TABLE wfm_opportunity_claims ADD COLUMN IF NOT EXISTS is_paid BOOLEAN DEFAULT false;
+      ALTER TABLE wfm_opportunities ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
     `);
 
     // Self-heal permissions for all active roles so existing tenants never get 403
@@ -123,6 +124,23 @@ export class WfmOpportunitiesService {
         WHERE is_active = true 
           AND (LOWER(name) LIKE '%admin%' OR LOWER(name) LIKE '%owner%')
           AND NOT (permissions @> '["manage_wfm_settings"]'::jsonb);
+      `);
+    } catch (_) {}
+  }
+
+  /**
+   * Helper: Auto-expire past opportunities whose expiration deadline has passed
+   */
+  private async autoExpireOpportunities(connection: any) {
+    try {
+      await connection.query(`
+        UPDATE wfm_opportunities
+        SET status = 'expired', updated_at = NOW()
+        WHERE status = 'open'
+          AND (
+            (expires_at IS NOT NULL AND expires_at < NOW())
+            OR (expires_at IS NULL AND (date + COALESCE(start_time, '23:59:59'::time)) < NOW())
+          )
       `);
     } catch (_) {}
   }
@@ -213,6 +231,7 @@ export class WfmOpportunitiesService {
   async getSettings(tenantId: string, companyId?: string, branchId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     let query = `SELECT * FROM wfm_settings WHERE 1=1`;
     const params: any[] = [];
@@ -301,6 +320,7 @@ export class WfmOpportunitiesService {
   async updateSettings(tenantId: string, dto: UpdateWfmSettingsDto, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const current = await this.getSettings(tenantId, dto.company_id, dto.branch_id);
 
@@ -357,6 +377,7 @@ export class WfmOpportunitiesService {
   async broadcastOpportunity(tenantId: string, dto: CreateOpportunityDto, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const settings = await this.getSettings(tenantId, dto.company_id, dto.branch_id);
 
@@ -401,6 +422,16 @@ export class WfmOpportunitiesService {
       ? (dto.vto_compensation_type || settings.default_vto_compensation || 'unpaid')
       : 'paid';
 
+    // Determine default expiration timestamp if not provided
+    let expiresAt: any = dto.expires_at || null;
+    if (!expiresAt) {
+      if (startTime) {
+        expiresAt = `${dto.date} ${startTime}`;
+      } else {
+        expiresAt = `${dto.date} 23:59:59`;
+      }
+    }
+
     const result = await connection.query(`
       INSERT INTO wfm_opportunities (
         company_id, branch_id, department_id, type, title,
@@ -433,7 +464,7 @@ export class WfmOpportunitiesService {
       dto.urgency || 'normal',
       dto.reason || null,
       dto.notes || null,
-      dto.expires_at || null,
+      expiresAt,
       userId,
     ]);
 
@@ -474,6 +505,7 @@ export class WfmOpportunitiesService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     let query = `
       SELECT
@@ -569,6 +601,7 @@ export class WfmOpportunitiesService {
   async getMyClaims(tenantId: string, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const query = `
       SELECT
@@ -608,6 +641,7 @@ export class WfmOpportunitiesService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     // 1. Fetch opportunity
     const oppRows = await connection.query(
@@ -620,13 +654,18 @@ export class WfmOpportunitiesService {
     const opportunity = oppRows[0];
 
     if (opportunity.status !== 'open') {
-      throw new BadRequestException(`This opportunity is no longer open for claims (Status: ${opportunity.status})`);
+      throw new BadRequestException(
+        opportunity.status === 'expired'
+          ? 'This opportunity has expired and can no longer be claimed.'
+          : `This opportunity is no longer open for claims (Status: ${opportunity.status})`
+      );
     }
     if (opportunity.slots_claimed >= opportunity.slots_available) {
       throw new BadRequestException('All available slots for this opportunity have already been filled');
     }
     if (opportunity.expires_at && new Date(opportunity.expires_at) < new Date()) {
-      throw new BadRequestException('This opportunity has expired');
+      await connection.query("UPDATE wfm_opportunities SET status = 'expired', updated_at = NOW() WHERE id = $1", [opportunityId]);
+      throw new BadRequestException('This opportunity has expired and can no longer be claimed.');
     }
 
     // 2. Check duplicate claim
@@ -1081,6 +1120,7 @@ export class WfmOpportunitiesService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const claimRows = await connection.query(
       `SELECT c.*, o.title, o.type, o.date, o.hours, o.ot_rate_multiplier, o.ot_category,
@@ -1196,6 +1236,7 @@ export class WfmOpportunitiesService {
   async cancelClaim(tenantId: string, claimId: string, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const claimRows = await connection.query(
       `SELECT c.*, o.title, o.date, o.start_time, o.type, o.hours, o.ot_rate_multiplier,
@@ -1313,6 +1354,7 @@ export class WfmOpportunitiesService {
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const settings = await this.getSettings(tenantId, filters.companyId, filters.branchId);
     const strategy = settings.vet_claim_strategy || 'fcfs';
@@ -1387,6 +1429,7 @@ export class WfmOpportunitiesService {
   async getWfmStats(tenantId: string, companyId?: string, branchId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     let scopeWhere = 'WHERE 1=1';
     const params: any[] = [];
@@ -1434,6 +1477,7 @@ export class WfmOpportunitiesService {
   async cancelOpportunity(tenantId: string, id: string, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     await this.ensureTables(connection);
+    await this.autoExpireOpportunities(connection);
 
     const check = await connection.query('SELECT * FROM wfm_opportunities WHERE id = $1', [id]);
     if (!check || check.length === 0) {

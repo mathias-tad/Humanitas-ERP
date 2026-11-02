@@ -330,6 +330,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
     String otCategory = 'normal';
     String urgency = 'normal';
     String vtoCompensationType = settings.defaultVtoCompensation;
+    String expiryOption = 'shift_start';
     final titleController = TextEditingController();
     final hoursController = TextEditingController(text: '8');
     final slotsController = TextEditingController(text: '2');
@@ -847,6 +848,30 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                             if (val != null) setSheetState(() => urgency = val);
                           },
                         ),
+                        const SizedBox(height: 14),
+
+                        // Claim Deadline / Expiry
+                        Text(
+                          'Claim Deadline / Expiration',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          value: expiryOption,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'shift_start', child: Text('At Shift Start (Default)')),
+                            DropdownMenuItem(value: '1h_before', child: Text('1 Hour Before Shift')),
+                            DropdownMenuItem(value: '2h_before', child: Text('2 Hours Before Shift')),
+                            DropdownMenuItem(value: '24h_before', child: Text('24 Hours Before Shift')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setSheetState(() => expiryOption = val);
+                          },
+                        ),
                         const SizedBox(height: 20),
 
                         // Submit Button
@@ -862,6 +887,15 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                   }
                                   final dateStr =
                                       '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                                  DateTime expiryDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 9, 0);
+                                  if (expiryOption == '1h_before') {
+                                    expiryDate = expiryDate.subtract(const Duration(hours: 1));
+                                  } else if (expiryOption == '2h_before') {
+                                    expiryDate = expiryDate.subtract(const Duration(hours: 2));
+                                  } else if (expiryOption == '24h_before') {
+                                    expiryDate = expiryDate.subtract(const Duration(hours: 24));
+                                  }
+
                                   try {
                                     final repo = ref.read(wfmRepositoryProvider);
                                     await repo.broadcastOpportunity({
@@ -873,6 +907,7 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                       'ot_category': otCategory,
                                       'ot_rate_multiplier': isVet ? currentRate : 1.0,
                                       'vto_compensation_type': broadcastType == 'VTO' ? vtoCompensationType : 'unpaid',
+                                      'expires_at': expiryDate.toIso8601String(),
                                       'reason': reasonController.text.trim(),
                                       'urgency': urgency,
                                     });
@@ -1090,6 +1125,24 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                                   ),
                                                 ),
                                               ],
+                                              if (opp.isExpired) ...[
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    'EXPIRED',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: Colors.red.shade700,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                           if (opp.urgency == 'critical')
@@ -1136,6 +1189,25 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                           ],
                                         ],
                                       ),
+                                      if (opp.expiresAt != null) ...[
+                                        const SizedBox(height: 3),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.access_time, size: 12, color: Colors.grey.shade600),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              opp.isExpired
+                                                  ? 'Claims closed (Expired)'
+                                                  : 'Closes: ${opp.expiresAt!.substring(0, 16).replaceAll('T', ' ')}',
+                                              style: GoogleFonts.inter(
+                                                fontSize: 11,
+                                                color: opp.isExpired ? Colors.red.shade700 : Colors.grey.shade600,
+                                                fontWeight: opp.isExpired ? FontWeight.w600 : FontWeight.w400,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                       const SizedBox(height: 10),
                                       Row(
                                         children: [
@@ -1175,26 +1247,31 @@ class _VetVtoScreenState extends ConsumerState<VetVtoScreen> with SingleTickerPr
                                       const SizedBox(height: 12),
                                       SizedBox(
                                         width: double.infinity,
-                                        child: opp.hasClaimed
-                                            ? OutlinedButton(
+                                        child: opp.isExpired
+                                            ? const OutlinedButton(
                                                 onPressed: null,
-                                                child: Text('Claimed (${opp.myClaimStatus})'),
+                                                child: Text('Expired'),
                                               )
-                                            : opp.slotsRemaining <= 0
+                                            : opp.hasClaimed
                                                 ? OutlinedButton(
                                                     onPressed: null,
-                                                    child: const Text('Filled'),
+                                                    child: Text('Claimed (${opp.myClaimStatus})'),
                                                   )
-                                                : ElevatedButton(
-                                                    onPressed: () => _handleClaim(opp),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: isVet
-                                                          ? Colors.blue.shade700
-                                                          : Colors.teal.shade700,
-                                                      foregroundColor: Colors.white,
-                                                    ),
-                                                    child: Text(isVet ? 'Claim Shift' : 'Claim Time Off'),
-                                                  ),
+                                                : opp.slotsRemaining <= 0
+                                                    ? const OutlinedButton(
+                                                        onPressed: null,
+                                                        child: Text('Filled'),
+                                                      )
+                                                    : ElevatedButton(
+                                                        onPressed: () => _handleClaim(opp),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: isVet
+                                                              ? Colors.blue.shade700
+                                                              : Colors.teal.shade700,
+                                                          foregroundColor: Colors.white,
+                                                        ),
+                                                        child: Text(isVet ? 'Claim Shift' : 'Claim Time Off'),
+                                                      ),
                                       ),
                                     ],
                                   ),
