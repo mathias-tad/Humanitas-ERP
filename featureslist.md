@@ -8,7 +8,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 28 | 28 | 0 | 100% |
+| System Architecture & Core | 36 | 36 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **766** | **461** | **305** | **60%** |
+| **TOTAL** | **774** | **469** | **305** | **61%** |
 
 ---
 
@@ -70,6 +70,17 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] TanStack Query global 1-minute refresh interval configured via centralized `queryClient` (staleTime/gcTime).
   - [x] `x-company-id` and `x-branch-id` scope headers automatically injected into all API calls via shared Axios interceptor.
   - [x] Immediate `queryClient.invalidateQueries()` triggered on every company/branch context switch to force fresh scoped data.
+
+---
+
+- [x] **Modular Independence & Zero-Coupling Architecture (Directive 22)**:
+  - [x] Operational modules (HRMS, PMS/Tasks) architected with zero hard cross-module dependencies, capable of executing standalone or concurrently.
+  - [x] Platform common core modules (Common Settings, Accounts, Organization, Announcements, Events, Approvals, Digital Signatures, Chat, Access Control, Logs) auto-injected into all tenant registrations via `COMMON_PLATFORM_MODULES`.
+  - [x] Universal Common Settings (`/settings`) decoupled from HR-specific Settings (`/hr/settings`).
+  - [x] Dynamic contextual filtering in Approval Rules workflow builder, Access Control permission matrices, and navigation docks based on subscribed modules.
+- [x] **Role-Based & Module-Adaptive Dashboards & Universal Reporting**:
+  - [x] Role-adaptive landing dashboard (`Home.tsx`) dynamically presenting executive KPI metrics and employee self-service cards gated by active subscriptions (`hasHR`, `hasPMS`).
+  - [x] Dedicated Module Reporting Dashboards with unified `ReportExportMenu` supporting CSV, Excel XML, printable PDF summary, and structured JSON across all HR and PMS reporting sections.
 
 ---
 

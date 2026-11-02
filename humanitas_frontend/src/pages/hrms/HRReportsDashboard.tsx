@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useHrmsReports } from '@/hooks/useHrmsReports';
 import { toast } from 'sonner';
+import { ReportExportMenu, type ReportExportColumn } from '@/components/common/ReportExportMenu';
 
 export default function HRReportsDashboard() {
   const {
@@ -65,6 +66,60 @@ export default function HRReportsDashboard() {
     return `ETB ${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const getActiveReportColumns = (): ReportExportColumn[] => {
+    switch (activeTab) {
+      case 'demographics':
+        return [
+          { key: 'name', header: 'Department Name' },
+          { key: 'count', header: 'Headcount' },
+          {
+            key: 'pct',
+            header: 'Share of Workforce',
+            accessor: (row: any) => `${Math.round((row.count / (summary?.activeEmployees || 1)) * 100)}%`,
+          },
+        ];
+      case 'turnover':
+        return [
+          { key: 'month', header: 'Reporting Period' },
+          { key: 'hired', header: 'New Hires' },
+          { key: 'exited', header: 'Departures / Exits' },
+          { key: 'netGrowth', header: 'Net Headcount Expansion' },
+        ];
+      case 'attendance':
+        return [
+          { key: 'department', header: 'Department' },
+          { key: 'punctualityRate', header: 'Punctuality Rate (%)', accessor: (r: any) => `${r.punctualityRate}%` },
+          { key: 'overtimeHours', header: 'Overtime Hours' },
+        ];
+      case 'payroll':
+        return [
+          { key: 'department', header: 'Department' },
+          { key: 'employeeCount', header: 'Staff Count' },
+          { key: 'grossSalary', header: 'Gross Compensation', accessor: (r: any) => formatCurrency(r.grossSalary) },
+          { key: 'totalDeductions', header: 'Total Deductions', accessor: (r: any) => formatCurrency(r.totalDeductions) },
+          { key: 'netSalary', header: 'Net Disbursed', accessor: (r: any) => formatCurrency(r.netSalary) },
+          { key: 'employerPension', header: 'Employer Pension (11%)', accessor: (r: any) => formatCurrency(r.employerPension) },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const getActiveReportData = (): any[] => {
+    switch (activeTab) {
+      case 'demographics':
+        return headcount?.byDepartment || [];
+      case 'turnover':
+        return turnover?.monthlyTrend || [];
+      case 'attendance':
+        return attendance?.departmentStats || [];
+      case 'payroll':
+        return payroll?.departmentSpend || [];
+      default:
+        return [];
+    }
+  };
+
   return (
     <div className="space-y-6 p-6 max-w-[1600px] mx-auto animate-fade-in">
       {/* Page Header */}
@@ -73,17 +128,14 @@ export default function HRReportsDashboard() {
         description="Real-time executive headcount demographics, turnover rates, absenteeism patterns, and commercial bank payroll disbursement."
         actions={
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                window.print();
-              }}
-              className="gap-2 shadow-sm"
-            >
-              <Download className="h-4 w-4" />
-              <span>Print Brief</span>
-            </Button>
+            <ReportExportMenu
+              title={`HR Workforce Intelligence — ${activeTab.toUpperCase()}`}
+              filenamePrefix={`hrms_analytics_${activeTab}`}
+              data={getActiveReportData()}
+              columns={getActiveReportColumns()}
+              organizationName="Humanitas HRMS Intelligence"
+              buttonLabel={`Export ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Report`}
+            />
             <Button
               size="sm"
               onClick={() => setBankModalOpen(true)}
@@ -438,10 +490,27 @@ export default function HRReportsDashboard() {
                 <h3 className="text-base font-bold text-foreground">Workforce Compensation & Spend by Department</h3>
                 <p className="text-xs text-muted-foreground">Department gross, net, deductions, and employer pension</p>
               </div>
-              <Button size="sm" onClick={() => setBankModalOpen(true)} className="gap-2">
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>Export Bank Transfer</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <ReportExportMenu
+                  title="Workforce Compensation & Spend by Department"
+                  filenamePrefix="payroll_department_spend"
+                  data={payroll?.departmentSpend || []}
+                  columns={[
+                    { key: 'department', header: 'Department' },
+                    { key: 'employeeCount', header: 'Staff Count' },
+                    { key: 'grossSalary', header: 'Gross Compensation', accessor: (r: any) => formatCurrency(r.grossSalary) },
+                    { key: 'totalDeductions', header: 'Total Deductions', accessor: (r: any) => formatCurrency(r.totalDeductions) },
+                    { key: 'netSalary', header: 'Net Disbursed', accessor: (r: any) => formatCurrency(r.netSalary) },
+                    { key: 'employerPension', header: 'Employer Pension (11%)', accessor: (r: any) => formatCurrency(r.employerPension) },
+                  ]}
+                  organizationName="Humanitas Payroll"
+                  buttonLabel="Export Payroll Report"
+                />
+                <Button size="sm" onClick={() => setBankModalOpen(true)} className="gap-2">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Export Bank Transfer</span>
+                </Button>
+              </div>
             </div>
 
             {loadingPayroll ? (

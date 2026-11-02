@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,20 +40,56 @@ import {
   type ApprovalRoutingMode,
 } from '@/hooks/useApprovals';
 import { toast } from 'sonner';
+import { useERPModules } from '@/context/ModuleContext';
 
-const WORKFLOW_TYPE_OPTIONS: { value: ApprovalWorkflowType; label: string; desc: string }[] = [
-  { value: 'purchase_order', label: 'Purchase Orders & Requisitions', desc: 'Vendor orders, capital expenditures, and equipment requisitions' },
-  { value: 'sales_discount', label: 'Sales Quotation & Discounts', desc: 'Contract discount percentages and price-list margin overrides' },
-  { value: 'leave_request', label: 'Leave Requests & Time Off', desc: 'Annual vacation, sick leave, compassionate, and extended sabbaticals' },
-  { value: 'overtime_claim', label: 'Overtime & Per Diem Claims', desc: 'Extra hours pre-approval and travel per diem expense claims' },
-  { value: 'inventory_writeoff', label: 'Inventory Write-offs & Adjustments', desc: 'Damaged stock scrap, shrinkage adjustments, and revaluation writes' },
-  { value: 'asset_disposal', label: 'Fixed Asset Disposals', desc: 'Equipment decommissioning, write-offs, and salvage asset sales' },
-  { value: 'general_journal', label: 'General Journal Adjustment Postings', desc: 'Manual journal ledger entries and depreciation adjustments' },
-  { value: 'credit_limit', label: 'Customer Credit Limit Overrides', desc: 'Credit line extensions beyond customer account risk limits' },
-  { value: 'expense_claim', label: 'Employee Expense Reimbursements', desc: 'Corporate expense claims, mileage, and travel reimbursements' },
+interface WorkflowTypeConfig {
+  value: ApprovalWorkflowType;
+  label: string;
+  desc: string;
+  module?: string;
+  isCommon?: boolean;
+}
+
+const ALL_WORKFLOW_TYPE_OPTIONS: WorkflowTypeConfig[] = [
+  // HRMS Module
+  { value: 'leave_request', label: 'Leave Requests & Time Off', desc: 'Annual vacation, sick leave, compassionate, and extended sabbaticals', module: 'hrms' },
+  { value: 'overtime_claim', label: 'Overtime & Shift Exceptions', desc: 'Extra hours pre-approval and overtime claims', module: 'hrms' },
+  { value: 'shift_swap', label: 'Shift Swap & Exchange Requests', desc: 'Mutual shift trade and schedule change signoffs', module: 'hrms' },
+
+  // PMS Module
+  { value: 'timesheet', label: 'Timesheet & Project Hour Approvals', desc: 'Sprint task logged hours and client billable timesheet signoffs', module: 'pms' },
+  { value: 'project_budget', label: 'Project Budget & Milestone Signoffs', desc: 'Sprint budget allocation and project milestone deliverables', module: 'pms' },
+
+  // Purchasing Module
+  { value: 'purchase_order', label: 'Purchase Orders & Requisitions', desc: 'Vendor orders, capital expenditures, and equipment requisitions', module: 'purchasing' },
+
+  // Sales Module
+  { value: 'sales_discount', label: 'Sales Quotation & Discounts', desc: 'Contract discount percentages and price-list margin overrides', module: 'sales' },
+  { value: 'credit_limit', label: 'Customer Credit Limit Overrides', desc: 'Credit line extensions beyond customer account risk limits', module: 'sales' },
+
+  // Inventory Module
+  { value: 'inventory_writeoff', label: 'Inventory Write-offs & Adjustments', desc: 'Damaged stock scrap, shrinkage adjustments, and revaluation writes', module: 'inventory' },
+
+  // Accounting Module
+  { value: 'general_journal', label: 'General Journal Adjustment Postings', desc: 'Manual journal ledger entries and depreciation adjustments', module: 'accounting' },
+  { value: 'asset_disposal', label: 'Fixed Asset Disposals', desc: 'Equipment decommissioning, write-offs, and salvage asset sales', module: 'accounting' },
+
+  // Universal Common
+  { value: 'expense_claim', label: 'Employee Expense Reimbursements', desc: 'Corporate expense claims, mileage, and travel reimbursements', isCommon: true },
+  { value: 'document_signature', label: 'Document & E-Signature Signoffs', desc: 'Contracts, policy agreements, and legal certifications', isCommon: true },
 ];
 
 export default function ApprovalSettingsPage() {
+  const { isModuleSubscribed } = useERPModules();
+
+  const availableWorkflowTypes = useMemo(() => {
+    return ALL_WORKFLOW_TYPE_OPTIONS.filter((opt) => {
+      if (opt.isCommon) return true;
+      if (!opt.module) return true;
+      return isModuleSubscribed(opt.module);
+    });
+  }, [isModuleSubscribed]);
+
   const { data: rawWorkflows = [], isLoading } = useApprovalWorkflows();
   const workflows: ApprovalWorkflow[] = Array.isArray(rawWorkflows) ? rawWorkflows : (rawWorkflows as any)?.workflows || [];
   const createMutation = useCreateApprovalWorkflow();
@@ -66,7 +102,9 @@ export default function ApprovalSettingsPage() {
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [workflowType, setWorkflowType] = useState<ApprovalWorkflowType>('purchase_order');
+  const [workflowType, setWorkflowType] = useState<ApprovalWorkflowType>(
+    availableWorkflowTypes[0]?.value || 'expense_claim'
+  );
   const [routingMode, setRoutingMode] = useState<ApprovalRoutingMode>('sequential');
   const [hasThresholds, setHasThresholds] = useState(true);
   const [minAmount, setMinAmount] = useState<string>('1000');
@@ -317,7 +355,7 @@ export default function ApprovalSettingsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {workflows.map((wf: ApprovalWorkflow) => {
-              const typeOption = WORKFLOW_TYPE_OPTIONS.find((t) => t.value === wf.workflow_type);
+              const typeOption = ALL_WORKFLOW_TYPE_OPTIONS.find((t) => t.value === wf.workflow_type);
 
               return (
                 <div
@@ -482,7 +520,7 @@ export default function ApprovalSettingsPage() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {WORKFLOW_TYPE_OPTIONS.map((opt) => (
+                      {availableWorkflowTypes.map((opt: any) => (
                         <SelectItem key={opt.value} value={opt.value} className="text-xs">
                           {opt.label}
                         </SelectItem>

@@ -254,8 +254,28 @@ export class TenantService implements OnModuleInit {
     // Set limits based on plan
     const planLimits = this.getPlanLimits(createTenantDto.subscription_plan || SubscriptionPlan.BASIC);
 
-    // Use user-provided enabled_features if available, otherwise use plan defaults
-    const enabled_features = createTenantDto.enabled_features || planLimits.enabled_features;
+    // Common platform modules injected into every tenant registration
+    const COMMON_PLATFORM_MODULES = [
+      'users',
+      'accounts',
+      'settings',
+      'organization',
+      'announcements',
+      'events',
+      'calendar',
+      'esign',
+      'approvals',
+      'approval_rules',
+      'accesscontrol',
+      'chat',
+      'messaging',
+      'system_logs',
+      'notifications',
+    ];
+
+    // Use user-provided enabled_features if available, otherwise use plan defaults, ensuring common modules are injected
+    const requestedFeatures = createTenantDto.enabled_features || planLimits.enabled_features || [];
+    const enabled_features = Array.from(new Set([...requestedFeatures, ...COMMON_PLATFORM_MODULES]));
 
     // Generate setup token (expires in 7 days)
     const setup_token = uuidv4();

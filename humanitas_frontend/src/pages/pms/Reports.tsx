@@ -8,7 +8,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Download,
   Calendar,
   BarChart3,
   CheckCircle2,
@@ -19,8 +18,6 @@ import {
   Trophy,
   PieChart,
   Target,
-  FileText,
-  FileSpreadsheet,
   ChevronDown,
   RefreshCw,
 } from "lucide-react";
@@ -28,6 +25,7 @@ import { usePMS, TaskStatus, ProjectStatus } from "@/hooks/usePMS";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { ReportExportMenu } from "@/components/common/ReportExportMenu";
 
 type DatePeriod = 'today' | 'week' | 'month' | 'year' | 'all';
 
@@ -69,64 +67,9 @@ const getDateRange = (period: DatePeriod): { start: Date; end: Date } => {
   return { start, end };
 };
 
-// Export to Excel function
-const exportToExcel = (data: any[], filename: string) => {
-  const headers = Object.keys(data[0] || {});
-  const csvContent = [
-    headers.join(','),
-    ...data.map(row => headers.map(h => `"${row[h] ?? ''}"`).join(','))
-  ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${filename}.csv`;
-  link.click();
-};
 
-// Export to PDF function (simple text-based)
-const exportToPDF = (title: string, data: any[], columns: string[]) => {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${title}</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; }
-        th { background: #f3f4f6; font-weight: 600; }
-        tr:nth-child(even) { background: #f9fafb; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .date { color: #6b7280; font-size: 14px; }
-        @media print { body { padding: 0; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${title}</h1>
-        <span class="date">Generated: ${new Date().toLocaleDateString()}</span>
-      </div>
-      <table>
-        <thead>
-          <tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>
-        </thead>
-        <tbody>
-          ${data.map(row => `<tr>${columns.map(c => `<td>${row[c.toLowerCase().replace(/ /g, '_')] ?? row[c] ?? '-'}</td>`).join('')}</tr>`).join('')}
-        </tbody>
-      </table>
-      <script>window.print();</script>
-    </body>
-    </html>
-  `;
-
-  printWindow.document.write(html);
-  printWindow.document.close();
-};
 
 export default function PMSReports() {
   const { useTasks, useProjects, useUsers, useAllUsersKPIs, useTenantKPIs, useTimeTrackingSummary } = usePMS();
@@ -218,46 +161,11 @@ export default function PMSReports() {
   const distOverdue = Math.round((overdueTasks / (totalTasks || 1)) * 100);
 
   // Export handlers
-  const handleExportKPIsExcel = () => {
-    const data = allUsersKPIs.map((u, i) => ({
-      Rank: i + 1,
-      Name: u.full_name,
-      Email: u.email,
-      Department: u.department || '-',
-      'Total Tasks': u.total_tasks,
-      'Completed': u.completed_tasks,
-      'Completion Rate': `${u.completion_rate}%`,
-      'On-Time Rate': `${u.on_time_rate}%`,
-      'Final Score': `${u.final_score}%`,
-    }));
-    exportToExcel(data, `KPI_Rankings_${periodLabels[period].replace(' ', '_')}`);
-  };
 
-  const handleExportKPIsPDF = () => {
-    const data = allUsersKPIs.map((u, i) => ({
-      Rank: i + 1,
-      Name: u.full_name,
-      Department: u.department || '-',
-      'Total Tasks': u.total_tasks,
-      Completed: u.completed_tasks,
-      'Completion Rate': `${u.completion_rate}%`,
-      'On-Time Rate': `${u.on_time_rate}%`,
-      'Final Score': `${u.final_score}%`,
-    }));
-    exportToPDF(`KPI Rankings - ${periodLabels[period]}`, data, ['Rank', 'Name', 'Department', 'Total Tasks', 'Completed', 'Completion Rate', 'On-Time Rate', 'Final Score']);
-  };
 
-  const handleExportProjectsExcel = () => {
-    const data = projectPerformance.map(p => ({
-      Project: p.name,
-      Total: p.total,
-      Completed: p.completed,
-      'On Time': p.onTime,
-      Delayed: p.delayed,
-      'Completion %': p.total > 0 ? `${Math.round((p.completed / p.total) * 100)}%` : '0%',
-    }));
-    exportToExcel(data, `Project_Performance_${periodLabels[period].replace(' ', '_')}`);
-  };
+
+
+
 
   return (
     <>
@@ -307,27 +215,25 @@ export default function PMSReports() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Export Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportKPIsExcel}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> KPI Rankings (Excel)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportKPIsPDF}>
-                  <FileText className="h-4 w-4 mr-2 text-red-600" /> KPI Rankings (PDF)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportProjectsExcel}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Project Performance (Excel)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Top Multi-Format Exporter */}
+            <ReportExportMenu
+              title={`PMS Performance & Project Analytics (${periodLabels[period]})`}
+              filenamePrefix={`pms_analytics_${period}`}
+              data={allUsersKPIs}
+              columns={[
+                { key: 'rank', header: 'Rank', accessor: (_r: any, idx?: number) => (idx ?? 0) + 1 },
+                { key: 'full_name', header: 'Employee' },
+                { key: 'email', header: 'Email' },
+                { key: 'department', header: 'Department', accessor: (r: any) => r.department || '-' },
+                { key: 'total_tasks', header: 'Total Tasks' },
+                { key: 'completed_tasks', header: 'Completed Tasks' },
+                { key: 'completion_rate', header: 'Completion Rate (%)', accessor: (r: any) => `${r.completion_rate}%` },
+                { key: 'on_time_rate', header: 'On-Time Rate (%)', accessor: (r: any) => `${r.on_time_rate}%` },
+                { key: 'final_score', header: 'Final Score (%)', accessor: (r: any) => `${r.final_score}%` },
+              ]}
+              organizationName="Humanitas PMS Intelligence"
+              buttonLabel="Export Analytics"
+            />
           </div>
         </div>
 
@@ -492,12 +398,24 @@ export default function PMSReports() {
                 Complete KPI Rankings
               </CardTitle>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handleExportKPIsExcel}>
-                  <FileSpreadsheet className="h-4 w-4 mr-1 text-green-600" /> Excel
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleExportKPIsPDF}>
-                  <FileText className="h-4 w-4 mr-1 text-red-600" /> PDF
-                </Button>
+                <ReportExportMenu
+                  title={`Complete KPI Rankings — ${periodLabels[period]}`}
+                  filenamePrefix={`kpi_rankings_${period}`}
+                  data={allUsersKPIs}
+                  columns={[
+                    { key: 'rank', header: 'Rank', accessor: (_r: any, idx?: number) => (idx ?? 0) + 1 },
+                    { key: 'full_name', header: 'Employee' },
+                    { key: 'email', header: 'Email' },
+                    { key: 'department', header: 'Department', accessor: (r: any) => r.department || '-' },
+                    { key: 'total_tasks', header: 'Total Tasks' },
+                    { key: 'completed_tasks', header: 'Completed Tasks' },
+                    { key: 'completion_rate', header: 'Completion Rate (%)', accessor: (r: any) => `${r.completion_rate}%` },
+                    { key: 'on_time_rate', header: 'On-Time Rate (%)', accessor: (r: any) => `${r.on_time_rate}%` },
+                    { key: 'final_score', header: 'Final Score (%)', accessor: (r: any) => `${r.final_score}%` },
+                  ]}
+                  organizationName="Humanitas PMS Intelligence"
+                  buttonLabel="Export Rankings"
+                />
               </div>
             </div>
           </CardHeader>
@@ -579,9 +497,25 @@ export default function PMSReports() {
                 <BarChart3 className="h-5 w-5 text-blue-600" />
                 Project Performance ({periodLabels[period]})
               </CardTitle>
-              <Button size="sm" variant="outline" onClick={handleExportProjectsExcel}>
-                <FileSpreadsheet className="h-4 w-4 mr-1 text-green-600" /> Export
-              </Button>
+              <ReportExportMenu
+                title={`Project Delivery & Performance — ${periodLabels[period]}`}
+                filenamePrefix={`project_performance_${period}`}
+                data={projectPerformance}
+                columns={[
+                  { key: 'name', header: 'Project Name' },
+                  { key: 'total', header: 'Total Tasks' },
+                  { key: 'completed', header: 'Completed Tasks' },
+                  { key: 'onTime', header: 'On-Time Delivery' },
+                  { key: 'delayed', header: 'Delayed Tasks' },
+                  {
+                    key: 'completionPct',
+                    header: 'Completion %',
+                    accessor: (p: any) => (p.total > 0 ? `${Math.round((p.completed / p.total) * 100)}%` : '0%'),
+                  },
+                ]}
+                organizationName="Humanitas PMS Intelligence"
+                buttonLabel="Export Projects"
+              />
             </div>
           </CardHeader>
           <CardContent className="p-0">

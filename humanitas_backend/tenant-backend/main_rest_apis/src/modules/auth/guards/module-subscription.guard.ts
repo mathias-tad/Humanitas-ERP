@@ -71,18 +71,37 @@ export class ModuleSubscriptionGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Core identity & infrastructure modules are always accessible to authenticated users
+        // Core identity & platform modules are always accessible to authenticated users
     const CORE_MODULES = [
       'users',
+      'accounts',
       'notifications',
       'auth',
       'settings',
       'roles',
+      'permissions',
+      'accesscontrol',
+      'organization',
+      'companies',
+      'branches',
+      'departments',
       'presence',
       'messaging',
+      'chat',
       'announcements',
-      'scheduling',
+      'events',
+      'calendar',
+      'esign',
+      'signature',
+      'approvals',
+      'approval_rules',
+      'system',
+      'system_logs',
+      'logs',
+      'developer_api',
+      'import_export',
       'wfm',
+      'scheduling',
     ];
     const req = requiredModule.toLowerCase().trim();
     if (CORE_MODULES.includes(req)) {

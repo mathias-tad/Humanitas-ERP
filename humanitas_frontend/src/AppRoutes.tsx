@@ -51,6 +51,7 @@ import LandingPage from "./pages/LandingPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import ComingSoonModulePage from "./components/common/ComingSoonModulePage";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
+import HRSettingsPage from "./pages/hrms/HRSettingsPage";
 import HRReportsDashboard from "./pages/hrms/HRReportsDashboard";
 import HRDocumentsPage from "./pages/hrms/HRDocumentsPage";
 import OnboardingPage from "./pages/hrms/OnboardingPage";
@@ -283,10 +284,16 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/settings" element={
-          <PermissionRoute module="hrms" permissions={["view_general_settings", "edit_general_settings"]}>
+          <PermissionRoute permissions={["view_general_settings", "edit_general_settings", "view_company_settings", "view_accounts_privacy_settings", "view_notification_preferences"]}>
             <Settings />
           </PermissionRoute>
         } />
+        <Route path="/hr/settings" element={
+          <PermissionRoute module="hrms" permissions={["view_hrm_settings", "edit_hrm_settings", "view_payroll_settings"]}>
+            <HRSettingsPage />
+          </PermissionRoute>
+        } />
+        <Route path="/hrms/settings" element={<Navigate to="/hr/settings" replace />} />
         <Route path="/payroll/dashboard" element={
           <PermissionRoute module="payroll" permissions={["view_payroll_dashboard", "view_payroll"]}>
             <PayrollDashboard />
@@ -558,7 +565,7 @@ function AppRoutes() {
 
         {/* Digital Signature & E-Sign Provider Configuration */}
         <Route path="/settings/esign" element={
-          <PermissionRoute module="hrms" permissions={["manage_documents", "manage_employee_documents"]}>
+          <PermissionRoute permissions={["manage_documents", "manage_employee_documents"]}>
             <ESignProviderPage />
           </PermissionRoute>
         } />

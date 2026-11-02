@@ -1,4 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useERPModules, type ERPModuleKey } from "@/context/ModuleContext";
+
+const MODULE_SUBSCRIPTION_MAP: Record<string, ERPModuleKey | 'common'> = {
+  "Dashboard": 'common',
+  "Users": 'common',
+  "Organization": 'common',
+  "Access Control": 'common',
+  "Dynamic Approvals": 'common',
+  "Notifications": 'common',
+  "Messaging": 'common',
+  "Settings": 'common',
+  "System Logs": 'common',
+  "Attendance": 'hrms',
+  "Devices": 'hrms',
+  "Leave": 'hrms',
+  "Overtime": 'hrms',
+  "Payroll": 'hrms',
+  "Loan Management": 'hrms',
+  "Recruitment": 'hrms',
+  "Roster": 'hrms',
+  "PMS": 'pms',
+  "KPI": 'pms',
+  "AI Intelligence": 'ai',
+};
 import { RoleList, type Role } from "@/components/roleAndPermisions/RoleList";
 import { CreateEditRoleModal } from "@/components/roleAndPermisions/CreateEditRoleModal";
 import {
@@ -213,6 +237,15 @@ const permissions: Permission[] = [
 
 function AccessControl() {
   const { hasPermission, user } = useAuth();
+  const { isModuleSubscribed } = useERPModules();
+
+  const visiblePermissions = useMemo(() => {
+    return permissions.filter((p) => {
+      const moduleKey = MODULE_SUBSCRIPTION_MAP[p.module] || 'common';
+      if (moduleKey === 'common') return true;
+      return isModuleSubscribed(moduleKey);
+    });
+  }, [isModuleSubscribed]);
 
   // Permission checks with explicit Owner bypass
   const isOwner = user?.role?.toLowerCase() === 'owner' || (user as any)?.role_name?.toLowerCase() === 'owner';
@@ -314,7 +347,7 @@ function AccessControl() {
   const handleToggleModule = (moduleName: string, allSelected: boolean) => {
     if (!selectedRole || !canEdit) return;
 
-    const modulePermissionIds = permissions
+    const modulePermissionIds = visiblePermissions
       .filter((perm) => perm.module === moduleName)
       .map((perm) => perm.id);
 
@@ -464,7 +497,7 @@ function AccessControl() {
                   )}
                 </div>
                 <PermissionMatrix
-                  permissions={permissions}
+                  permissions={visiblePermissions}
                   selectedPermissionIds={localPermissions}
                   onTogglePermission={handleTogglePermission}
                   onToggleModule={handleToggleModule}

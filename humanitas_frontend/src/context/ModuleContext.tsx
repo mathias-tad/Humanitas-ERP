@@ -208,6 +208,8 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Core identity & infrastructure modules are always enabled
     const CORE_PLATFORM_MODULES = [
       "users",
+      "accounts",
+      "organization",
       "system",
       "notifications",
       "approvals",
@@ -216,9 +218,14 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       "presence",
       "announcements",
       "events",
+      "calendar",
       "messaging",
       "chat",
-      "calendar",
+      "esign",
+      "signature",
+      "developer_api",
+      "import_export",
+      "accesscontrol",
     ];
     if (CORE_PLATFORM_MODULES.includes(k)) {
       return true;
@@ -348,12 +355,28 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setActiveModule("accounting");
     } else if (path.startsWith("/ai")) {
       setActiveModule("ai");
-    } else if (path.startsWith("/system") || path.startsWith("/system-logs")) {
+    } else if (path.startsWith("/hr") || path.startsWith("/attendance") || path.startsWith("/leave") || path.startsWith("/payroll") || path.startsWith("/devices") || path.startsWith("/recruitment")) {
+      setActiveModule("hrms");
+    } else if (path.startsWith("/system") || path.startsWith("/system-logs") || path.startsWith("/audit-logs")) {
       setActiveModule("system");
     } else {
-      setActiveModule("hrms");
+      // Common platform pages: retain active module if subscribed; otherwise fallback to first subscribed operational module
+      if (!isModuleSubscribed(activeModule)) {
+        const fallback = subscribedModules.find((m) => m !== "system") || subscribedModules[0] || "hrms";
+        setActiveModule(fallback);
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, subscribedModules, activeModule]);
+
+  // Ensure active module is always a subscribed module on mount/tenant update
+  useEffect(() => {
+    if (subscribedModules.length > 0 && !isModuleSubscribed(activeModule)) {
+      const fallback = subscribedModules.find((m) => m !== "system") || subscribedModules[0];
+      if (fallback) {
+        setActiveModule(fallback);
+      }
+    }
+  }, [subscribedModules, activeModule]);
 
   // Keyboard shortcut Ctrl/Cmd + K for Global Command Palette
   useEffect(() => {

@@ -151,3 +151,19 @@ The workspace contains two distinct, purposefully separated folder trees:
 - **Zero-Regression Rule**:
   - Existing tests must never be commented out, skipped (`it.skip`), or deleted without an explicit replacement.
 
+### 22. MANDATORY MODULAR INDEPENDENCE & COMPLETE ZERO-COUPLING SEPARABILITY
+- **Universal Zero-Coupling Architecture Mandate for ALL AI Assistants (Gemini, Claude, GPT, Antigravity) & Developers**:
+  - Every operational module (HRMS, PMS/Tasks, Products, Inventory, Purchasing, Sales, POS, Accounting) MUST be 100% architecturally decoupled and fully operable in complete isolation.
+  - **Shared Foundation (Common Modules)**:
+    - Common modules (Users/Accounts Directory, Organization & Multi-Branch Entities, Common Platform Settings, Announcements, Calendar/Events, Dynamic Approvals Engine & Rules, E-Signature / Digital Signatures, Universal Chat & Messaging, Role & Access Control Matrices, System Health & Audit Logs) constitute the universal platform core.
+    - These common capabilities MUST be automatically injected into EVERY tenant registration and remain accessible regardless of which operational modules a tenant subscribes to.
+  - **Zero Cross-Module Hard Dependencies**:
+    - An operational module MUST NEVER import or hard-depend on another operational module (e.g. PMS must never fail, throw 403, or render blank if HRMS is not subscribed; HRMS must never fail if PMS is not subscribed).
+    - If a tenant subscribes ONLY to PMS, the entire system boots and functions as a standalone Performance & Project Management platform with full access to common users, organization, approvals, and common settings.
+    - If a tenant subscribes ONLY to HRMS, the system boots and functions as a standalone Human Resource Management system.
+    - When multiple modules are subscribed, they link seamlessly through the common user and organization foundation without hardcoded cross-module imports.
+  - **Dynamic Contextual Filtering**:
+    - Settings (`/settings` vs `/hr/settings` vs `/pms/settings`), Approval Rule workflow triggers (`useApprovals`), Access Control permission matrices (`AccessControl.tsx`), and Dock Navigation (`ContextualModuleDock.tsx`) MUST dynamically filter their UI options so tenants only ever see configuration items relevant to their active subscribed modules.
+  - **Role-Based & Module-Adaptive Dashboards**:
+    - Central dashboards (`/dashboard` / `Home.tsx`) and Module Reporting dashboards (`/hrms/reports`, `/pms/reports`) MUST adapt dynamically to both the user's role (Executive, Manager, Employee) and the tenant's subscribed modules.
+    - Every module MUST include a dedicated Reporting Dashboard featuring multi-format exports (CSV, Excel XML, Printable PDF Summary, and structured JSON via `ReportExportMenu`).
