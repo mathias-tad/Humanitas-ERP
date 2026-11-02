@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -39,15 +40,58 @@ Future<Uint8List> _transparentPng() async {
   return byteData!.buffer.asUint8List();
 }
 
+/// A minimal asset manifest encoded with StandardMessageCodec (empty map).
+ByteData _emptyAssetManifest() {
+  final codec = const StandardMessageCodec();
+  return codec.encodeMessage(<String, dynamic>{})!;
+}
+
+/// Decodes the asset-key string from the raw ByteData Flutter sends on the
+/// flutter/assets channel. Returns null if it cannot be decoded.
+String? _decodeAssetKey(ByteData? message) {
+  if (message == null) return null;
+  try {
+    return utf8.decode(message.buffer.asUint8List(
+      message.offsetInBytes,
+      message.lengthInBytes,
+    ));
+  } catch (_) {
+    return null;
+  }
+}
+
 void main() {
+  late Uint8List fakeImageBytes;
+
   setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
     GoogleFonts.config.allowRuntimeFetching = false;
 
-    // Provide a fake 1×1 PNG for every asset path so Image.asset doesn't throw.
-    final fakeImageBytes = await _transparentPng();
+    fakeImageBytes = await _transparentPng();
+
+    // Intercept flutter/assets channel:
+    //  • Asset manifest requests → return an empty manifest (no real assets)
+    //  • Image asset requests     → return a fake 1×1 PNG
+    //  • Everything else          → return null (font files / other → unavailable)
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMessageHandler('flutter/assets', (ByteData? message) async {
-      return fakeImageBytes.buffer.asByteData();
+      final key = _decodeAssetKey(message);
+
+      if (key == null || key == 'AssetManifest.bin' || key == 'AssetManifest.json') {
+        return _emptyAssetManifest();
+      }
+
+      final lk = key.toLowerCase();
+      if (lk.endsWith('.png') ||
+          lk.endsWith('.jpg') ||
+          lk.endsWith('.jpeg') ||
+          lk.endsWith('.webp') ||
+          lk.endsWith('.gif')) {
+        return fakeImageBytes.buffer.asByteData();
+      }
+
+      // Font files and other binary assets → null so google_fonts falls back.
+      return null;
     });
   });
 
@@ -62,9 +106,11 @@ void main() {
         child: const HumanitasApp(),
       ),
     );
+
+    await tester.pump();
     expect(find.text('HUMANITAS'), findsOneWidget);
 
-    // Advance timer so splash animation and pending delays settle cleanly
+    // Advance past the 800 ms splash delay and animation
     await tester.pump(const Duration(milliseconds: 1500));
     expect(find.text('HUMANITAS'), findsOneWidget);
   });

@@ -18,10 +18,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _repository.getCurrentUser();
       final permissions = await _repository.getPermissions();
+      final enabledFeatures = await _repository.getEnabledFeatures();
       state = state.copyWith(
         status: AuthStatus.authenticated,
         user: user,
         permissions: permissions,
+        enabledFeatures: enabledFeatures,
       );
     } catch (_) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
@@ -60,11 +62,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       } else {
         final permissions = await _repository.getPermissions();
+        final enabledFeatures = await _repository.getEnabledFeatures();
         state = state.copyWith(
           status: AuthStatus.authenticated,
           user: user,
           tenantSlug: tenantSlug,
           permissions: permissions,
+          enabledFeatures: enabledFeatures,
         );
       }
     } catch (e) {

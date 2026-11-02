@@ -53,9 +53,27 @@ class AuthRepository {
       }
 
       final user = UserModel.fromJson(data['user'] ?? {});
+
+      // Extract enabled_features from tenant info in login response
+      final tenantData = data['tenant'];
+      List<String> enabledFeatures = const [];
+      if (tenantData is Map) {
+        final raw = tenantData['enabled_features'];
+        if (raw is List) {
+          enabledFeatures = List<String>.from(raw.map((e) => e.toString()));
+        }
+      }
+      // Also try top-level enabled_features fallback
+      if (enabledFeatures.isEmpty && data['enabled_features'] is List) {
+        enabledFeatures = List<String>.from(
+          (data['enabled_features'] as List).map((e) => e.toString()),
+        );
+      }
+
       return {
         'user': user,
         'requires_setup': data['requires_setup'] ?? false,
+        'enabled_features': enabledFeatures,
       };
     } on DioException catch (e) {
       final data = e.response?.data;
@@ -105,6 +123,29 @@ class AuthRepository {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Fetches the enabled feature modules for the current tenant.
+  /// Tries GET /me first (tenant.enabled_features), then GET /tenant/features as fallback.
+  Future<List<String>> getEnabledFeatures() async {
+    try {
+      final response = await _apiClient.dio.get(ApiConstants.me);
+      final data = response.data;
+      // Prefer tenant.enabled_features embedded in /me response
+      if (data is Map && data['tenant'] is Map) {
+        final raw = data['tenant']['enabled_features'];
+        if (raw is List) {
+          return List<String>.from(raw.map((e) => e.toString()));
+        }
+      }
+      // Fallback: top-level enabled_features
+      if (data is Map && data['enabled_features'] is List) {
+        return List<String>.from(
+          (data['enabled_features'] as List).map((e) => e.toString()),
+        );
+      }
+    } catch (_) {}
+    return const [];
   }
 
   Future<void> logout() async {
