@@ -3486,23 +3486,23 @@ export class AttendanceService {
 
         // 1. Notify Employee
         if (rules.notify_employee) {
-          await this.notificationsService.createNotification(tenantId, {
-            user_id: userId,
+          await this.notificationsService.createNotification(tenantId, userId, {
             type: 'absence_threshold_alert',
             title: 'Attendance Alert: Absence Limit Reached',
-            message: `You have reached ${alertReason}. Please contact your supervisor or HR immediately.`,
-            metadata: { consecutiveAbsences, monthlyAbsences, asOfDate },
+            message: `You have reached ${alertReason}. Please contact your supervisor or HR immediately.`,
+            priority: 'urgent',
+            deep_link: '/attendance',
           }).catch(e => console.warn('[Attendance] Failed to notify employee:', e));
         }
 
         // 2. Notify Supervisor
         if (rules.notify_supervisor && user?.supervisor_id) {
-          await this.notificationsService.createNotification(tenantId, {
-            user_id: user.supervisor_id,
+          await this.notificationsService.createNotification(tenantId, user.supervisor_id, {
             type: 'absence_threshold_alert',
             title: `Absence Limit Alert: ${userName}`,
-            message: `${userName} has recorded ${alertReason}. Review or intervention may be required.`,
-            metadata: { employee_id: userId, consecutiveAbsences, monthlyAbsences, asOfDate },
+            message: `${userName} has recorded ${alertReason}. Review or intervention may be required.`,
+            priority: 'urgent',
+            deep_link: `/attendance?userId=${userId}`,
           }).catch(e => console.warn('[Attendance] Failed to notify supervisor:', e));
         }
 
@@ -3516,12 +3516,12 @@ export class AttendanceService {
           );
           for (const admin of hrAdmins) {
             if (admin.id !== user?.supervisor_id) {
-              await this.notificationsService.createNotification(tenantId, {
-                user_id: admin.id,
+              await this.notificationsService.createNotification(tenantId, admin.id, {
                 type: 'absence_threshold_alert',
                 title: `Absence Threshold Alert: ${userName}`,
-                message: `${userName} (${user?.department || 'Staff'}) has exceeded absence limits: ${alertReason}.`,
-                metadata: { employee_id: userId, consecutiveAbsences, monthlyAbsences, asOfDate },
+                message: `${userName} (${user?.department || 'Staff'}) has exceeded absence limits: ${alertReason}.`,
+                priority: 'urgent',
+                deep_link: `/attendance?userId=${userId}`,
               }).catch(e => console.warn('[Attendance] Failed to notify HR admin:', e));
             }
           }

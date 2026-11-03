@@ -823,7 +823,7 @@ export class PayrollService {
     );
 
     let totalActingAllowance = 0;
-    const breakdown = [];
+    const breakdown: any[] = [];
 
     for (const assignment of activeAssignments) {
       const assignStart = new Date(assignment.start_date);

@@ -781,7 +781,7 @@ export class PayrollController {
   @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get active acting allowances and prorated calculation for an employee' })
   async getActingAllowancesForUser(
-    @Req() req: any,
+    @Request() req: any,
     @Param('userId') userId: string,
     @Query('start_date') startDate: string,
     @Query('end_date') endDate: string,
