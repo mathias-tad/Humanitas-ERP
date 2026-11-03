@@ -11,6 +11,7 @@ import Attendance from "./pages/attendance/Attendance";
 import QRDisplay from "./pages/attendance/QRDisplay";
 import ClockIn from "./pages/attendance/ClockIn";
 import Calendar from "./pages/Calendar";
+import UnifiedCalendar from "./pages/UnifiedCalendar";
 import Devices from "./pages/Devices";
 import { Settings } from "./pages/Settings";
 import PayrollDashboard from "./pages/payroll/Dashboard";
@@ -230,6 +231,16 @@ function AppRoutes() {
             <MyAttendance />
           </PermissionRoute>
         } />
+        <Route path="/attendance/my-schedule" element={
+          <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
+            <Calendar />
+          </PermissionRoute>
+        } />
+        <Route path="/attendance/schedule" element={
+          <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
+            <Calendar />
+          </PermissionRoute>
+        } />
         <Route path="/attendance/qr-display" element={
           <PermissionRoute module="attendance" permissions={["view_qr_display", "view_attendance"]}>
             <QRDisplay />
@@ -265,7 +276,8 @@ function AppRoutes() {
             <LeaveWorkflowSettings />
           </PermissionRoute>
         } />
-        <Route path="/calendar" element={<Calendar />} />
+        <Route path="/calendar" element={<UnifiedCalendar />} />
+        <Route path="/attendance/calendar" element={<Calendar />} />
         <Route path="/hr/scheduling" element={
           <PermissionRoute module="hrms" permissions={["manage_roster", "view_roster", "view_shifts", "manage_shifts", "manage_schedules", "view_wfm_opportunities"]}>
             <SchedulingDashboard />

@@ -245,7 +245,7 @@ class HomeScreen extends ConsumerWidget {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
                 }),
                 if (hasHR)
-                  _QuickActionItem(icon: Icons.calendar_month_outlined, color: AppColors.primaryDark, label: 'Roster', onTap: () {
+                  _QuickActionItem(icon: Icons.calendar_month_outlined, color: AppColors.primaryDark, label: 'Schedule', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SchedulingScreen()));
                   }),
                 if (hasHR)

@@ -1,20 +1,65 @@
+import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
-import '../models/calendar_day_model.dart';
+import '../../../core/api/api_constants.dart';
+import '../../../core/models/calendar_event_model.dart';
 
 class CalendarRepository {
   final ApiClient _apiClient;
 
   CalendarRepository(this._apiClient);
 
-  Future<List<CalendarAttendanceItem>> getMyMonthlyAttendance(int month, int year) async {
+  Future<List<CalendarEventModel>> getEvents({
+    required DateTime start,
+    required DateTime end,
+    List<String>? sources,
+    String? companyId,
+    String? branchId,
+  }) async {
     try {
+      final queryParams = <String, dynamic>{
+        'start': start.toIso8601String(),
+        'end': end.toIso8601String(),
+      };
+      if (sources != null && sources.isNotEmpty) {
+        queryParams['sources[]'] = sources;
+      }
+      if (companyId != null && companyId.isNotEmpty) {
+        queryParams['company_id'] = companyId;
+      }
+      if (branchId != null && branchId.isNotEmpty) {
+        queryParams['branch_id'] = branchId;
+      }
+
       final response = await _apiClient.dio.get(
-        '/attendance/my-monthly-calendar',
-        queryParameters: {'month': month, 'year': year},
+        ApiConstants.calendarEvents,
+        queryParameters: queryParams,
       );
-      final data = response.data;
+
+      final dynamic data = response.data;
+      final List<dynamic> list;
       if (data is List) {
-        return data.map((e) => CalendarAttendanceItem.fromJson(e as Map<String, dynamic>)).toList();
+        list = data;
+      } else if (data is Map && data['data'] is List) {
+        list = data['data'];
+      } else {
+        list = [];
+      }
+
+      return list
+          .map((item) => CalendarEventModel.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to load calendar events';
+      throw Exception(msg);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSources() async {
+    try {
+      final response = await _apiClient.dio.get(ApiConstants.calendarSources);
+      final dynamic data = response.data;
+      if (data is List) {
+        return List<Map<String, dynamic>>.from(data);
       }
       return [];
     } catch (_) {
@@ -22,33 +67,44 @@ class CalendarRepository {
     }
   }
 
-  Future<List<CalendarHolidayItem>> getHolidays(int year) async {
+  Future<CalendarEventModel> createEvent(Map<String, dynamic> data) async {
     try {
-      final response = await _apiClient.dio.get(
-        '/holidays',
-        queryParameters: {'year': year},
+      final response = await _apiClient.dio.post(
+        ApiConstants.calendarEvents,
+        data: data,
       );
-      final data = response.data;
-      if (data is List) {
-        return data.map((e) => CalendarHolidayItem.fromJson(e as Map<String, dynamic>)).toList();
-      }
-      return [];
-    } catch (_) {
-      return [];
+      final resData = response.data is Map && response.data['data'] != null
+          ? response.data['data']
+          : response.data;
+      return CalendarEventModel.fromJson(resData as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to create calendar event';
+      throw Exception(msg);
     }
   }
 
-  Future<MonthlyCalendarData> getMonthlyCalendarData(int month, int year) async {
-    final results = await Future.wait([
-      getMyMonthlyAttendance(month, year),
-      getHolidays(year),
-    ]);
+  Future<CalendarEventModel> updateEvent(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await _apiClient.dio.patch(
+        '${ApiConstants.calendarEvents}/$id',
+        data: data,
+      );
+      final resData = response.data is Map && response.data['data'] != null
+          ? response.data['data']
+          : response.data;
+      return CalendarEventModel.fromJson(resData as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to update calendar event';
+      throw Exception(msg);
+    }
+  }
 
-    return MonthlyCalendarData(
-      month: month,
-      year: year,
-      attendance: results[0] as List<CalendarAttendanceItem>,
-      holidays: results[1] as List<CalendarHolidayItem>,
-    );
+  Future<void> deleteEvent(String id) async {
+    try {
+      await _apiClient.dio.delete('${ApiConstants.calendarEvents}/$id');
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Failed to delete calendar event';
+      throw Exception(msg);
+    }
   }
 }

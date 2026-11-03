@@ -77,6 +77,8 @@ class ApiConstants {
   // Communication & Notifications
   static const String announcements = '/announcements';
   static const String events = '/events';
+  static const String calendarEvents = '/calendar/events';
+  static const String calendarSources = '/calendar/sources';
   static const String notifications = '/notifications';
   static const String unreadNotificationsCount = '/notifications/unread-count';
 

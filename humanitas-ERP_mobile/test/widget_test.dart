@@ -77,7 +77,11 @@ void main() {
         .setMockMessageHandler('flutter/assets', (ByteData? message) async {
       final key = _decodeAssetKey(message);
 
-      if (key == null || key == 'AssetManifest.bin' || key == 'AssetManifest.json') {
+      // Asset and Font manifests → return empty map
+      if (key == null ||
+          key == 'AssetManifest.bin' ||
+          key == 'AssetManifest.json' ||
+          key == 'FontManifest.json') {
         return _emptyAssetManifest();
       }
 

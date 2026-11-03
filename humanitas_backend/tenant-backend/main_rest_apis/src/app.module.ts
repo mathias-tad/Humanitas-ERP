@@ -29,6 +29,7 @@ import { OvertimeModule } from './modules/overtime/overtime.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { EventsModule } from './modules/events/events.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 import { SystemLogsModule } from './modules/system-logs/system-logs.module';
 import { PmsModule } from './modules/pms/pms.module';
 import { BiometricDevicesModule } from './modules/biometric-devices/biometric-devices.module';
@@ -151,6 +152,7 @@ dns.setDefaultResultOrder('ipv4first');
     MessagingModule,
     AnnouncementsModule,
     EventsModule,
+    CalendarModule,
     SystemLogsModule,
     PmsModule,
     BiometricDevicesModule,

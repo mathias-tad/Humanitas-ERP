@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Clock, ChevronRight, Eye, UserCheck } from "lucide-react";
+import { Clock, ChevronRight, Eye, UserCheck, CalendarClock } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -72,6 +72,30 @@ export function AttendanceCollapsible({
                       >
                         <Eye className="h-4 w-4" />
                         <span className="text-sm leading-normal">Attendance</span>
+                      </div>
+                    )}
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            )}
+            {canViewMyAttendance && (
+              <SidebarMenuSubItem>
+                <SidebarMenuSubButton
+                  asChild
+                  className="!px-0 !h-auto !overflow-visible"
+                >
+                  <NavLink to={"/attendance/schedule"}>
+                    {({ isActive }) => (
+                      <div
+                        className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          }`}
+                      >
+                        <CalendarClock className="h-4 w-4" />
+                        <span className="text-sm leading-normal">
+                          My Schedule
+                        </span>
                       </div>
                     )}
                   </NavLink>

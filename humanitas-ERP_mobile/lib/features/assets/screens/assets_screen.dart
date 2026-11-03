@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:humanitas_erp_mobile/core/constants/app_colors.dart';
 import 'package:humanitas_erp_mobile/core/providers/auth_provider.dart';
-import 'package:humanitas_erp_mobile/features/assets/models/asset_model.dart';
 import 'package:humanitas_erp_mobile/features/assets/providers/asset_provider.dart';
 
 class AssetsScreen extends ConsumerStatefulWidget {
@@ -30,7 +29,7 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> with SingleTickerPr
 
   bool _hasPermission() {
     final auth = ref.read(authProvider);
-    final role = auth.user?.role?.toLowerCase() ?? '';
+    final role = auth.user?.role.toLowerCase() ?? '';
     if (role == 'owner' || role == 'admin' || role == 'administrator') return true;
     return auth.hasAnyPermission(['view_assets', 'view_my_assets']);
   }

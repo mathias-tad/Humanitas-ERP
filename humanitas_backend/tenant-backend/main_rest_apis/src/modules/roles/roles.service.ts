@@ -71,6 +71,7 @@ export class RolesService {
       'correct_attendance', 'view_holidays', 'manage_holidays',
       'view_announcements', 'create_announcements', 'edit_announcements', 'delete_announcements',
       'view_events', 'create_events', 'edit_events', 'delete_events',
+      'view_calendar', 'create_calendar_events', 'edit_calendar_events', 'delete_calendar_events', 'manage_calendar',
       'view_overtime_workers', 'force_clockout',
       'view_shifts', 'manage_shifts',
       'view_roster', 'manage_roster',

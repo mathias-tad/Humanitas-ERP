@@ -8,7 +8,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 36 | 36 | 0 | 100% |
+| System Architecture & Core | 38 | 38 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **774** | **469** | **305** | **61%** |
+| **TOTAL** | **776** | **471** | **305** | **61%** |
 
 ---
 
@@ -81,6 +81,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Role-Based & Module-Adaptive Dashboards & Universal Reporting**:
   - [x] Role-adaptive landing dashboard (`Home.tsx`) dynamically presenting executive KPI metrics and employee self-service cards gated by active subscriptions (`hasHR`, `hasPMS`).
   - [x] Dedicated Module Reporting Dashboards with unified `ReportExportMenu` supporting CSV, Excel XML, printable PDF summary, and structured JSON across all HR and PMS reporting sections.
+- [x] **Universal Cross-Module Calendar Engine (`/calendar` & Mobile `CalendarScreen`)**:
+  - [x] Tenant-wide calendar aggregator dynamically collecting events from all subscribed modules (`custom`, `announcements`, `company_events`, `holidays`, `leave`, `shifts`, `payroll`, `pms_tasks`, `milestones`, `crm_meetings`, `sales`, `purchasing`, `accounting_tax`).
+  - [x] Full CRUD operations for custom organizational calendar events with multi-company & branch scoping.
+  - [x] Frontend `UnifiedCalendar.tsx` with Month, Week, and Agenda views, category filtering (`All Modules`, `HR & Workforce`, `Projects & PMS`, `Commercial ERP`, `Financial & Tax`, `General & Org`), keyword search, and standard `.ics` iCal export.
+  - [x] Mobile Flutter `CalendarScreen` with reactive month navigation, interactive day event inspection sheets, category filtering, and 100% test coverage.
+- [x] **Enterprise WorkForce Schedule & Attendance Experience (Amazon A to Z Schedule UX)**:
+  - [x] Web Schedule & Punch Hub (`/attendance/schedule` / `/attendance/my-schedule` / `MySchedule.tsx`) featuring Amazon A to Z visual calendar grid.
+  - [x] Status-coded cell decorations: Punches (Solid Blue `#1D70B8`), Attention/Missed Punches (Solid Red `#DC2626`), Scheduled Shifts (Light blue with 45-degree diagonal hatch/stripes), Payday indicator dot (`•`), and Selected Day golden amber ring border (`#D97706`).
+  - [x] Selected day Punch Times accordion card with vertical timeline (`In` / `Out` nodes, duration calculations, and punch edit actions).
+  - [x] 0-punch empty state with clock illustration graphic with horizontal speed lines and shift details.
+  - [x] "Missed a punch?" correction modal with punch type toggle (In/Out), requested time picker, justification text, and backend correction request integration.
+  - [x] Mobile Flutter `SchedulingScreen` with complete WorkForce experience: `My Schedule`, `Timecard`, `Find Shifts`, and `VTO >` tabs, custom `DiagonalStripePainter`, `ClockIllustration`, and automated widget test coverage.
 
 ---
 

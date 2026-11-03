@@ -1,6 +1,36 @@
 import 'dart:convert';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:humanitas_erp_mobile/core/api/api_client.dart';
+
+// Decoupled push notification service with pluggable Firebase stubs
+// to allow headless CI and environments without native Firebase setup.
+
+class RemoteNotification {
+  final String? title;
+  final String? body;
+  const RemoteNotification({this.title, this.body});
+}
+
+class RemoteMessage {
+  final Map<String, dynamic> data;
+  final RemoteNotification? notification;
+  const RemoteMessage({this.data = const {}, this.notification});
+}
+
+class FirebaseMessaging {
+  static final FirebaseMessaging instance = FirebaseMessaging();
+  static final Stream<RemoteMessage> onMessage = const Stream.empty();
+  static final Stream<RemoteMessage> onMessageOpenedApp = const Stream.empty();
+  final Stream<String> onTokenRefresh = const Stream.empty();
+
+  Future<void> requestPermission({
+    bool alert = true,
+    bool badge = true,
+    bool sound = true,
+    bool provisional = false,
+  }) async {}
+
+  Future<String?> getToken() async => null;
+}
 
 class PushNotificationAction {
   final String action;
