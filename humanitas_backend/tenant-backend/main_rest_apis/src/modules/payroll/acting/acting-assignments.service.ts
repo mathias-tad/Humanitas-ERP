@@ -50,10 +50,19 @@ export class ActingAssignmentsService {
         return await connection.query(`
       SELECT aa.*, 
              u1.full_name as actor_name, 
-             u2.full_name as target_name
+             u2.full_name as target_name,
+             u2.basic_salary as target_basic_salary,
+             d.acting_position_title,
+             d.acting_allowance_percentage,
+             d.acting_allowance_amount,
+             d.acting_allowance_type
       FROM acting_assignments aa
       JOIN users u1 ON aa.actor_user_id = u1.id
       JOIN users u2 ON aa.target_user_id = u2.id
+      LEFT JOIN user_delegations d ON d.delegatee_id = aa.actor_user_id 
+        AND d.delegator_id = aa.target_user_id 
+        AND d.is_acting_assignment = true
+        AND d.status = 'active'
       ORDER BY aa.created_at DESC
     `);
     }
@@ -61,7 +70,6 @@ export class ActingAssignmentsService {
     async remove(tenantId: string, id: string) {
         const connection =
             await this.databaseService.getTenantConnectionById(tenantId);
-        // Hard delete or Soft delete? Using delete for now as it's a settings management
         await connection.query(`DELETE FROM acting_assignments WHERE id = $1`, [
             id,
         ]);

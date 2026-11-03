@@ -8,7 +8,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 38 | 38 | 0 | 100% |
+| System Architecture & Core | 48 | 48 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **776** | **471** | **305** | **61%** |
+| **TOTAL** | **804** | **499** | **305** | **62%** |
 
 ---
 
@@ -93,6 +93,23 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] 0-punch empty state with clock illustration graphic with horizontal speed lines and shift details.
   - [x] "Missed a punch?" correction modal with punch type toggle (In/Out), requested time picker, justification text, and backend correction request integration.
   - [x] Mobile Flutter `SchedulingScreen` with complete WorkForce experience: `My Schedule`, `Timecard`, `Find Shifts`, and `VTO >` tabs, custom `DiagonalStripePainter`, `ClockIllustration`, and automated widget test coverage.
+- [x] **Floor Supervisor & Admin Attendance Command Center & Absence Alert Engine**:
+  - [x] Web Command Center (`/attendance/view` / `Attendance.tsx` Attendance tab) with Date Mode toggle (Single Day vs. Range/Pay Period with Today, Yesterday, This Week, This Month presets), Department and Branch filters.
+  - [x] Floor presence quick chips (`All Records`, `On Floor / Punched In`, `Late Today`, `Absent`, `Excused`).
+  - [x] Multi-row selection checkboxes with sticky batch actions bar (Bulk Mark Present, Bulk Mark Absent, Bulk Mark Excused with remarks dialog).
+  - [x] Real CSV export of filtered records with timecard metrics.
+  - [x] Consecutive & monthly unauthorized absence threshold alert engine with configurable notifications for Employee, Supervisor, and HR Admins (`absence_threshold_alert`).
+- [x] **Universal User Position & Authority Delegation Engine ("On Behalf Of")**:
+  - [x] `user_delegations` & `delegation_audit_logs` schema tables with tenant, company, branch scoping.
+  - [x] REST endpoints (`POST /delegations`, `GET /delegations/my`, `GET /delegations/active`, `GET /delegations/all`, `PUT /delegations/:id/revoke`, `GET /delegations/audit`).
+  - [x] Dynamic `PermissionsGuard` integration granting delegator permissions to delegatee with `req.on_behalf_of` context during active windows.
+  - [x] Frontend `useDelegations` hook, persistent `DelegationBanner`, and `DelegationModal` (granting, tracking, and audit trail).
+  - [x] Parallel Flutter mobile implementation (`DelegationsScreen`, `DelegationBannerWidget`, repository, providers) with 100% test pass rate.
+  - [x] Universal Common Module Exemption (Directive 22): delegations registered in core platform modules.
+  - [x] HRMS Subscription Bridge for Acting Assignments: position cover with custom acting titles and automatic synchronization with `acting_assignments`.
+  - [x] Acting Allowance Financial Compensation: percentage of covered basic salary (e.g. 15%) or fixed monthly amount.
+  - [x] Payroll Proration Engine: `getActingAllowancesForPeriod` calculating active day overlap and automatic payslip earnings items.
+  - [x] Cross-Platform UI: live allowance preview in `DelegationModal`, acting badge on `DelegationBanner`, and Flutter mobile screen/banner.
 
 ---
 

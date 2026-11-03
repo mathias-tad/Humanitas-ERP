@@ -30,6 +30,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { EventsModule } from './modules/events/events.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
+import { DelegationsModule } from './modules/delegations/delegations.module';
 import { SystemLogsModule } from './modules/system-logs/system-logs.module';
 import { PmsModule } from './modules/pms/pms.module';
 import { BiometricDevicesModule } from './modules/biometric-devices/biometric-devices.module';
@@ -153,6 +154,7 @@ dns.setDefaultResultOrder('ipv4first');
     AnnouncementsModule,
     EventsModule,
     CalendarModule,
+    DelegationsModule,
     SystemLogsModule,
     PmsModule,
     BiometricDevicesModule,

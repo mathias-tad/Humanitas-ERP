@@ -108,7 +108,7 @@ export function AttendanceCollapsible({
                   asChild
                   className="!px-0 !h-auto !overflow-visible"
                 >
-                  <NavLink to={"/attendance/my-attendance"}>
+                  <NavLink to={"/attendance/schedule?tab=timecard"}>
                     {({ isActive }) => (
                       <div
                         className={`flex items-center gap-2 w-full rounded-md px-2 py-1 ${isActive
@@ -118,7 +118,7 @@ export function AttendanceCollapsible({
                       >
                         <UserCheck className="h-4 w-4" />
                         <span className="text-sm leading-normal">
-                          My Attendance
+                          Timecard
                         </span>
                       </div>
                     )}

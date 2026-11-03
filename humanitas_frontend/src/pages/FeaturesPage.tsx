@@ -237,6 +237,22 @@ export default function FeaturesPage() {
             ]
         },
         {
+            id: "attendance_command",
+            group: "workforce",
+            title: "Attendance Command Center & Absence Alert Engine",
+            badge: "Time & Labor",
+            badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+            icon: <UserCheck className="w-8 h-8 text-emerald-600" />,
+            description: "Floor presence filters, sticky batch actions, consecutive & monthly unauthorized absence alert engine, and consolidated timecard ledger.",
+            features: [
+                "Unified Schedule & Timecard ledger merging punch logs, scheduled shifts, and overtime",
+                "Floor presence filters: On Floor / Punched In, Late Today, Absent, and Excused",
+                "Multi-row selection checkboxes with sticky batch actions (Mark Present, Absent, Excused)",
+                "Consecutive & monthly unauthorized absence threshold alert engine with configurable notifications",
+                "Direct supervisor lateness excuses, absence remarks modal, and real CSV ledger export"
+            ]
+        },
+        {
             id: "assets",
             group: "workforce",
             title: "Asset & Equipment Tracking",
@@ -413,6 +429,39 @@ export default function FeaturesPage() {
             ]
         },
         {
+            id: "delegation_acting",
+            group: "ai_workflows",
+            title: "Universal Authority Delegation & HR Acting Engine",
+            badge: "Common Platform Core",
+            badgeColor: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+            icon: <ShieldCheck className="w-8 h-8 text-indigo-600" />,
+            description: "Universal on-behalf-of position delegation with dual-attribution audit logs, plus HRMS-linked acting allowance compensation and automatic payroll proration.",
+            features: [
+                "Universal common module core capability (Directive 22) available across all subscriptions",
+                "Scoped temporary authority transfers (ALL, APPROVALS, ATTENDANCE, PMS) with strict time windows",
+                "HRMS Acting Assignment Bridge: cover senior positions with official acting titles and allowances",
+                "Financial Acting Allowance: percentage of covered basic salary (10%-20%) or fixed monthly amount",
+                "Automated payroll proration calculating active days in pay period and adding payslip earnings items",
+                "Dual-attribution audit trail (performed_by on behalf of on_behalf_of) with IP and action logging"
+            ]
+        },
+        {
+            id: "unified_calendar",
+            group: "ai_workflows",
+            title: "Unified Multi-Module Enterprise Calendar Hub",
+            badge: "Dynamic Integration",
+            badgeColor: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
+            icon: <Clock className="w-8 h-8 text-cyan-600" />,
+            description: "Centralized operational timeline synchronizing company events, holidays, approved leaves, shift rosters, training, interviews, and payroll with dynamic module gating.",
+            features: [
+                "Multi-source operational event aggregation across all subscribed enterprise modules",
+                "Dynamic subscription gating: tenants only see event categories for active licensed modules",
+                "Interactive Multi-View: Month grid, Week timeline, Day agenda, and upcoming List views",
+                "1-Click event detail modals with deep links to underlying records and workflow approvals",
+                "Cross-platform synchronization between web UnifiedCalendar and native Flutter CalendarScreen"
+            ]
+        },
+        {
             id: "approvals",
             group: "ai_workflows",
             title: "Dynamic Multi-Step Approval Engine",
@@ -519,12 +568,12 @@ export default function FeaturesPage() {
     ];
 
     const filterOptions = [
-        { id: "all", label: "All Features (27)" },
+        { id: "all", label: "All Features (30)" },
         { id: "erp", label: "ERP Core & Supply Chain (5)" },
-        { id: "workforce", label: "Workforce & Talent (7)" },
+        { id: "workforce", label: "Workforce & Talent (8)" },
         { id: "financials", label: "Payroll & Expenses (3)" },
         { id: "pms_culture", label: "PMS & Culture (5)" },
-        { id: "ai_workflows", label: "AI & Workflows (4)" },
+        { id: "ai_workflows", label: "AI & Workflows (6)" },
         { id: "security_infra", label: "Security & Mobile (3)" }
     ];
 

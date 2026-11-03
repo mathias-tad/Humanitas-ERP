@@ -78,6 +78,8 @@ const Map<String, String> kNotificationCategoryLabels = {
   'wfm_claim_decision': 'VET/VTO Claim Decision',
   'wfm_slot_reopened': 'VET/VTO Slot Re-Opened',
   'wfm_claim_submitted': 'Pending VET/VTO Claim Review',
+  'absence_threshold_alert': 'Absence Threshold Exceeded Alert',
+  'delegation_assigned': 'Authority Delegation Update',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -97,7 +99,9 @@ const Map<String, String> kNotificationCategoryGroups = {
   'vto_opportunity_broadcast': 'Personal & Self-Service',
   'wfm_claim_decision': 'Personal & Self-Service',
   'wfm_slot_reopened': 'Personal & Self-Service',
+  'delegation_assigned': 'Personal & Self-Service',
   'wfm_claim_submitted': 'Approvals & Management',
+  'absence_threshold_alert': 'Approvals & Management',
   'leave_approval_requests': 'Approvals & Management',
   'expense_approval_requests': 'Approvals & Management',
   'grievance_filed': 'Approvals & Management',
@@ -135,9 +139,11 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'approval_request_decided': null,
   'birthday_greeting': null,
   'colleague_birthday_alert': null,
+  'delegation_assigned': null,
   'pms_task_assigned': null,
 
   // Manager/HR level
+  'absence_threshold_alert': 'view_attendance',
   'leave_approval_requests': 'approve_leave',
   'expense_approval_requests': 'approve_expenses',
   'grievance_filed': 'manage_grievances',
@@ -178,8 +184,10 @@ const Map<String, String> kNotificationCategoryModuleMap = {
   'approval_escalation_alert': 'core',
   'webhook_delivery_failed': 'core',
   'api_key_provisioned': 'core',
+  'delegation_assigned': 'core',
 
   // HRMS
+  'absence_threshold_alert': 'hrms',
   'leave_status_updates': 'hrms',
   'leave_approval_requests': 'hrms',
   'payslip_ready': 'hrms',

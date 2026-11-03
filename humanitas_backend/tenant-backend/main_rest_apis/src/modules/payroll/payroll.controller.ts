@@ -776,4 +776,19 @@ export class PayrollController {
       'July', 'August', 'September', 'October', 'November', 'December'];
     return months[month - 1] || '';
   }
+
+  @Get('acting-allowances/:userId')
+  @RequirePermissions('view_payroll')
+  @ApiOperation({ summary: 'Get active acting allowances and prorated calculation for an employee' })
+  async getActingAllowancesForUser(
+    @Req() req: any,
+    @Param('userId') userId: string,
+    @Query('start_date') startDate: string,
+    @Query('end_date') endDate: string,
+  ) {
+    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const end = endDate || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0];
+    return this.payrollService.getActingAllowancesForPeriod(tenantId, userId, start, end);
+  }
 }

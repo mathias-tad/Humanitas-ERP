@@ -46,6 +46,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   recruitment_candidate_hired:     'manage_recruitment',
   approval_request_created:        'approve_requests',
   wfm_claim_submitted:             'manage_wfm_claims',
+  absence_threshold_alert:         null,
+  delegation_assigned:             null,
 
   // PMS Agile & Sprints
   pms_task_assigned:         'view_tasks',
@@ -106,6 +108,8 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   wfm_claim_decision:              'hrms',
   wfm_slot_reopened:               'hrms',
   wfm_claim_submitted:             'hrms',
+  absence_threshold_alert:         'hrms',
+  delegation_assigned:             null,
 
   // PMS
   task_assignment_alerts:    'pms',

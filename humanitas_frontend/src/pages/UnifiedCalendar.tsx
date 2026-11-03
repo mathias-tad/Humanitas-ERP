@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useCalendar, type CalendarEvent, type EventCategory } from "@/hooks/useCalendar";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useModules } from "@/context/ModuleContext";
 import { useNavigate, Link } from "react-router-dom";
 
 type ViewMode = "month" | "week" | "agenda";
@@ -65,21 +66,29 @@ const PRESET_COLORS = [
   { label: "Red", value: "#EF4444" },
 ];
 
-const CATEGORY_TABS: { id: "all" | EventCategory; label: string; icon: any }[] = [
+const ALL_CATEGORY_TABS: { id: "all" | EventCategory; label: string; icon: any; modules?: string[] }[] = [
   { id: "all", label: "All Modules", icon: Layers },
-  { id: "workforce", label: "HR & Workforce", icon: Users2 },
-  { id: "projects", label: "Projects & PMS", icon: FolderKanban },
-  { id: "commercial", label: "Commercial ERP", icon: ShoppingCart },
-  { id: "financial", label: "Financial & Tax", icon: DollarSign },
+  { id: "workforce", label: "HR & Workforce", icon: Users2, modules: ["hrms", "attendance", "leave"] },
+  { id: "projects", label: "Projects & PMS", icon: FolderKanban, modules: ["pms"] },
+  { id: "commercial", label: "Commercial ERP", icon: ShoppingCart, modules: ["sales", "purchasing"] },
+  { id: "financial", label: "Financial & Tax", icon: DollarSign, modules: ["accounting"] },
   { id: "common", label: "General & Org", icon: Briefcase },
 ];
 
 export default function UnifiedCalendar() {
   const navigate = useNavigate();
+  const { isModuleSubscribed } = useModules();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission("create_calendar_events") || hasPermission("manage_calendar");
   const canEdit = hasPermission("edit_calendar_events") || hasPermission("manage_calendar");
   const canDelete = hasPermission("delete_calendar_events") || hasPermission("manage_calendar");
+
+  const availableCategoryTabs = useMemo(() => {
+    return ALL_CATEGORY_TABS.filter((tab) => {
+      if (!tab.modules) return true;
+      return tab.modules.some((m) => isModuleSubscribed(m));
+    });
+  }, [isModuleSubscribed]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -161,11 +170,37 @@ export default function UnifiedCalendar() {
     });
   }, [events, categoryFilter, searchQuery]);
 
+  const visibleSources = useMemo(() => {
+    return sources.filter((s) => {
+      if (s.isCommon || s.category === "common") return true;
+      if (s.category === "workforce") {
+        if (s.id === "leave" || s.id === "holidays") return isModuleSubscribed("leave") || isModuleSubscribed("hrms");
+        if (s.id === "shift") return isModuleSubscribed("attendance") || isModuleSubscribed("scheduling") || isModuleSubscribed("hrms");
+        if (s.id === "training") return isModuleSubscribed("training") || isModuleSubscribed("hrms");
+        if (s.id === "interview") return isModuleSubscribed("recruitment") || isModuleSubscribed("hrms");
+        if (s.id === "payroll") return isModuleSubscribed("payroll") || isModuleSubscribed("hrms");
+        return isModuleSubscribed("hrms");
+      }
+      if (s.category === "projects") {
+        return isModuleSubscribed("pms");
+      }
+      if (s.category === "commercial") {
+        if (s.id === "sales") return isModuleSubscribed("sales");
+        if (s.id === "purchasing") return isModuleSubscribed("purchasing");
+        return isModuleSubscribed("sales") || isModuleSubscribed("purchasing");
+      }
+      if (s.category === "financial") {
+        return isModuleSubscribed("accounting");
+      }
+      return s.enabled !== false;
+    });
+  }, [sources, isModuleSubscribed]);
+
   const toggleSource = (sourceId: string) => {
     setActiveSources((prev) => {
       let next: string[];
       if (prev.length === 0) {
-        next = sources.map((s) => s.id).filter((id) => id !== sourceId);
+        next = visibleSources.map((s) => s.id).filter((id) => id !== sourceId);
       } else if (prev.includes(sourceId)) {
         next = prev.filter((id) => id !== sourceId);
       } else {
@@ -512,7 +547,7 @@ export default function UnifiedCalendar() {
 
       {/* Module Category Filter Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {CATEGORY_TABS.map((tab) => {
+        {availableCategoryTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = categoryFilter === tab.id;
           return (
@@ -579,7 +614,7 @@ export default function UnifiedCalendar() {
                 Sources:
               </span>
 
-              {sources.map((s) => {
+              {visibleSources.map((s) => {
                 const isSelectedSource =
                   activeSources.length === 0 || activeSources.includes(s.id);
                 return (

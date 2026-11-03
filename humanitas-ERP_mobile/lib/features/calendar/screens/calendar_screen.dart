@@ -107,16 +107,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   Widget _buildCategoryFilter(CalendarState state, CalendarNotifier notifier) {
+    final authState = ref.watch(authProvider);
+    final availableCategories = _categories.where((cat) {
+      if (cat['id'] == 'all' || cat['id'] == 'common') return true;
+      if (cat['id'] == 'workforce') return authState.isModuleSubscribed('hrms');
+      if (cat['id'] == 'projects') return authState.isModuleSubscribed('pms');
+      if (cat['id'] == 'commercial') {
+        return authState.isModuleSubscribed('sales') || authState.isModuleSubscribed('purchasing');
+      }
+      if (cat['id'] == 'financial') return authState.isModuleSubscribed('accounting');
+      return true;
+    }).toList();
+
     return Container(
       color: AppColors.surfaceDark,
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
+        itemCount: availableCategories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final cat = _categories[index];
+          final cat = availableCategories[index];
           final isSelected = state.activeCategory == cat['id'];
           return GestureDetector(
             onTap: () => notifier.setCategory(cat['id']!),

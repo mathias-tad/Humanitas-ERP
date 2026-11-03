@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -10,7 +10,30 @@ import {
   Loader2,
   HelpCircle,
   Edit3,
+  CheckCircle2,
+  Download,
+  Timer,
+  QrCode,
+  Fingerprint,
+  XCircle,
+  AlertCircle,
+  Calendar as CalendarIcon,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +47,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import { API_BASE_URL } from "@/config/api.config";
 import { toast } from "sonner";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useMyAttendance } from "@/hooks/useAttendance";
+import { LatenessSummaryDialog } from "./LatenessSummaryDialog";
+import { AbsenceHistoryDialog } from "./AbsenceHistoryDialog";
+import { formatInTimeZone, normalizeTimezone } from "@/lib/utils";
 
 interface AttendanceRecord {
   id: string;
@@ -52,9 +79,11 @@ type TabType = "schedule" | "timecard" | "find-shifts" | "vto";
 
 export default function MySchedule() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as TabType) || "schedule";
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<TabType>("schedule");
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -62,12 +91,59 @@ export default function MySchedule() {
   const [isLoading, setIsLoading] = useState(false);
   const [isPunchTimesExpanded, setIsPunchTimesExpanded] = useState(true);
 
+  // Timecard tab state
+  const [timecardMonth, setTimecardMonth] = useState(new Date().getMonth());
+  const [timecardYear, setTimecardYear] = useState(new Date().getFullYear());
+  const [tenantTimezone, setTenantTimezone] = useState<string>("UTC");
+  const [isLateReportOpen, setIsLateReportOpen] = useState(false);
+  const [isAbsenceReportOpen, setIsAbsenceReportOpen] = useState(false);
+
+  const { data: timecardRecords = [], isLoading: isTimecardLoading } = useMyAttendance(
+    timecardMonth + 1,
+    timecardYear
+  );
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
   // Missed Punch Request Dialog State
   const [isMissedPunchOpen, setIsMissedPunchOpen] = useState(false);
   const [punchType, setPunchType] = useState<"in" | "out">("in");
   const [punchTime, setPunchTime] = useState("09:00");
   const [punchReason, setPunchReason] = useState("");
   const [isSubmittingPunch, setIsSubmittingPunch] = useState(false);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && (tabParam === "schedule" || tabParam === "timecard" || tabParam === "find-shifts" || tabParam === "vto")) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      fetchSettings();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings/general`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const settings = data.data || data.general || data;
+        if (settings && settings.timezone) {
+          setTenantTimezone(normalizeTimezone(settings.timezone));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch settings:", e);
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
@@ -265,6 +341,86 @@ export default function MySchedule() {
     }
   };
 
+  const monthsList = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const inProgressCount = timecardRecords.filter((r) => r.actual_in && !r.actual_out).length;
+  const timecardStats = [
+    {
+      title: "Days Present",
+      value: timecardRecords.filter((r) => r.status === "Present" || r.status === "Late").length.toString(),
+      total: timecardRecords.length.toString(),
+      icon: CheckCircle2,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      title: "Late Arrivals",
+      value: timecardRecords.filter((r) => r.status === "Late").length.toString(),
+      total: timecardRecords.length.toString(),
+      icon: Clock,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+    },
+    {
+      title: "In Progress",
+      value: inProgressCount.toString(),
+      icon: Timer,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10",
+    },
+    {
+      title: "Total Records",
+      value: timecardRecords.length.toString(),
+      icon: CalendarIcon,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+  ];
+
+  const calculateHours = (actualIn?: string | null, actualOut?: string | null) => {
+    if (!actualIn || !actualOut) return "-";
+    try {
+      const diffMs = new Date(actualOut).getTime() - new Date(actualIn).getTime();
+      if (diffMs <= 0 || isNaN(diffMs)) return "-";
+      const h = Math.floor(diffMs / (1000 * 60 * 60));
+      const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return `${h}h ${m}m`;
+    } catch {
+      return "-";
+    }
+  };
+
+  const exportTimecardCsv = () => {
+    if (timecardRecords.length === 0) {
+      toast.info("No attendance records to export for this period");
+      return;
+    }
+    const headers = ["Date", "Status", "Scheduled In", "Scheduled Out", "Actual In", "Actual Out", "Work Hours", "Method", "Remarks"];
+    const rows = timecardRecords.map((r) => [
+      r.date || "",
+      r.actual_in && !r.actual_out ? "In Progress" : r.status || "",
+      formatInTimeZone(r.scheduled_in, tenantTimezone) || "",
+      formatInTimeZone(r.scheduled_out, tenantTimezone) || "",
+      formatInTimeZone(r.actual_in, tenantTimezone) || "",
+      formatInTimeZone(r.actual_out, tenantTimezone) || "",
+      calculateHours(r.actual_in, r.actual_out),
+      r.clock_method || "manual",
+      `"${(r.remarks || "").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `my_timecard_${timecardYear}_${timecardMonth + 1}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Timecard exported successfully");
+  };
+
   const days = getDaysInMonth(currentDate);
   const selectedDayRecord = getRecordForDate(selectedDay);
   const selectedDayHoliday = getHolidayForDate(selectedDay);
@@ -300,7 +456,7 @@ export default function MySchedule() {
         {/* Subtabs Bar matching Screenshot */}
         <div className="flex items-center gap-6 border-b border-border text-sm font-semibold overflow-x-auto scrollbar-none">
           <button
-            onClick={() => setActiveTab("schedule")}
+            onClick={() => handleTabChange("schedule")}
             className={`pb-2.5 transition-colors relative whitespace-nowrap ${
               activeTab === "schedule"
                 ? "text-blue-600 dark:text-blue-400 font-bold border-b-2 border-blue-600 dark:border-blue-400"
@@ -310,11 +466,12 @@ export default function MySchedule() {
             My Schedule
           </button>
           <button
-            onClick={() => {
-              setActiveTab("timecard");
-              navigate("/attendance/my-attendance");
-            }}
-            className="pb-2.5 text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            onClick={() => handleTabChange("timecard")}
+            className={`pb-2.5 transition-colors relative whitespace-nowrap ${
+              activeTab === "timecard"
+                ? "text-blue-600 dark:text-blue-400 font-bold border-b-2 border-blue-600 dark:border-blue-400"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             Timecard
           </button>
@@ -340,8 +497,10 @@ export default function MySchedule() {
         </div>
       </div>
 
-      {/* Main Schedule Calendar Card */}
-      <Card className="border-border shadow-sm overflow-hidden bg-card">
+      {activeTab === "schedule" ? (
+        <>
+          {/* Main Schedule Calendar Card */}
+          <Card className="border-border shadow-sm overflow-hidden bg-card">
         <CardContent className="p-4 sm:p-6 space-y-4">
           {/* Month Navigator Header (< October 2026 >) */}
           <div className="flex items-center justify-between">
@@ -645,6 +804,232 @@ export default function MySchedule() {
           </CardContent>
         </Card>
       </div>
+    </>
+  ) : activeTab === "timecard" ? (
+        <div className="space-y-4">
+          {/* Timecard Filter & Actions Toolbar */}
+          <Card className="border-border shadow-sm">
+            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <select
+                  value={timecardMonth}
+                  onChange={(e) => setTimecardMonth(parseInt(e.target.value))}
+                  className="h-9 px-3 text-xs font-semibold rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {monthsList.map((m, idx) => (
+                    <option key={m} value={idx}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={timecardYear}
+                  onChange={(e) => setTimecardYear(parseInt(e.target.value))}
+                  className="h-9 px-3 text-xs font-semibold rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {[timecardYear, timecardYear - 1, timecardYear - 2].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsLateReportOpen(true)}
+                  className="h-8 text-xs font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                  My Late Report
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsAbsenceReportOpen(true)}
+                  className="h-8 text-xs font-medium text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  My Absence Report
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportTimecardCsv}
+                  className="h-8 text-xs font-medium"
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                  Export CSV
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Timecard KPI Summary Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {timecardStats.map((stat) => (
+              <Card key={stat.title} className="border-border shadow-sm p-3.5">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${stat.bg}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground">{stat.title}</p>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <p className="text-lg font-bold text-foreground">{stat.value}</p>
+                      {stat.total && (
+                        <span className="text-[10px] text-muted-foreground">/ {stat.total}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Timecard Table Card */}
+          <Card className="border-border shadow-sm overflow-hidden">
+            <CardHeader className="py-3 px-4 border-b border-border bg-surface-1/50 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold text-foreground">
+                Attendance History — {monthsList[timecardMonth]} {timecardYear}
+              </CardTitle>
+              <Badge variant="outline" className="text-xs font-normal">
+                {timecardRecords.length} records
+              </Badge>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isTimecardLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-2">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                  <span className="text-xs text-muted-foreground">Loading timecard ledger...</span>
+                </div>
+              ) : timecardRecords.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground text-xs">
+                  No attendance records found for {monthsList[timecardMonth]} {timecardYear}.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs font-bold w-[140px]">Date</TableHead>
+                        <TableHead className="text-xs font-bold">Scheduled</TableHead>
+                        <TableHead className="text-xs font-bold">Clock In</TableHead>
+                        <TableHead className="text-xs font-bold">Clock Out</TableHead>
+                        <TableHead className="text-xs font-bold">Work Hours</TableHead>
+                        <TableHead className="text-xs font-bold">Status</TableHead>
+                        <TableHead className="text-xs font-bold">Method</TableHead>
+                        <TableHead className="text-xs font-bold">Remarks</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {timecardRecords.map((record) => {
+                        const statusDisplay = record.actual_in && !record.actual_out ? "In Progress" : record.status;
+                        return (
+                          <TableRow key={record.id} className="border-border hover:bg-surface-1/40">
+                            <TableCell className="font-semibold text-xs text-foreground">
+                              <div className="flex items-center gap-1.5">
+                                <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span>{record.date}</span>
+                                {record.is_corrected && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1 border-amber-500 text-amber-600 cursor-help">
+                                          Edited
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Edited by: {record.corrected_by_name || "Admin"}</p>
+                                        {record.updated_at && (
+                                          <p className="text-[10px] opacity-75 mt-0.5">
+                                            {formatInTimeZone(record.updated_at, tenantTimezone)}
+                                          </p>
+                                        )}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {record.scheduled_in && record.scheduled_out
+                                ? `${formatInTimeZone(record.scheduled_in, tenantTimezone)} - ${formatInTimeZone(record.scheduled_out, tenantTimezone)}`
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium text-foreground">
+                              <span className={record.status === "Late" ? "text-amber-500 font-bold" : ""}>
+                                {formatInTimeZone(record.actual_in, tenantTimezone) || "-"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-xs font-medium text-foreground">
+                              {formatInTimeZone(record.actual_out, tenantTimezone) || "-"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span>{calculateHours(record.actual_in, record.actual_out)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={`text-[11px] font-semibold ${
+                                  statusDisplay === "Present"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                                    : statusDisplay === "Late"
+                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                                    : statusDisplay === "Absent"
+                                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                    : statusDisplay === "In Progress"
+                                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                                    : "bg-surface-2 text-foreground border-border"
+                                }`}
+                              >
+                                {statusDisplay}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {record.clock_method === "biometric" ? (
+                                <Badge variant="outline" className="gap-1 font-mono text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30">
+                                  <Fingerprint className="h-3 w-3" />
+                                  {record.device_name || "Biometric"}
+                                </Badge>
+                              ) : record.clock_method === "qr_code" || record.clock_method === "qr" ? (
+                                <Badge variant="outline" className="gap-1 font-mono text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                                  <QrCode className="h-3 w-3" />
+                                  QR Scan
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="gap-1 font-mono text-[10px] text-muted-foreground border-border">
+                                  Manual
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">
+                              {record.remarks || "-"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <LatenessSummaryDialog
+            open={isLateReportOpen}
+            onOpenChange={setIsLateReportOpen}
+            userId={user?.id}
+          />
+
+          <AbsenceHistoryDialog
+            open={isAbsenceReportOpen}
+            onOpenChange={setIsAbsenceReportOpen}
+            userId={user?.id}
+          />
+        </div>
+      ) : null}
 
       {/* Missed Punch Correction Dialog */}
       <Dialog open={isMissedPunchOpen} onOpenChange={setIsMissedPunchOpen}>

@@ -102,6 +102,8 @@ export class ModuleSubscriptionGuard implements CanActivate {
       'import_export',
       'wfm',
       'scheduling',
+      'delegations',
+      'delegation',
     ];
     const req = requiredModule.toLowerCase().trim();
     if (CORE_MODULES.includes(req)) {

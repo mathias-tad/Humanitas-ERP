@@ -58,6 +58,8 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   wfm_claim_decision:              'VET/VTO Claim Decision',
   wfm_slot_reopened:               'VET/VTO Slot Re-Opened',
   wfm_claim_submitted:             'Pending VET/VTO Claim Review',
+  absence_threshold_alert:         'Absence Threshold Alerts',
+  delegation_assigned:             'Authority Delegation Assigned',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -99,6 +101,8 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   pms_project_status_update:       'When project health, timeline, or status changes occur',
   webhook_delivery_failed:         'Alert when an outgoing webhook event delivery fails after retries',
   api_key_provisioned:             'Alert when a new developer API key is generated or rotated',
+  absence_threshold_alert:         'Alerts when employees reach consecutive or monthly absence limits',
+  delegation_assigned:             'Alerts when an executive or colleague delegates authority to you',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -118,6 +122,8 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'approval_request_created', 'approval_request_decided', 'approval_escalation_alert',
     'pms_sprint_started', 'pms_sprint_completed', 'pms_milestone_due', 'pms_project_status_update',
     'wfm_claim_submitted',
+    'absence_threshold_alert',
+    'delegation_assigned',
   ],
   'Admin & System': [
     'payroll_run_completed', 'device_offline_alert',
@@ -140,6 +146,8 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   approval_request_decided: null,
   birthday_greeting:       null,
   colleague_birthday_alert: null,
+  absence_threshold_alert:  null,
+  delegation_assigned:      null,
   pms_task_assigned:       null,
 
   // Manager/HR level
@@ -200,6 +208,7 @@ export const NOTIFICATION_CATEGORY_MODULE_MAP: Record<string, string> = {
   recruitment_interview_scheduled: 'hrms',
   recruitment_offer_generated:     'hrms',
   recruitment_candidate_hired:     'hrms',
+  absence_threshold_alert:         'hrms',
 
   // PMS
   task_assignment_alerts:    'pms',

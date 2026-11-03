@@ -19,7 +19,7 @@ export class PermissionsGuard implements CanActivate {
     private databaseService: DatabaseService,
     @InjectRepository(Tenant)
     private tenantRepository: Repository<Tenant>,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
@@ -57,12 +57,14 @@ export class PermissionsGuard implements CanActivate {
       tenant.database_name,
     );
 
+    const userId = user.sub || user.id;
+
     // Get user's role permissions
     const result = await connection.query(
       `SELECT r.permissions FROM users u
        JOIN roles r ON u.role_id = r.id
        WHERE u.id = $1`,
-      [user.sub],
+      [userId],
     );
 
     if (!result || result.length === 0) {
@@ -70,24 +72,76 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const userPermissions: string[] = result[0].permissions || [];
-    // Permission check — no sensitive data logged
 
     // Check if user has wildcard permission
     if (userPermissions.includes('*')) {
       return true;
     }
 
-    // Check if user has any of the required permissions
+    // Check if user has any of the required permissions directly
     const hasPermission = requiredPermissions.some((permission) =>
       userPermissions.includes(permission),
     );
 
-    if (!hasPermission) {
-      throw new ForbiddenException(
-        `Access denied. You do not have the required permissions to perform this action.`,
-      );
+    if (hasPermission) {
+      return true;
     }
 
-    return true;
+    // Self-delegation exception: allow users to delegate their own authority without needing manage_delegations
+    if (
+      requiredPermissions.length === 1 &&
+      requiredPermissions[0] === 'manage_delegations' &&
+      request.method === 'POST'
+    ) {
+      const isSelfDelegating =
+        !request.body?.delegator_id || request.body?.delegator_id === userId;
+      if (isSelfDelegating) {
+        return true;
+      }
+    }
+
+    // Check user_delegations for active delegations where user is delegatee
+    try {
+      const activeDelegations = await connection.query(
+        `SELECT d.id as delegation_id, d.delegator_id, d.scope, r.permissions
+         FROM user_delegations d
+         JOIN users u ON d.delegator_id = u.id
+         JOIN roles r ON u.role_id = r.id
+         WHERE d.delegatee_id = $1
+           AND d.status = 'active'
+           AND NOW() >= d.start_date
+           AND NOW() <= d.end_date`,
+        [userId],
+      );
+
+      for (const delegation of activeDelegations) {
+        const delegatorPermissions: string[] = delegation.permissions || [];
+        const scope = (delegation.scope || 'ALL').toUpperCase();
+
+        const scopeAllows =
+          scope === 'ALL' ||
+          requiredPermissions.some((p) => p.toUpperCase().includes(scope));
+
+        if (scopeAllows) {
+          const delegatorHasPermission =
+            delegatorPermissions.includes('*') ||
+            requiredPermissions.some((permission) =>
+              delegatorPermissions.includes(permission),
+            );
+
+          if (delegatorHasPermission) {
+            request.on_behalf_of = delegation.delegator_id;
+            request.delegation_id = delegation.delegation_id;
+            return true;
+          }
+        }
+      }
+    } catch (_err: any) {
+      // If table does not exist or query fails, fall through to ForbiddenException
+    }
+
+    throw new ForbiddenException(
+      `Access denied. You do not have the required permissions to perform this action.`,
+    );
   }
 }

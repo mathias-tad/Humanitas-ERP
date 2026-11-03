@@ -770,4 +770,105 @@ export class PayrollService {
       throw error;
     }
   }
+
+  /**
+   * Calculates acting allowances for an employee for a specific pay period [startDate, endDate].
+   * Handles proration across days active, delegator base salary percentage, or fixed allowance.
+   */
+  async getActingAllowancesForPeriod(
+    tenantId: string,
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    total_acting_allowance: number;
+    breakdown: Array<{
+      delegation_id: string;
+      acting_position: string;
+      delegator_name: string;
+      delegator_salary: number;
+      allowance_rate: string;
+      active_days: number;
+      period_days: number;
+      prorated_amount: number;
+    }>;
+  }> {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+
+    const tableCheck = await connection.query(`SELECT to_regclass('user_delegations') as tbl`);
+    if (!tableCheck[0]?.tbl) {
+      return { total_acting_allowance: 0, breakdown: [] };
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalPeriodDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+    const activeAssignments = await connection.query(
+      `SELECT d.*, 
+        u_from.first_name as delegator_first_name, 
+        u_from.last_name as delegator_last_name,
+        u_from.email as delegator_email,
+        u_from.basic_salary as delegator_basic_salary,
+        u_from.position as delegator_position
+       FROM user_delegations d
+       JOIN users u_from ON d.delegator_id = u_from.id
+       WHERE d.delegatee_id = $1
+         AND d.is_acting_assignment = true
+         AND d.status = 'active'
+         AND d.start_date <= $2
+         AND d.end_date >= $3
+       ORDER BY d.start_date ASC`,
+      [userId, endDate, startDate],
+    );
+
+    let totalActingAllowance = 0;
+    const breakdown = [];
+
+    for (const assignment of activeAssignments) {
+      const assignStart = new Date(assignment.start_date);
+      const assignEnd = new Date(assignment.end_date);
+
+      const overlapStart = assignStart > start ? assignStart : start;
+      const overlapEnd = assignEnd < end ? assignEnd : end;
+      const overlapDays = Math.max(0, Math.round((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+      if (overlapDays <= 0) continue;
+
+      const delegatorSalary = parseFloat(assignment.delegator_basic_salary) || 0;
+      let monthlyRate = 0;
+      let rateDescription = '';
+
+      if (assignment.acting_allowance_type === 'fixed_amount') {
+        monthlyRate = parseFloat(assignment.acting_allowance_amount) || 0;
+        rateDescription = `${monthlyRate.toFixed(2)} Fixed`;
+      } else {
+        const pct = parseFloat(assignment.acting_allowance_percentage) || 0;
+        monthlyRate = (delegatorSalary * pct) / 100;
+        rateDescription = `${pct}% of ${delegatorSalary.toFixed(2)}`;
+      }
+
+      const proratedAmount = Number(((monthlyRate * overlapDays) / totalPeriodDays).toFixed(2));
+      totalActingAllowance += proratedAmount;
+
+      const delegatorName = [assignment.delegator_first_name, assignment.delegator_last_name].filter(Boolean).join(' ') || assignment.delegator_email;
+      const actingPosition = assignment.acting_position_title || assignment.delegator_position || 'Acting Role';
+
+      breakdown.push({
+        delegation_id: assignment.id,
+        acting_position: actingPosition,
+        delegator_name: delegatorName,
+        delegator_salary: delegatorSalary,
+        allowance_rate: rateDescription,
+        active_days: overlapDays,
+        period_days: totalPeriodDays,
+        prorated_amount: proratedAmount,
+      });
+    }
+
+    return {
+      total_acting_allowance: Number(totalActingAllowance.toFixed(2)),
+      breakdown,
+    };
+  }
 }

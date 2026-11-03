@@ -26,7 +26,7 @@ import PMSTeam from "./pages/pms/Team";
 import PMSTeams from "./pages/pms/Teams";
 import PMSTeamDashboard from "./pages/pms/TeamDashboard";
 import PMSReports from "./pages/pms/Reports";
-import MyAttendance from "./pages/attendance/MyAttendance";
+import MySchedule from "./pages/attendance/MySchedule";
 import ReviewQueue from "./pages/pms/ReviewQueue";
 import EnterpriseLayout from "./layouts/EnterpriseLayout";
 import { AppearanceSettings } from "./components/settings/AppearanceSettings";
@@ -228,17 +228,17 @@ function AppRoutes() {
         } />
         <Route path="/attendance/my-attendance" element={
           <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
-            <MyAttendance />
+            <MySchedule />
           </PermissionRoute>
         } />
         <Route path="/attendance/my-schedule" element={
           <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
-            <Calendar />
+            <MySchedule />
           </PermissionRoute>
         } />
         <Route path="/attendance/schedule" element={
           <PermissionRoute module="attendance" permissions={["view_my_attendance", "view_attendance"]}>
-            <Calendar />
+            <MySchedule />
           </PermissionRoute>
         } />
         <Route path="/attendance/qr-display" element={
