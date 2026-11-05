@@ -10,6 +10,7 @@ import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
 import 'access_control_screen.dart';
 import 'system_settings_screen.dart';
+import '../../delegations/screens/delegations_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});

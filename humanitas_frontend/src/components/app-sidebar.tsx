@@ -1,4 +1,4 @@
-import { Calendar, Home, Settings, Computer, Key, Megaphone, CalendarDays, Users, FileText, GitBranch, Building2 } from "lucide-react";
+﻿import { Calendar, Home, Settings, Computer, Key, Megaphone, CalendarDays, Users, FileText, GitBranch, Building2, Shield } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import humanitas_logo from "../assets/humanitas_logo.png";
 import { MySidebarHeader } from "./sidebar-header";
@@ -110,6 +110,13 @@ const items = [
     icon: FileText,
     id: 12,
     permissions: ["view_logs"],
+  },
+  {
+    title: "Delegations",
+    url: "/delegations",
+    icon: Shield,
+    id: 16,
+    permissions: [],
   },
 ];
 

@@ -29,6 +29,7 @@ import PMSReports from "./pages/pms/Reports";
 import MySchedule from "./pages/attendance/MySchedule";
 import ReviewQueue from "./pages/pms/ReviewQueue";
 import EnterpriseLayout from "./layouts/EnterpriseLayout";
+import DelegationsPage from "./pages/DelegationsPage";
 import { AppearanceSettings } from "./components/settings/AppearanceSettings";
 import LeaveRequests from "./pages/leave/LeaveRequests";
 import MyLeaveRequests from "./pages/leave/MyRequests";
@@ -540,6 +541,13 @@ function AppRoutes() {
         } />
         <Route path="/hrms/import-export" element={<Navigate to="/settings/import-export" replace />} />
         <Route path="/import-export" element={<Navigate to="/settings/import-export" replace />} />
+
+        {/* Authority Delegations */}
+        <Route path="/delegations" element={
+          <ProtectedRoute>
+            <DelegationsPage />
+          </ProtectedRoute>
+        } />
 
         {/* Notification Preferences & Reports */}
         <Route path="/settings/notifications" element={

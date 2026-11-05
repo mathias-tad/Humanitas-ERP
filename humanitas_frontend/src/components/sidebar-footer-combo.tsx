@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
@@ -39,6 +39,11 @@ export function FooterCombobox({ collapsed = false }: FooterComboboxProps) {
   const handleProfile = () => {
     setOpen(false);
     navigate("/settings?tab=Account");
+  };
+
+  const handleDelegations = () => {
+    setOpen(false);
+    navigate("/delegations");
   };
 
   const getInitials = (name: string) => {
@@ -123,6 +128,10 @@ export function FooterCombobox({ collapsed = false }: FooterComboboxProps) {
               <CommandItem onSelect={handleProfile} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 My Profile
+              </CommandItem>
+              <CommandItem onSelect={handleDelegations} className="cursor-pointer">
+                <Shield className="mr-2 h-4 w-4 text-indigo-500" />
+                Delegations
               </CommandItem>
               <CommandItem
                 onSelect={handleLogout}
