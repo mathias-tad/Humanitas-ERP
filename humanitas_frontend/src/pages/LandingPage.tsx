@@ -425,6 +425,7 @@ export default function LandingPage() {
             <LandingAiAssistant
                 isHrmsOnly={false}
                 isOpenExternal={aiAssistantOpen}
+                onOpenExternal={() => setAiAssistantOpen(true)}
                 onCloseExternal={() => setAiAssistantOpen(false)}
             />
         </div>

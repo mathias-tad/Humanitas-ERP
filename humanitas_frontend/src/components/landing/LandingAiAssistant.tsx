@@ -48,18 +48,33 @@ interface KnowledgeArticle {
 interface LandingAiAssistantProps {
   isHrmsOnly?: boolean;
   isOpenExternal?: boolean;
+  onOpenExternal?: () => void;
   onCloseExternal?: () => void;
 }
 
 export default function LandingAiAssistant({
   isHrmsOnly = false,
   isOpenExternal,
+  onOpenExternal,
   onCloseExternal,
 }: LandingAiAssistantProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const isOpen = isOpenExternal !== undefined ? isOpenExternal : internalOpen;
+
+  useEffect(() => {
+    if (isOpenExternal !== undefined) {
+      setInternalOpen(isOpenExternal);
+    }
+  }, [isOpenExternal]);
+
+  // Open if either externally or internally opened
+  const isOpen = isOpenExternal !== undefined ? (isOpenExternal || internalOpen) : internalOpen;
+
   const setIsOpen = (val: boolean) => {
-    if (onCloseExternal && !val) onCloseExternal();
+    if (val) {
+      onOpenExternal?.();
+    } else {
+      onCloseExternal?.();
+    }
     setInternalOpen(val);
   };
 
