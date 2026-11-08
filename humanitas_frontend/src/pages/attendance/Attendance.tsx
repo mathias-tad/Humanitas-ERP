@@ -131,6 +131,8 @@ import {
 import { CorrectionLogDialog } from "./CorrectionLogDialog";
 import { OvertimeMonitor } from "./OvertimeMonitor";
 import { RegularizationModal } from "./RegularizationModal";
+import { ImportOfflineLogsModal } from "@/components/attendance/ImportOfflineLogsModal";
+import { HardDrive } from "lucide-react";
 import { RegularizationRequestsView } from "./RegularizationRequestsView";
 
 import { OvertimeManagement } from "./OvertimeManagement";
@@ -333,6 +335,7 @@ const formatDateTime = (dateStr: string | null | undefined): string => {
 export default function Attendance() {
   const navigate = useNavigate();
   const [isRegularizationModalOpen, setIsRegularizationModalOpen] = useState(false);
+  const [isImportOfflineLogsOpen, setIsImportOfflineLogsOpen] = useState(false);
   const [regularizationRecord, setRegularizationRecord] = useState<AttendanceRecord | null>(null);
 
   const { isAuthenticated, isLoading: authLoading, hasPermission, user: currentUser } = useAuth();
@@ -1665,6 +1668,17 @@ export default function Attendance() {
 
             </Button>
 
+          )}
+
+          {checkPermission("manage_attendance_devices") && (
+            <Button
+              variant="outline"
+              onClick={() => setIsImportOfflineLogsOpen(true)}
+              className="border-indigo-300 dark:border-indigo-900/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-indigo-700 dark:text-indigo-300"
+            >
+              <HardDrive className="h-4 w-4 mr-2" />
+              Import Offline Logs
+            </Button>
           )}
 
         </div>
@@ -4282,6 +4296,10 @@ export default function Attendance() {
       />
 
 
+      <ImportOfflineLogsModal
+        isOpen={isImportOfflineLogsOpen}
+        onClose={() => setIsImportOfflineLogsOpen(false)}
+      />
     </div>
 
   );

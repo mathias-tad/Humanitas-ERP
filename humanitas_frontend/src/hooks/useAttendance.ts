@@ -563,3 +563,96 @@ export const useReviewAttendanceCorrection = () => {
         },
     });
 };
+
+
+export interface OfflineImportResult {
+    total: number;
+    processed: number;
+    reconciled: number;
+    debounced: number;
+    duplicatesSkipped: number;
+    errors: number;
+}
+
+export const useImportOfflinePunchLogs = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({
+            device_serial_number,
+            content,
+        }: {
+            device_serial_number: string;
+            content: string;
+        }): Promise<OfflineImportResult> => {
+            const response = await fetch(`${API_BASE_URL}/attendance/biometric/import-offline-logs`, {
+                method: 'POST',
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ device_serial_number, content }),
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to import offline punch logs');
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
+            queryClient.invalidateQueries({ queryKey: ['overtime-workers'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-reconciliation-overtime'] });
+            queryClient.invalidateQueries({ queryKey: ['biometric-devices'] });
+        },
+    });
+};
+
+export const usePendingReconciliationOvertime = () => {
+    return useQuery({
+        queryKey: ['pending-reconciliation-overtime'],
+        queryFn: async (): Promise<AttendanceRecord[]> => {
+            const response = await fetch(`${API_BASE_URL}/attendance/overtime/pending-reconciliation`, {
+                headers: getHeaders(),
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                return [];
+            }
+            return response.json();
+        },
+    });
+};
+
+export const useDecideReconciliationOvertime = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({
+            recordId,
+            grantOvertime,
+        }: {
+            recordId: string;
+            grantOvertime: boolean;
+        }) => {
+            const response = await fetch(`${API_BASE_URL}/attendance/overtime/decide-reconciliation`, {
+                method: 'POST',
+                headers: {
+                    ...getHeaders(),
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ record_id: recordId, grant_overtime: grantOvertime }),
+            });
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.message || 'Failed to decide overtime');
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance-records'] });
+            queryClient.invalidateQueries({ queryKey: ['overtime-workers'] });
+            queryClient.invalidateQueries({ queryKey: ['pending-reconciliation-overtime'] });
+        },
+    });
+};

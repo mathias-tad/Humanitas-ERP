@@ -204,6 +204,20 @@ export class PlatformKnowledgeService {
         tags: ['overtime', 'auto_close', 'vet', 'vto', 'midnight', 'scheduling'],
         is_published: true,
       },
+      {
+        category: 'system_features',
+        title: 'Offline Biometric Sync & Historical Shift Reconciliation',
+        content: `Humanitas guarantees zero attendance data loss during network outages or server downtime:
+- **Hardware Local Buffering**: Edge biometric devices (ZKTeco ADMS, Hikvision, Suprema, Dahua) buffer 50,000+ attendance records in non-volatile flash memory with hardware RTC timestamps when offline.
+- **Chronological Batch Sync**: When connectivity resumes, ADMS push payloads are sorted chronologically (punch_time ASC) per employee before ingestion, guaranteeing clock-in evaluates before clock-out regardless of transmission order.
+- **Natural Key Idempotency**: Biometric punch logs enforce a unique constraint (device_serial_number, pin, punch_time) ensuring repeated or interrupted sync batches never create duplicate records.
+- **Historical Shift Reconciliation**: When delayed punches arrive for previous days that were already auto-closed at midnight (missed_out / Incomplete), the system automatically reopens the record, fills actual_out, computes exact work_hours, and marks status as Present.
+- **Supervisory Overtime Gate**: If an offline punch-out indicates work past scheduled shift end, the extra hours are flagged as pending_overtime_approval in /attendance/overtime-monitor for 1-click supervisor approval rather than unverified payroll accrual.
+- **USB & CSV Backup Import**: For permanent offline or off-grid sites, administrators can upload raw device flash exports (.dat, .txt, .csv) via Time & Attendance -> [Import Offline Logs] running the identical reconciliation engine.`,
+        tags: ['biometric', 'adms', 'offline_sync', 'reconciliation', 'overtime', 'usb_import'],
+        is_published: true,
+      },
+
     ];
 
     const saved = await this.knowledgeRepo.save(

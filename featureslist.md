@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 61 | 61 | 0 | 100% |
+| HRMS & Recruitment | 63 | 63 | 0 | 100% |
 | Project Management (PMS) | 28 | 28 | 0 | 100% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **831** | **526** | **305** | **63%** |
+| **TOTAL** | **833** | **528** | **305** | **63%** |
 
 ---
 
@@ -464,6 +464,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] **Employee Attendance Regularization & Manager Review**: Self-service regularization requests with reason/time adjustments and 1-click supervisor review routed to immutable `attendance_correction_logs`.
   - [x] **Live Overtime Monitor with Force Clock-Out OT Decision**: `/attendance/overtime-monitor` live OT dashboard with explicit manager choice to grant or withhold overtime credit upon manual force-close.
   - [x] **VET/VTO Shift Completion Push Notifications**: Automated 5-minute and 1-minute pre-shift end push reminders for standard and Voluntary Extra Time (VET) shifts.
+  - [x] **Offline Biometric Batch Synchronization & Natural Key Deduplication**: Non-volatile hardware buffering with chronological sorting (`punch_time ASC`) per employee and natural key deduplication `UNIQUE(device_serial_number, pin, punch_time)`.
+  - [x] **Historical Shift Reconciliation & USB Backup Import**: Reopening auto-closed past records upon delayed offline punch sync with supervisory overtime approval gate and USB/CSV/TXT offline log import modal.
 - [x] **Leave & Absence Management**:
   - [x] Configurable leave types (Annual, Sick, Maternity, Paternity, Compassionate, Unpaid).
   - [x] Automated leave accrual rules, carry-over limits, and encashment calculators.

@@ -131,4 +131,9 @@ class AttendanceRepository {
   Future<void> dismissMissedClockInAlarm(String shiftId) async {
     await _apiClient.dio.post('/attendance/dismiss-alarm', data: {'shift_id': shiftId});
   }
+
+  Future<Map<String, dynamic>> syncOfflineMobilePunches(List<Map<String, dynamic>> punches) async {
+    final res = await _apiClient.dio.post('/attendance/sync-offline-mobile', data: {'punches': punches});
+    return Map<String, dynamic>.from(res.data is Map ? res.data : {'success': true});
+  }
 }

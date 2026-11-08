@@ -263,11 +263,10 @@ Encrypt=0`;
     }
 
     const verificationMode = parsedSettings.biometric_verification_mode || 'optional';
+    const lines = data.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    this.logger.log(`Received ${lines.length} punches from device ${device.serial_number}`);
 
-    const lines = data.split('\n').filter((l) => l.trim().length > 0);
-    this.logger.log(`Processing ${lines.length} punches from device ${device.serial_number}`);
-
-    let processedCount = 0;
+    const validPunches: any[] = [];
 
     for (const line of lines) {
       const parts = line.split('\t').map((p) => p.trim());
@@ -275,9 +274,7 @@ Encrypt=0`;
 
       const pin = parts[0];
       const punchTimeStr = parts[1];
-      const punchDate = punchTimeStr.split(' ')[0] || new Date().toISOString().split('T')[0];
       const punchDateTime = new Date(punchTimeStr);
-
       if (isNaN(punchDateTime.getTime())) continue;
 
       // Find user matching PIN
@@ -312,9 +309,6 @@ Encrypt=0`;
       }
 
       // Check Verification Mode policy:
-      // 'optional': accept any enrolled biometric
-      // 'strict_finger_face': must have enrolled both finger and face
-      // 'strict_all': must have enrolled finger, face, and palm
       if (verificationMode === 'strict_finger_face') {
         const userFlags = await connection.query(
           `SELECT has_fingerprint, has_face FROM users WHERE id = $1`,
@@ -335,67 +329,39 @@ Encrypt=0`;
         }
       }
 
-      // Check existing record for (userId, punchDate)
-      const existing = await connection.query(
-        `SELECT * FROM attendance_records WHERE user_id = $1 AND date = $2`,
-        [userId, punchDate],
-      );
+      const isLagged = (Date.now() - punchDateTime.getTime()) > 15 * 60 * 1000;
 
-      if (!existing || existing.length === 0 || !existing[0].actual_in) {
-        // Clock In
-        const result = await connection.query(`
-          INSERT INTO attendance_records (
-            user_id, date, actual_in, status, clock_method, device_id, source
-          )
-          VALUES ($1, $2, $3, 'Present', 'biometric', $4, 'biometric')
-          ON CONFLICT (user_id, date) DO UPDATE SET
-            actual_in = COALESCE(attendance_records.actual_in, $3),
-            clock_method = 'biometric',
-            device_id = $4,
-            source = 'biometric',
-            status = 'Present',
-            updated_at = NOW()
-          RETURNING *
-        `, [userId, punchDate, punchDateTime, device.id]);
-
-        processedCount++;
-        const record = result[0];
-        if (this.attendanceGateway) {
-          this.attendanceGateway.emitClockIn(tenantInfo.tenantId, record);
-        }
-      } else {
-        // Clock Out if session is open and at least 60 seconds after clock in
-        const record = existing[0];
-        const clockInTime = new Date(record.actual_in).getTime();
-        const diffMs = punchDateTime.getTime() - clockInTime;
-
-        if (diffMs > 60_000 && !record.actual_out) {
-          const result = await connection.query(`
-            UPDATE attendance_records
-            SET actual_out = $1,
-                work_hours = ($1 - actual_in),
-                clock_method = 'biometric',
-                device_id = $2,
-                updated_at = NOW()
-            WHERE id = $3
-            RETURNING *
-          `, [punchDateTime, device.id, record.id]);
-
-          processedCount++;
-          const updatedRecord = result[0];
-          if (this.attendanceGateway) {
-            this.attendanceGateway.emitClockOut(tenantInfo.tenantId, updatedRecord);
-          }
-        }
-      }
+      validPunches.push({
+        userId,
+        pin,
+        deviceId: device.id,
+        deviceSerialNumber: device.serial_number,
+        punchTime: punchDateTime,
+        verifyMethod: 'biometric_adms',
+        rawPayload: line,
+        companyId: device.company_id,
+        branchId: device.branch_id,
+        isOfflineSync: isLagged,
+      });
     }
 
-    this.logger.log(`Successfully ingested ${processedCount} attendance records from ${device.serial_number}`);
+    if (validPunches.length === 0) {
+      this.logger.log(`No valid recognized employee punches to ingest from ${device.serial_number}`);
+      return;
+    }
+
+    const summary = await this.attendanceService.processBiometricPunchesBatch(
+      tenantInfo.tenantId,
+      validPunches,
+    );
+
+    this.logger.log(
+      `ADMS Batch Complete for ${device.serial_number}: ${summary.total} total, ` +
+      `${summary.processed} processed, ${summary.reconciled} reconciled, ` +
+      `${summary.debounced} debounced, ${summary.duplicatesSkipped} duplicates skipped, ${summary.errors} errors.`,
+    );
   }
 
-  /**
-   * Processes uploaded biometric templates (fingerprint, face, palm) from device.
-   */
   private async processBiometricTemplates(
     tenantInfo: ResolvedTenantInfo,
     sn: string,

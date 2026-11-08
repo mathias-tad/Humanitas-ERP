@@ -254,7 +254,9 @@ export default function FeaturesPage() {
                 "Employee self-service attendance regularization requests with mandatory reason and adjusted time submissions",
                 "Supervisor 1-click regularization approval workflow backed by immutable roster correction audit logs (attendance_correction_logs)",
                 "Live Overtime Monitor (/attendance/overtime-monitor) with explicit manager prompt to grant or withhold overtime on force-close",
-                "Voluntary Extra Time (VET) & Voluntary Time Off (VTO) governance with automated 5m & 1m pre-shift end push reminders"
+                "Voluntary Extra Time (VET) & Voluntary Time Off (VTO) governance with automated 5m & 1m pre-shift end push reminders",
+                "Offline biometric batch synchronization with chronological sorting (punch_time ASC) preventing out-of-order session corruption",
+                "Automated historical shift reconciliation reopening auto-closed records with supervisory overtime approval gate and USB/CSV import"
             ]
         },
         {

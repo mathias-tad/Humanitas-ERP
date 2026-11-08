@@ -655,4 +655,97 @@ export class AttendanceController {
   async checkNetwork(@Request() req: any, @Ip() clientIp: string) {
     return this.attendanceService.isNetworkAllowed(req.user.tenantId, clientIp);
   }
-}
+
+  // ============ ATTENDANCE REGULARIZATION & CORRECTION REQUESTS ============
+
+  @Post('correction-requests')
+  @RequirePermissions('mark_attendance')
+  @ApiOperation({ summary: 'Submit attendance regularization/correction request' })
+  async requestAttendanceCorrection(
+    @Request() req: any,
+    @Body() body: { attendance_record_id?: string; work_date: string; requested_in?: string; requested_out?: string; reason: string },
+  ) {
+    return this.attendanceService.requestAttendanceCorrection(req.user.tenantId, req.user.sub, body.attendance_record_id || "", body);
+  }
+
+  @Get('correction-requests/my')
+  @RequirePermissions('mark_attendance')
+  @ApiOperation({ summary: 'List current user attendance correction requests' })
+  async getMyCorrectionRequests(@Request() req: any) {
+    return this.attendanceService.getMyAttendanceCorrectionRequests(req.user.tenantId, req.user.sub);
+  }
+
+  @Get('correction-requests')
+  @RequirePermissions('correct_attendance')
+  @ApiOperation({ summary: 'List all attendance correction requests for management review' })
+  async getAllCorrectionRequests(
+    @Request() req: any,
+    @Query('status') status?: string,
+  ) {
+    return this.attendanceService.getAttendanceCorrectionRequests(req.user.tenantId, status ? { status } : undefined);
+  }
+
+  @Patch('correction-requests/:id/review')
+  @RequirePermissions('correct_attendance')
+  @ApiOperation({ summary: 'Review and approve/reject attendance correction request' })
+  async reviewCorrectionRequest(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { status: 'approved' | 'rejected'; reviewer_notes?: string },
+  ) {
+    return this.attendanceService.reviewAttendanceCorrectionRequest(
+      req.user.tenantId,
+      id,
+      req.user.sub,
+      body,
+    );
+  }
+
+  // ============ ALARM DISMISSAL ============
+
+  @Post('alarm/dismiss')
+  @RequirePermissions('mark_attendance')
+  @ApiOperation({ summary: 'Dismiss morning missed clock-in ringing alarm' })
+  async dismissAlarm(@Request() req: any) {
+    return this.attendanceService.dismissMissedClockInAlarm(req.user.tenantId, req.user.sub);
+  }
+
+  // ============ BIOMETRIC OFFLINE PUNCH IMPORT & RECONCILIATION ============
+
+  @Post('biometric/import-offline-logs')
+  @RequirePermissions('manage_biometric_devices')
+  @ApiOperation({ summary: 'Import offline biometric punch logs from USB / CSV / TXT backup' })
+  async importOfflineLogs(
+    @Request() req: any,
+    @Body() body: { device_serial_number: string; content: string },
+  ) {
+    return this.attendanceService.importOfflinePunchLogs(
+      req.user.tenantId,
+      body.device_serial_number,
+      body.content,
+    );
+  }
+
+  @Get('overtime/pending-reconciliation')
+  @RequirePermissions('view_overtime_workers')
+  @ApiOperation({ summary: 'Get records with pending overtime approval from offline sync reconciliation' })
+  async getPendingReconciliationOvertime(@Request() req: any) {
+    return this.attendanceService.getPendingReconciliationOvertime(req.user.tenantId);
+  }
+
+  @Post('overtime/decide-reconciliation')
+  @RequirePermissions('force_clockout')
+  @ApiOperation({ summary: 'Decide (grant or zero) overtime hours for reconciled offline records' })
+  async decideReconciliationOvertime(
+    @Request() req: any,
+    @Body() body: { record_id: string; grant_overtime: boolean },
+  ) {
+    return this.attendanceService.decideReconciliationOvertime(
+      req.user.tenantId,
+      body.record_id,
+      body.grant_overtime,
+      req.user.sub,
+    );
+  }
+
+}

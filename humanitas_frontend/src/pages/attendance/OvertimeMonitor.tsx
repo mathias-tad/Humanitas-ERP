@@ -22,6 +22,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useOvertime } from "@/hooks/useOvertime";
+import { usePendingReconciliationOvertime, useDecideReconciliationOvertime } from "@/hooks/useAttendance";
 import { useNavigate } from "react-router-dom";
 
 interface OTWorker {
@@ -43,6 +44,9 @@ export function OvertimeMonitor() {
 
   // Queries & Mutations
   const { workersQuery, forceClockOutMutation } = useOvertime();
+  const pendingOtQuery = usePendingReconciliationOvertime();
+  const decideOtMutation = useDecideReconciliationOvertime();
+  const pendingOtWorkers = pendingOtQuery.data || [];
 
   const workers = workersQuery.data || [];
   const isLoading = workersQuery.isLoading;
@@ -261,6 +265,95 @@ export function OvertimeMonitor() {
           </CardContent>
         )}
       </Card>
+
+      {/* Pending Overtime Approvals from Offline Sync Reconciliation */}
+      {pendingOtWorkers.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-800 bg-amber-50/20 dark:bg-amber-950/10">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">
+                    Pending Overtime Decisions ({pendingOtWorkers.length} Reconciled from Offline Sync)
+                  </CardTitle>
+                  <CardDescription>
+                    These historical shifts had clock-out timestamps synchronized from offline device backlogs exceeding scheduled hours. Decide whether to grant OT or close with standard shift hours.
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300">
+                Action Required
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Shift Date</TableHead>
+                  <TableHead>Clock In / Out</TableHead>
+                  <TableHead>Extra Time</TableHead>
+                  <TableHead className="text-right">Decision Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingOtWorkers.map((rec: any) => (
+                  <TableRow key={rec.id}>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{rec.first_name} {rec.last_name}</div>
+                      <div className="text-xs text-muted-foreground">{rec.department_name || "General"}</div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{rec.date}</TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {rec.actual_in ? new Date(rec.actual_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"} →{" "}
+                      {rec.actual_out ? new Date(rec.actual_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-semibold text-amber-700 bg-amber-100/80 dark:bg-amber-950 dark:text-amber-300">
+                        +{rec.pending_overtime_hours || 0} hrs OT
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/20"
+                          disabled={decideOtMutation.isPending}
+                          onClick={() => {
+                            decideOtMutation.mutate({ recordId: rec.id, grantOvertime: true }, {
+                              onSuccess: () => toast.success("Overtime hours approved for employee."),
+                            });
+                          }}
+                        >
+                          Approve OT
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-400"
+                          disabled={decideOtMutation.isPending}
+                          onClick={() => {
+                            decideOtMutation.mutate({ recordId: rec.id, grantOvertime: false }, {
+                              onSuccess: () => toast.info("Shift closed with standard hours (0 OT)."),
+                            });
+                          }}
+                        >
+                          Zero OT
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Overtime Workers Table */}
       <Card>
