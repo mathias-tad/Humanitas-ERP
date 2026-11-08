@@ -51,12 +51,25 @@ const statusColors = {
 } as const;
 
 const featureLabels: Record<string, string> = {
-  pms: 'Project Management',
-  attendance: 'Attendance',
+  hrms: 'Human Capital (HRMS & Payroll)',
+  hr: 'HRMS Core',
+  pms: 'Projects & Tasks (PMS)',
+  products: 'Products & Catalog',
+  inventory: 'Multi-Warehouse Inventory',
+  purchasing: 'Purchasing & Vendors',
+  sales: 'Sales & CRM Invoicing',
+  pos: 'Point of Sale (POS)',
+  accounting: 'Financial Accounting & GL',
+  attendance: 'Attendance & Biometrics',
   leave: 'Leave Management',
-  payroll: 'Payroll',
+  payroll: 'Payroll Processing',
+  recruitment: 'Recruitment & ATS',
   reports: 'Advanced Reports',
   advanced_analytics: 'Analytics',
+  'ai.help': 'AI Chat Help',
+  'ai.actions': 'AI Action Executor',
+  'ai.documents': 'AI Document Studio',
+  'ai.full': 'Full AI Suite',
 };
 
 export default function TenantDetail() {

@@ -14,6 +14,8 @@ import {
   BarChart3,
   Package,
   GitBranch,
+  BookOpen,
+  LifeBuoy,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,8 @@ const navigation = [
   { name: 'Admins', href: '/admins', icon: Users },
   { name: 'AI Configuration', href: '/ai-configuration', icon: Zap },
   { name: 'AI Usage', href: '/tenant-usage', icon: BarChart3 },
+  { name: 'Platform Knowledge', href: '/platform-knowledge', icon: BookOpen },
+  { name: 'Support Tickets', href: '/support-tickets', icon: LifeBuoy },
   { name: 'System Logs', href: '/logs', icon: ScrollText },
   { name: 'Migrations & Seeds', href: '/migrations', icon: GitBranch },
   { name: 'Settings', href: '/settings', icon: Settings },

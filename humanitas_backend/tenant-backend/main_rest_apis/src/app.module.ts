@@ -7,6 +7,9 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { DataSource } from 'typeorm';
 import { Tenant } from './modules/auth/entities/tenant.entity';
 import { CalculationLog } from './modules/system-logs/entities/calculation-log.entity';
+import { PlatformKnowledge } from './modules/public-support/entities/platform-knowledge.entity';
+import { SupportTicket } from './modules/public-support/entities/support-ticket.entity';
+import { PublicSupportModule } from './modules/public-support/public-support.module';
 import { RolesService } from './modules/roles/roles.service';
 import { DatabaseService } from './modules/database/database.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -93,7 +96,7 @@ dns.setDefaultResultOrder('ipv4first');
 
         const baseConfig = {
           type: 'postgres' as const,
-          entities: [Tenant, CalculationLog], // [FIX] Added CalculationLog for centralized logging
+          entities: [Tenant, CalculationLog, PlatformKnowledge, SupportTicket], // Master DB entities
           synchronize: false, // [FIX] Disable sync on Master DB to prevent schema corruption
           logging: configService.get<string>('NODE_ENV') === 'development',
           extra: {
@@ -175,6 +178,7 @@ dns.setDefaultResultOrder('ipv4first');
     ApprovalsModule,
     DeveloperApiModule,
     WfmOpportunitiesModule,
+    PublicSupportModule,
   ],
   providers: [
     // Activate ThrottlerGuard globally — every route gets rate limiting automatically.

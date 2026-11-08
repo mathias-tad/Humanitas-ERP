@@ -415,14 +415,15 @@ export default function FeaturesPage() {
             id: "ai",
             group: "ai_workflows",
             title: "Autonomous Enterprise ERP & HR AI Suite",
-            badge: "Autonomous Copilot",
+            badge: "Autonomous Copilot & Knowledge Vault",
             badgeColor: "bg-purple-500/10 text-purple-600 border-purple-500/20",
             icon: <Bot className="w-8 h-8 text-purple-600" />,
-            description: "Cross-module business intelligence copilots, predictive forecasting, automated document drafting, and natural language ERP reporting.",
+            description: "Cross-module business intelligence copilots, tenant policy knowledge vault, verifiable document citations, predictive forecasting, and automated ERP actions.",
             features: [
                 "Cross-module AI copilots for Accounting, Inventory, Sales, HRMS, and PMS",
-                "Real-time organizational knowledge retrieval via RAG and tenant vector index",
-                "Automated legal & HR document drafting (contracts, warnings, appraisal memos)",
+                "Tenant Policy Knowledge Vault: upload PDFs, DOCX, or policy text with automatic semantic chunking",
+                "Verifiable legal & policy citation badges pointing to exact document, section, and page (zero data guessing)",
+                "Automated legal & HR document drafting (contracts, warnings, appraisal memos, company letters)",
                 "Demand forecasting, inventory reorder recommendations & cash flow projections",
                 "Strict Two-Layer Security: AI capability tier check + business RBAC permission gate",
                 "Zero-data fabrication mandate with direct SQL tenant database tool execution"
@@ -481,18 +482,20 @@ export default function FeaturesPage() {
         {
             id: "messaging",
             group: "ai_workflows",
-            title: "Universal Team Chat & Presence",
-            badge: "Real-Time Collaboration",
+            title: "Universal Team Chat, Presence & Role Protection",
+            badge: "AI Triage & Access Grants",
             badgeColor: "bg-sky-500/10 text-sky-600 border-sky-500/20",
             icon: <MessageSquare className="w-8 h-8 text-sky-600" />,
-            description: "Secure enterprise messaging with direct messages, department channels, file sharing, and live WebSocket presence.",
+            description: "Secure enterprise messaging with role-restricted direct chat, AI triage, proactive employee whitelisting, peer bypass, and live presence.",
             features: [
                 "1-on-1 direct messaging and department/project-based group channels",
-                "Real-time WebSocket presence (Online, Busy, Away, Offline) with auto-idle detection",
-                "Rich file sharing: PDFs, spreadsheets, images, voice notes with inline previews",
-                "Read receipts, message typing indicators, emoji reactions, and thread replies",
-                "Administrative controls: message retention policies, profanity filters, privacy mode",
-                "Instant synchronized push notifications across web browser and native Flutter mobile"
+                "Role-Restricted Direct Chat: configure protected leadership roles (HR, CEO, GM, Legal) with custom AI triage prompts",
+                "Pre-Chat AI Triage: employees are guided by AI Help first to resolve questions before requesting direct chat access",
+                "Timed (1h, 24h, 7d, 30d) or permanent access approvals and 1-click decline with notes",
+                "Global Self-Override: leaders can toggle open direct access to all employees at will",
+                "Proactive Employee Whitelisting: leaders can pre-authorize specific colleagues with 1-click revocation",
+                "Peer Restricted User Bypass: restricted leaders can message each other directly without triage barriers",
+                "Real-time WebSocket presence, voice notes, file previews, typing indicators, and read receipts across web and native Flutter mobile"
             ]
         },
         {

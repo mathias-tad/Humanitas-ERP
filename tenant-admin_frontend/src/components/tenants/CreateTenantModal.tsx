@@ -20,17 +20,17 @@ import {
 import {
   Users,
   ClipboardList,
-  Calendar,
   DollarSign,
   BarChart3,
   Package,
   FileText,
-  Briefcase,
   Check,
   Sparkles,
   MessageSquare,
   Zap,
   ScrollText,
+  Boxes,
+  ShoppingCart,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 
@@ -42,21 +42,56 @@ interface ServiceItem {
   comingSoon?: boolean;
 }
 
-// Available services/modules for tenants (AI excluded — handled separately below)
+// Available consolidated ERP operational modules for tenants (AI excluded — handled separately below)
 const AVAILABLE_SERVICES: ServiceItem[] = [
-  { id: 'hr', name: 'HRMS & Workforce Directory', description: 'Employee records, departments, positions & org chart', icon: Users },
-  { id: 'attendance', name: 'Attendance & Biometrics', description: 'Time tracking, shift schedules & biometric hardware sync', icon: Calendar },
-  { id: 'leave', name: 'Leave Management', description: 'Leave requests, multi-tier approvals & balances', icon: Briefcase },
-  { id: 'payroll', name: 'Payroll Processing', description: 'Automated salary runs, tax deductions & payslips', icon: DollarSign },
-  { id: 'recruitment', name: 'Recruitment & ATS', description: 'Job openings, candidates & interview pipelines', icon: Users },
-  { id: 'pms', name: 'Projects & Tasks (PMS)', description: 'Sprint planning, Kanban boards & employee KPIs', icon: ClipboardList },
-  { id: 'products', name: 'Products & QR Catalog', description: 'Product variants, dynamic pricing & QR/barcode labels', icon: Package },
-  { id: 'inventory', name: 'Multi-Warehouse Inventory', description: 'Stock quant, batch/lot tracking & FIFO/AVCO valuation', icon: Package },
-  { id: 'purchasing', name: 'Purchasing & Vendors', description: 'Vendor RFQs, purchase orders & 3-way match validation', icon: Briefcase },
-  { id: 'sales', name: 'Sales & CRM Invoicing', description: 'CRM leads, sales quotations, orders & deliveries', icon: BarChart3 },
-  { id: 'pos', name: 'Point of Sale (POS)', description: 'Offline POS checkout, barcode scanning & cash shifts', icon: DollarSign },
-  { id: 'accounting', name: 'General Ledger & Financials', description: 'Double-entry journals, chart of accounts & balance sheet', icon: FileText },
-  { id: 'reports', name: 'Advanced Reports & Export', description: 'Executive summary dashboards & per-module analytics', icon: BarChart3 },
+  {
+    id: 'hrms',
+    name: 'Human Capital (HRMS & Payroll)',
+    description: 'Unified employee directory, attendance, biometric sync, shifts, leave, automated payroll & recruitment ATS',
+    icon: Users,
+  },
+  {
+    id: 'pms',
+    name: 'Projects & Tasks (PMS)',
+    description: 'Sprint planning, Kanban boards, time tracking & KPI performance scorecards',
+    icon: ClipboardList,
+  },
+  {
+    id: 'products',
+    name: 'Products & QR Catalog',
+    description: 'Product variants, dynamic pricing matrix & automated QR/barcode label printing',
+    icon: Package,
+  },
+  {
+    id: 'inventory',
+    name: 'Multi-Warehouse Inventory',
+    description: 'Multi-location stock quant, batch/lot tracking & Python FIFO/AVCO valuation queues',
+    icon: Boxes,
+  },
+  {
+    id: 'purchasing',
+    name: 'Purchasing & Vendors',
+    description: 'Vendor RFQs, purchase orders, goods receipts (GRN) & automated 3-way match',
+    icon: ShoppingCart,
+  },
+  {
+    id: 'sales',
+    name: 'Sales, CRM & Invoicing',
+    description: 'CRM leads, sales quotations, orders, delivery notes & ZATCA/e-invoicing',
+    icon: BarChart3,
+  },
+  {
+    id: 'pos',
+    name: 'Point of Sale (POS)',
+    description: 'Offline POS checkout, barcode scanning, shift cash registers & thermal receipts',
+    icon: DollarSign,
+  },
+  {
+    id: 'accounting',
+    name: 'General Ledger & Financials',
+    description: 'Double-entry journals, chart of accounts, trial balance, balance sheet & P&L',
+    icon: FileText,
+  },
 ];
 
 // AI capability tiers — stored as individual feature flags
@@ -116,12 +151,16 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
     subscription_plan: 'basic' as Tenant['subscription_plan'],
     timezone: 'UTC',
     currency: 'USD',
-    enabled_features: ['hr', 'attendance', 'leave'] as string[],
+    enabled_features: ['hrms', 'hr'] as string[],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const finalFeatures = [...formData.enabled_features];
+    if (finalFeatures.includes('hrms') && !finalFeatures.includes('hr')) {
+      finalFeatures.push('hr');
+    }
+    onSave({ ...formData, enabled_features: finalFeatures });
     setFormData({
       company_name: '',
       slug: '',
@@ -132,7 +171,7 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
       subscription_plan: 'basic',
       timezone: 'UTC',
       currency: 'USD',
-      enabled_features: ['hr', 'attendance', 'leave'],
+      enabled_features: ['hrms', 'hr'],
     });
   };
 
@@ -154,9 +193,20 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
   const handleServiceChange = (serviceId: string, checked: boolean) => {
     setFormData((prev) => {
       const current = prev.enabled_features;
-      const nextFeatures = checked
-        ? Array.from(new Set([...current, serviceId]))
-        : current.filter((id) => id !== serviceId);
+      let nextFeatures: string[];
+      if (serviceId === 'hrms') {
+        if (checked) {
+          nextFeatures = Array.from(new Set([...current, 'hrms', 'hr']));
+        } else {
+          nextFeatures = current.filter(
+            (id) => !['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id),
+          );
+        }
+      } else {
+        nextFeatures = checked
+          ? Array.from(new Set([...current, serviceId]))
+          : current.filter((id) => id !== serviceId);
+      }
       return { ...prev, enabled_features: nextFeatures };
     });
   };
@@ -353,7 +403,9 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
               <div className="grid grid-cols-2 gap-3 pt-2">
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
-                  const isChecked = formData.enabled_features.includes(service.id);
+                  const isChecked = service.id === 'hrms'
+                    ? formData.enabled_features.some((id) => ['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id))
+                    : formData.enabled_features.includes(service.id);
                   const isDisabled = !!service.comingSoon;
 
                   return (

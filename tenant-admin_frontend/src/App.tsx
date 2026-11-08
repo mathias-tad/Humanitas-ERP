@@ -15,6 +15,8 @@ import AiConfiguration from '@/pages/AiConfiguration';
 import BillingPackages from '@/pages/BillingPackages';
 import TenantUsage from '@/pages/TenantUsage';
 import Migrations from '@/pages/Migrations';
+import PlatformKnowledge from '@/pages/PlatformKnowledge';
+import SupportTickets from '@/pages/SupportTickets';
 import { useAuth } from '@/context/AuthContext';
 import './index.css';
 
@@ -63,6 +65,8 @@ function App() {
             <Route path="/billing-packages" element={<BillingPackages />} />
             <Route path="/tenant-usage" element={<TenantUsage />} />
             <Route path="/migrations" element={<Migrations />} />
+            <Route path="/platform-knowledge" element={<PlatformKnowledge />} />
+            <Route path="/support-tickets" element={<SupportTickets />} />
           </Route>
         </Routes>
       </BrowserRouter>

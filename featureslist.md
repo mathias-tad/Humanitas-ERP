@@ -1,4 +1,4 @@
-# ðŸŒŸ Humanitas Enterprise ERP â€” Master Feature & Capability Specification
+﻿# ðŸŒŸ Humanitas Enterprise ERP â€” Master Feature & Capability Specification
 
 This document provides a comprehensive, enterprise-grade feature checklist for the **Humanitas Modular Cloud ERP Platform**, designed to rival top-tier global enterprise systems like **Microsoft Dynamics 365, SAP S/4HANA, NetSuite, and Odoo**.
 
@@ -22,7 +22,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
 | Enterprise UI/UX | 30 | 30 | 0 | 100% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 44 | 44 | 0 | 100% |
+| AI Intelligence Module | 51 | 51 | 0 | 100% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | Document Vault & Letters | 19 | 19 | 0 | 100% |
 | Onboarding & Offboarding | 22 | 22 | 0 | 100% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **815** | **510** | **305** | **63%** |
+| **TOTAL** | **822** | **517** | **305** | **63%** |
 
 ---
 
@@ -673,6 +673,15 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Intelligent Auto-Chunking & Indexing**: Automatic section, article, chapter detection with token-bounded chunking and company/branch scoping.
 - [x] **Strict Zero-Guessing RAG**: AI tool `search_company_knowledge` answers legal/policy queries strictly from verified uploaded company sources, providing exact document and section citations without hallucinating.
 - [x] **Direct Citation Cards & Quick Prompts**: Chat responses display verified citation badges `[Reference: Document, Section, Page]` and quick policy prompt chips on web and mobile.
+
+### Public Landing Page AI Assistant, Platform Knowledge & Support Ticketing
+- [x] **Public Landing Page AI Copilot**: Floating interactive 24/7 AI platform assistant embedded on public landing pages in both Humanitas-ERP and Humanitas.
+- [x] **Strict Zero-Guessing Grounding**: In-depth verified knowledge of all modules, architecture, SLA, pricing, trial, and tenant isolation with strict zero-guessing policy.
+- [x] **HRMS Cross-Platform ERP Routing**: In HRMS (`Humanitas`), questions regarding ERP modules (Inventory, Sales, Purchasing, POS, Accounting) automatically direct the user to Humanitas ERP at `humanitas-erp.ziontech.tech`.
+- [x] **Platform Knowledge & SaaS Provider Info UI (`/platform-knowledge`)**: Dedicated Tenant Admin management UI for SaaS provider corporate profiles, system facts, FAQs, and 1-click seeding.
+- [x] **Human Support Center & Ticket Escalation (`/support-tickets`)**: Multi-origin ticketing system distinguishing `🤖 Created by AI on behalf` vs `👤 Tenant Direct` with KPI metrics, filters, and admin resolution notes.
+- [x] **AI Autonomous Ticket Drafting & Confirmation**: If a question is beyond AI knowledge or user asks for human support, AI drafts a ticket card, prompts for confirmation with email, and submits on behalf of tenant with full conversation summary attached.
+- [x] **Public Ticket Tracking**: Real-time ticket status tracking for prospective and active tenants by ticket number (`TICK-YYYYMM-XXXX`) and email.
 
 ### AI Settings (`/ai/settings`)
 - [x] Enable/disable individual AI capability tiers.
