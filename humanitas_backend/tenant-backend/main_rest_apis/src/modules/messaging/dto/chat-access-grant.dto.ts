@@ -50,3 +50,17 @@ export class ToggleChatOverrideDto {
     @IsBoolean()
     allowOverride: boolean;
 }
+
+export class GrantDirectAccessDto {
+    @IsString()
+    @IsNotEmpty()
+    employeeId: string;
+
+    @IsOptional()
+    @IsEnum(['1h', '24h', '3d', '7d', '30d', 'forever'])
+    duration?: ChatAccessGrantDuration;
+
+    @IsOptional()
+    @IsString()
+    note?: string;
+}

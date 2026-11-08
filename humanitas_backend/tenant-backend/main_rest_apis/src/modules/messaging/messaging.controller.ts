@@ -13,7 +13,7 @@ import {
     DeleteMessageQueryDto, SearchUsersQueryDto,
 } from './dto/send-message.dto';
 import { UpdateMessagingSettingsDto } from './dto/update-messaging-settings.dto';
-import { RequestChatAccessDto, RespondChatAccessDto, SetRoleRestrictionsDto, ToggleChatOverrideDto } from './dto/chat-access-grant.dto';
+import { RequestChatAccessDto, RespondChatAccessDto, SetRoleRestrictionsDto, ToggleChatOverrideDto, GrantDirectAccessDto } from './dto/chat-access-grant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
@@ -220,6 +220,23 @@ export class MessagingController {
     @Put('role-restrictions')
     setRoleRestrictions(@Request() req, @Body() dto: SetRoleRestrictionsDto) {
         return this.messagingService.setRoleRestrictions(req.user.tenantId, req.user.sub, dto);
+    }
+
+
+
+    @Post('access-grants/proactive')
+    grantProactiveAccess(@Request() req, @Body() dto: GrantDirectAccessDto) {
+        return this.messagingService.grantDirectAccessToEmployee(req.user.tenantId, req.user.sub, dto);
+    }
+
+    @Delete('access-grants/revoke/:id')
+    revokeAccess(@Request() req, @Param('id') id: string) {
+        return this.messagingService.revokeDirectAccess(req.user.tenantId, req.user.sub, id);
+    }
+
+    @Get('access-grants/active')
+    getActiveGrants(@Request() req) {
+        return this.messagingService.getActiveGrantsForMe(req.user.tenantId, req.user.sub);
     }
 
 }

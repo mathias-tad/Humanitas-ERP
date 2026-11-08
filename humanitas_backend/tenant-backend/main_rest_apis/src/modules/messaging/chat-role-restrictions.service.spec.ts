@@ -119,6 +119,25 @@ describe('MessagingService - Role Restrictions & Access Grants', () => {
             expect(res.canChat).toBe(true);
         });
 
+        it('allows direct chat if requester is also in a restricted role (peer restricted users can talk to each other)', async () => {
+            mockUserRepo.findOne
+                .mockResolvedValueOnce({ id: targetUserId, role: 'hr_manager', full_name: 'Jane HR', allow_direct_chat_override: false })
+                .mockResolvedValueOnce({ id: requesterId, role: 'ceo', full_name: 'Chief Executive' });
+            mockRestrictionRepo.findOne
+                .mockResolvedValueOnce({
+                    role: 'hr_manager',
+                    is_restricted: true,
+                })
+                .mockResolvedValueOnce({
+                    role: 'ceo',
+                    is_restricted: true,
+                });
+
+            const res = await service.checkDirectChatAccess(tenantId, requesterId, targetUserId);
+            expect(res.canChat).toBe(true);
+            expect(res.isPeerRestricted).toBe(true);
+        });
+
         it('blocks chat and returns triage prompt when target role is restricted and no grant exists', async () => {
             mockUserRepo.findOne
                 .mockResolvedValueOnce({ id: targetUserId, role: 'hr_manager', full_name: 'Jane HR', allow_direct_chat_override: false })
@@ -269,4 +288,60 @@ describe('MessagingService - Role Restrictions & Access Grants', () => {
             expect(mockUserRepo.update).toHaveBeenCalledWith(targetUserId, { allow_direct_chat_override: true });
         });
     });
+
+
+    describe('grantDirectAccessToEmployee', () => {
+        it('throws BadRequestException if granting access to self', async () => {
+            await expect(service.grantDirectAccessToEmployee(tenantId, requesterId, {
+                employeeId: requesterId,
+            })).rejects.toThrow(BadRequestException);
+        });
+
+        it('proactively grants direct chat access to a specific employee for 7 days', async () => {
+            mockUserRepo.findOne
+                .mockResolvedValueOnce({ id: targetUserId, full_name: 'HR Lead' })
+                .mockResolvedValueOnce({ id: 'emp-456', full_name: 'John Doe' });
+            mockGrantRepo.findOne.mockResolvedValueOnce(null);
+
+            const res = await service.grantDirectAccessToEmployee(tenantId, targetUserId, {
+                employeeId: 'emp-456',
+                duration: '7d',
+                note: 'Onboarding support period',
+            });
+
+            expect(res.success).toBe(true);
+            expect(res.grant.status).toBe('approved');
+            expect(res.grant.expires_at).toBeDefined();
+            expect(mockGrantRepo.save).toHaveBeenCalled();
+        });
+
+        it('proactively grants permanent direct chat access to a specific employee', async () => {
+            mockUserRepo.findOne
+                .mockResolvedValueOnce({ id: targetUserId, full_name: 'HR Lead' })
+                .mockResolvedValueOnce({ id: 'emp-456', full_name: 'John Doe' });
+            mockGrantRepo.findOne.mockResolvedValueOnce(null);
+
+            const res = await service.grantDirectAccessToEmployee(tenantId, targetUserId, {
+                employeeId: 'emp-456',
+                duration: 'forever',
+            });
+
+            expect(res.success).toBe(true);
+            expect(res.grant.status).toBe('approved');
+            expect(res.grant.expires_at).toBeNull();
+        });
+    });
+
+    describe('revokeDirectAccess', () => {
+        it('revokes an active access grant', async () => {
+            const grant: any = { id: 'grant-789', target_user_id: targetUserId, status: 'approved' };
+            mockGrantRepo.findOne.mockResolvedValueOnce(grant);
+
+            const res = await service.revokeDirectAccess(tenantId, targetUserId, 'grant-789');
+            expect(res.success).toBe(true);
+            expect(grant.status).toBe('expired');
+            expect(mockGrantRepo.save).toHaveBeenCalled();
+        });
+    });
+
 });

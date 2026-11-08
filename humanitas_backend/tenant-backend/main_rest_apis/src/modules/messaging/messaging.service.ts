@@ -22,7 +22,7 @@ import { MessageAttachment } from './entities/message-attachment.entity';
 import { TenantUser } from '../auth/entities/tenant-user.entity';
 import { ChatRoleRestriction } from './entities/chat-role-restriction.entity';
 import { ChatDirectAccessGrant } from './entities/chat-direct-access-grant.entity';
-import { RequestChatAccessDto, RespondChatAccessDto, SetRoleRestrictionsDto } from './dto/chat-access-grant.dto';
+import { RequestChatAccessDto, RespondChatAccessDto, SetRoleRestrictionsDto, GrantDirectAccessDto } from './dto/chat-access-grant.dto';
 import { In, Not, ObjectLiteral } from 'typeorm';
 
 @Injectable()
@@ -63,7 +63,45 @@ export class MessagingService {
                 LIMIT 1
             `, [userId, targetId]);
 
-            if (existing?.length > 0) {
+            
+            // If creator has a restricted role, auto-permit the other user to reply
+            try {
+                const restrictionRepo = connection.getRepository(ChatRoleRestriction);
+                const userRepo = connection.getRepository(TenantUser);
+                const creator = await userRepo.findOne({ where: { id: userId } });
+                if (creator) {
+                    const restriction = await restrictionRepo.findOne({
+                        where: { role: creator.role, is_restricted: true }
+                    });
+                    if (restriction && !creator.allow_direct_chat_override) {
+                        const grantRepo = connection.getRepository(ChatDirectAccessGrant);
+                        let existingGrant = await grantRepo.findOne({
+                            where: { requester_id: targetId, target_user_id: userId }
+                        });
+                        if (existingGrant) {
+                            existingGrant.status = 'approved';
+                            existingGrant.expires_at = null;
+                            existingGrant.updated_at = new Date();
+                            await grantRepo.save(existingGrant);
+                        } else {
+                            const newGrant = grantRepo.create({
+                                requester_id: targetId,
+                                target_user_id: userId,
+                                status: 'approved',
+                                expires_at: null,
+                                reason: `Direct conversation initiated by ${creator.full_name}`,
+                                created_at: new Date(),
+                                updated_at: new Date(),
+                            });
+                            await grantRepo.save(newGrant);
+                        }
+                    }
+                }
+            } catch (e) {
+                // Non-blocking auto grant
+            }
+
+        if (existing?.length > 0) {
                 const repo = connection.getRepository(Conversation);
                 const fullConv = await repo.findOne({
                     where: { id: existing[0].id },
@@ -726,7 +764,22 @@ export class MessagingService {
             };
         }
 
-        // 4. Role is restricted — check if requester has an active, approved, non-expired grant
+        // 4. Restricted peers can communicate with each other freely without restriction
+        if (requester?.role) {
+            const requesterRestriction = await restrictionRepo.findOne({
+                where: { role: requester.role, is_restricted: true },
+            });
+            if (requesterRestriction) {
+                return {
+                    canChat: true,
+                    isPeerRestricted: true,
+                    targetRole: targetUser.role,
+                    targetName: targetUser.full_name,
+                };
+            }
+        }
+
+        // 5. Role is restricted — check if requester has an active, approved, non-expired grant
         const grantRepo = connection.getRepository(ChatDirectAccessGrant);
         const now = new Date();
         const activeGrant = await grantRepo.createQueryBuilder('g')
@@ -1014,6 +1067,132 @@ export class MessagingService {
         }
 
         return { success: true };
+    }
+
+
+
+    async grantDirectAccessToEmployee(tenantId: string, currentUserId: string, dto: GrantDirectAccessDto) {
+        if (currentUserId === dto.employeeId) {
+            throw new BadRequestException('Cannot grant chat access to yourself');
+        }
+
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        const userRepo = connection.getRepository(TenantUser);
+        const [currentUser, employee] = await Promise.all([
+            userRepo.findOne({ where: { id: currentUserId } }),
+            userRepo.findOne({ where: { id: dto.employeeId } }),
+        ]);
+
+        if (!employee) throw new NotFoundException('Employee not found');
+
+        const grantRepo = connection.getRepository(ChatDirectAccessGrant);
+        const now = new Date();
+        let expiresAt: Date | null = null;
+        if (dto.duration === '1h') {
+            expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
+        } else if (dto.duration === '24h') {
+            expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        } else if (dto.duration === '3d') {
+            expiresAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+        } else if (dto.duration === '7d') {
+            expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        } else if (dto.duration === '30d') {
+            expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        } else {
+            expiresAt = null; // forever
+        }
+
+        let grant = await grantRepo.findOne({
+            where: { requester_id: dto.employeeId, target_user_id: currentUserId },
+        });
+
+        if (grant) {
+            grant.status = 'approved';
+            grant.expires_at = expiresAt;
+            grant.response_note = dto.note || `Direct chat access proactively granted by ${currentUser?.full_name || 'Restricted Role'}`;
+            grant.updated_at = new Date();
+            await grantRepo.save(grant);
+        } else {
+            grant = grantRepo.create({
+                requester_id: dto.employeeId,
+                target_user_id: currentUserId,
+                status: 'approved',
+                expires_at: expiresAt,
+                reason: `Proactively permitted by ${currentUser?.full_name || 'Restricted Role'}`,
+                response_note: dto.note || null,
+                created_at: new Date(),
+                updated_at: new Date(),
+            });
+            await grantRepo.save(grant);
+        }
+
+        // Notify employee via WebSocket
+        try {
+            this.messagingGateway.server?.to(`user_${dto.employeeId}`).emit('chat_access_granted_proactively', {
+                grantId: grant.id,
+                targetUserId: currentUserId,
+                targetUserName: currentUser?.full_name,
+                expiresAt: grant.expires_at,
+                note: dto.note,
+            });
+        } catch (e) {
+            // Ignore gateway error
+        }
+
+        return {
+            success: true,
+            grant,
+        };
+    }
+
+    async revokeDirectAccess(tenantId: string, currentUserId: string, grantId: string) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        const grantRepo = connection.getRepository(ChatDirectAccessGrant);
+
+        const grant = await grantRepo.findOne({
+            where: { id: grantId, target_user_id: currentUserId },
+        });
+
+        if (!grant) throw new NotFoundException('Grant not found');
+
+        grant.status = 'expired';
+        grant.expires_at = new Date();
+        grant.updated_at = new Date();
+        await grantRepo.save(grant);
+
+        return { success: true };
+    }
+
+    async getActiveGrantsForMe(tenantId: string, currentUserId: string) {
+        const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        const grantRepo = connection.getRepository(ChatDirectAccessGrant);
+        const now = new Date();
+
+        const grants = await grantRepo.createQueryBuilder('g')
+            .leftJoinAndSelect('g.requester', 'requester')
+            .where('g.target_user_id = :currentUserId', { currentUserId })
+            .andWhere('g.status = :status', { status: 'approved' })
+            .andWhere('(g.expires_at IS NULL OR g.expires_at > :now)', { now })
+            .orderBy('g.updated_at', 'DESC')
+            .getMany();
+
+        return grants.map(g => ({
+            id: g.id,
+            status: g.status,
+            reason: g.reason,
+            responseNote: g.response_note,
+            expiresAt: g.expires_at,
+            createdAt: g.created_at,
+            updatedAt: g.updated_at,
+            employee: {
+                id: g.requester?.id,
+                fullName: g.requester?.full_name,
+                email: g.requester?.email,
+                role: g.requester?.role,
+                department: g.requester?.department,
+                avatarUrl: g.requester?.avatar_url,
+            },
+        }));
     }
 
 }

@@ -67,6 +67,45 @@ export function ChatAccessRequestsModal({
 
   // Self-override state
   const [allowOverride, setAllowOverride] = useState(false);
+  const [activeGrants, setActiveGrants] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [selectedEmpId, setSelectedEmpId] = useState('');
+  const [proactiveDuration, setProactiveDuration] = useState('24h');
+  const [proactiveNote, setProactiveNote] = useState('');
+  const [isGrantingProactive, setIsGrantingProactive] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
+  const loadActiveGrants = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/messaging/access-grants/active`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveGrants(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/users/list`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setAllUsers(data.filter((u: any) => u.id !== user?.id));
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+  };
   const [isUpdatingOverride, setIsUpdatingOverride] = useState(false);
 
   // Admin role restrictions
@@ -78,6 +117,8 @@ export function ChatAccessRequestsModal({
     if (isOpen) {
       loadRequests();
       loadUserOverride();
+      loadActiveGrants();
+      loadAllUsers();
       if (isAdmin) loadRestrictions();
     }
   }, [isOpen, isAdmin]);
@@ -163,6 +204,61 @@ export function ChatAccessRequestsModal({
       toast.error(e.message || 'Failed to respond to request');
     } finally {
       setRespondingId(null);
+    }
+  };
+
+    const handleGrantProactive = async () => {
+    if (!selectedEmpId) {
+      toast.error('Please select an employee');
+      return;
+    }
+    try {
+      setIsGrantingProactive(true);
+      const res = await fetch(`${API_BASE_URL}/messaging/access-grants/proactive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          employeeId: selectedEmpId,
+          duration: proactiveDuration,
+          note: proactiveNote.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to grant access');
+      }
+      toast.success('Direct chat access granted to employee');
+      setSelectedEmpId('');
+      setProactiveNote('');
+      loadActiveGrants();
+      onRequestsUpdated?.();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to grant direct access');
+    } finally {
+      setIsGrantingProactive(false);
+    }
+  };
+
+  const handleRevoke = async (grantId: string) => {
+    try {
+      setRevokingId(grantId);
+      const res = await fetch(`${API_BASE_URL}/messaging/access-grants/revoke/${grantId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to revoke access');
+      toast.success('Direct chat access revoked');
+      loadActiveGrants();
+      onRequestsUpdated?.();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to revoke access');
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -458,9 +554,118 @@ export function ChatAccessRequestsModal({
                 <div className="pt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                   Current Status:{' '}
                   {allowOverride
-                    ? '🔓 Unlocked (Open direct messaging)'
-                    : '🛡️ Protected (Admin role restriction active)'}
+                    ? '🔓 Unlocked for ALL employees'
+                    : '🛡️ Protected (Restricted by default)'}
                 </div>
+              </div>
+
+              {/* OPTION B: EXPOSE TO SPECIFIC EMPLOYEE */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>Expose to Specific Employee (Whitelist)</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Grant direct 1-on-1 messaging access to a specific colleague without them having to request it.
+                </p>
+
+                <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-1">Select Employee</label>
+                    <select
+                      value={selectedEmpId}
+                      onChange={e => setSelectedEmpId(e.target.value)}
+                      className="w-full text-xs border rounded-lg px-3 py-2 bg-background text-foreground"
+                    >
+                      <option value="">-- Choose Colleague --</option>
+                      {allUsers.map((u: any) => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name} ({u.role_name || u.role || 'Staff'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-muted-foreground block mb-1">Access Duration</label>
+                    <select
+                      value={proactiveDuration}
+                      onChange={e => setProactiveDuration(e.target.value)}
+                      className="w-full text-xs border rounded-lg px-3 py-2 bg-background text-foreground"
+                    >
+                      <option value="1h">1 Hour</option>
+                      <option value="24h">24 Hours (1 Day)</option>
+                      <option value="3d">3 Days</option>
+                      <option value="7d">7 Days (1 Week)</option>
+                      <option value="30d">30 Days</option>
+                      <option value="forever">Forever (Indefinite)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={handleGrantProactive}
+                    disabled={isGrantingProactive || !selectedEmpId}
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-8 shadow-xs"
+                  >
+                    <Check className="w-3.5 h-3.5 mr-1" />
+                    {isGrantingProactive ? 'Granting...' : 'Grant Direct Chat Access'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* LIST OF CURRENTLY EXPOSED SPECIFIC EMPLOYEES */}
+              <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-foreground uppercase tracking-wider">
+                    Currently Whitelisted Employees ({activeGrants.length})
+                  </h4>
+                  <span className="text-[10px] text-muted-foreground">Active 1-on-1 Grants</span>
+                </div>
+
+                {activeGrants.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic py-2">
+                    No specific individual employee grants active at this time.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {activeGrants.map((g: any) => (
+                      <div
+                        key={g.id}
+                        className="p-3 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-7 w-7 border">
+                            <AvatarImage src={g.employee?.avatarUrl} />
+                            <AvatarFallback className="text-[10px] font-bold">
+                              {g.employee?.fullName?.[0] || 'E'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-semibold text-foreground">{g.employee?.fullName}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {g.expiresAt
+                                ? `Expires: ${new Date(g.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                                : 'Permanent Access (Forever)'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRevoke(g.id)}
+                          disabled={revokingId === g.id}
+                          className="h-7 text-[11px] text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        >
+                          Revoke
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="p-4 rounded-xl border border-border bg-card space-y-2 text-xs text-muted-foreground">

@@ -8,7 +8,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 53 | 53 | 0 | 100% |
+| System Architecture & Core | 55 | 55 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **813** | **508** | **305** | **63%** |
+| **TOTAL** | **815** | **510** | **305** | **63%** |
 
 ---
 
@@ -48,6 +48,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Permission requests workflow with user-defined urgency/reason and pending state tracking.
   - [x] Requested person timed (1h, 24h, 7d, 30d) or permanent (indefinite) access grants, or decline with note.
   - [x] User self-override toggle allowing restricted users to expose themselves for direct messages from all employees.
+  - [x] Proactive specific employee whitelisting with timed or permanent duration and 1-click revocation across web and mobile.
+  - [x] Peer restricted user bypass: restricted users can communicate directly with each other without triage or access grant barriers.
 - [x] **Multi-Tenancy Foundation**:
   - [x] Isolated per-tenant PostgreSQL database provisioning via `TenantMigrationService`.
   - [x] Tenant-scoped query routing through `DatabaseService.getTenantConnection(databaseName)`.
