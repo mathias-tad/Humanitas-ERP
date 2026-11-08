@@ -42,6 +42,8 @@ import { MessageReaction } from '../messaging/entities/message-reaction.entity';
 import { MessageReadReceipt } from '../messaging/entities/message-read-receipt.entity';
 import { BlockedUser } from '../messaging/entities/blocked-user.entity';
 import { MessageSettings } from '../messaging/entities/message-settings.entity';
+import { ChatRoleRestriction } from '../messaging/entities/chat-role-restriction.entity';
+import { ChatDirectAccessGrant } from '../messaging/entities/chat-direct-access-grant.entity';
 // Phase 2.3 — New entities
 import { PayrollRun } from '../payroll/entities/payroll-run.entity';
 import { PayrollItem } from '../payroll/entities/payroll-item.entity';
@@ -64,7 +66,7 @@ const TENANT_ENTITIES = [
   Shift, Schedule, ShiftPattern, UserShiftPattern,
   ManualKPIMetric, ManualKPIScore,
   Conversation, ConversationParticipant, Message, MessageAttachment,
-  MessageReaction, MessageReadReceipt, BlockedUser, MessageSettings,
+  MessageReaction, MessageReadReceipt, BlockedUser, MessageSettings, ChatRoleRestriction, ChatDirectAccessGrant,
   // Phase 2.3 additions
   PayrollRun, PayrollItem, Loan, IncomeType, UserIncome, ActingAssignment,
   Role, Department, AttendanceRecord, LeaveRequest, OvertimeEntry,

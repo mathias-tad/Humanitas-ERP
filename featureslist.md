@@ -8,7 +8,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 48 | 48 | 0 | 100% |
+| System Architecture & Core | 53 | 53 | 0 | 100% |
 | Products & Catalog | 25 | 0 | 25 | 0% |
 | Inventory & Warehouse | 32 | 0 | 32 | 0% |
 | Purchasing & Vendors | 32 | 0 | 32 | 0% |
@@ -22,7 +22,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
 | Enterprise UI/UX | 30 | 30 | 0 | 100% |
 | Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 40 | 40 | 0 | 100% |
+| AI Intelligence Module | 44 | 44 | 0 | 100% |
 | Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | Document Vault & Letters | 19 | 19 | 0 | 100% |
 | Onboarding & Offboarding | 22 | 22 | 0 | 100% |
@@ -36,12 +36,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **804** | **499** | **305** | **62%** |
+| **TOTAL** | **813** | **508** | **305** | **63%** |
 
 ---
 
 ## 0. ðŸ—ï¸ System Architecture & Core
 
+- [x] **Role-Restricted Direct Chat & AI Triage Access Grants**:
+  - [x] Admin role restrictions configured per role (`hr_manager`, `admin`, `general_manager`, `ceo`, `legal_counsel`) with custom AI triage guidance prompts.
+  - [x] Employee direct chat interception modal with instant "Ask AI Assistant" triage button.
+  - [x] Permission requests workflow with user-defined urgency/reason and pending state tracking.
+  - [x] Requested person timed (1h, 24h, 7d, 30d) or permanent (indefinite) access grants, or decline with note.
+  - [x] User self-override toggle allowing restricted users to expose themselves for direct messages from all employees.
 - [x] **Multi-Tenancy Foundation**:
   - [x] Isolated per-tenant PostgreSQL database provisioning via `TenantMigrationService`.
   - [x] Tenant-scoped query routing through `DatabaseService.getTenantConnection(databaseName)`.
@@ -659,6 +665,12 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Employee contracts and offer letters.
   - [x] Attendance and leave summary reports.
 - [x] **Custom freeform documents**: User describes any document in natural language, AI composes it from available data.
+
+### Tenant AI Knowledge Vault (Policies, Proclamations & Legal Agreement RAG)
+- [x] **File & Text Ingestion**: Tenant admins upload PDF, DOCX, TXT policy handbooks, employment agreements, and labor proclamations or write policies directly into the knowledge vault.
+- [x] **Intelligent Auto-Chunking & Indexing**: Automatic section, article, chapter detection with token-bounded chunking and company/branch scoping.
+- [x] **Strict Zero-Guessing RAG**: AI tool `search_company_knowledge` answers legal/policy queries strictly from verified uploaded company sources, providing exact document and section citations without hallucinating.
+- [x] **Direct Citation Cards & Quick Prompts**: Chat responses display verified citation badges `[Reference: Document, Section, Page]` and quick policy prompt chips on web and mobile.
 
 ### AI Settings (`/ai/settings`)
 - [x] Enable/disable individual AI capability tiers.

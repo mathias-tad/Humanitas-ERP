@@ -20,6 +20,7 @@ import {
   UploadCloud,
   FileCheck,
   ArrowLeft,
+  BookOpen,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -32,7 +33,7 @@ import {
 } from "@/lib/api/aiChatService";
 
 export interface AiAssistantWidgetHandle {
-  open: () => void;
+  open: (initialPrompt?: string) => void;
 }
 
 export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
@@ -69,8 +70,26 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
     const customTemplateInputRef = useRef<HTMLInputElement>(null);
 
     useImperativeHandle(ref, () => ({
-      open: () => setOpen(true),
+      open: (initialPrompt?: string) => {
+        setOpen(true);
+        if (initialPrompt) {
+          setInput(initialPrompt);
+          setView("chat");
+        }
+      },
     }));
+
+    useEffect(() => {
+      const handleTriage = (e: CustomEvent<{ prompt?: string }>) => {
+        setOpen(true);
+        setView("chat");
+        if (e.detail?.prompt) {
+          setInput(e.detail.prompt);
+        }
+      };
+      window.addEventListener("open-ai-triage" as any, handleTriage);
+      return () => window.removeEventListener("open-ai-triage" as any, handleTriage);
+    }, []);
 
     useEffect(() => {
       if (open) {
@@ -342,11 +361,44 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
 
       return parts.map((part, i) => {
         if (typeof part === "string") {
-          return (
-            <ReactMarkdown key={i} remarkPlugins={[remarkGfm]}>
-              {part}
-            </ReactMarkdown>
-          );
+          const citationRegex = /\[(?:Reference|VERIFIED COMPANY SOURCE):?\s*([^\]]+)\]/g;
+          const subParts: React.ReactNode[] = [];
+          let lastSub = 0;
+          let citeMatch: RegExpExecArray | null;
+          while ((citeMatch = citationRegex.exec(part)) !== null) {
+            if (citeMatch.index > lastSub) {
+              subParts.push(
+                <ReactMarkdown key={`md-${i}-${lastSub}`} remarkPlugins={[remarkGfm]}>
+                  {part.substring(lastSub, citeMatch.index)}
+                </ReactMarkdown>
+              );
+            }
+            subParts.push(
+              <div
+                key={`cite-${i}-${citeMatch.index}`}
+                className="my-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200 not-prose"
+              >
+                <BookOpen className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-bold text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Verified Company Policy Reference
+                  </div>
+                  <div className="font-medium text-xs mt-0.5 text-gray-800 dark:text-gray-200">
+                    {citeMatch[1]}
+                  </div>
+                </div>
+              </div>
+            );
+            lastSub = citationRegex.lastIndex;
+          }
+          if (lastSub < part.length) {
+            subParts.push(
+              <ReactMarkdown key={`md-${i}-${lastSub}`} remarkPlugins={[remarkGfm]}>
+                {part.substring(lastSub)}
+              </ReactMarkdown>
+            );
+          }
+          return <div key={i}>{subParts}</div>;
         }
         return part;
       });
@@ -795,7 +847,7 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center space-y-4 text-muted-foreground opacity-70 animate-in fade-in duration-700">
                     <Sparkles className="h-12 w-12 text-amber-500/50" />
-                    <div className="max-w-[280px]">
+                    <div className="max-w-[320px]">
                       <p className="text-sm font-semibold text-foreground">
                         How can I help you today?
                       </p>
@@ -804,6 +856,25 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
                           ? "I can query ERP records, execute system tasks on your behalf, or generate enterprise documents."
                           : "I can answer questions, guide you through any page or button, and query system data."}
                       </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 justify-center max-w-sm mt-3">
+                      {[
+                        { label: "📜 Company Leave Policy", prompt: "What are our official company leave policies and entitlements according to the uploaded policy documents?" },
+                        { label: "⏳ Probation & Notice Period", prompt: "What are the rules and notice periods for probation and resignation according to our company documents?" },
+                        { label: "⚖️ Code of Conduct & Rights", prompt: "What are our workplace conduct guidelines and employee rights under company regulations?" },
+                      ].map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setInput(item.prompt);
+                          }}
+                          className="text-[11px] px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-all font-medium text-left"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 ) : (

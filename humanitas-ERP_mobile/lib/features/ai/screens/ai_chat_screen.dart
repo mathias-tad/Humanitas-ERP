@@ -7,7 +7,8 @@ import '../../../core/models/ai_message_model.dart';
 import '../providers/ai_provider.dart';
 
 class AiChatScreen extends ConsumerStatefulWidget {
-  const AiChatScreen({super.key});
+  final String? initialPrompt;
+  const AiChatScreen({super.key, this.initialPrompt});
 
   @override
   ConsumerState<AiChatScreen> createState() => _AiChatScreenState();
@@ -18,13 +19,21 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   final _scrollController = ScrollController();
 
   final List<String> _quickPrompts = [
+    'What are our annual and sick leave entitlements?',
+    'What is our probation and notice period?',
+    'What does company policy state about code of conduct?',
     'How do I request leave on mobile?',
     'How do I clock in?',
     'Where can I view my payslip?',
-    'How do I apply for a loan?',
-    'Where are my notifications?',
-    'How do I change my password?',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPrompt != null && widget.initialPrompt!.isNotEmpty) {
+      _textController.text = widget.initialPrompt!;
+    }
+  }
 
   @override
   void dispose() {

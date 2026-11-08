@@ -1,5 +1,5 @@
 import {
-    Controller, Get, Post, Patch, Delete,
+    Controller, Get, Post, Patch, Delete, Put,
     Body, Param, Query, UseGuards, Request,
     BadRequestException,
 } from '@nestjs/common';
@@ -13,6 +13,7 @@ import {
     DeleteMessageQueryDto, SearchUsersQueryDto,
 } from './dto/send-message.dto';
 import { UpdateMessagingSettingsDto } from './dto/update-messaging-settings.dto';
+import { RequestChatAccessDto, RespondChatAccessDto, SetRoleRestrictionsDto, ToggleChatOverrideDto } from './dto/chat-access-grant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
@@ -178,4 +179,47 @@ export class MessagingController {
     updateSettings(@Request() req, @Body() dto: UpdateMessagingSettingsDto) {
         return this.messagingService.updateSettings(req.user.tenantId, req.user.sub, dto);
     }
+
+
+    // ─────────────────────── ACCESS CHECK & REQUESTS ────────────────
+    @Get('access-check/:targetUserId')
+    checkAccess(@Request() req, @Param('targetUserId') targetUserId: string) {
+        return this.messagingService.checkDirectChatAccess(req.user.tenantId, req.user.sub, targetUserId);
+    }
+
+    @Post('access-requests')
+    requestAccess(@Request() req, @Body() dto: RequestChatAccessDto) {
+        return this.messagingService.requestDirectChatAccess(req.user.tenantId, req.user.sub, dto);
+    }
+
+    @Get('access-requests/incoming')
+    getIncomingRequests(@Request() req) {
+        return this.messagingService.getIncomingAccessRequests(req.user.tenantId, req.user.sub);
+    }
+
+    @Get('access-requests/sent')
+    getSentRequests(@Request() req) {
+        return this.messagingService.getMySentAccessRequests(req.user.tenantId, req.user.sub);
+    }
+
+    @Post('access-requests/:id/respond')
+    respondAccessRequest(@Request() req, @Param('id') id: string, @Body() dto: RespondChatAccessDto) {
+        return this.messagingService.respondDirectChatAccess(req.user.tenantId, req.user.sub, id, dto);
+    }
+
+    @Patch('self-override')
+    toggleSelfOverride(@Request() req, @Body() dto: ToggleChatOverrideDto) {
+        return this.messagingService.toggleDirectChatOverride(req.user.tenantId, req.user.sub, dto.allowOverride);
+    }
+
+    @Get('role-restrictions')
+    getRoleRestrictions(@Request() req) {
+        return this.messagingService.getRoleRestrictions(req.user.tenantId);
+    }
+
+    @Put('role-restrictions')
+    setRoleRestrictions(@Request() req, @Body() dto: SetRoleRestrictionsDto) {
+        return this.messagingService.setRoleRestrictions(req.user.tenantId, req.user.sub, dto);
+    }
+
 }

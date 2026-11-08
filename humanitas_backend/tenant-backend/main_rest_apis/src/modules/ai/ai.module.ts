@@ -23,6 +23,7 @@ import { AiActionService } from './services/ai-action.service';
 import { AiFileParserService } from './services/ai-file-parser.service';
 import { AiSettingsConfigService } from './ai-settings.service';
 import { AiSettingsController } from './ai-settings.controller';
+import { TenantAiKnowledgeService } from './services/tenant-ai-knowledge.service';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AiSettingsController } from './ai-settings.controller';
     AiActionService,
     AiFileParserService,
     AiSettingsConfigService,
+    TenantAiKnowledgeService,
   ],
   exports: [
     AiService, 
@@ -62,7 +64,8 @@ import { AiSettingsController } from './ai-settings.controller';
     AiAttritionService, 
     AiUsageService,
     AiConversationService,
-    AiSettingsFetchService
+    AiSettingsFetchService,
+    TenantAiKnowledgeService,
   ],
 })
 export class AiModule {}

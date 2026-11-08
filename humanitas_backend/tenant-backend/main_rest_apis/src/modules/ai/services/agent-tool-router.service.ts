@@ -2,12 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { DatabaseService } from '../../database/database.service';
+import { TenantAiKnowledgeService } from './tenant-ai-knowledge.service';
 
 @Injectable()
 export class AgentToolRouterService {
   private readonly logger = new Logger(AgentToolRouterService.name);
 
-  constructor(private databaseService: DatabaseService) {}
+  constructor(
+    private databaseService: DatabaseService,
+    private tenantKnowledgeService: TenantAiKnowledgeService,
+  ) {}
 
   private async getConnection(tenantSlug: string) {
     const rows = await (this.databaseService as any).masterDataSource.query(
@@ -291,9 +295,52 @@ export class AgentToolRouterService {
       }
     );
 
+    const searchCompanyKnowledgeTool = tool(
+      async ({ query, category }) => {
+        try {
+          const results = await this.tenantKnowledgeService.searchKnowledge(
+            tenantSlug,
+            query,
+            category,
+            undefined,
+            undefined,
+            5,
+          );
+
+          if (!results || results.length === 0) {
+            return `No company policies, agreements, or legal provisions matching "${query}" were found in the uploaded documents. Remind the user that you can only answer from verified company policies and suggest contacting HR.`;
+          }
+
+          const formatted = results.map((r, idx) => {
+            const sec = r.section_title ? `Section/Article: "${r.section_title}"` : 'General Provision';
+            const page = r.page_number ? ` (Page ${r.page_number})` : '';
+            return `[VERIFIED COMPANY SOURCE ${idx + 1}]
+Document: "${r.document_title}"
+Category: ${r.category}
+${sec}${page}
+Content Excerpt:
+"${r.chunk_text}"`;
+          }).join('\n\n---\n\n');
+
+          return `Found ${results.length} relevant excerpt(s) from official company documents:\n\n${formatted}\n\nDIRECT CITATION MANDATE: When answering, cite the Document Title and Section/Article explicitly. Do not assume or guess anything not written in these excerpts.`;
+        } catch (err: any) {
+          return `Error querying company knowledge vault: ${err.message}`;
+        }
+      },
+      {
+        name: 'search_company_knowledge',
+        description: 'Search official company policy documents, employee handbooks, signed employment agreements, labour proclamations, codes of conduct, and workplace guidelines uploaded by tenant administrators. ALWAYS invoke this tool when answering questions about probation, notice periods, leave rules, working hours, benefits, overtime, termination, code of conduct, or statutory compliance.',
+        schema: z.object({
+          query: z.string().describe('The policy rule, legal concept, or question to look up (e.g. "probation period notice", "annual leave entitlement", "disciplinary hearing procedure")'),
+          category: z.string().optional().describe('Optional category filter: company_policy, legal_proclamation, employment_agreement, code_of_conduct, benefits_guide, etc.'),
+        }),
+      }
+    );
+
     // Filter tools based on permissions if needed
     const tools = [
       lookupSystemGuideTool,
+      searchCompanyKnowledgeTool,
       navigateSystemTool,
       generateDocumentTool,
       viewHrAnalyticsTool,

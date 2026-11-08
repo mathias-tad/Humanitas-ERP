@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/conversation_model.dart';
 import '../providers/messaging_provider.dart';
+import 'direct_chat_requests_screen.dart';
 
 class ChatSettingsScreen extends ConsumerStatefulWidget {
   final ConversationModel conversation;
@@ -72,6 +73,19 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                 subtitle: const Text('Send double blue check marks when you read messages'),
                 value: readReceipts,
                 onChanged: (val) => ref.read(messagingSettingsProvider.notifier).update({'show_read_receipts': val}),
+              ),
+              const Divider(),
+              _SectionHeader('Role Restrictions & Permissions'),
+              ListTile(
+                leading: const Icon(Icons.shield_outlined, color: AppColors.primary),
+                title: const Text('Direct Chat Access & Override'),
+                subtitle: const Text('Manage incoming 1-on-1 requests & role restrictions'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DirectChatRequestsScreen()),
+                  );
+                },
               ),
             ],
           );

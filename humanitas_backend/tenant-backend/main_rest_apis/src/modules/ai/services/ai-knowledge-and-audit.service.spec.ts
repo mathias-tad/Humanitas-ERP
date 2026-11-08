@@ -12,6 +12,7 @@ import { AiUsageService } from './ai-usage.service';
 import { AiSettingsFetchService } from './ai-settings-fetch.service';
 import { AiAnalyticsService } from './ai-analytics.service';
 import { AiFileParserService } from './ai-file-parser.service';
+import { TenantAiKnowledgeService } from './tenant-ai-knowledge.service';
 
 describe('AI Knowledge Base & Execution Audit Trail', () => {
   let actionService: AiActionService;
@@ -101,6 +102,7 @@ describe('AI Knowledge Base & Execution Audit Trail', () => {
         { provide: AiSettingsFetchService, useValue: {} },
         { provide: AiAnalyticsService, useValue: {} },
         { provide: AiFileParserService, useValue: {} },
+        { provide: TenantAiKnowledgeService, useValue: { searchKnowledge: jest.fn().mockResolvedValue([]) } },
       ],
     }).compile();
 

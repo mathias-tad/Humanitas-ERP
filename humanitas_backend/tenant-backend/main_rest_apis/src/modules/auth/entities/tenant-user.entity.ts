@@ -95,6 +95,9 @@ export class TenantUser {
   @OneToMany(() => TenantUser, (user) => user.manager)
   direct_reports: TenantUser[];
 
+  @Column({ default: false })
+  allow_direct_chat_override: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useMessaging } from "../../context/MessagingContext";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, getAuthHeaders } from "../../context/AuthContext";
 import {
     MessageCircle, X, Minimize2, Maximize2, Search, ArrowLeft,
-    Users, Megaphone, MessageSquare, Info
+    Users, Megaphone, MessageSquare, Info, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { ConversationList } from "./ConversationList";
 import { MessageThread } from "./MessageThread";
 import { ChatDetailView } from "./ChatDetailView";
 import { GroupChannelCreateView } from "./GroupChannelCreateView";
+import { ChatAccessInterstitialModal, type ChatAccessCheckResult } from "./ChatAccessInterstitialModal";
+import { ChatAccessRequestsModal } from "./ChatAccessRequestsModal";
 import type { Conversation } from "../../types/messaging";
 
 interface BasicUser {
@@ -48,6 +50,36 @@ export function ChatWidget() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<BasicUser[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Role-restricted chat & access states
+    const [isAccessRequestsOpen, setIsAccessRequestsOpen] = useState(false);
+    const [isInterstitialOpen, setIsInterstitialOpen] = useState(false);
+    const [interstitialTargetUser, setInterstitialTargetUser] = useState<BasicUser | null>(null);
+    const [interstitialCheck, setInterstitialCheck] = useState<ChatAccessCheckResult | null>(null);
+    const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+    const loadPendingCount = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/messaging/access-requests/incoming`, {
+                headers: getAuthHeaders(),
+                credentials: 'include',
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setPendingRequestsCount(data.filter((r: any) => r.status === 'pending').length);
+                }
+            }
+        } catch (e) {
+            // Ignore
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            loadPendingCount();
+        }
+    }, [isOpen]);
 
     // Total unread count
     const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
@@ -116,6 +148,30 @@ export function ChatWidget() {
     }
 
     const handleStartChat = async (targetUserId: string) => {
+        try {
+            const checkRes = await fetch(`${API_BASE_URL}/messaging/access-check/${targetUserId}`, {
+                headers: getAuthHeaders(),
+                credentials: 'include',
+            });
+            if (checkRes.ok) {
+                const checkData: ChatAccessCheckResult = await checkRes.json();
+                if (!checkData.canChat) {
+                    const foundUser = searchResults.find(u => u.id === targetUserId) || {
+                        id: targetUserId,
+                        full_name: checkData.targetName || 'Restricted Role',
+                        role_name: checkData.targetRole || 'Protected Role',
+                        email: '',
+                    };
+                    setInterstitialTargetUser(foundUser as BasicUser);
+                    setInterstitialCheck(checkData);
+                    setIsInterstitialOpen(true);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Access check error', e);
+        }
+
         const existing = conversations.find(c =>
             c.type === 'direct' &&
             c.participants.some(p => p.userId === targetUserId)
@@ -247,6 +303,20 @@ export function ChatWidget() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 relative"
+                                        onClick={() => setIsAccessRequestsOpen(true)}
+                                        title="Direct Chat Permissions & Requests"
+                                    >
+                                        <Shield className="w-4 h-4" />
+                                        {pendingRequestsCount > 0 && (
+                                            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                                                {pendingRequestsCount}
+                                            </span>
+                                        )}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
                                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                         onClick={() => setIsExpanded(true)}
                                         title="Expand side-by-side view"
@@ -294,6 +364,20 @@ export function ChatWidget() {
                                 )}
 
                                 <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 relative"
+                                        onClick={() => setIsAccessRequestsOpen(true)}
+                                        title="Direct Chat Permissions & Requests"
+                                    >
+                                        <Shield className="w-4 h-4" />
+                                        {pendingRequestsCount > 0 && (
+                                            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                                                {pendingRequestsCount}
+                                            </span>
+                                        )}
+                                    </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -465,6 +549,33 @@ export function ChatWidget() {
                     )}
                 </Button>
             </div>
+        
+            {/* Direct Chat Access Interstitial Modal */}
+            <ChatAccessInterstitialModal
+                isOpen={isInterstitialOpen}
+                onClose={() => setIsInterstitialOpen(false)}
+                targetUser={
+                    interstitialTargetUser
+                        ? {
+                              id: interstitialTargetUser.id,
+                              fullName: interstitialTargetUser.full_name,
+                              email: interstitialTargetUser.email,
+                              role: interstitialTargetUser.role_name,
+                              avatarUrl: interstitialTargetUser.avatar_url,
+                          }
+                        : null
+                }
+                accessCheck={interstitialCheck}
+            />
+
+            {/* Direct Chat Access Requests & Role Restrictions Modal */}
+            <ChatAccessRequestsModal
+                isOpen={isAccessRequestsOpen}
+                onClose={() => setIsAccessRequestsOpen(false)}
+                onRequestsUpdated={() => {
+                    loadPendingCount();
+                }}
+            />
         </div>
     );
 }
