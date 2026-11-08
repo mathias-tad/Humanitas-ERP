@@ -103,7 +103,7 @@ describe('PublicSupportService', () => {
     });
 
     expect(res.reply).toContain('Python engine');
-    expect(res.citations.length).toBeGreaterThan(0);
+    expect(res.citations?.length).toBeGreaterThan(0);
     expect(res.escalateSuggested).toBe(false);
   });
 

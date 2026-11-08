@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { BiometricDevicesService } from './biometric-devices.service';
 import { DatabaseService } from '../database/database.service';
 import { AttendanceGateway } from '../attendance/attendance.gateway';
+import { AttendanceService } from '../attendance/attendance.service';
 
 export interface ResolvedTenantInfo {
   tenantId: string;
@@ -23,6 +24,8 @@ export class AdmsService {
     @InjectDataSource() private readonly masterDataSource: DataSource,
     @Inject(forwardRef(() => AttendanceGateway))
     private readonly attendanceGateway: AttendanceGateway,
+    @Inject(forwardRef(() => AttendanceService))
+    private readonly attendanceService: AttendanceService,
   ) {}
 
   /**

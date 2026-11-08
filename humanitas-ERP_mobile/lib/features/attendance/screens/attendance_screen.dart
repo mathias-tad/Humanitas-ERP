@@ -2,11 +2,145 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../models/attendance_record_model.dart';
 import '../providers/attendance_provider.dart';
 import 'qr_scanner_screen.dart';
 
 class AttendanceScreen extends ConsumerWidget {
   const AttendanceScreen({super.key});
+
+  void _showRegularizationDialog(BuildContext context, WidgetRef ref, AttendanceRecordModel item) {
+    final inController = TextEditingController(text: item.clockInTime ?? '');
+    final outController = TextEditingController(text: item.clockOutTime ?? '');
+    final reasonController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Request Regularization',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Work Date: ${item.date}', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 4),
+                      Text('Recorded: In ${item.clockInTime ?? '--:--'} • Out ${item.clockOutTime ?? '--:--'}', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700])),
+                      if (item.missedPunchType != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          item.missedPunchType == 'missed_in' ? 'Flag: Missed Clock-In' : 'Flag: Missed Clock-Out',
+                          style: GoogleFonts.inter(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: inController,
+                  decoration: const InputDecoration(
+                    labelText: 'Requested Clock-In (HH:mm)',
+                    prefixIcon: Icon(Icons.login_rounded, size: 20),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: outController,
+                  decoration: const InputDecoration(
+                    labelText: 'Requested Clock-Out (HH:mm)',
+                    prefixIcon: Icon(Icons.logout_rounded, size: 20),
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason / Explanation *',
+                    hintText: 'e.g. Biometric scanner issue, client visit, forgot punch...',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final reason = reasonController.text.trim();
+                      if (reason.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter a reason for regularization.'), backgroundColor: AppColors.error),
+                        );
+                        return;
+                      }
+
+                      setState(() => isSubmitting = true);
+                      try {
+                        final repo = ref.read(attendanceRepositoryProvider);
+                        await repo.requestAttendanceCorrection(
+                          recordId: item.id,
+                          requestedClockIn: inController.text.trim().isNotEmpty ? inController.text.trim() : null,
+                          requestedClockOut: outController.text.trim().isNotEmpty ? outController.text.trim() : null,
+                          reason: reason,
+                        );
+                        if (context.mounted) {
+                          Navigator.of(ctx).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Regularization request submitted for manager review.'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                          final now = DateTime.now();
+                          ref.invalidate(myRecordsProvider((month: now.month, year: now.year)));
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+                          );
+                        }
+                      } finally {
+                        setState(() => isSubmitting = false);
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Submit Request'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,7 +305,9 @@ class AttendanceScreen extends ConsumerWidget {
                                 style: GoogleFonts.inter(fontSize: 12),
                               ),
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
                                 children: [
                                   if (item.clockMethod == 'biometric')
                                     Container(
@@ -226,13 +362,83 @@ class AttendanceScreen extends ConsumerWidget {
                                         style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[700], fontWeight: FontWeight.w500),
                                       ),
                                     ),
+                                  if (item.missedPunchType == 'missed_in')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        'Missed In',
+                                        style: GoogleFonts.inter(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (item.missedPunchType == 'missed_out')
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                                      ),
+                                      child: Text(
+                                        'Missed Out',
+                                        style: GoogleFonts.inter(fontSize: 10, color: Colors.amber[900], fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (item.isOvernight)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.indigo.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.indigo.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        'Overnight',
+                                        style: GoogleFonts.inter(fontSize: 10, color: Colors.indigo, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (item.autoClosedAt != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        'Auto-Closed (0 OT)',
+                                        style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[800], fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ],
                           ),
-                          trailing: Text(
-                            item.workHours != null ? '${item.workHours!.toStringAsFixed(1)} hrs' : '',
-                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.primary),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                item.workHours != null ? '${item.workHours!.toStringAsFixed(1)} hrs' : '',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.primary),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(60, 22),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                onPressed: () => _showRegularizationDialog(context, ref, item),
+                                child: Text(
+                                  'Regularize',
+                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

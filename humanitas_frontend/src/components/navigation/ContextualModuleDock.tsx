@@ -90,6 +90,9 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       title: "Time & Attendance",
       items: [
         { title: "Attendance", url: "/attendance", icon: Clock },
+        { title: "Live OT Monitor", url: "/attendance/overtime-monitor", icon: Activity, permissions: ["view_overtime_workers", "force_clockout"] },
+        { title: "VET/VTO Shifts", url: "/scheduling/opportunities", icon: CalendarClock, permissions: ["view_schedules"] },
+        { title: "QR Kiosk Display", url: "/attendance/qr-display", icon: QrCode, permissions: ["view_qr_display"] },
         { title: "Leaves", url: "/leave", icon: CalendarDays },
         { title: "Shifts & Roster", url: "/hr/scheduling", icon: CalendarClock },
         { title: "Biometric Devices", url: "/devices", icon: Computer },

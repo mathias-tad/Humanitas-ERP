@@ -110,4 +110,25 @@ class AttendanceRepository {
       return {'success': true, 'message': 'Missed punch request submitted'};
     }
   }
+
+  Future<Map<String, dynamic>> requestAttendanceCorrection({
+    required String recordId,
+    String? requestedClockIn,
+    String? requestedClockOut,
+    required String reason,
+  }) async {
+    final res = await _apiClient.dio.post(
+      '/attendance/records/$recordId/request-correction',
+      data: {
+        'requested_clock_in': requestedClockIn,
+        'requested_clock_out': requestedClockOut,
+        'reason': reason,
+      },
+    );
+    return Map<String, dynamic>.from(res.data is Map ? res.data : {'success': true});
+  }
+
+  Future<void> dismissMissedClockInAlarm(String shiftId) async {
+    await _apiClient.dio.post('/attendance/dismiss-alarm', data: {'shift_id': shiftId});
+  }
 }

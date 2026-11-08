@@ -29,6 +29,14 @@ export const NOTIFICATION_CATEGORY_PERMISSION_MAP: Record<string, string | null>
   birthday_greeting:       null,
   colleague_birthday_alert: null,
 
+  // Attendance, Shifts & VET/VTO
+  attendance_missed_clock_in_alarm: null,
+  attendance_clock_out_reminder:    null,
+  attendance_vet_shift_reminder:    null,
+  attendance_day_close_warning:     null,
+  attendance_correction_status:     null,
+  attendance_correction_request:    'correct_attendance',
+
   // WFM & VET/VTO (Available to employees)
   vet_opportunity_broadcast: null,
   vto_opportunity_broadcast: null,

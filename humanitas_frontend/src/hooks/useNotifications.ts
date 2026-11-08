@@ -60,6 +60,12 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   wfm_claim_submitted:             'Pending VET/VTO Claim Review',
   absence_threshold_alert:         'Absence Threshold Alerts',
   delegation_assigned:             'Authority Delegation Assigned',
+  attendance_missed_clock_in_alarm: 'Missed Clock-In Urgent Alarm',
+  attendance_clock_out_reminder:    'Shift End Clock-Out Reminders',
+  attendance_vet_shift_reminder:    'VET Overtime Shift Reminders',
+  attendance_day_close_warning:     'Pre-Midnight Day Close Warning',
+  attendance_correction_request:    'Attendance Regularization Requests',
+  attendance_correction_status:     'Attendance Correction Decision',
 };
 
 export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
@@ -103,6 +109,12 @@ export const NOTIFICATION_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   api_key_provisioned:             'Alert when a new developer API key is generated or rotated',
   absence_threshold_alert:         'Alerts when employees reach consecutive or monthly absence limits',
   delegation_assigned:             'Alerts when an executive or colleague delegates authority to you',
+  attendance_missed_clock_in_alarm: 'High-priority audible ringing alarm on mobile phone during shift grace period',
+  attendance_clock_out_reminder:    'Gentle alerts 5 minutes and 1 minute before your shift ends to punch out',
+  attendance_vet_shift_reminder:    'Reminders to punch out from regular shift and punch in for scheduled VET overtime',
+  attendance_day_close_warning:     'Notice at 23:15 before open attendance sessions are auto-closed at midnight',
+  attendance_correction_request:    'Alerts managers when an employee requests punch correction or regularization',
+  attendance_correction_status:     'Notifies employees when their punch regularization request is approved or rejected',
 };
 
 export const CATEGORY_GROUPS: Record<string, string[]> = {
@@ -114,6 +126,9 @@ export const CATEGORY_GROUPS: Record<string, string[]> = {
     'pms_task_assigned',
     'vet_opportunity_broadcast', 'vto_opportunity_broadcast',
     'wfm_claim_decision', 'wfm_slot_reopened',
+    'attendance_missed_clock_in_alarm', 'attendance_clock_out_reminder',
+    'attendance_vet_shift_reminder', 'attendance_day_close_warning',
+    'attendance_correction_status',
   ],
   'Approvals & Management': [
     'leave_approval_requests', 'expense_approval_requests',

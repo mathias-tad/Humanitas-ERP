@@ -12,6 +12,13 @@ class AttendanceRecordModel {
   // Admin-facing fields (null for personal records)
   final String? employeeName;
   final String? employeeId;
+  // Biometric debouncing & shift lifecycle enhancements
+  final String? missedPunchType; // 'missed_in' | 'missed_out' | null
+  final bool isOvernight;
+  final double? overtimeHours;
+  final String? autoClosedAt;
+  final String? autoCloseReason;
+  final String? correctionStatus;
 
   AttendanceRecordModel({
     required this.id,
@@ -26,6 +33,12 @@ class AttendanceRecordModel {
     this.deviceName,
     this.employeeName,
     this.employeeId,
+    this.missedPunchType,
+    this.isOvernight = false,
+    this.overtimeHours,
+    this.autoClosedAt,
+    this.autoCloseReason,
+    this.correctionStatus,
   });
 
   factory AttendanceRecordModel.fromJson(Map<String, dynamic> json) {
@@ -44,6 +57,14 @@ class AttendanceRecordModel {
       deviceName: json['device_name']?.toString(),
       employeeName: json['employee_name']?.toString() ?? json['employeeName']?.toString(),
       employeeId: json['employee_id']?.toString() ?? json['employeeId']?.toString(),
+      missedPunchType: json['missed_punch_type']?.toString(),
+      isOvernight: json['is_overnight'] == true || json['is_overnight'] == 1,
+      overtimeHours: json['overtime_hours'] != null
+          ? double.tryParse(json['overtime_hours'].toString())
+          : null,
+      autoClosedAt: json['auto_closed_at']?.toString(),
+      autoCloseReason: json['auto_close_reason']?.toString(),
+      correctionStatus: json['correction_status']?.toString(),
     );
   }
 }

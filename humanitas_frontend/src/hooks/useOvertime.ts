@@ -217,12 +217,12 @@ export const useOvertime = () => {
     });
 
     const forceClockOutMutation = useMutation({
-        mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
+        mutationFn: async ({ userId, reason, grant_overtime }: { userId: string; reason: string; grant_overtime?: boolean }) => {
             const response = await fetch(`${API_BASE_URL}/attendance/force-clockout`, {
                 method: "POST",
                 headers: getHeaders(),
                 credentials: 'include',
-                body: JSON.stringify({ userId, reason }),
+                body: JSON.stringify({ userId, reason, grant_overtime: grant_overtime ?? false }),
             });
             if (!response.ok) throw new Error('Failed to force clock out');
             return response.json();

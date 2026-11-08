@@ -172,6 +172,38 @@ export class PlatformKnowledgeService {
         tags: ['support', 'tickets', 'escalation', 'sla'],
         is_published: true,
       },
+      {
+        category: 'system_features',
+        title: 'Biometric Punch Debouncing & Overnight Shift Architecture',
+        content: `Humanitas features enterprise biometric time & attendance intelligence:
+- **5-Minute Duplicate Cooldown (Debounce)**: Accidental double-taps on hardware biometric terminals (ZKTeco/Hikvision) or mobile scanners within a 5-minute window are automatically ignored and logged with zero duplicate records created.
+- **Overnight Shift Continuity**: Shifts spanning midnight (e.g. 21:00 Day D to 02:00 Day D+1) anchor seamlessly to the shift work date (Day D). A 02:00 punch on Day D+1 is recognized as the clock-out for Day D's shift rather than a separate premature clock-in.
+- **Shift Midpoint Missed Punch Detection**: Single punches are intelligently classified using the shift midpoint formula. Punches before midpoint register as clock-ins with a missed clock-out flag; punches after midpoint register as clock-outs with a missed clock-in flag.
+- **Mobile Urgent Grace-Period Alarm**: Employees missing a scheduled clock-in receive persistent urgent ringing notifications during the shift grace period with a 1-tap [Dismiss / Ignore] button that silences the phone.`,
+        tags: ['biometric', 'attendance', 'debounce', 'overnight', 'missed_punch', 'shifts'],
+        is_published: true,
+      },
+      {
+        category: 'system_features',
+        title: 'Attendance Regularization & Audit Trail Governance',
+        content: `When biometric punches are missed, delayed, or require correction:
+- **Employee Regularization Requests**: Staff can request attendance regularization from both web and mobile, specifying adjusted in/out times and mandatory justification reasons.
+- **Unified Review Workflow**: Supervisors and HR managers review pending regularization requests directly inside the Attendance Monitor with 1-click Approve or Reject actions.
+- **Immutable Audit Trail**: All regularizations route through the roster correction engine (\`attendance_correction_logs\`), recording the exact reviewer (\`corrected_by\`), timestamp, previous vs. updated state snapshots, and justification comments for strict payroll accountability.`,
+        tags: ['regularization', 'attendance', 'correction', 'audit_log', 'compliance'],
+        is_published: true,
+      },
+      {
+        category: 'system_features',
+        title: 'Midnight Auto-Day Close & VET/VTO Overtime Policy',
+        content: `Humanitas enforces strict zero-unapproved overtime rules through automated schedulers:
+- **Midnight Auto-Day Close**: Open day shifts automatically close at 00:00 (midnight) with zero overtime credited (\`overtime_hours = 0\`). Overnight shifts auto-close at the 06:00 morning buffer with 0 OT.
+- **Pre-Midnight Warnings**: Schedulers alert employees at 23:15 that their shift will close at midnight, and notify managers with the roster of open employee sessions.
+- **Force Clock-Out with Manager Decision**: In \`/attendance/overtime-monitor\`, supervisors manually closing an active shift are explicitly prompted whether extra hours are authorized as overtime or regular shift close.
+- **VET/VTO Overtime Governance**: Overtime should never run as an endless continuous shift. Organizations schedule Voluntary Extra Time (VET) shifts where employees clock out of regular shifts and clock in to distinct VET shifts, with automated push reminders 5 minutes and 1 minute prior to shift completion.`,
+        tags: ['overtime', 'auto_close', 'vet', 'vto', 'midnight', 'scheduling'],
+        is_published: true,
+      },
     ];
 
     const saved = await this.knowledgeRepo.save(

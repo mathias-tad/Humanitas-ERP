@@ -4,6 +4,7 @@ import { DatabaseService } from '../database/database.service';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { AttendanceGateway } from '../attendance/attendance.gateway';
+import { AttendanceService } from '../attendance/attendance.service';
 
 describe('AdmsService', () => {
   let service: AdmsService;
@@ -12,6 +13,7 @@ describe('AdmsService', () => {
   let configService: jest.Mocked<ConfigService>;
   let masterDataSource: { query: jest.Mock };
   let attendanceGateway: jest.Mocked<AttendanceGateway>;
+  let attendanceService: jest.Mocked<AttendanceService>;
   let mockConnection: { query: jest.Mock };
 
   const tenantInfo: ResolvedTenantInfo = {
@@ -54,12 +56,17 @@ describe('AdmsService', () => {
       emitClockOut: jest.fn(),
     } as unknown as jest.Mocked<AttendanceGateway>;
 
+    attendanceService = {
+      processBiometricPunch: jest.fn().mockResolvedValue({ status: 'clock_in', record: {} }),
+    } as unknown as jest.Mocked<AttendanceService>;
+
     service = new AdmsService(
       devicesService,
       databaseService,
       configService,
       masterDataSource as unknown as DataSource,
       attendanceGateway,
+      attendanceService,
     );
   });
 

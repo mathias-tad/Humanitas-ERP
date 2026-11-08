@@ -80,6 +80,12 @@ const Map<String, String> kNotificationCategoryLabels = {
   'wfm_claim_submitted': 'Pending VET/VTO Claim Review',
   'absence_threshold_alert': 'Absence Threshold Exceeded Alert',
   'delegation_assigned': 'Authority Delegation Update',
+  'attendance_missed_clock_in_alarm': 'Missed Clock-In Urgent Alarm',
+  'attendance_clock_out_reminder': 'Shift End Clock-Out Reminders',
+  'attendance_vet_shift_reminder': 'VET Overtime Shift Reminders',
+  'attendance_day_close_warning': 'Pre-Midnight Day Close Warning',
+  'attendance_correction_request': 'Attendance Regularization Requests',
+  'attendance_correction_status': 'Attendance Correction Decision',
 };
 
 const Map<String, String> kNotificationCategoryGroups = {
@@ -100,6 +106,12 @@ const Map<String, String> kNotificationCategoryGroups = {
   'wfm_claim_decision': 'Personal & Self-Service',
   'wfm_slot_reopened': 'Personal & Self-Service',
   'delegation_assigned': 'Personal & Self-Service',
+  'attendance_missed_clock_in_alarm': 'Personal & Self-Service',
+  'attendance_clock_out_reminder': 'Personal & Self-Service',
+  'attendance_vet_shift_reminder': 'Personal & Self-Service',
+  'attendance_day_close_warning': 'Personal & Self-Service',
+  'attendance_correction_status': 'Personal & Self-Service',
+  'attendance_correction_request': 'Approvals & Management',
   'wfm_claim_submitted': 'Approvals & Management',
   'absence_threshold_alert': 'Approvals & Management',
   'leave_approval_requests': 'Approvals & Management',
@@ -140,6 +152,12 @@ const Map<String, String?> kNotificationCategoryPermissionMap = {
   'birthday_greeting': null,
   'colleague_birthday_alert': null,
   'delegation_assigned': null,
+  'attendance_missed_clock_in_alarm': null,
+  'attendance_clock_out_reminder': null,
+  'attendance_vet_shift_reminder': null,
+  'attendance_day_close_warning': null,
+  'attendance_correction_status': null,
+  'attendance_correction_request': 'correct_attendance',
   'pms_task_assigned': null,
 
   // Manager/HR level

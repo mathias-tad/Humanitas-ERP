@@ -227,7 +227,65 @@ export class AttendanceService {
       ADD COLUMN IF NOT EXISTS ot_duration_holiday INTERVAL DEFAULT '0',
       ADD COLUMN IF NOT EXISTS ot_duration_dayoff INTERVAL DEFAULT '0',
       ADD COLUMN IF NOT EXISTS forced_clock_out_by UUID REFERENCES users(id),
-      ADD COLUMN IF NOT EXISTS forced_at TIMESTAMP;
+      ADD COLUMN IF NOT EXISTS forced_at TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS missed_punch_type VARCHAR(20) DEFAULT 'none',
+      ADD COLUMN IF NOT EXISTS is_overnight BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS overtime_hours NUMERIC(5,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS ot_approved BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS correction_status VARCHAR(20) DEFAULT 'none',
+      ADD COLUMN IF NOT EXISTS in_punch_log_id UUID,
+      ADD COLUMN IF NOT EXISTS out_punch_log_id UUID,
+      ADD COLUMN IF NOT EXISTS auto_closed_at TIMESTAMP WITH TIME ZONE,
+      ADD COLUMN IF NOT EXISTS auto_close_reason VARCHAR(100);
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS biometric_punch_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID,
+        company_id UUID,
+        branch_id UUID,
+        device_id UUID,
+        device_serial_number VARCHAR(100),
+        pin VARCHAR(100) NOT NULL,
+        user_id UUID,
+        punch_time TIMESTAMP WITH TIME ZONE NOT NULL,
+        punch_type VARCHAR(50) DEFAULT 'auto',
+        verify_method VARCHAR(50) DEFAULT 'fingerprint',
+        status VARCHAR(50) DEFAULT 'processed',
+        raw_payload TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_biometric_punch_logs_user_punch ON biometric_punch_logs(user_id, punch_time);
+      CREATE INDEX IF NOT EXISTS idx_biometric_punch_logs_status ON biometric_punch_logs(status);
+
+      CREATE TABLE IF NOT EXISTS attendance_correction_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID,
+        company_id UUID,
+        branch_id UUID,
+        attendance_record_id UUID REFERENCES attendance_records(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        work_date DATE NOT NULL,
+        shift_id UUID REFERENCES shifts(id) ON DELETE SET NULL,
+        requested_in TIME,
+        requested_out TIME,
+        reason TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        reviewer_notes TEXT,
+        reviewed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_att_corr_user_status ON attendance_correction_requests(user_id, status);
+
+      CREATE TABLE IF NOT EXISTS attendance_alarm_dismissals (
+        user_id UUID NOT NULL,
+        date DATE NOT NULL,
+        dismissed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        PRIMARY KEY (user_id, date)
+      );
     `);
 
     try {
@@ -1399,7 +1457,7 @@ export class AttendanceService {
     return result;
   }
 
-  async forceClockOut(tenantId: string, adminId: string, targetUserId: string, reason?: string) {
+  async forceClockOut(tenantId: string, adminId: string, targetUserId: string, reason?: string, grantOvertime: boolean = false) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
     // Find the active record to close
@@ -3529,4 +3587,727 @@ export class AttendanceService {
       }
     }
   }
-}
+
+  // ============ BIOMETRIC PUNCH INTELLIGENCE ENGINE ============
+  async processBiometricPunch(
+    tenantId: string,
+    punchData: {
+      userId: string;
+      pin: string;
+      deviceId?: string;
+      deviceSerialNumber?: string;
+      punchTime: Date;
+      verifyMethod?: string;
+      rawPayload?: string;
+      companyId?: string;
+      branchId?: string;
+    },
+  ) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+
+    const { userId, pin, deviceId, deviceSerialNumber, punchTime, verifyMethod = 'biometric', rawPayload, companyId, branchId } = punchData;
+
+    // 1. Insert into biometric_punch_logs (Tier 1 Raw Ledger)
+    const logInsert = await connection.query(`
+      INSERT INTO biometric_punch_logs (
+        tenant_id, company_id, branch_id, device_id, device_serial_number,
+        pin, user_id, punch_time, punch_type, verify_method, status, raw_payload
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'auto', $9, 'pending', $10)
+      RETURNING id
+    `, [tenantId, companyId, branchId, deviceId, deviceSerialNumber, pin, userId, punchTime, verifyMethod, rawPayload]);
+    const logId = logInsert[0].id;
+
+    // 2. 5-Minute Auto-Debounce Check
+    const previousPunches = await connection.query(`
+      SELECT id, punch_time FROM biometric_punch_logs
+      WHERE user_id = $1 AND id != $2 AND status = 'processed'
+      ORDER BY punch_time DESC LIMIT 1
+    `, [userId, logId]);
+
+    if (previousPunches && previousPunches.length > 0) {
+      const prevPunchTime = new Date(previousPunches[0].punch_time).getTime();
+      const currentPunchTime = new Date(punchTime).getTime();
+      const diffMs = currentPunchTime - prevPunchTime;
+
+      if (diffMs >= 0 && diffMs < 5 * 60 * 1000) { // < 5 minutes
+        await connection.query(`
+          UPDATE biometric_punch_logs SET status = 'debounced_duplicate' WHERE id = $1
+        `, [logId]);
+        return {
+          status: 'debounced',
+          logId,
+          message: 'Ignored duplicate punch within 5-minute cooldown window.',
+        };
+      }
+    }
+
+    // 3. Timezone and Date calculations
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today: punchToday } = this.getCurrentTimeInTimezone(timezone);
+    const punchDateObj = new Date(punchTime);
+    const punchHour = punchDateObj.getHours();
+    const punchMinute = punchDateObj.getMinutes();
+    const punchTimeMinutes = punchHour * 60 + punchMinute;
+
+    const yesterdayDate = new Date(new Date(punchToday).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    // 4. STEP A: Check Yesterday's Overnight Shift
+    const yesterdayRecord = await connection.query(`
+      SELECT ar.*, s.is_overnight, s.end_time as shift_end_time, s.start_time as shift_start_time
+      FROM attendance_records ar
+      LEFT JOIN shifts s ON ar.shift_id = s.id
+      WHERE ar.user_id = $1 AND ar.date = $2
+    `, [userId, yesterdayDate]);
+
+    if (yesterdayRecord && yesterdayRecord.length > 0 && yesterdayRecord[0].actual_in && !yesterdayRecord[0].actual_out) {
+      const rec = yesterdayRecord[0];
+      const isOvernight = rec.is_overnight || (rec.shift_start_time && rec.shift_end_time && rec.shift_start_time > rec.shift_end_time);
+
+      if (isOvernight) {
+        let endMinutes = 2 * 60; // default 02:00
+        if (rec.shift_end_time) {
+          const [eh, em] = rec.shift_end_time.split(':').map(Number);
+          endMinutes = eh * 60 + em;
+        }
+        const exitWindowMax = Math.min(endMinutes + 240, 10 * 60); // max 10:00 AM
+        if (punchTimeMinutes <= exitWindowMax) {
+          // CLOCK OUT for Yesterday's Overnight Shift!
+          const result = await connection.query(`
+            UPDATE attendance_records
+            SET actual_out = $1,
+                work_hours = ($1 - actual_in),
+                status = 'Present',
+                is_overnight = true,
+                missed_punch_type = 'none',
+                out_punch_log_id = $2,
+                updated_at = NOW()
+            WHERE id = $3
+            RETURNING *
+          `, [punchTime, logId, rec.id]);
+
+          await connection.query(`UPDATE biometric_punch_logs SET status = 'processed' WHERE id = $1`, [logId]);
+          if (this.attendanceGateway) {
+            this.attendanceGateway.emitClockOut(tenantId, result[0]);
+          }
+          return { status: 'clock_out', isOvernight: true, record: result[0] };
+        }
+      }
+
+      // Auto-close yesterday's stale day shift as missed out (OT = 0)
+      await connection.query(`
+        UPDATE attendance_records
+        SET status = 'Incomplete',
+            missed_punch_type = 'missed_out',
+            auto_closed_at = NOW(),
+            auto_close_reason = 'Stale open session auto-closed on next day punch',
+            overtime_hours = 0,
+            updated_at = NOW()
+        WHERE id = $1
+      `, [rec.id]);
+    }
+
+    // 5. STEP B: Process for Today
+    const todayRecord = await connection.query(`
+      SELECT * FROM attendance_records WHERE user_id = $1 AND date = $2
+    `, [userId, punchToday]);
+
+    if (todayRecord && todayRecord.length > 0 && todayRecord[0].actual_in && !todayRecord[0].actual_out) {
+      // Open session exists for today -> CLOCK OUT
+      const rec = todayRecord[0];
+      const result = await connection.query(`
+        UPDATE attendance_records
+        SET actual_out = $1,
+            work_hours = ($1 - actual_in),
+            status = CASE WHEN status = 'Incomplete' THEN 'Present' ELSE status END,
+            missed_punch_type = 'none',
+            out_punch_log_id = $2,
+            updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+      `, [punchTime, logId, rec.id]);
+
+      await connection.query(`UPDATE biometric_punch_logs SET status = 'processed' WHERE id = $1`, [logId]);
+      if (this.attendanceGateway) {
+        this.attendanceGateway.emitClockOut(tenantId, result[0]);
+      }
+      return { status: 'clock_out', record: result[0] };
+    }
+
+    // No open session for today -> Differentiate Clock In vs Missed Clock-In using Shift Midpoint
+    const todayShift = await this.getAssignedShiftForDate(connection, userId, punchToday);
+    let isClockIn = true;
+
+    if (todayShift && todayShift.start_time && todayShift.end_time) {
+      const [sh, sm] = todayShift.start_time.split(':').map(Number);
+      const [eh, em] = todayShift.end_time.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      let endMin = eh * 60 + em;
+      if (todayShift.is_overnight || endMin < startMin) {
+        endMin += 24 * 60;
+      }
+      const midMin = Math.round(startMin + (endMin - startMin) / 2) % (24 * 60);
+
+      if (!todayShift.is_overnight && punchTimeMinutes > midMin && punchTimeMinutes >= startMin + 120) {
+        isClockIn = false;
+      }
+    }
+
+    if (isClockIn) {
+      let status = 'Present';
+      if (todayShift && todayShift.start_time) {
+        const [sh, sm] = todayShift.start_time.split(':').map(Number);
+        const grace = todayShift.grace_minutes || 15;
+        if (punchTimeMinutes > (sh * 60 + sm + grace)) {
+          status = 'Late';
+        }
+      }
+
+      const result = await connection.query(`
+        INSERT INTO attendance_records (
+          user_id, date, shift_id, scheduled_in, scheduled_out, actual_in,
+          status, source, is_overnight, missed_punch_type, in_punch_log_id, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'biometric', $8, 'none', $9, NOW(), NOW())
+        ON CONFLICT (user_id, date) DO UPDATE SET
+          actual_in = COALESCE(attendance_records.actual_in, $6),
+          shift_id = COALESCE(attendance_records.shift_id, $3),
+          scheduled_in = COALESCE(attendance_records.scheduled_in, $4),
+          scheduled_out = COALESCE(attendance_records.scheduled_out, $5),
+          status = $7,
+          is_overnight = $8,
+          in_punch_log_id = $9,
+          updated_at = NOW()
+        RETURNING *
+      `, [
+        userId,
+        punchToday,
+        todayShift?.id || null,
+        todayShift?.start_time || null,
+        todayShift?.end_time || null,
+        punchTime,
+        status,
+        todayShift?.is_overnight || false,
+        logId,
+      ]);
+
+      await connection.query(`UPDATE biometric_punch_logs SET status = 'processed' WHERE id = $1`, [logId]);
+      if (this.attendanceGateway) {
+        this.attendanceGateway.emitClockIn(tenantId, result[0]);
+      }
+      return { status: 'clock_in', record: result[0] };
+    } else {
+      // Missed Morning Clock-In -> Registered as Shift Exit (actual_out) with missed_punch_type = 'missed_in'
+      const result = await connection.query(`
+        INSERT INTO attendance_records (
+          user_id, date, shift_id, scheduled_in, scheduled_out, actual_out,
+          status, source, is_overnight, missed_punch_type, out_punch_log_id, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'Incomplete', 'biometric', $7, 'missed_in', $8, NOW(), NOW())
+        ON CONFLICT (user_id, date) DO UPDATE SET
+          actual_out = COALESCE(attendance_records.actual_out, $6),
+          shift_id = COALESCE(attendance_records.shift_id, $3),
+          scheduled_in = COALESCE(attendance_records.scheduled_in, $4),
+          scheduled_out = COALESCE(attendance_records.scheduled_out, $5),
+          status = 'Incomplete',
+          missed_punch_type = 'missed_in',
+          out_punch_log_id = $8,
+          updated_at = NOW()
+        RETURNING *
+      `, [
+        userId,
+        punchToday,
+        todayShift?.id || null,
+        todayShift?.start_time || null,
+        todayShift?.end_time || null,
+        punchTime,
+        todayShift?.is_overnight || false,
+        logId,
+      ]);
+
+      await connection.query(`UPDATE biometric_punch_logs SET status = 'processed' WHERE id = $1`, [logId]);
+      if (this.attendanceGateway) {
+        this.attendanceGateway.emitClockOut(tenantId, result[0]);
+      }
+
+      await this.notificationsService.createNotification(tenantId, userId, {
+        type: 'attendance_clock_out_reminder',
+        title: '⚠️ Missed Clock-In Detected',
+        message: 'Your punch was recorded as a shift exit because no arrival punch was found. Please submit an Attendance Regularization Request.',
+        priority: 'high',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Failed to notify missed check-in:', e));
+
+      return { status: 'missed_in_clock_out', record: result[0] };
+    }
+  }
+
+  private async getAssignedShiftForDate(connection: any, userId: string, dateStr: string): Promise<any> {
+    // 1. Check direct schedule override
+    const override = await connection.query(`
+      SELECT s.*, sh.name as shift_name, sh.start_time, sh.end_time, sh.grace_minutes, sh.is_overnight
+      FROM schedules s
+      LEFT JOIN shifts sh ON s.shift_id = sh.id
+      WHERE s.user_id = $1 AND s.date = $2
+    `, [userId, dateStr]);
+
+    if (override && override.length > 0 && override[0].shift_id) {
+      return override[0];
+    }
+
+    // 2. Fallback to rotation assignment
+    const assignment = await connection.query(`
+      SELECT sa.*, sh.id, sh.name as shift_name, sh.start_time, sh.end_time, sh.grace_minutes, sh.is_overnight
+      FROM shift_assignments sa
+      JOIN rotation_weeks rw ON sa.pattern_id = rw.pattern_id AND rw.week_number = sa.current_week_in_rotation
+      JOIN shifts sh ON rw.shift_id = sh.id
+      WHERE sa.user_id = $1
+    `, [userId]);
+
+    if (assignment && assignment.length > 0) {
+      return assignment[0];
+    }
+
+    // 3. Fallback to default active shift
+    const defaultShift = await connection.query(`
+      SELECT * FROM shifts WHERE is_active = true ORDER BY created_at ASC LIMIT 1
+    `);
+    return defaultShift && defaultShift.length > 0 ? defaultShift[0] : null;
+  }
+
+  // ============ ATTENDANCE REGULARIZATION (CORRECTION REQUESTS) ============
+  async requestAttendanceCorrection(
+    tenantId: string,
+    userId: string,
+    recordId: string,
+    data: { requested_in?: string; requested_out?: string; reason: string },
+  ) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+
+    const recResult = await connection.query(`
+      SELECT * FROM attendance_records WHERE id = $1
+    `, [recordId]);
+
+    if (!recResult || recResult.length === 0) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    const rec = recResult[0];
+    if (rec.user_id !== userId) {
+      // Verify user permission or ownership
+      const user = await connection.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+      if (user[0]?.role !== 'Administrator' && user[0]?.role !== 'Manager') {
+        throw new BadRequestException('You can only request corrections for your own attendance');
+      }
+    }
+
+    const result = await connection.query(`
+      INSERT INTO attendance_correction_requests (
+        tenant_id, attendance_record_id, user_id, work_date, shift_id,
+        requested_in, requested_out, reason, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', NOW(), NOW())
+      RETURNING *
+    `, [
+      tenantId,
+      recordId,
+      rec.user_id,
+      rec.date,
+      rec.shift_id,
+      data.requested_in || null,
+      data.requested_out || null,
+      data.reason || 'Missed punch regularization',
+    ]);
+
+    await connection.query(`
+      UPDATE attendance_records SET correction_status = 'pending' WHERE id = $1
+    `, [recordId]);
+
+    // Notify supervisors / managers with correct_attendance permission
+    const supervisors = await connection.query(`
+      SELECT id FROM users WHERE role IN ('Administrator', 'Manager') AND is_active = true
+    `);
+
+    for (const sup of supervisors) {
+      await this.notificationsService.createNotification(tenantId, sup.id, {
+        type: 'attendance_correction_request',
+        title: '📋 Attendance Regularization Request',
+        message: `Employee requested punch correction for ${rec.date}: "${data.reason}"`,
+        priority: 'high',
+        deep_link: '/attendance?tab=regularizations',
+      }).catch(e => console.warn('[Attendance] Failed to notify supervisor:', e));
+    }
+
+    return result[0];
+  }
+
+  async getAttendanceCorrectionRequests(tenantId: string, filter?: { status?: string }) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+
+    let whereClause = "";
+    const params: any[] = [];
+    if (filter?.status) {
+      whereClause = "WHERE acr.status = $1";
+      params.push(filter.status);
+    }
+
+    return connection.query(`
+      SELECT acr.*, 
+             u.full_name as employee_name, u.email as employee_email, u.department as employee_department,
+             sh.name as shift_name,
+             ar.actual_in as original_in, ar.actual_out as original_out, ar.missed_punch_type,
+             rev.full_name as reviewer_name
+      FROM attendance_correction_requests acr
+      JOIN users u ON acr.user_id = u.id
+      LEFT JOIN shifts sh ON acr.shift_id = sh.id
+      LEFT JOIN attendance_records ar ON acr.attendance_record_id = ar.id
+      LEFT JOIN users rev ON acr.reviewed_by = rev.id
+      ${whereClause}
+      ORDER BY acr.created_at DESC
+    `, params);
+  }
+
+  async getMyAttendanceCorrectionRequests(tenantId: string, userId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+
+    return connection.query(`
+      SELECT acr.*, sh.name as shift_name,
+             ar.actual_in as original_in, ar.actual_out as original_out, ar.missed_punch_type
+      FROM attendance_correction_requests acr
+      LEFT JOIN shifts sh ON acr.shift_id = sh.id
+      LEFT JOIN attendance_records ar ON acr.attendance_record_id = ar.id
+      WHERE acr.user_id = $1
+      ORDER BY acr.created_at DESC
+    `, [userId]);
+  }
+
+  async reviewAttendanceCorrectionRequest(
+    tenantId: string,
+    reviewerId: string,
+    requestId: string,
+    data: { status: 'approved' | 'rejected'; reviewer_notes?: string },
+  ) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+
+    const reqResult = await connection.query(`
+      SELECT * FROM attendance_correction_requests WHERE id = $1
+    `, [requestId]);
+
+    if (!reqResult || reqResult.length === 0) {
+      throw new NotFoundException('Correction request not found');
+    }
+
+    const req = reqResult[0];
+
+    if (data.status === 'approved') {
+      // Execute correction via correctAttendance to ensure audit logging
+      await this.correctAttendance(
+        tenantId,
+        req.attendance_record_id,
+        {
+          clock_in: req.requested_in || undefined,
+          clock_out: req.requested_out || undefined,
+          status: 'Present',
+          reason: `Regularization approved by reviewer: ${data.reviewer_notes || req.reason}`,
+        },
+        reviewerId,
+      );
+
+      await connection.query(`
+        UPDATE attendance_records
+        SET correction_status = 'approved',
+            missed_punch_type = 'none',
+            updated_at = NOW()
+        WHERE id = $1
+      `, [req.attendance_record_id]);
+
+      await connection.query(`
+        UPDATE attendance_correction_requests
+        SET status = 'approved',
+            reviewed_by = $1,
+            reviewer_notes = $2,
+            reviewed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $3
+      `, [reviewerId, data.reviewer_notes || 'Approved', requestId]);
+
+      await this.notificationsService.createNotification(tenantId, req.user_id, {
+        type: 'attendance_correction_status',
+        title: '✓ Attendance Regularization Approved',
+        message: `Your attendance regularization for ${req.work_date} has been approved.`,
+        priority: 'medium',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Failed to notify approval:', e));
+    } else {
+      await connection.query(`
+        UPDATE attendance_records
+        SET correction_status = 'rejected',
+            updated_at = NOW()
+        WHERE id = $1
+      `, [req.attendance_record_id]);
+
+      await connection.query(`
+        UPDATE attendance_correction_requests
+        SET status = 'rejected',
+            reviewed_by = $1,
+            reviewer_notes = $2,
+            reviewed_at = NOW(),
+            updated_at = NOW()
+        WHERE id = $3
+      `, [reviewerId, data.reviewer_notes || 'Declined', requestId]);
+
+      await this.notificationsService.createNotification(tenantId, req.user_id, {
+        type: 'attendance_correction_status',
+        title: '✗ Attendance Regularization Declined',
+        message: `Your attendance regularization for ${req.work_date} was declined: "${data.reviewer_notes || 'No reason provided'}".`,
+        priority: 'high',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Failed to notify rejection:', e));
+    }
+
+    return { success: true, status: data.status };
+  }
+
+  async dismissMissedClockInAlarm(tenantId: string, userId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today } = this.getCurrentTimeInTimezone(timezone);
+
+    await connection.query(`
+      INSERT INTO attendance_alarm_dismissals (user_id, date, dismissed_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (user_id, date) DO UPDATE SET dismissed_at = NOW()
+    `, [userId, today]);
+
+    return { success: true, message: 'Alarm silenced for today' };
+  }
+
+  // ============ AUTOMATED CRON WORKERS & REMINDERS ============
+  async checkMissedClockInAlarms(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
+
+    // Find users with shifts starting today whose start_time <= current time <= start_time + grace_minutes
+    const usersWithShift = await connection.query(`
+      SELECT DISTINCT u.id as user_id, u.full_name, sh.start_time, COALESCE(sh.grace_minutes, 15) as grace_minutes
+      FROM users u
+      LEFT JOIN schedules s ON u.id = s.user_id AND s.date = $1
+      LEFT JOIN shifts sh ON s.shift_id = sh.id
+      WHERE u.is_active = true 
+        AND sh.start_time IS NOT NULL
+        AND u.id NOT IN (SELECT user_id FROM attendance_alarm_dismissals WHERE date = $1)
+        AND u.id NOT IN (SELECT user_id FROM attendance_records WHERE date = $1 AND actual_in IS NOT NULL)
+    `, [today]);
+
+    for (const u of usersWithShift) {
+      const [sh, sm] = u.start_time.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const graceEndMin = startMin + u.grace_minutes;
+
+      if (currentMinutes >= startMin && currentMinutes <= graceEndMin) {
+        await this.notificationsService.createNotification(tenantId, u.user_id, {
+          type: 'attendance_missed_clock_in_alarm',
+          title: '⏰ URGENT: Shift Started - Clock In Required',
+          message: `Your shift started at ${u.start_time.substring(0, 5)}. Please punch in immediately before grace ends at ${Math.floor(graceEndMin/60).toString().padStart(2, '0')}:${(graceEndMin%60).toString().padStart(2, '0')}.`,
+          priority: 'urgent',
+          deep_link: '/attendance/clock-in',
+        }).catch(e => console.warn('[Attendance] Failed to send alarm:', e));
+      }
+    }
+  }
+
+  async checkPreShiftEndReminders(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
+
+    // Find active clocked-in sessions
+    const activeSessions = await connection.query(`
+      SELECT ar.id, ar.user_id, COALESCE(ar.scheduled_out, sh.end_time) as scheduled_out
+      FROM attendance_records ar
+      LEFT JOIN shifts sh ON ar.shift_id = sh.id
+      WHERE ar.date = $1 AND ar.actual_in IS NOT NULL AND ar.actual_out IS NULL
+        AND COALESCE(ar.scheduled_out, sh.end_time) IS NOT NULL
+    `, [today]);
+
+    for (const s of activeSessions) {
+      const [eh, em] = s.scheduled_out.split(':').map(Number);
+      const endMin = eh * 60 + em;
+      const diff = endMin - currentMinutes;
+
+      if (diff === 5) {
+        await this.notificationsService.createNotification(tenantId, s.user_id, {
+          type: 'attendance_clock_out_reminder',
+          title: 'Shift Ending in 5 Minutes',
+          message: 'Gentle reminder: Your shift ends in 5 minutes. Please remember to clock out before leaving.',
+          priority: 'medium',
+          deep_link: '/attendance',
+        }).catch(e => console.warn('[Attendance] Reminder error:', e));
+      } else if (diff === 1) {
+        await this.notificationsService.createNotification(tenantId, s.user_id, {
+          type: 'attendance_clock_out_reminder',
+          title: 'Shift Ending in 1 Minute',
+          message: 'Your shift ends in 1 minute. Please punch out to finalize your hours.',
+          priority: 'high',
+          deep_link: '/attendance',
+        }).catch(e => console.warn('[Attendance] Reminder error:', e));
+      }
+    }
+  }
+
+  async checkVetShiftReminders(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
+
+    // Check wfm_opportunities of type 'VET'
+    const vetClaims = await connection.query(`
+      SELECT c.user_id, o.start_time, o.end_time, o.date
+      FROM wfm_opportunity_claims c
+      JOIN wfm_opportunities o ON c.opportunity_id = o.id
+      WHERE o.date = $1 AND o.type = 'VET' AND c.status = 'approved'
+    `, [today]).catch(() => []);
+
+    for (const claim of vetClaims) {
+      if (!claim.start_time) continue;
+      const [sh, sm] = claim.start_time.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+
+      if (currentMinutes === startMin) {
+        await this.notificationsService.createNotification(tenantId, claim.user_id, {
+          type: 'attendance_vet_shift_reminder',
+          title: '⚡ VET Overtime Shift Starting',
+          message: 'Your regular shift has completed and your scheduled VET shift is starting. Please punch out from your regular shift and clock in for your VET Overtime session.',
+          priority: 'high',
+          deep_link: '/attendance/clock-in',
+        }).catch(e => console.warn('[Attendance] VET reminder error:', e));
+      }
+
+      if (claim.end_time) {
+        const [eh, em] = claim.end_time.split(':').map(Number);
+        const endMin = eh * 60 + em;
+        if (endMin - currentMinutes === 5 || endMin - currentMinutes === 1) {
+          await this.notificationsService.createNotification(tenantId, claim.user_id, {
+            type: 'attendance_vet_shift_reminder',
+            title: `VET Overtime Ending in ${endMin - currentMinutes} min`,
+            message: 'Please remember to punch out to record and finalize your approved VET overtime hours.',
+            priority: 'high',
+            deep_link: '/attendance',
+          }).catch(e => console.warn('[Attendance] VET reminder error:', e));
+        }
+      }
+    }
+  }
+
+  async sendPreMidnightWarning(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today } = this.getCurrentTimeInTimezone(timezone);
+
+    const openDayShifts = await connection.query(`
+      SELECT ar.id, ar.user_id, u.full_name, u.department
+      FROM attendance_records ar
+      JOIN users u ON ar.user_id = u.id
+      WHERE ar.date = $1 AND ar.actual_in IS NOT NULL AND ar.actual_out IS NULL AND ar.is_overnight = false
+    `, [today]);
+
+    if (!openDayShifts || openDayShifts.length === 0) return;
+
+    // 1. Notify Employees
+    for (const rec of openDayShifts) {
+      await this.notificationsService.createNotification(tenantId, rec.user_id, {
+        type: 'attendance_day_close_warning',
+        title: '⚠️ Pre-Midnight Attendance Notice',
+        message: 'Your attendance session for today is still open and will be automatically closed at midnight with zero overtime. If working Overtime, please punch out or alert your supervisor.',
+        priority: 'high',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Pre-midnight employee warning failed:', e));
+    }
+
+    // 2. Notify Supervisors with Overtime Monitor link
+    const supervisors = await connection.query(`
+      SELECT id FROM users WHERE role IN ('Administrator', 'Manager') AND is_active = true
+    `);
+    const names = openDayShifts.map((r: any) => r.full_name).join(', ');
+
+    for (const sup of supervisors) {
+      await this.notificationsService.createNotification(tenantId, sup.id, {
+        type: 'attendance_day_close_warning',
+        title: '📋 Day Close Alert: Open Sessions Pending',
+        message: `${openDayShifts.length} employees have unclosed shifts: ${names}. Review on Live OT Monitor before midnight auto-close.`,
+        priority: 'high',
+        deep_link: '/attendance/overtime-monitor',
+      }).catch(e => console.warn('[Attendance] Pre-midnight supervisor warning failed:', e));
+    }
+  }
+
+  async autoCloseDayShiftsAtMidnight(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today } = this.getCurrentTimeInTimezone(timezone);
+    const yesterday = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const result = await connection.query(`
+      UPDATE attendance_records
+      SET status = 'Incomplete',
+          missed_punch_type = 'missed_out',
+          auto_closed_at = NOW(),
+          auto_close_reason = 'Midnight auto-close (Zero OT)',
+          overtime_hours = 0,
+          ot_approved = false,
+          updated_at = NOW()
+      WHERE date = $1 AND actual_in IS NOT NULL AND actual_out IS NULL AND is_overnight = false
+      RETURNING id, user_id, date
+    `, [yesterday]);
+
+    for (const rec of result) {
+      await this.notificationsService.createNotification(tenantId, rec.user_id, {
+        type: 'attendance_day_close_warning',
+        title: 'Attendance Day Closed (Missed Clock-Out)',
+        message: `Your shift on ${rec.date} was auto-closed at midnight without overtime. You can request punch regularization from your attendance timecard.`,
+        priority: 'medium',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Auto-close notify failed:', e));
+    }
+  }
+
+  async autoCloseOvernightShifts(tenantId: string) {
+    const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    await this.ensureAttendanceTables(connection);
+    const timezone = await this.getCompanyTimezone(connection);
+    const { today } = this.getCurrentTimeInTimezone(timezone);
+    const yesterday = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const result = await connection.query(`
+      UPDATE attendance_records
+      SET status = 'Incomplete',
+          missed_punch_type = 'missed_out',
+          auto_closed_at = NOW(),
+          auto_close_reason = 'Overnight morning buffer auto-close (Zero OT)',
+          overtime_hours = 0,
+          ot_approved = false,
+          updated_at = NOW()
+      WHERE date = $1 AND actual_in IS NOT NULL AND actual_out IS NULL AND is_overnight = true
+      RETURNING id, user_id, date
+    `, [yesterday]);
+
+    for (const rec of result) {
+      await this.notificationsService.createNotification(tenantId, rec.user_id, {
+        type: 'attendance_day_close_warning',
+        title: 'Overnight Shift Closed (Missed Clock-Out)',
+        message: `Your overnight shift starting on ${rec.date} was closed at the morning buffer. Please submit an attendance correction request if you worked past scheduled hours.`,
+        priority: 'medium',
+        deep_link: '/attendance',
+      }).catch(e => console.warn('[Attendance] Overnight auto-close notify failed:', e));
+    }
+  }
+
+}

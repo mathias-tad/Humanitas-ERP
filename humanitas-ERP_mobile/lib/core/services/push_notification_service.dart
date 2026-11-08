@@ -179,10 +179,32 @@ class PushNotificationService {
             return true;
           }
           break;
+        case 'dismiss_missed_clock_in_alarm':
+          if (referenceId != null) {
+            await _apiClient.dio.post('/attendance/dismiss-alarm', data: {'shift_id': referenceId});
+            return true;
+          }
+          break;
       }
     } catch (_) {
       return false;
     }
     return false;
+  }
+
+  // Ringing alarm support for missed clock-in during grace period
+  bool _isAlarmRinging = false;
+  bool get isAlarmRinging => _isAlarmRinging;
+  void Function(bool isRinging)? onAlarmStateChanged;
+
+  void triggerMissedClockInAlarm(String shiftId) {
+    _isAlarmRinging = true;
+    onAlarmStateChanged?.call(true);
+  }
+
+  Future<void> dismissAlarm(String shiftId) async {
+    _isAlarmRinging = false;
+    onAlarmStateChanged?.call(false);
+    await executeQuickAction('dismiss_missed_clock_in_alarm', shiftId);
   }
 }

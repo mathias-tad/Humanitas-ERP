@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Enterprise CRM Suite | 56 | 0 | 56 | 0% |
 | Point of Sale (POS) | 37 | 0 | 37 | 0% |
 | Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 52 | 52 | 0 | 100% |
+| HRMS & Recruitment | 61 | 61 | 0 | 100% |
 | Project Management (PMS) | 28 | 28 | 0 | 100% |
 | Dynamic Approval Engine | 12 | 12 | 0 | 100% |
 | Webhooks & Developer API | 16 | 16 | 0 | 100% |
@@ -36,7 +36,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Bulk Import/Export | 13 | 13 | 0 | 100% |
 | Notification Engine | 39 | 39 | 0 | 100% |
 | Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **822** | **517** | **305** | **63%** |
+| **TOTAL** | **831** | **526** | **305** | **63%** |
 
 ---
 
@@ -455,6 +455,15 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] Mobile Geofenced & QR Code Clock-In / Clock-Out with anti-spoofing checks.
   - [x] Shift pattern assignment, night shift allowances, and grace-period management.
   - [x] Cursor-based batch pagination for instant absent processing across 100,000+ employees.
+  - [x] **5-Minute Automated Biometric Cooldown & Debounce**: Hardware and mobile double-punches within 5 minutes automatically ignored and deduplicated into `biometric_punch_logs`.
+  - [x] **Overnight & Cross-Midnight Shift Continuity**: Spanning shifts (e.g. 21:00 Day D to 02:00 Day D+1) anchor seamlessly to shift work date (Day D) without splitting into 2 days.
+  - [x] **Shift Midpoint Missed Punch Detection**: Single punch before midpoint marked as clock-in (missed clock-out); single punch after midpoint marked as clock-out (missed clock-in).
+  - [x] **Midnight & Overnight Auto-Day Close**: Open day shifts auto-close at midnight (00:00) with `overtime_hours = 0` (0 OT credit); overnight shifts auto-close at 06:00 buffer with 0 OT.
+  - [x] **Pre-Midnight Shift Close Warnings**: Automated 23:15 alerts warning employees and notifying supervisors with active employee session rosters.
+  - [x] **Mobile Urgent Grace-Period Alarm**: Repeated urgent ringing notification during morning grace period with 1-tap [Dismiss / Ignore] button that silences the phone and updates `attendance_alarm_dismissals`.
+  - [x] **Employee Attendance Regularization & Manager Review**: Self-service regularization requests with reason/time adjustments and 1-click supervisor review routed to immutable `attendance_correction_logs`.
+  - [x] **Live Overtime Monitor with Force Clock-Out OT Decision**: `/attendance/overtime-monitor` live OT dashboard with explicit manager choice to grant or withhold overtime credit upon manual force-close.
+  - [x] **VET/VTO Shift Completion Push Notifications**: Automated 5-minute and 1-minute pre-shift end push reminders for standard and Voluntary Extra Time (VET) shifts.
 - [x] **Leave & Absence Management**:
   - [x] Configurable leave types (Annual, Sick, Maternity, Paternity, Compassionate, Unpaid).
   - [x] Automated leave accrual rules, carry-over limits, and encashment calculators.

@@ -239,17 +239,22 @@ export default function FeaturesPage() {
         {
             id: "attendance_command",
             group: "workforce",
-            title: "Attendance Command Center & Absence Alert Engine",
+            title: "Biometric Attendance Command Center & Labor Intelligence",
             badge: "Time & Labor",
             badgeColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
             icon: <UserCheck className="w-8 h-8 text-emerald-600" />,
-            description: "Floor presence filters, sticky batch actions, consecutive & monthly unauthorized absence alert engine, and consolidated timecard ledger.",
+            description: "5-minute automated biometric punch debouncing, overnight cross-midnight shift continuity, shift midpoint missed punch detection, and attendance regularization with immutable audit logs.",
             features: [
-                "Unified Schedule & Timecard ledger merging punch logs, scheduled shifts, and overtime",
-                "Floor presence filters: On Floor / Punched In, Late Today, Absent, and Excused",
-                "Multi-row selection checkboxes with sticky batch actions (Mark Present, Absent, Excused)",
-                "Consecutive & monthly unauthorized absence threshold alert engine with configurable notifications",
-                "Direct supervisor lateness excuses, absence remarks modal, and real CSV ledger export"
+                "5-minute automated cooldown debounce ignoring duplicate biometric terminal taps with zero duplicate clutter",
+                "Overnight cross-midnight shift continuity anchored to scheduled shift work dates without splitting into separate days",
+                "Shift midpoint algorithmic formula identifying missed clock-in vs. missed clock-out punches accurately",
+                "Midnight auto-day close for day shifts and 06:00 buffer for overnight shifts with zero overtime credited (0 OT)",
+                "Pre-midnight shift closure warning alerts at 23:15 for employees and supervisors",
+                "Mobile urgent grace-period ringing alarm for missed clock-in with 1-tap Ignore/Dismiss action",
+                "Employee self-service attendance regularization requests with mandatory reason and adjusted time submissions",
+                "Supervisor 1-click regularization approval workflow backed by immutable roster correction audit logs (attendance_correction_logs)",
+                "Live Overtime Monitor (/attendance/overtime-monitor) with explicit manager prompt to grant or withhold overtime on force-close",
+                "Voluntary Extra Time (VET) & Voluntary Time Off (VTO) governance with automated 5m & 1m pre-shift end push reminders"
             ]
         },
         {
