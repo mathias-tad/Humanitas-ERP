@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Bot,
+  BotOff,
+  ArrowRight,
   Sparkles,
   Send,
   X,
@@ -60,23 +62,66 @@ export default function LandingAiAssistant({
 }: LandingAiAssistantProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
+  // Sync with external control
   useEffect(() => {
-    if (isOpenExternal !== undefined) {
+    if (typeof isOpenExternal === 'boolean') {
       setInternalOpen(isOpenExternal);
     }
   }, [isOpenExternal]);
 
-  // Open if either externally or internally opened
-  const isOpen = isOpenExternal !== undefined ? (isOpenExternal || internalOpen) : internalOpen;
-
-  const setIsOpen = (val: boolean) => {
-    if (val) {
+  // Global event listener so any button/link anywhere can open the assistant reliably
+  useEffect(() => {
+    const handleGlobalOpen = () => {
+      setInternalOpen(true);
       onOpenExternal?.();
-    } else {
-      onCloseExternal?.();
-    }
-    setInternalOpen(val);
+    };
+    window.addEventListener('open-landing-ai', handleGlobalOpen);
+    return () => window.removeEventListener('open-landing-ai', handleGlobalOpen);
+  }, [onOpenExternal]);
+
+  const isOpen = internalOpen || Boolean(isOpenExternal);
+
+  const handleOpen = () => {
+    setInternalOpen(true);
+    onOpenExternal?.();
   };
+
+  const handleClose = () => {
+    setInternalOpen(false);
+    onCloseExternal?.();
+  };
+
+  const [aiStatus, setAiStatus] = useState<{
+    available: boolean;
+    mode: string;
+    message?: string;
+  }>({
+    available: true,
+    mode: 'online',
+  });
+
+  // Verify AI status from backend
+  useEffect(() => {
+    let isMounted = true;
+    fetch(`${API_BASE_URL}/public/landing-ai/status`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data && data.available === false) {
+          setAiStatus({
+            available: false,
+            mode: data.mode || 'unavailable',
+            message: data.message,
+          });
+        }
+      })
+      .catch(() => {
+        // Fallback: system remains in standard operational mode
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const [activeTab, setActiveTab] = useState<'chat' | 'tickets' | 'faqs'>('chat');
   const [messages, setMessages] = useState<Message[]>([
@@ -387,16 +432,22 @@ Our human support team has received your ticket and conversation context. A spec
       {/* Floating Launcher Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-3 rounded-full shadow-2xl hover:shadow-blue-500/30 hover:scale-105 transition-all duration-300 font-medium text-sm group border border-white/20"
+          type="button"
+          id="landing-ai-floating-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleOpen();
+          }}
+          className="fixed bottom-6 right-6 z-[99999] cursor-pointer flex items-center gap-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white px-4 py-3 rounded-full shadow-2xl hover:shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all duration-300 font-medium text-sm group border border-white/20 select-none pointer-events-auto"
           aria-label="Open AI Help and Human Support"
         >
-          <div className="relative">
+          <div className="relative pointer-events-none">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white animate-ping" />
           </div>
-          <span>Need Help? Ask AI</span>
-          <Badge className="bg-white/20 text-white text-[10px] uppercase font-bold py-0 px-1.5 border-none">
+          <span className="pointer-events-none font-semibold">Need Help? Ask AI</span>
+          <Badge className="bg-white/20 text-white text-[10px] uppercase font-bold py-0 px-1.5 border-none pointer-events-none">
             24/7
           </Badge>
         </button>
@@ -404,7 +455,7 @@ Our human support team has received your ticket and conversation context. A spec
 
       {/* Floating Dialog / Drawer */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[95vw] sm:w-[480px] h-[640px] max-h-[85vh] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 z-[99999] w-[95vw] sm:w-[480px] h-[640px] max-h-[85vh] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -416,9 +467,15 @@ Our human support team has received your ticket and conversation context. A spec
                   <h3 className="font-semibold text-sm leading-tight text-white">
                     {isHrmsOnly ? 'Humanitas Assistant' : 'Humanitas ERP Copilot'}
                   </h3>
-                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] py-0 px-1.5 font-bold uppercase tracking-wider">
-                    Online
-                  </Badge>
+                  {aiStatus.available ? (
+                    <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[9px] py-0 px-1.5 font-bold uppercase tracking-wider">
+                      Online
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9px] py-0 px-1.5 font-bold uppercase tracking-wider">
+                      Support Only
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-[11px] text-white/80 leading-none mt-0.5 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-emerald-300" />
@@ -428,7 +485,7 @@ Our human support team has received your ticket and conversation context. A spec
             </div>
 
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
             >
               <X className="w-5 h-5" />
@@ -475,6 +532,43 @@ Our human support team has received your ticket and conversation context. A spec
           {/* Tab 1: AI Chat */}
           {activeTab === 'chat' && (
             <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+              {!aiStatus.available ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 bg-muted/15">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-sm">
+                    <BotOff className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1.5 max-w-sm">
+                    <h4 className="font-semibold text-sm text-foreground">AI Assistant Currently Unavailable</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {aiStatus.message || "Our automated AI Assistant is currently offline or undergoing setup in this environment."}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Our human operations team and product specialists are available to answer all questions and assist with your organization.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => setActiveTab('tickets')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 flex-1 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <LifeBuoy className="w-4 h-4" />
+                      Create Support Ticket
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActiveTab('faqs')}
+                      className="text-xs h-9 flex-1 flex items-center justify-center gap-1.5 border-border hover:bg-muted cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Browse FAQs
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* Message Thread */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
                 {messages.map((m) => (
@@ -507,6 +601,32 @@ Our human support team has received your ticket and conversation context. A spec
                               ✓ {cite}
                             </span>
                           ))}
+                        </div>
+                      )}
+
+                      {/* 1-Click Ticket Escalation Action when question is not answered */}
+                      {m.draftTicket && (
+                        <div className="mt-2.5 p-2 rounded-xl bg-background/90 border border-border flex items-center justify-between gap-2 shadow-xs">
+                          <span className="text-[11px] text-muted-foreground">
+                            Need direct human specialist assistance?
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              setDirectTicket((prev) => ({
+                                ...prev,
+                                subject: m.draftTicket?.subject || 'Support Inquiry',
+                                description: m.draftTicket?.description || m.content,
+                                category: m.draftTicket?.category || 'general',
+                              }));
+                              setActiveTab('tickets');
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] h-7 px-2.5 flex items-center gap-1 shrink-0 cursor-pointer"
+                          >
+                            <span>Create Ticket</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -653,6 +773,8 @@ Our human support team has received your ticket and conversation context. A spec
                   </Button>
                 </form>
               </div>
+                </>
+              )}
             </div>
           )}
 

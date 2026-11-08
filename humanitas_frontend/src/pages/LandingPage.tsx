@@ -64,7 +64,7 @@ export default function LandingPage() {
                             <button onClick={() => navigate('/features')} className="text-muted-foreground hover:text-primary font-medium transition-colors">Features & Architecture</button>
                             <button onClick={() => scrollTo('erp-modules')} className="text-muted-foreground hover:text-primary font-medium transition-colors">ERP Modules</button>
                             <button onClick={() => scrollTo('enterprise-benefits')} className="text-muted-foreground hover:text-primary font-medium transition-colors">Enterprise Benefits</button>
-                            <button onClick={() => setAiAssistantOpen(true)} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                            <button onClick={() => { setAiAssistantOpen(true); window.dispatchEvent(new CustomEvent('open-landing-ai')); }} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
                                 <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
                                 Help & AI
                             </button>
@@ -94,10 +94,7 @@ export default function LandingPage() {
                         <button onClick={() => scrollTo('erp-modules')} className="block w-full text-left py-2 font-medium text-muted-foreground">ERP Modules</button>
                         <button onClick={() => scrollTo('enterprise-benefits')} className="block w-full text-left py-2 font-medium text-muted-foreground">Enterprise Benefits</button>
                         <button
-                            onClick={() => {
-                                setAiAssistantOpen(true);
-                                setMobileMenuOpen(false);
-                            }}
+                            onClick={() => { setAiAssistantOpen(true); setMobileMenuOpen(false); window.dispatchEvent(new CustomEvent('open-landing-ai')); }}
                             className="block w-full text-left py-2 font-semibold text-blue-600 flex items-center gap-2"
                         >
                             <Sparkles className="w-4 h-4 text-amber-500" />

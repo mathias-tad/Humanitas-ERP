@@ -105,6 +105,20 @@ export class PublicSupportService {
   ) {}
 
   /**
+   * Check if the AI Assistant is online and operational
+   */
+  getAiStatus() {
+    const isAiEnabled = process.env.ENABLE_LANDING_AI !== 'false';
+    return {
+      available: isAiEnabled,
+      mode: isAiEnabled ? 'online' : 'unavailable',
+      message: isAiEnabled
+        ? 'Grounded Platform AI is online and ready'
+        : 'AI Assistant is currently offline for configuration. Our human support team is available via Support Tickets.',
+    };
+  }
+
+  /**
    * Public Landing Page AI Chat with strict zero-guessing and ticket drafting
    */
   async landingAiChat(dto: LandingAiChatDto, isHrmsOnly = false) {
@@ -230,6 +244,7 @@ Would you like more details on HRMS workforce capabilities, or would you like to
 
 Would you like me to submit a support ticket for our engineering and support specialists to contact you directly?`,
         escalateSuggested: true,
+      redirectToTicket: true,
         draftTicket: {
           subject: draftSubject,
           category: this.detectCategory(lowerMessage),
@@ -373,6 +388,7 @@ Our human support team will review your inquiry and follow up directly via email
 
 Would you like me to create a support ticket for our human specialists to answer your question directly?`,
       escalateSuggested: true,
+      redirectToTicket: true,
       draftTicket: {
         subject: draftSubject,
         category: this.detectCategory(lowerMessage),
