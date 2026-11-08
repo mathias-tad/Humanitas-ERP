@@ -58,6 +58,14 @@ describe('AdmsService', () => {
 
     attendanceService = {
       processBiometricPunch: jest.fn().mockResolvedValue({ status: 'clock_in', record: {} }),
+      processBiometricPunchesBatch: jest.fn().mockResolvedValue({
+        total: 1,
+        processed: 1,
+        reconciled: 0,
+        debounced: 0,
+        duplicatesSkipped: 0,
+        errors: 0,
+      }),
     } as unknown as jest.Mocked<AttendanceService>;
 
     service = new AdmsService(
@@ -167,9 +175,7 @@ describe('AdmsService', () => {
       mockConnection.query
         .mockResolvedValueOnce([{ id: 'dev-1', serial_number: 'SN123', is_authorized: true }]) // SELECT device
         .mockResolvedValueOnce([{ data: { allowed_attendance_methods: ['biometric', 'qr'] } }]) // HR settings
-        .mockResolvedValueOnce([{ user_id: 'user-1' }]) // device_users mapping
-        .mockResolvedValueOnce([]) // existing attendance record
-        .mockResolvedValueOnce([{ id: 'att-1', user_id: 'user-1', date: '2026-10-18' }]); // INSERT attendance
+        .mockResolvedValueOnce([{ user_id: 'user-1' }]); // device_users mapping
 
       const res = await service.receiveData(
         'SN123',
@@ -180,7 +186,16 @@ describe('AdmsService', () => {
       );
 
       expect(res).toBe('OK');
-      expect(attendanceGateway.emitClockIn).toHaveBeenCalled();
+      expect(attendanceService.processBiometricPunchesBatch).toHaveBeenCalledWith(
+        tenantInfo.tenantId,
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: 'user-1',
+            pin: '101',
+            deviceSerialNumber: 'SN123',
+          }),
+        ]),
+      );
     });
 
     it('should ignore punches if biometric attendance is disabled in HR settings', async () => {

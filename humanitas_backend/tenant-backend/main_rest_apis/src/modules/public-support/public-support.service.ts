@@ -221,6 +221,25 @@ Would you like more details on HRMS workforce capabilities, or would you like to
     ];
     const isEscalationRequest = escalationTriggers.some(kw => lowerMessage.includes(kw));
 
+    if (isEscalationRequest) {
+      const detectedEmail = dto.userEmail || this.extractEmail(rawMessage);
+      const draftSubject = this.generateSubject(rawMessage, dto.history);
+
+      return {
+        reply: `I'd be glad to connect you with our human platform support specialists!
+
+Would you like me to submit a support ticket for our engineering and support specialists to contact you directly?`,
+        escalateSuggested: true,
+        draftTicket: {
+          subject: draftSubject,
+          category: this.detectCategory(lowerMessage),
+          description: rawMessage,
+          contact_email: detectedEmail || '',
+          contact_name: dto.userName || '',
+        },
+      };
+    }
+
     // 5. Check if user is confirming a ticket draft
     const confirmKeywords = ['confirm', 'yes submit', 'create it', 'submit ticket', 'go ahead', 'yes please'];
     const isConfirming = confirmKeywords.some(kw => lowerMessage === kw || lowerMessage.startsWith(kw));
@@ -350,11 +369,7 @@ Our human support team will review your inquiry and follow up directly via email
     const draftSubject = this.generateSubject(rawMessage, dto.history);
 
     return {
-      reply: isEscalationRequest
-        ? `I'd be glad to connect you with our human platform support specialists!
-
-Would you like me to submit a support ticket for our engineering and support specialists to contact you directly?`
-        : `I could not find specific documentation answering that question in our official platform knowledge base. Per our **Strict Zero-Guessing Policy**, I never speculate or fabricate facts.
+      reply: `I could not find specific documentation answering that question in our official platform knowledge base. Per our **Strict Zero-Guessing Policy**, I never speculate or fabricate facts.
 
 Would you like me to create a support ticket for our human specialists to answer your question directly?`,
       escalateSuggested: true,
