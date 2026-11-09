@@ -152,4 +152,33 @@ describe('PublicSupportService', () => {
     expect(res.status).toBe('open');
     expect(res.created_by_type).toBe('ai_on_behalf');
   });
+
+  it('should return AI offline status and ticket draft when AI is not configured', async () => {
+    jest.spyOn(service, 'isAiConfigured').mockReturnValue(false);
+
+    const status = service.getAiStatus();
+    expect(status.available).toBe(false);
+    expect(status.mode).toBe('unavailable');
+
+    const chatRes = await service.landingAiChat({
+      message: 'What is the pricing for 500 employees?',
+    });
+
+    expect(chatRes.available).toBe(false);
+    expect(chatRes.escalateSuggested).toBe(true);
+    expect(chatRes.redirectToTicket).toBe(true);
+    expect(chatRes.draftTicket).toBeDefined();
+    expect(chatRes.reply).toContain('not configured or available');
+  });
+
+  it('should return strict zero-guessing reply and ticket draft when question is unanswerable', async () => {
+    const res = await service.landingAiChat({
+      message: 'Can you fly an astronaut rocket spaceship to planet Mars tomorrow?',
+    });
+
+    expect(res.escalateSuggested).toBe(true);
+    expect(res.redirectToTicket).toBe(true);
+    expect(res.draftTicket).toBeDefined();
+    expect(res.reply).toContain('Strict Zero-Guessing Policy');
+  });
 });

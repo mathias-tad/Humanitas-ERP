@@ -107,16 +107,23 @@ export default function LandingAiAssistant({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!isMounted) return;
-        if (data && data.available === false) {
+        if (data) {
           setAiStatus({
-            available: false,
-            mode: data.mode || 'unavailable',
+            available: data.available === true,
+            mode: data.mode || (data.available ? 'online' : 'unavailable'),
             message: data.message,
           });
         }
       })
       .catch(() => {
-        // Fallback: system remains in standard operational mode
+        // Backend API unreachable or down -> Mark AI as unavailable!
+        if (isMounted) {
+          setAiStatus({
+            available: false,
+            mode: 'unreachable',
+            message: 'The AI Assistant service is currently unreachable. You can create a support ticket directly with our human specialists or browse our FAQs.',
+          });
+        }
       });
     return () => {
       isMounted = false;
@@ -249,9 +256,18 @@ How can I assist your business today?`,
         citations: data.citations || [],
         ticketCreated: data.ticketCreated,
         ticketNumber: data.ticketNumber,
+        draftTicket: data.draftTicket,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
+
+      if (data.available === false) {
+        setAiStatus((prev) => ({
+          ...prev,
+          available: false,
+          mode: 'unavailable',
+        }));
+      }
 
       if (data.draftTicket) {
         setActiveDraft({
@@ -268,9 +284,20 @@ How can I assist your business today?`,
         {
           id: `assistant-err-${Date.now()}`,
           role: 'assistant',
-          content: `⚠️ I encountered a temporary connection issue. You can submit a direct ticket to our team in the **Help Center** tab.`,
+          content: `⚠️ The AI Assistant is currently unreachable or offline. You can create a support ticket directly with our specialists in the **Help Center** tab or browse our **FAQs**.`,
+          draftTicket: {
+            subject: 'Support Inquiry',
+            category: 'general',
+            description: text,
+            contact_email: '',
+          },
         },
       ]);
+      setAiStatus((prev) => ({
+        ...prev,
+        available: false,
+        mode: 'unreachable',
+      }));
     } finally {
       setIsSending(false);
     }
@@ -435,7 +462,10 @@ Our human support team has received your ticket and conversation context. A spec
           type="button"
           id="landing-ai-floating-btn"
           onClick={(e) => {
-            e.preventDefault();
+            e.stopPropagation();
+            handleOpen();
+          }}
+          onTouchEnd={(e) => {
             e.stopPropagation();
             handleOpen();
           }}
@@ -608,25 +638,37 @@ Our human support team has received your ticket and conversation context. A spec
                       {m.draftTicket && (
                         <div className="mt-2.5 p-2 rounded-xl bg-background/90 border border-border flex items-center justify-between gap-2 shadow-xs">
                           <span className="text-[11px] text-muted-foreground">
-                            Need direct human specialist assistance?
+                            Need human specialist assistance?
                           </span>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => {
-                              setDirectTicket((prev) => ({
-                                ...prev,
-                                subject: m.draftTicket?.subject || 'Support Inquiry',
-                                description: m.draftTicket?.description || m.content,
-                                category: m.draftTicket?.category || 'general',
-                              }));
-                              setActiveTab('tickets');
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] h-7 px-2.5 flex items-center gap-1 shrink-0 cursor-pointer"
-                          >
-                            <span>Create Ticket</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                setDirectTicket((prev) => ({
+                                  ...prev,
+                                  subject: m.draftTicket?.subject || 'Support Inquiry',
+                                  description: m.draftTicket?.description || m.content,
+                                  category: m.draftTicket?.category || 'general',
+                                }));
+                                setActiveTab('tickets');
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-[11px] h-7 px-2.5 flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Create Ticket</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setActiveTab('faqs')}
+                              className="text-[11px] h-7 px-2 border-border hover:bg-muted cursor-pointer"
+                            >
+                              <FileText className="w-3 h-3" />
+                              <span>FAQs</span>
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -105,16 +105,30 @@ export class PublicSupportService {
   ) {}
 
   /**
+   * Determine whether AI Assistant is configured in this deployment environment.
+   * Checks for valid LLM keys or explicit test/runtime configuration.
+   */
+  isAiConfigured(): boolean {
+    return Boolean(
+      process.env.GEMINI_API_KEY ||
+      process.env.OPENAI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.ENABLE_LANDING_AI === 'true' ||
+      process.env.NODE_ENV === 'test'
+    );
+  }
+
+  /**
    * Check if the AI Assistant is online and operational
    */
   getAiStatus() {
-    const isAiEnabled = process.env.ENABLE_LANDING_AI !== 'false';
+    const isConfigured = this.isAiConfigured();
     return {
-      available: isAiEnabled,
-      mode: isAiEnabled ? 'online' : 'unavailable',
-      message: isAiEnabled
+      available: isConfigured,
+      mode: isConfigured ? 'online' : 'unavailable',
+      message: isConfigured
         ? 'Grounded Platform AI is online and ready'
-        : 'AI Assistant is currently offline for configuration. Our human support team is available via Support Tickets.',
+        : 'The AI Assistant is currently not configured or available. Our human support specialists are available via Support Tickets or FAQs.',
     };
   }
 
@@ -124,6 +138,29 @@ export class PublicSupportService {
   async landingAiChat(dto: LandingAiChatDto, isHrmsOnly = false) {
     const rawMessage = (dto.message || '').trim();
     const lowerMessage = rawMessage.toLowerCase();
+
+    // 0. If AI is not configured or offline, politely inform and provide 1-click ticket escalation & FAQs
+    if (!this.isAiConfigured()) {
+      const detectedEmail = dto.userEmail || this.extractEmail(rawMessage);
+      const draftSubject = this.generateSubject(rawMessage, dto.history);
+
+      return {
+        reply: `The AI Assistant is currently not configured or available.
+
+Please create a support ticket in our **Help Center** or explore our **FAQs** for direct assistance from our human support specialists.`,
+        available: false,
+        escalateSuggested: true,
+        redirectToTicket: true,
+        citations: [],
+        draftTicket: {
+          subject: draftSubject,
+          category: this.detectCategory(lowerMessage),
+          description: rawMessage,
+          contact_email: detectedEmail || '',
+          contact_name: dto.userName || '',
+        },
+      };
+    }
 
     // 1. Natural Greetings & Pleasantries Handler (Never suggest tickets for "hi", "hello", etc.)
     const greetingsRegex = /^(hi|hello|hey|good\s+(morning|afternoon|evening|day)|greetings|howdy|sup|yo|start|menu)(\s+there|\s+ai|\s+bot)?[\s!.,?]*$/i;
@@ -164,9 +201,9 @@ What would you like to explore?`,
       };
     }
 
-    // 2. Platform Capabilities / "Who are you?" / "What can you do?" / "Help"
-    const capabilityRegex = /^(who\s+are\s+you|what\s+can\s+you\s+do|what\s+do\s+you\s+do|tell\s+me\s+about\s+yourself|help(\s+me)?|what\s+is\s+humanitas)[\s!.,?]*$/i;
-    if (capabilityRegex.test(lowerMessage) || lowerMessage === 'help' || lowerMessage === 'features') {
+    // 2. Platform Capabilities / "Who are you?" / "What can you do?"
+    const capabilityRegex = /^(who\s+are\s+you|what\s+can\s+you\s+do|what\s+do\s+you\s+do|tell\s+me\s+about\s+yourself|what\s+is\s+humanitas)[\s!.,?]*$/i;
+    if (capabilityRegex.test(lowerMessage)) {
       return {
         reply: isHrmsOnly
           ? `🤖 **About Humanitas HRMS Assistant**
@@ -384,11 +421,12 @@ Our human support team will review your inquiry and follow up directly via email
     const draftSubject = this.generateSubject(rawMessage, dto.history);
 
     return {
-      reply: `I could not find specific documentation answering that question in our official platform knowledge base. Per our **Strict Zero-Guessing Policy**, I never speculate or fabricate facts.
+      reply: `I could not find a verified answer to your exact question in our official platform documentation. Per our **Strict Zero-Guessing Policy**, I never speculate or fabricate facts.
 
 Would you like me to create a support ticket for our human specialists to answer your question directly?`,
       escalateSuggested: true,
       redirectToTicket: true,
+      citations: [],
       draftTicket: {
         subject: draftSubject,
         category: this.detectCategory(lowerMessage),
