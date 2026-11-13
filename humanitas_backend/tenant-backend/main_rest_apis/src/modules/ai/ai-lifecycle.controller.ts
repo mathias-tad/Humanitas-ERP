@@ -3,6 +3,7 @@ import { AiOnboardingService } from './services/ai-onboarding.service';
 import { AiPerformanceService } from './services/ai-performance.service';
 import { AiAttritionService } from './services/ai-attrition.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsNotEmpty } from 'class-validator';
@@ -17,7 +18,8 @@ export class ReviewSummarizeDto {
 }
 
 @Controller('ai/lifecycle')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('ai')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AiLifecycleController {
   constructor(
     private readonly onboardingService: AiOnboardingService,

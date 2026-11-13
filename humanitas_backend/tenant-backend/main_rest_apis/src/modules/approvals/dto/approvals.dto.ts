@@ -1,12 +1,14 @@
 import {
   IsString,
+  IsNotEmpty,
   IsOptional,
+  IsUUID,
   IsEnum,
   IsNumber,
   IsBoolean,
+  IsIn,
   IsArray,
   ValidateNested,
-  IsUUID,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -26,24 +28,39 @@ export enum ApprovalRequestStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  ESCALATED = 'escalated',
   CANCELLED = 'cancelled',
 }
 
 export class CreateWorkflowStepDto {
+  @IsOptional()
   @IsNumber()
   @Min(1)
-  step_order: number;
+  step_order?: number;
 
+  @IsOptional()
   @IsString()
-  step_name: string;
+  step_name?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
 
   @IsOptional()
   @IsString()
   approver_role?: string;
 
   @IsOptional()
+  @IsString()
+  role_name?: string;
+
+  @IsOptional()
   @IsUUID()
   approver_user_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  user_id?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -53,12 +70,27 @@ export class CreateWorkflowStepDto {
   @IsNumber()
   @Min(1)
   escalation_hours?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  sla_hours?: number;
 }
 
 export class CreateWorkflowDto {
+  @IsOptional()
+  @IsUUID()
+  company_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  branch_id?: string;
+
+  @IsNotEmpty()
   @IsString()
   workflow_type: string;
 
+  @IsNotEmpty()
   @IsString()
   name: string;
 
@@ -67,12 +99,20 @@ export class CreateWorkflowDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(WorkflowRoutingMode)
-  routing_mode?: WorkflowRoutingMode;
+  @IsIn(['sequential', 'parallel'])
+  routing_mode?: WorkflowRoutingMode | 'sequential' | 'parallel';
 
   @IsOptional()
   @IsNumber()
   threshold_amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  min_amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  max_amount?: number;
 
   @IsOptional()
   @IsString()
@@ -83,12 +123,8 @@ export class CreateWorkflowDto {
   department?: string;
 
   @IsOptional()
-  @IsUUID()
-  company_id?: string;
-
-  @IsOptional()
-  @IsUUID()
-  branch_id?: string;
+  @IsBoolean()
+  is_active?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -98,6 +134,18 @@ export class CreateWorkflowDto {
 
 export class UpdateWorkflowDto {
   @IsOptional()
+  @IsUUID()
+  company_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  branch_id?: string;
+
+  @IsOptional()
+  @IsString()
+  workflow_type?: string;
+
+  @IsOptional()
   @IsString()
   name?: string;
 
@@ -106,12 +154,20 @@ export class UpdateWorkflowDto {
   description?: string;
 
   @IsOptional()
-  @IsEnum(WorkflowRoutingMode)
-  routing_mode?: WorkflowRoutingMode;
+  @IsIn(['sequential', 'parallel'])
+  routing_mode?: WorkflowRoutingMode | 'sequential' | 'parallel';
 
   @IsOptional()
   @IsNumber()
   threshold_amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  min_amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  max_amount?: number;
 
   @IsOptional()
   @IsString()
@@ -133,12 +189,27 @@ export class UpdateWorkflowDto {
 }
 
 export class SubmitApprovalRequestDto {
+  @IsOptional()
+  @IsUUID()
+  company_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  branch_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  workflow_id?: string;
+
+  @IsNotEmpty()
   @IsString()
   workflow_type: string;
 
+  @IsNotEmpty()
   @IsString()
   entity_type: string;
 
+  @IsNotEmpty()
   @IsString()
   entity_id: string;
 
@@ -146,6 +217,7 @@ export class SubmitApprovalRequestDto {
   @IsString()
   reference_number?: string;
 
+  @IsNotEmpty()
   @IsString()
   title: string;
 
@@ -158,8 +230,56 @@ export class SubmitApprovalRequestDto {
   currency?: string;
 
   @IsOptional()
+  @IsUUID()
+  submitter_id?: string;
+
+  @IsOptional()
+  @IsString()
+  submitter_name?: string;
+
+  @IsOptional()
+  @IsString()
+  submitter_email?: string;
+
+  @IsOptional()
   @IsString()
   department?: string;
+}
+
+export class DecideApprovalRequestDto {
+  @IsOptional()
+  @IsIn(['approved', 'rejected', 'escalated'])
+  action?: ApprovalActionType | 'approved' | 'rejected' | 'escalated';
+
+  @IsOptional()
+  @IsIn(['approved', 'rejected', 'escalated'])
+  decision?: ApprovalActionType | 'approved' | 'rejected' | 'escalated';
+
+  @IsOptional()
+  @IsString()
+  comments?: string;
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
+
+  @IsOptional()
+  @IsString()
+  requestId?: string;
+}
+
+export class FilterApprovalRequestsDto {
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  workflow_type?: string;
+
+  @IsOptional()
+  @IsUUID()
+  submitter_id?: string;
 
   @IsOptional()
   @IsUUID()
@@ -168,13 +288,38 @@ export class SubmitApprovalRequestDto {
   @IsOptional()
   @IsUUID()
   branch_id?: string;
-}
-
-export class DecideApprovalRequestDto {
-  @IsEnum(ApprovalActionType)
-  action: ApprovalActionType;
 
   @IsOptional()
   @IsString()
-  comments?: string;
+  entity_type?: string;
+
+  @IsOptional()
+  @IsString()
+  scope?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  my_pending?: boolean;
+
+  @IsOptional()
+  @IsString()
+  user_role?: string;
+
+  @IsOptional()
+  @IsString()
+  user_id?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  limit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  offset?: number;
 }

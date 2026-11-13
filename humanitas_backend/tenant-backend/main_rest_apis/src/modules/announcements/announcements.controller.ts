@@ -5,11 +5,13 @@ import {
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcement.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('announcements')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('announcements')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AnnouncementsController {
     constructor(private readonly announcementsService: AnnouncementsService) { }
 

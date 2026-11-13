@@ -42,8 +42,6 @@ import { MessageReaction } from '../messaging/entities/message-reaction.entity';
 import { MessageReadReceipt } from '../messaging/entities/message-read-receipt.entity';
 import { BlockedUser } from '../messaging/entities/blocked-user.entity';
 import { MessageSettings } from '../messaging/entities/message-settings.entity';
-import { ChatRoleRestriction } from '../messaging/entities/chat-role-restriction.entity';
-import { ChatDirectAccessGrant } from '../messaging/entities/chat-direct-access-grant.entity';
 // Phase 2.3 — New entities
 import { PayrollRun } from '../payroll/entities/payroll-run.entity';
 import { PayrollItem } from '../payroll/entities/payroll-item.entity';
@@ -66,7 +64,7 @@ const TENANT_ENTITIES = [
   Shift, Schedule, ShiftPattern, UserShiftPattern,
   ManualKPIMetric, ManualKPIScore,
   Conversation, ConversationParticipant, Message, MessageAttachment,
-  MessageReaction, MessageReadReceipt, BlockedUser, MessageSettings, ChatRoleRestriction, ChatDirectAccessGrant,
+  MessageReaction, MessageReadReceipt, BlockedUser, MessageSettings,
   // Phase 2.3 additions
   PayrollRun, PayrollItem, Loan, IncomeType, UserIncome, ActingAssignment,
   Role, Department, AttendanceRecord, LeaveRequest, OvertimeEntry,
@@ -79,8 +77,17 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
   /** Live tenant DataSource pool — keyed by database name */
   private readonly connections = new Map<string, DataSource>();
 
+  /** Last access timestamp (ms) per tenant database for LRU/idle eviction */
+  private readonly connectionLastAccessed = new Map<string, number>();
+
+  /** In-flight initialization promises to coalesce concurrent cold-start requests */
+  private readonly initializingConnections = new Map<string, Promise<DataSource>>();
+
   /** Cache of tenantId → database_name to avoid master DB lookups */
   private readonly tenantDbNames = new Map<string, string>();
+
+  /** Periodic idle connection reaper timer */
+  private reaperInterval?: NodeJS.Timeout;
 
   constructor(
     private readonly configService: ConfigService,
@@ -122,30 +129,94 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
    * Migrations are run automatically on first connection (lazy).
    */
   async getTenantConnection(databaseName: string): Promise<DataSource> {
-    // Return cached connection if still alive
+    // Return cached connection if still alive and update LRU timestamp
     const cached = this.connections.get(databaseName);
-    if (cached?.isInitialized) return cached;
-
-    this.logger.log(`Opening connection to tenant DB: ${databaseName}`);
-
-    const dataSource = new DataSource(this.buildConnectionOptions(databaseName));
-    await dataSource.initialize();
-
-    // Run any pending migrations before returning the connection
-    await this.migrationService.runMigrations(dataSource, databaseName);
-
-    // Remove from pool if the underlying pool emits an error (e.g. DB restart)
-    const driver = dataSource.driver as any;
-    if (driver?.master) {
-      driver.master.on('error', (err: Error) => {
-        this.logger.error(`Connection pool error for ${databaseName}: ${err.message}`);
-        this.connections.delete(databaseName);
-      });
+    if (cached?.isInitialized) {
+      this.connectionLastAccessed.set(databaseName, Date.now());
+      return cached;
     }
 
-    this.connections.set(databaseName, dataSource);
-    this.logger.log(`Connected to tenant DB: ${databaseName}`);
-    return dataSource;
+    // Coalesce concurrent cold-start requests for the same tenant DB
+    const inFlight = this.initializingConnections.get(databaseName);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const initPromise = (async () => {
+      try {
+        await this.evictIfPoolFull();
+        this.ensureIdleReaperStarted();
+
+        this.logger.log(`Opening connection to tenant DB: ${databaseName}`);
+
+        const dataSource = new DataSource(this.buildConnectionOptions(databaseName));
+        await dataSource.initialize();
+
+        // Run any pending migrations before returning the connection
+        await this.migrationService.runMigrations(dataSource, databaseName);
+
+        // Remove from pool if the underlying pool emits an error (e.g. DB restart)
+        const driver = dataSource.driver as any;
+        if (driver?.master) {
+          driver.master.on('error', (err: Error) => {
+            this.logger.error(`Connection pool error for ${databaseName}: ${err.message}`);
+            this.connections.delete(databaseName);
+            this.connectionLastAccessed.delete(databaseName);
+          });
+        }
+
+        this.connections.set(databaseName, dataSource);
+        this.connectionLastAccessed.set(databaseName, Date.now());
+        this.logger.log(`Connected to tenant DB: ${databaseName}`);
+        return dataSource;
+      } finally {
+        this.initializingConnections.delete(databaseName);
+      }
+    })();
+
+    this.initializingConnections.set(databaseName, initPromise);
+    return initPromise;
+  }
+
+  /** Evicts least-recently-used tenant connections when pool reaches MAX_TENANT_CONNECTIONS */
+  private async evictIfPoolFull(): Promise<void> {
+    const maxConnections = Number(this.configService.get<number>('MAX_TENANT_CONNECTIONS', 50)) || 50;
+    while (this.connections.size >= maxConnections) {
+      let oldestDb: string | null = null;
+      let oldestTime = Infinity;
+      for (const [dbName, lastTime] of this.connectionLastAccessed.entries()) {
+        if (lastTime < oldestTime) {
+          oldestTime = lastTime;
+          oldestDb = dbName;
+        }
+      }
+      if (!oldestDb) {
+        oldestDb = this.connections.keys().next().value || null;
+      }
+      if (!oldestDb) break;
+      this.logger.log(`Evicting LRU tenant DB connection from pool: ${oldestDb}`);
+      await this.closeConnection(oldestDb);
+    }
+  }
+
+  /** Lazily starts an unref'd background timer to reap idle tenant connections */
+  private ensureIdleReaperStarted(): void {
+    if (this.reaperInterval) return;
+    const idleTimeoutMs = Number(this.configService.get<number>('TENANT_IDLE_TIMEOUT_MS', 15 * 60 * 1000)) || 15 * 60 * 1000;
+    this.reaperInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [dbName, lastTime] of this.connectionLastAccessed.entries()) {
+        if (now - lastTime > idleTimeoutMs) {
+          this.logger.log(`Reaping idle tenant DB connection: ${dbName}`);
+          this.closeConnection(dbName).catch((err) =>
+            this.logger.warn(`Failed to reap idle connection ${dbName}: ${err.message}`),
+          );
+        }
+      }
+    }, Math.min(idleTimeoutMs, 5 * 60 * 1000));
+    if (typeof this.reaperInterval.unref === 'function') {
+      this.reaperInterval.unref();
+    }
   }
 
   /**
@@ -235,6 +306,7 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
     const ds = this.connections.get(databaseName);
     if (ds?.isInitialized) await ds.destroy();
     this.connections.delete(databaseName);
+    this.connectionLastAccessed.delete(databaseName);
     this.logger.log(`Reset connection for: ${databaseName}`);
   }
 
@@ -309,9 +381,14 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
     const ds = this.connections.get(databaseName);
     if (ds?.isInitialized) await ds.destroy();
     this.connections.delete(databaseName);
+    this.connectionLastAccessed.delete(databaseName);
   }
 
   async onModuleDestroy(): Promise<void> {
+    if (this.reaperInterval) {
+      clearInterval(this.reaperInterval);
+      this.reaperInterval = undefined;
+    }
     for (const [name, ds] of this.connections) {
       if (ds.isInitialized) {
         await ds.destroy();
@@ -319,6 +396,8 @@ export class DatabaseService implements OnModuleDestroy, OnApplicationBootstrap 
       }
     }
     this.connections.clear();
+    this.connectionLastAccessed.clear();
+    this.initializingConnections.clear();
   }
 
   // ─────────────────────────────────────────────────────────

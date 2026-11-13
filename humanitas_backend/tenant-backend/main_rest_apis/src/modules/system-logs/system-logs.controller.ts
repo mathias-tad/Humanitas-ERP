@@ -4,13 +4,15 @@ import { SystemLogsService } from './system-logs.service';
 import { DatabaseService } from '../database/database.service';
 import { CalculationStatus, CalculationType } from './entities/calculation-log.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { DataSource } from 'typeorm';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('System Logs')
 @Controller('system/logs')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('system_logs')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 // Trigger rebuild timestamp: 19 - Granular Logging
 export class SystemLogsController implements OnModuleInit {
     constructor(

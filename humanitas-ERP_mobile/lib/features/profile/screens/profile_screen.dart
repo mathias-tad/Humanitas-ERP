@@ -414,6 +414,18 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 ListTile(
+                  leading: const Icon(Icons.swap_horiz_outlined, color: Color(0xFF6366F1)),
+                  title: const Text('Authority Delegations'),
+                  subtitle: const Text('Manage on-behalf delegations & acting assignments'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DelegationsScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
                   leading: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.primary),
                   title: const Text('Access Control & Roles'),
                   subtitle: const Text('Manage roles, permissions & access rules'),

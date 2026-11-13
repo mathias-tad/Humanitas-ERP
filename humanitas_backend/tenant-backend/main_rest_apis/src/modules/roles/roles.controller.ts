@@ -14,6 +14,7 @@ import { FastifyRequest } from 'fastify';
 import { RolesService } from './roles.service';
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
@@ -28,7 +29,8 @@ interface AuthenticatedRequest extends FastifyRequest {
 
 @ApiTags('Roles')
 @Controller('roles')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('roles')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class RolesController {
   constructor(private readonly rolesService: RolesService) { }

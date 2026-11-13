@@ -2,12 +2,14 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { AbsencePenaltyService } from './absence-penalty.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { DatabaseService } from '../database/database.service';
 
 @Controller('absence-penalty')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('payroll')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AbsencePenaltyController {
     constructor(
         private readonly absencePenaltyService: AbsencePenaltyService,

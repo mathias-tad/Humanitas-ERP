@@ -30,9 +30,8 @@ export class AuthController {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
     const cookieDomain = this.configService.get<string>('COOKIE_DOMAIN');
 
-    // [FIX] For HTTP VPS deployment, we cannot use Secure=true / SameSite=None
-    // If running on IP address (HTTP), we must use Lax and Secure=false
-    const isHttps = false; // Hardcoded for this HTTP VPS deployment
+    const frontendUrl = this.configService.get<string>('ADMIN_FRONTEND_URL') || this.configService.get<string>('FRONTEND_URL') || '';
+    const isHttps = isProduction && frontendUrl.startsWith('https://');
 
     return {
       httpOnly: true,

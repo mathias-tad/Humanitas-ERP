@@ -11,14 +11,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
-import { RequireModule } from '../auth/guards/module-subscription.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { HrmsReportsService } from './hrms-reports.service';
 import { HrmsReportsFilterDto, BankTransferExportDto } from './dto/hrms-reports.dto';
 
 @ApiTags('HRMS Reports')
 @Controller('hrms/reports')
 @RequireModule('hrms')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class HrmsReportsController {
   constructor(private readonly reportsService: HrmsReportsService) {}

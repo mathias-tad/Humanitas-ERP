@@ -20,11 +20,13 @@ import {
   TestWebhookDto,
 } from './dto/developer-api.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('developer-api')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('developer_api')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class DeveloperApiController {
   constructor(private readonly developerApiService: DeveloperApiService) {}
 

@@ -18,11 +18,13 @@ import {
   CalendarEventsQueryDto,
 } from './dto/calendar-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 @Controller('calendar')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('calendar')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
 

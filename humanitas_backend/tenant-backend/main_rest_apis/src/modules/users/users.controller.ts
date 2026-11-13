@@ -34,7 +34,7 @@ import { UpdateManagerDto } from './dto/update-manager.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
-import { RequireModule } from '../auth/guards/module-subscription.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -48,7 +48,7 @@ interface AuthenticatedRequest extends FastifyRequest {
 @ApiTags('Users')
 @Controller('users')
 @RequireModule('hrms')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }

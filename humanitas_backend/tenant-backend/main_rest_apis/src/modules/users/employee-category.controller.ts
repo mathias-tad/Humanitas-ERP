@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { EmployeeCategoryService } from './employee-category.service';
@@ -26,8 +27,9 @@ interface AuthenticatedRequest extends FastifyRequest {
 }
 
 @ApiTags('Employee Categories')
-@Controller('employee-categories') // Group under Settings URL for UX
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('employee-categories')
+@RequireModule('users') // Group under Settings URL for UX
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class EmployeeCategoryController {
   constructor(private readonly categoryService: EmployeeCategoryService) {

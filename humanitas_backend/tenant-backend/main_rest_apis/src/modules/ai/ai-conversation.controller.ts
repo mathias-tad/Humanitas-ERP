@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { AiConversationService } from './services/ai-conversation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
 import { SetMetadata } from '@nestjs/common';
 import { IsString, IsOptional } from 'class-validator';
@@ -15,7 +16,8 @@ export class CreateConversationDto {
 }
 
 @Controller('ai/history')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('ai')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AiConversationController {
   constructor(private readonly conversationService: AiConversationService) {}
 

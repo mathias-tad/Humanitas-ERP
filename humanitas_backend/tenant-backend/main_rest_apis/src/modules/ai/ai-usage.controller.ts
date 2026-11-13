@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { AiUsageService } from './services/ai-usage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
 import { SetMetadata } from '@nestjs/common';
 import axios from 'axios';
@@ -10,7 +11,8 @@ export const Permissions = (...permissions: string[]) =>
   SetMetadata(PERMISSIONS_KEY, permissions);
 
 @Controller('ai/usage')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequireModule('ai')
+@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AiUsageController {
   constructor(
     private readonly usageService: AiUsageService,

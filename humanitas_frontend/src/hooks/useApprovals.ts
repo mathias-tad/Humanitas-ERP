@@ -942,7 +942,11 @@ export function useDecideApprovalRequest() {
           method: 'POST',
           credentials: 'include',
           headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            action: payload.decision,
+            comments: payload.comment,
+          }),
         });
         if (res.ok) {
           const json = await res.json();
