@@ -103,7 +103,6 @@ export class SelfServiceController {
       userRole === 'owner' ||
       userRole === 'administrator' ||
       userRole === 'manager' ||
-      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       user?.permissions?.includes('manage_profile_requests') === true;
 
     return this.selfServiceService.getChangeRequests(

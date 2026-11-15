@@ -149,4 +149,28 @@ describe('BankTransferExportService', () => {
       service.generateBankTransferFile('tenant-1', 1, 2026, 'nacha'),
     ).rejects.toThrow('No payroll records found');
   });
+
+  describe('getOriginatorName', () => {
+    it('uses the company legal name/name from the database', async () => {
+      mockConnection.query.mockResolvedValueOnce([{ name: 'Acme Trading PLC' }]);
+      await expect(service.getOriginatorName('tenant-1', 'company-1')).resolves.toBe('Acme Trading PLC');
+      const [sql, params] = mockConnection.query.mock.calls[mockConnection.query.mock.calls.length - 1];
+      expect(sql).toContain('FROM companies');
+      expect(params).toEqual(['company-1']);
+    });
+
+    it('falls back to the default company when no company is selected', async () => {
+      mockConnection.query.mockResolvedValueOnce([{ name: 'Default Co' }]);
+      await expect(service.getOriginatorName('tenant-1')).resolves.toBe('Default Co');
+      const [, params] = mockConnection.query.mock.calls[mockConnection.query.mock.calls.length - 1];
+      expect(params).toEqual([null]);
+    });
+
+    it('keeps the old default when nothing is found or the query fails', async () => {
+      mockConnection.query.mockResolvedValueOnce([]);
+      await expect(service.getOriginatorName('tenant-1')).resolves.toBe('Humanitas Enterprise');
+      mockConnection.query.mockRejectedValueOnce(new Error('db down'));
+      await expect(service.getOriginatorName('tenant-1')).resolves.toBe('Humanitas Enterprise');
+    });
+  });
 });

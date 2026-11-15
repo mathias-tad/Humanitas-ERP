@@ -56,6 +56,14 @@ export class PmsService {
             console.error('Failed to notify KPI update:', error);
         }
     }
+    /** The caller as a TenantUser (the JWT only carries sub/role, not id/role_id). */
+    async resolveCurrentUser(tenantId: string, userId: string): Promise<TenantUser> {
+        const userRepo = await this.getTenantRepo<TenantUser>(tenantId, TenantUser);
+        const user = await userRepo.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('Current user not found');
+        return user;
+    }
+
     private async getTenantRepo<T extends ObjectLiteral>(tenantId: string, entity: EntityTarget<T>): Promise<Repository<T>> {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
 

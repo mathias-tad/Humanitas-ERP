@@ -50,7 +50,6 @@ export class HrmsDocumentsController {
   ) {
     const tenantId = req.user?.tenantId;
     const userRole = req.user?.role?.toLowerCase() || '';
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
 
     const isPrivileged =
@@ -244,7 +243,6 @@ export class HrmsDocumentsController {
   async createDocument(@Request() req: AuthenticatedRequest, @Body() dto: CreateDocumentDto) {
     const tenantId = req.user?.tenantId;
     const userRole = req.user?.role?.toLowerCase() || '';
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
 
     const isPrivileged =
@@ -268,7 +266,6 @@ export class HrmsDocumentsController {
     const doc = await this.documentsService.getDocumentById(tenantId, id);
 
     const userRole = req.user?.role?.toLowerCase() || '';
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
     const isPrivileged =
       ['admin', 'administrator', 'owner', 'manager'].includes(userRole) ||

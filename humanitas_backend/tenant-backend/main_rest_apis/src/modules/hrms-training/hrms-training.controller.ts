@@ -126,9 +126,7 @@ export class HrmsTrainingController {
     @Query('status') status?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_training') ||
-                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
@@ -170,9 +168,7 @@ export class HrmsTrainingController {
     @Body() dto: EnrollLearnerDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_training') ||
-                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
@@ -206,9 +202,7 @@ export class HrmsTrainingController {
     @Query('user_id') user_id?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_skills') ||
-                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
@@ -224,9 +218,7 @@ export class HrmsTrainingController {
     @Body() dto: UpsertSkillDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_skills') ||
-                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 

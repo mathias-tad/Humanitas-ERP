@@ -1,5 +1,4 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
-import type { TenantUser } from '../auth/entities/tenant-user.entity';
 import {
     Controller,
     Get,
@@ -128,8 +127,8 @@ export class PmsController {
     // ============ TASKS ============
     @Post('tasks')
     @RequirePermissions('create_tasks')
-    createTask(@Req() req: AuthenticatedRequest, @Body() dto: CreateTaskDto) {
-        return this.pmsService.createTask(req.user.tenantId, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */, dto);
+    async createTask(@Req() req: AuthenticatedRequest, @Body() dto: CreateTaskDto) {
+        return this.pmsService.createTask(req.user.tenantId, await this.pmsService.resolveCurrentUser(req.user.tenantId, req.user.sub), dto);
     }
 
     @Get('tasks')
@@ -252,14 +251,14 @@ export class PmsController {
 
     @Post('teams/:id/members')
     @RequirePermissions('manage_team_members')
-    addTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
-        return this.pmsService.addTeamMember(req.user.tenantId, id, dto, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */);
+    async addTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
+        return this.pmsService.addTeamMember(req.user.tenantId, id, dto, await this.pmsService.resolveCurrentUser(req.user.tenantId, req.user.sub));
     }
 
     @Delete('teams/:id/members/:userId')
     @RequirePermissions('manage_team_members')
-    removeTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Param('userId') userId: string) {
-        return this.pmsService.removeTeamMember(req.user.tenantId, id, userId, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */);
+    async removeTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Param('userId') userId: string) {
+        return this.pmsService.removeTeamMember(req.user.tenantId, id, userId, await this.pmsService.resolveCurrentUser(req.user.tenantId, req.user.sub));
     }
 
     @Get('teams/:id/members')

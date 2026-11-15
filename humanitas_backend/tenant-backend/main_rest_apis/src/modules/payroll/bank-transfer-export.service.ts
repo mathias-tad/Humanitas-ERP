@@ -89,6 +89,29 @@ export class BankTransferExportService {
   /**
    * Main export dispatcher generating the requested banking format.
    */
+  /**
+   * Name to put on the bank file as originator: the selected company (or the
+   * default company), preferring its legal name. Falls back to the old default.
+   */
+  async getOriginatorName(tenantId: string, companyId?: string): Promise<string> {
+    try {
+      const connection = await this.databaseService.getTenantConnectionById(tenantId);
+      const rows = await connection.query(
+        `SELECT COALESCE(NULLIF(TRIM(legal_name), ''), name) AS name
+           FROM companies
+          WHERE ($1::uuid IS NULL OR id = $1::uuid) AND COALESCE(is_active, true) = true
+          ORDER BY is_default DESC NULLS LAST, created_at ASC
+          LIMIT 1`,
+        [companyId || null],
+      );
+      const name = rows?.[0]?.name;
+      if (typeof name === 'string' && name.trim()) return name.trim();
+    } catch {
+      // fall through to the default below
+    }
+    return 'Humanitas Enterprise';
+  }
+
   async generateBankTransferFile(
     tenantId: string,
     month: number,
