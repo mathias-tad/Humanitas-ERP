@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import {
   Injectable,
@@ -542,8 +543,8 @@ export class AttendanceBiometricService {
           } else {
             summary.processed++;
           }
-        } catch (err: any) {
-          console.error(`Batch punch processing error for user ${userId}: ${err.message}`);
+        } catch (err: unknown) {
+          console.error(`Batch punch processing error for user ${userId}: ${errorMessage(err)}`);
           summary.errors++;
         }
       }

@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import { Injectable, Optional } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
@@ -310,8 +311,8 @@ export class NotificationsService {
           tenantId, userId, pref.category, pref.channel, userPermissions,
         );
         results.push(result);
-      } catch (err: any) {
-        results.push({ success: false, category: pref.category, error: err.message });
+      } catch (err: unknown) {
+        results.push({ success: false, category: pref.category, error: errorMessage(err) });
       }
     }
     return results;

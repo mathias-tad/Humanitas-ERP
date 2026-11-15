@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
@@ -332,8 +333,8 @@ Employee Acknowledgment: ____________________ Date: ____________`,
            VALUES ($1, 1, $2, $3, $4, $5, 'Initial upload')`,
           [doc.id, doc.file_url, doc.file_name, doc.file_size, creatorUserId || dto.userId],
         );
-      } catch (err: any) {
-        this.logger.warn(`Failed to auto-version document ${doc.id}: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to auto-version document ${doc.id}: ${errorMessage(err)}`);
       }
     }
     return doc;
@@ -910,8 +911,8 @@ ${signatureHtml}
           ],
         );
         generated++;
-      } catch (err: any) {
-        errors.push(`Employee ${employeeId}: ${err.message}`);
+      } catch (err: unknown) {
+        errors.push(`Employee ${employeeId}: ${errorMessage(err)}`);
       }
     }
     return { generated, errors };

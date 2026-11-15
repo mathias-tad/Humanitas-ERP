@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import {
   Injectable,
   Logger,
@@ -633,8 +634,8 @@ export class RecruitmentService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch interview notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch interview notification: ${errorMessage(err)}`);
       }
     }
 
@@ -783,8 +784,8 @@ export class RecruitmentService {
             priority: 'normal',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch offer notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch offer notification: ${errorMessage(err)}`);
       }
     }
 
@@ -930,8 +931,8 @@ export class RecruitmentService {
           },
           currentUserId,
         );
-      } catch (err: any) {
-        this.logger.warn(`HrmsOnboardingService.startOnboarding error: ${err.message}. Initializing fallback onboarding.`);
+      } catch (err: unknown) {
+        this.logger.warn(`HrmsOnboardingService.startOnboarding error: ${errorMessage(err)}. Initializing fallback onboarding.`);
       }
     }
 
@@ -949,8 +950,8 @@ export class RecruitmentService {
           currentUserId || null,
         ]);
         onboarding = obResult[0];
-      } catch (e: any) {
-        this.logger.warn(`Direct employee_onboarding insertion error: ${e.message}`);
+      } catch (e: unknown) {
+        this.logger.warn(`Direct employee_onboarding insertion error: ${errorMessage(e)}`);
       }
     }
 
@@ -969,8 +970,8 @@ export class RecruitmentService {
         if (apiKey) {
           await this.updateApplicationStatus(tenantIdentifier, dto.job_id, candidateId, 'hired');
         }
-      } catch (e: any) {
-        this.logger.warn(`Could not update Krinai application status: ${e.message}`);
+      } catch (e: unknown) {
+        this.logger.warn(`Could not update Krinai application status: ${errorMessage(e)}`);
       }
     }
 
@@ -991,8 +992,8 @@ export class RecruitmentService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to send hired notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to send hired notification: ${errorMessage(err)}`);
       }
     }
 

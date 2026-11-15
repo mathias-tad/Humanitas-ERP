@@ -1,3 +1,4 @@
+import { errorMessage, errorStack } from '../../common/errors';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -33,10 +34,10 @@ export class PayrollScheduler {
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         return await operation();
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.loggerService.error(
-          `${operationName} failed for ${tenantSlug} (attempt ${attempt}/${this.MAX_RETRIES}): ${error.message}`,
-          error.stack,
+          `${operationName} failed for ${tenantSlug} (attempt ${attempt}/${this.MAX_RETRIES}): ${errorMessage(error)}`,
+          errorStack(error),
           this.context,
         );
         if (attempt < this.MAX_RETRIES) {
@@ -154,18 +155,18 @@ export class PayrollScheduler {
               );
             }
           }
-        } catch (tenantError: any) {
+        } catch (tenantError: unknown) {
           this.loggerService.error(
-            `Error processing auto payroll for tenant ${tenant.slug}: ${tenantError.message}`,
-            tenantError.stack,
+            `Error processing auto payroll for tenant ${tenant.slug}: ${errorMessage(tenantError)}`,
+            errorStack(tenantError),
             this.context,
           );
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.loggerService.error(
-        `Error in auto payroll scheduler: ${error.message}`,
-        error.stack,
+        `Error in auto payroll scheduler: ${errorMessage(error)}`,
+        errorStack(error),
         this.context,
       );
     }
@@ -211,10 +212,10 @@ export class PayrollScheduler {
         message: `Payroll triggered for ${year}/${month}`,
         result,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.loggerService.error(
-        `Manual payroll trigger failed: ${error.message}`,
-        error.stack,
+        `Manual payroll trigger failed: ${errorMessage(error)}`,
+        errorStack(error),
         this.context,
       );
       throw error;

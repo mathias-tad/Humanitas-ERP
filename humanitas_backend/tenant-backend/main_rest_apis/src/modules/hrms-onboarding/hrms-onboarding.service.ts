@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import {
   Injectable,
@@ -79,8 +80,8 @@ export class HrmsOnboardingService {
           ('00000000-0000-0000-0000-000000000002', 'Update org chart and reassign tasks', 'manager', -3, FALSE, 7);
         `);
       }
-    } catch (err: any) {
-      this.logger.error(`Error seeding default templates: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Error seeding default templates: ${errorMessage(err)}`);
     }
   }
 

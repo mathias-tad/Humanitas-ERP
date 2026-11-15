@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,8 +25,8 @@ export class DocumentExpiryCron {
     let tenants: Tenant[] = [];
     try {
       tenants = await this.tenantRepository.find({ where: { is_active: true } });
-    } catch (err: any) {
-      this.logger.error(`Failed to fetch tenants for expiry check: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to fetch tenants for expiry check: ${errorMessage(err)}`);
       return;
     }
 
@@ -59,8 +60,8 @@ export class DocumentExpiryCron {
               ],
             ).catch(() => {});
           }
-        } catch (dbErr: any) {
-          this.logger.debug(`In-app notification logging skipped: ${dbErr.message}`);
+        } catch (dbErr: unknown) {
+          this.logger.debug(`In-app notification logging skipped: ${errorMessage(dbErr)}`);
         }
       }
 
@@ -76,9 +77,9 @@ export class DocumentExpiryCron {
       } else {
         this.logger.debug(`Tenant ${tenantId}: no expiring documents`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       this.logger.error(
-        `processExpiryReminders failed for tenant ${tenantId}: ${err.message}`,
+        `processExpiryReminders failed for tenant ${tenantId}: ${errorMessage(err)}`,
       );
     }
   }

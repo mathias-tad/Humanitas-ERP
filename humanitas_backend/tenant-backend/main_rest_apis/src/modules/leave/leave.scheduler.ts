@@ -1,3 +1,4 @@
+import { errorMessage, errorStack } from '../../common/errors';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -31,10 +32,10 @@ export class LeaveScheduler {
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         return await operation();
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.loggerService.error(
-          `${operationName} failed for ${operationContext} (attempt ${attempt}/${this.MAX_RETRIES}): ${error.message}`,
-          error.stack,
+          `${operationName} failed for ${operationContext} (attempt ${attempt}/${this.MAX_RETRIES}): ${errorMessage(error)}`,
+          errorStack(error),
           this.context,
         );
         if (attempt < this.MAX_RETRIES) {
@@ -206,18 +207,18 @@ export class LeaveScheduler {
               this.context,
             );
           }
-        } catch (tenantError: any) {
+        } catch (tenantError: unknown) {
           this.loggerService.error(
-            `Error processing leave accrual for tenant ${tenant.slug}: ${tenantError.message}`,
-            tenantError.stack,
+            `Error processing leave accrual for tenant ${tenant.slug}: ${errorMessage(tenantError)}`,
+            errorStack(tenantError),
             this.context,
           );
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.loggerService.error(
-        `Error in leave accrual scheduler: ${error.message}`,
-        error.stack,
+        `Error in leave accrual scheduler: ${errorMessage(error)}`,
+        errorStack(error),
         this.context,
       );
     }

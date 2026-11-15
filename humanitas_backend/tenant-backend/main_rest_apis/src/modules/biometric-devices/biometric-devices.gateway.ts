@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -72,8 +73,8 @@ export class BiometricDevicesGateway
       // Join tenant-specific room for live device updates
       client.join(`devices:${tenantId}`);
       this.logger.log(`User ${userId} subscribed to device updates (tenant: ${tenantId})`);
-    } catch (error: any) {
-      this.logger.error(`Devices WebSocket connection error: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`Devices WebSocket connection error: ${errorMessage(error)}`);
       client.disconnect();
     }
   }

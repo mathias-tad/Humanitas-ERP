@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,8 +35,8 @@ export class BirthdayGreetingsCron {
     let tenants: Tenant[] = [];
     try {
       tenants = await this.tenantRepository.find({ where: { is_active: true } });
-    } catch (err: any) {
-      this.logger.error(`Failed to fetch active tenants for birthday cron: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to fetch active tenants for birthday cron: ${errorMessage(err)}`);
       return;
     }
 
@@ -112,8 +113,8 @@ export class BirthdayGreetingsCron {
             }
           }
         }
-      } catch (err: any) {
-        this.logger.error(`Error sending celebrant greeting to ${celebrant.full_name}: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.error(`Error sending celebrant greeting to ${celebrant.full_name}: ${errorMessage(err)}`);
       }
 
       // 2. Notify all colleagues if tenant setting has notifyColleagues enabled
@@ -148,8 +149,8 @@ export class BirthdayGreetingsCron {
               }).catch(() => {});
             }
           }
-        } catch (err: any) {
-          this.logger.error(`Error broadcasting colleague birthday alerts for ${celebrant.full_name}: ${err.message}`);
+        } catch (err: unknown) {
+          this.logger.error(`Error broadcasting colleague birthday alerts for ${celebrant.full_name}: ${errorMessage(err)}`);
         }
       }
     }

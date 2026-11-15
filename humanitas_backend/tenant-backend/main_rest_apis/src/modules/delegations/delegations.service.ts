@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import {
   Injectable,
   Logger,
@@ -118,8 +119,8 @@ export class DelegationsService {
           );
           this.logger.log(`Synchronized acting assignment delegation to payroll acting_assignments table`);
         }
-      } catch (actingSyncErr: any) {
-        this.logger.warn(`Could not sync to acting_assignments table: ${actingSyncErr.message}`);
+      } catch (actingSyncErr: unknown) {
+        this.logger.warn(`Could not sync to acting_assignments table: ${errorMessage(actingSyncErr)}`);
       }
     }
 
@@ -143,8 +144,8 @@ export class DelegationsService {
         message: notifMessage,
         deep_link: '/settings/delegations',
       });
-    } catch (notifyErr: any) {
-      this.logger.warn(`Failed to dispatch delegation notification: ${notifyErr.message}`);
+    } catch (notifyErr: unknown) {
+      this.logger.warn(`Failed to dispatch delegation notification: ${errorMessage(notifyErr)}`);
     }
 
     return delegation;
@@ -319,8 +320,8 @@ export class DelegationsService {
           );
           this.logger.log(`Deactivated corresponding entry in acting_assignments`);
         }
-      } catch (deactErr: any) {
-        this.logger.warn(`Could not deactivate acting_assignments entry: ${deactErr.message}`);
+      } catch (deactErr: unknown) {
+        this.logger.warn(`Could not deactivate acting_assignments entry: ${errorMessage(deactErr)}`);
       }
     }
 

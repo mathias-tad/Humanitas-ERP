@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
@@ -378,8 +379,8 @@ export class DeveloperApiService {
       responseStatus = res.status;
       responseBody = await res.text().catch(() => null);
       status = res.ok ? 'success' : 'failed';
-    } catch (err: any) {
-      responseBody = err.message || 'Connection failed';
+    } catch (err: unknown) {
+      responseBody = errorMessage(err) || 'Connection failed';
       status = 'failed';
     }
 
@@ -452,8 +453,8 @@ export class DeveloperApiService {
       responseStatus = res.status;
       responseBody = await res.text().catch(() => null);
       status = res.ok ? 'success' : 'failed';
-    } catch (err: any) {
-      responseBody = err.message || 'Retry failed';
+    } catch (err: unknown) {
+      responseBody = errorMessage(err) || 'Retry failed';
       status = 'failed';
     }
 
@@ -540,12 +541,12 @@ export class DeveloperApiService {
         duration_ms: Date.now() - startTime,
         response_body: text.substring(0, 500),
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
         status_code: 0,
         duration_ms: Date.now() - startTime,
-        error: err.message || 'Connection error',
+        error: errorMessage(err) || 'Connection error',
       };
     }
   }

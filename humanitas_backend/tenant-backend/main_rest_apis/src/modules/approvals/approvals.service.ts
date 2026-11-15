@@ -1,3 +1,4 @@
+import { errorCode, errorMessage, errorStack } from '../../common/errors';
 import type { DataSource } from 'typeorm';
 import {
   Injectable,
@@ -54,17 +55,17 @@ export class ApprovalsService {
         }
 
         this.ensuredDatabases.add(dbKey);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (
-          err.message?.includes('already exists') ||
-          err.message?.includes('duplicate key') ||
-          err.code === '42P07' ||
-          err.code === '23505'
+          errorMessage(err).includes('already exists') ||
+          errorMessage(err).includes('duplicate key') ||
+          errorCode(err) === '42P07' ||
+          errorCode(err) === '23505'
         ) {
           this.ensuredDatabases.add(dbKey);
           return;
         }
-        this.logger.error(`Error ensuring approval tables: ${err.message}`, err.stack);
+        this.logger.error(`Error ensuring approval tables: ${errorMessage(err)}`, errorStack(err));
       } finally {
         this.ensuringPromises.delete(dbKey);
       }
@@ -216,8 +217,8 @@ export class ApprovalsService {
           [salesWfId],
         );
       }
-    } catch (err: any) {
-      this.logger.warn(`Could not seed default workflows: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Could not seed default workflows: ${errorMessage(err)}`);
     }
   }
 
@@ -744,8 +745,8 @@ export class ApprovalsService {
           referenceId: createdRequest.id,
         });
       }
-    } catch (notifErr: any) {
-      this.logger.warn(`Failed to dispatch step notification: ${notifErr.message}`);
+    } catch (notifErr: unknown) {
+      this.logger.warn(`Failed to dispatch step notification: ${errorMessage(notifErr)}`);
     }
 
     return {
@@ -859,8 +860,8 @@ export class ApprovalsService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to notify submitter of rejection: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to notify submitter of rejection: ${errorMessage(err)}`);
       }
     } else if (action === 'approved' || action === ApprovalActionType.APPROVED) {
       if (request.current_step_order < request.total_steps) {
@@ -894,8 +895,8 @@ export class ApprovalsService {
               message: `Your request "${request.title}" (${request.reference_number}) was approved by ${userName}.`,
             });
           }
-        } catch (err: any) {
-          this.logger.warn(`Failed to notify next approver: ${err.message}`);
+        } catch (err: unknown) {
+          this.logger.warn(`Failed to notify next approver: ${errorMessage(err)}`);
         }
       } else {
         await connection.query(
@@ -923,8 +924,8 @@ export class ApprovalsService {
               priority: 'normal',
             });
           }
-        } catch (err: any) {
-          this.logger.warn(`Failed to notify submitter of final approval: ${err.message}`);
+        } catch (err: unknown) {
+          this.logger.warn(`Failed to notify submitter of final approval: ${errorMessage(err)}`);
         }
       }
     } else if (action === 'escalated' || action === ApprovalActionType.ESCALATED) {
@@ -945,8 +946,8 @@ export class ApprovalsService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch escalation notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch escalation notification: ${errorMessage(err)}`);
       }
     }
 
