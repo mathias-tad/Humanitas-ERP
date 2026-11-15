@@ -24,6 +24,7 @@ export interface JwtPayload {
   tenantSlug: string;
   role: string;
   type: 'tenant_user';
+  token_use?: 'access' | 'refresh';
   [key: string]: unknown;
 }
 
@@ -42,6 +43,61 @@ export class AuthService {
    * If the database is ever breached, raw tokens cannot be extracted.
    */
   private readonly logger = new Logger(AuthService.name);
+
+  /**
+   * Refresh tokens are signed with a DIFFERENT key from access tokens, so a refresh
+   * token can never be used as an access token (by the JWT strategy or any socket gateway).
+   * Uses JWT_REFRESH_SECRET; if it is unset or equal to JWT_SECRET, a distinct key is
+   * derived from JWT_SECRET so the two never coincide.
+   */
+  private getRefreshSecret(): string {
+    const accessSecret = this.configService.get<string>('JWT_SECRET') || '';
+    const configured = this.configService.get<string>('JWT_REFRESH_SECRET') || '';
+    if (configured && configured !== accessSecret) return configured;
+    return crypto.createHmac('sha256', accessSecret).update('humanitas-refresh-token-v1').digest('hex');
+  }
+
+  private signAccessToken(payload: JwtPayload): string {
+    return this.jwtService.sign({ ...payload, token_use: 'access' });
+  }
+
+  private signRefreshToken(payload: JwtPayload): string {
+    return this.jwtService.sign(
+      { ...payload, token_use: 'refresh' },
+      {
+        secret: this.getRefreshSecret(),
+        expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d') as any,
+      },
+    );
+  }
+
+  /**
+   * Revokes the stored refresh token for whoever owns the given token(s).
+   * Works without an authenticated request (logout must succeed even with an expired access token).
+   */
+  async revokeSessionFromTokens(refreshToken?: string, accessToken?: string): Promise<void> {
+    let payload: JwtPayload | null = null;
+    if (refreshToken) {
+      try {
+        payload = this.jwtService.verify<JwtPayload>(refreshToken, {
+          secret: this.getRefreshSecret(),
+          ignoreExpiration: true,
+        });
+      } catch {
+        payload = null;
+      }
+    }
+    if (!payload && accessToken) {
+      try {
+        payload = this.jwtService.verify<JwtPayload>(accessToken, { ignoreExpiration: true });
+      } catch {
+        payload = null;
+      }
+    }
+    if (payload?.sub && payload?.tenantId) {
+      await this.logout(payload.sub, payload.tenantId);
+    }
+  }
 
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -123,16 +179,8 @@ export class AuthService {
       type: 'tenant_user',
     };
 
-    const access_token = this.jwtService.sign({ ...payload });
-    const refresh_token = this.jwtService.sign(
-      { ...payload },
-      {
-        expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_EXPIRES_IN',
-          '7d',
-        ) as any,
-      },
-    );
+    const access_token = this.signAccessToken(payload);
+    const refresh_token = this.signRefreshToken(payload);
 
     // Update user's last login and store HASHED refresh token (never store raw tokens)
     await tenantConnection.query(
@@ -241,16 +289,8 @@ export class AuthService {
           type: 'tenant_user',
         };
 
-        const access_token = this.jwtService.sign({ ...payload });
-        const refresh_token = this.jwtService.sign(
-          { ...payload },
-          {
-            expiresIn: this.configService.get<string>(
-              'JWT_REFRESH_EXPIRES_IN',
-              '7d',
-            ) as any,
-          },
-        );
+        const access_token = this.signAccessToken(payload);
+        const refresh_token = this.signRefreshToken(payload);
 
         // Store HASHED refresh token
         await userRepository.update(existingUser.id, { refresh_token: this.hashToken(refresh_token) as any });
@@ -319,16 +359,8 @@ export class AuthService {
       type: 'tenant_user',
     };
 
-    const access_token = this.jwtService.sign({ ...payload });
-    const refresh_token = this.jwtService.sign(
-      { ...payload },
-      {
-        expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_EXPIRES_IN',
-          '7d',
-        ) as any,
-      },
-    );
+    const access_token = this.signAccessToken(payload);
+    const refresh_token = this.signRefreshToken(payload);
 
     // Store HASHED refresh token
     await userRepository.update(owner.id, { refresh_token: this.hashToken(refresh_token) as any });
@@ -417,7 +449,12 @@ export class AuthService {
     refresh_token: string;
   }> {
     try {
-      const payload = this.jwtService.verify<JwtPayload>(refreshToken);
+      const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
+        secret: this.getRefreshSecret(),
+      });
+      if (payload.token_use !== 'refresh') {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
       // Get tenant connection
       const tenant = await this.tenantRepository.findOne({
@@ -451,16 +488,8 @@ export class AuthService {
         type: 'tenant_user',
       };
 
-      const access_token = this.jwtService.sign({ ...newPayload });
-      const refresh_token = this.jwtService.sign(
-        { ...newPayload },
-        {
-          expiresIn: this.configService.get<string>(
-            'JWT_REFRESH_EXPIRES_IN',
-            '7d',
-          ) as any,
-        },
-      );
+      const access_token = this.signAccessToken(newPayload);
+      const refresh_token = this.signRefreshToken(newPayload);
 
       // Store HASHED new refresh token
       await userRepository.update(user.id, { refresh_token: this.hashToken(refresh_token) as any });
@@ -480,8 +509,11 @@ export class AuthService {
       const tenantConnection = await this.databaseService.getTenantConnection(
         tenant.database_name,
       );
-      const userRepository = tenantConnection.getRepository(TenantUser);
-      await userRepository.update(userId, { refresh_token: undefined });
+      // NOTE: TypeORM skips `undefined` in update(), so clear the column explicitly.
+      await tenantConnection.query(
+        `UPDATE users SET refresh_token = NULL, updated_at = NOW() WHERE id = $1`,
+        [userId],
+      );
     }
   }
 

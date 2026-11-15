@@ -85,20 +85,6 @@ export class AiActionService {
     return { ds, tenantId: rows[0].id };
   }
 
-  private async ensureAuditTable(ds: any): Promise<void> {
-    await ds.query(`
-      CREATE TABLE IF NOT EXISTS system_audit_logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        action_type VARCHAR(50) NOT NULL,
-        performed_by UUID,
-        executed_by VARCHAR(50) DEFAULT 'ai_on_behalf',
-        entity_type VARCHAR(100),
-        entity_id VARCHAR(255),
-        details JSONB,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `).catch(() => {});
-  }
 
   private async logAuditAction(
     ds: any,
@@ -108,7 +94,6 @@ export class AiActionService {
     details: Record<string, any>,
   ): Promise<void> {
     try {
-      await this.ensureAuditTable(ds);
       await ds.query(
         `INSERT INTO system_audit_logs (action_type, performed_by, executed_by, entity_type, entity_id, details, created_at)
          VALUES ('ai_action', $1, 'ai_on_behalf', $2, $3, $4, NOW())`,
@@ -307,14 +292,6 @@ export class AiActionService {
       async ({ title, content, priority, target_type }) => {
         try {
           const { ds } = await getConn();
-          await ds.query(`
-            CREATE TABLE IF NOT EXISTS announcements (
-              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-              title VARCHAR(255) NOT NULL, content TEXT NOT NULL,
-              priority VARCHAR(20) DEFAULT 'normal', target_type VARCHAR(20) NOT NULL,
-              target_ids TEXT[], created_by UUID, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
-            )
-          `);
           const id = uuidv4();
           await ds.query(`
             INSERT INTO announcements (id, title, content, priority, target_type, created_by, created_at, updated_at)
@@ -1569,7 +1546,6 @@ export class AiActionService {
       async ({ limit }) => {
         try {
           const { ds } = await getConn();
-          await this.ensureAuditTable(ds);
           const rows = await ds.query(
             `SELECT l.id, l.action_type, l.performed_by, l.executed_by, l.entity_type, l.entity_id, l.details, l.created_at,
                     COALESCE(u.full_name, u.email, 'System') as user_name

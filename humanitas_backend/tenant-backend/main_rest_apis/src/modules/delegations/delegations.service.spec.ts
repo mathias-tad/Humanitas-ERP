@@ -68,7 +68,6 @@ describe('DelegationsService', () => {
     });
 
     it('should throw NotFoundException if delegatee does not exist', async () => {
-      mockConnection.query.mockResolvedValueOnce([]); // ensureDelegationTables
       mockConnection.query.mockResolvedValueOnce([]); // delegatee query empty
 
       await expect(
@@ -85,7 +84,6 @@ describe('DelegationsService', () => {
       const end = new Date(Date.now() + 86400000);
 
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'user-2', email: 'colleague@example.com' }]) // delegatee
         .mockResolvedValueOnce([{ id: 'user-1', first_name: 'John', last_name: 'Doe' }]) // delegator
         .mockResolvedValueOnce([{ id: 'del-123', delegator_id: 'user-1', delegatee_id: 'user-2', status: 'active' }]); // insert
@@ -107,7 +105,6 @@ describe('DelegationsService', () => {
       const end = new Date(Date.now() + 86400000 * 30);
 
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'user-2', email: 'colleague@example.com' }]) // delegatee
         .mockResolvedValueOnce([{ id: 'user-1', first_name: 'Jane', last_name: 'Smith', position: 'VP of Finance', basic_salary: 50000 }]) // delegator
         .mockResolvedValueOnce([{
@@ -148,7 +145,6 @@ describe('DelegationsService', () => {
   describe('calculateActingAllowancePreview', () => {
     it('should calculate estimated monthly allowance based on percentage of delegator salary', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'user-1', first_name: 'John', last_name: 'Doe', position: 'Director', basic_salary: 40000 }]);
 
       const preview = await service.calculateActingAllowancePreview('tenant-1', 'user-1', 15, 0);
@@ -160,7 +156,6 @@ describe('DelegationsService', () => {
 
     it('should calculate estimated monthly allowance based on fixed amount', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'user-1', first_name: 'John', last_name: 'Doe', position: 'Director', basic_salary: 40000 }]);
 
       const preview = await service.calculateActingAllowancePreview('tenant-1', 'user-1', 0, 3500);
@@ -173,7 +168,6 @@ describe('DelegationsService', () => {
   describe('getActiveDelegationsForUser', () => {
     it('should query active delegations currently in effect', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'del-1', delegator_permissions: ['approve_leave'] }]);
 
       const active = await service.getActiveDelegationsForUser('tenant-1', 'user-2');
@@ -184,7 +178,6 @@ describe('DelegationsService', () => {
   describe('revokeDelegation', () => {
     it('should throw NotFoundException if delegation does not exist', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([]); // not found
 
       await expect(
@@ -194,7 +187,6 @@ describe('DelegationsService', () => {
 
     it('should throw ForbiddenException if user is not a party and not admin', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'del-1', delegator_id: 'user-1', delegatee_id: 'user-2' }]);
 
       await expect(
@@ -204,7 +196,6 @@ describe('DelegationsService', () => {
 
     it('should allow revoking if user is delegator and deactivate acting_assignments', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'del-1', delegator_id: 'user-1', delegatee_id: 'user-2', is_acting_assignment: true }])
         .mockResolvedValueOnce([{ id: 'del-1', status: 'revoked' }])
         .mockResolvedValueOnce([{ tbl: 'acting_assignments' }])
@@ -216,7 +207,6 @@ describe('DelegationsService', () => {
 
     it('should allow revoking if user is admin', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'del-1', delegator_id: 'user-1', delegatee_id: 'user-2', is_acting_assignment: false }])
         .mockResolvedValueOnce([{ id: 'del-1', status: 'revoked' }]);
 
@@ -228,7 +218,6 @@ describe('DelegationsService', () => {
   describe('logDelegatedAction & getDelegationAudit', () => {
     it('should insert audit record and return it', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'audit-1', action: 'approve_leave' }]);
 
       const result = await service.logDelegatedAction('tenant-1', {
@@ -244,7 +233,6 @@ describe('DelegationsService', () => {
 
     it('should retrieve audit records', async () => {
       mockConnection.query
-        .mockResolvedValueOnce([]) // ensureDelegationTables
         .mockResolvedValueOnce([{ id: 'audit-1' }]);
 
       const result = await service.getDelegationAudit('tenant-1', 'del-123', 'user-1', true);

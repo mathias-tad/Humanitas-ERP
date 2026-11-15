@@ -56,28 +56,11 @@ export class PmsService {
             console.error('Failed to notify KPI update:', error);
         }
     }
-
-    private async ensurePmsSchema(connection: any) {
-        try {
-            await connection.query(`
-                ALTER TABLE pms_projects ADD COLUMN IF NOT EXISTS visibility VARCHAR(20) DEFAULT 'public';
-                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS story_points INT DEFAULT 0;
-                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS backlog_order INT DEFAULT 0;
-                ALTER TABLE pms_tasks ADD COLUMN IF NOT EXISTS is_milestone BOOLEAN DEFAULT FALSE;
-                ALTER TABLE pms_task_time_logs ADD COLUMN IF NOT EXISTS is_billable BOOLEAN DEFAULT TRUE;
-                ALTER TABLE pms_task_time_logs ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(10, 2) DEFAULT 0;
-            `);
-        } catch (e) {
-            // Idempotent column check
-        }
-    }
-
     private async getTenantRepo<T extends ObjectLiteral>(tenantId: string, entity: EntityTarget<T>): Promise<Repository<T>> {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
         // Ensure PMS tables and columns exist in the tenant database
         if (!this.syncedTenants.has(tenantId)) {
-            await this.ensurePmsSchema(connection);
             this.syncedTenants.add(tenantId);
         }
 
@@ -1031,7 +1014,6 @@ export class PmsService {
     // ============ BACKLOG MANAGEMENT ============
     async getProjectBacklog(tenantId: string, projectId: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensurePmsSchema(connection);
 
         const tasks = await connection.query(`
             SELECT 
@@ -1059,7 +1041,6 @@ export class PmsService {
 
     async updateBacklogOrder(tenantId: string, taskIds: string[]) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensurePmsSchema(connection);
 
         for (let i = 0; i < taskIds.length; i++) {
             await connection.query(
@@ -1072,7 +1053,6 @@ export class PmsService {
 
     async assignTaskToSprint(tenantId: string, taskId: string, sprintId: string | null) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensurePmsSchema(connection);
 
         await connection.query(
             `UPDATE pms_tasks SET sprint_id = $1 WHERE id = $2 AND tenant_id = $3`,
@@ -1201,7 +1181,6 @@ export class PmsService {
     // ============ TIME TRACKING & BILLABLE SEGREGATION ============
     async getTimeTrackingSummary(tenantId: string, projectId: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensurePmsSchema(connection);
 
         const logs = await connection.query(`
             SELECT 

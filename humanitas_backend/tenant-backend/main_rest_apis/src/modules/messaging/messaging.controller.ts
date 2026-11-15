@@ -1,11 +1,14 @@
 import {
     Controller, Get, Post, Patch, Delete, Put,
     Body, Param, Query, UseGuards, Request,
-    BadRequestException,
+    BadRequestException, ForbiddenException,
 } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import { MessagingService } from './messaging.service';
+import { DatabaseService } from '../database/database.service';
+import { isActiveParticipant } from './conversation-membership';
+import { assertAllowedExtension, getUploadsDir, randomUploadName } from './upload-utils';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import {
     SendMessageDto, EditMessageDto, ReactMessageDto,
@@ -24,7 +27,10 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 @RequireModule('messaging')
 @RequirePermissions('use_messaging')
 export class MessagingController {
-    constructor(private readonly messagingService: MessagingService) { }
+    constructor(
+        private readonly messagingService: MessagingService,
+        private readonly databaseService: DatabaseService,
+    ) { }
 
     // ─────────────────────── CONVERSATIONS ───────────────────────
     @Post('conversations')
@@ -114,17 +120,21 @@ export class MessagingController {
     async uploadConversationAvatar(@Request() req, @Param('id') id: string) {
         try {
             // In NestJS+Fastify the decorated @Request() is already the Fastify request
+            // Only members of the conversation may change its avatar
+            const ds = await this.databaseService.getTenantConnectionById(req.user.tenantId);
+            if (!(await isActiveParticipant(ds, id, req.user.sub))) {
+                throw new ForbiddenException('You are not a member of this conversation');
+            }
+
             const data = await req.file();
             if (!data) throw new BadRequestException('No file uploaded');
 
+            const ext = assertAllowedExtension(data.filename, true);
             const buffer = await data.toBuffer();
             if (!buffer || buffer.length === 0) throw new BadRequestException('Empty file');
 
-            const ext = path.extname(data.filename || '.png') || '.png';
-            const filename = `conv_${id}_${Date.now()}${ext}`;
-            const uploadsDir = path.join(process.cwd(), 'uploads');
-            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-            await fs.promises.writeFile(path.join(uploadsDir, filename), buffer);
+            const filename = randomUploadName('conv', ext);
+            await fs.promises.writeFile(path.join(getUploadsDir(), filename), buffer);
 
             const avatarUrl = `/uploads/${filename}`;
             return this.messagingService.updateConversation(
@@ -132,7 +142,7 @@ export class MessagingController {
                 { avatarUrl } as UpdateGroupDto,
             );
         } catch (err) {
-            if (err instanceof BadRequestException) throw err;
+            if (err instanceof BadRequestException || err instanceof ForbiddenException) throw err;
             throw new BadRequestException(`Failed to upload avatar: ${err.message}`);
         }
     }
@@ -147,14 +157,12 @@ export class MessagingController {
         try {
             const data = await req.file();
             if (!data) throw new BadRequestException('No file uploaded');
+            const ext = assertAllowedExtension(data.filename);
             const buffer = await data.toBuffer();
             if (!buffer || buffer.length === 0) throw new BadRequestException('Empty file');
 
-            const ext = path.extname(data.filename || '.bin') || '.bin';
-            const filename = `msg_${Date.now()}${ext}`;
-            const uploadsDir = path.join(process.cwd(), 'uploads');
-            if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-            await fs.promises.writeFile(path.join(uploadsDir, filename), buffer);
+            const filename = randomUploadName('msg', ext);
+            await fs.promises.writeFile(path.join(getUploadsDir(), filename), buffer);
 
             return { url: `/uploads/${filename}`, filename };
         } catch (err) {

@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
+import { InternalServiceGuard } from '../auth/guards/internal-service.guard';
 
 @Controller('ai/usage')
 export class AiUsageAdminController {
@@ -50,15 +51,36 @@ export class AiUsageAdminController {
     return this.billingService.getUserUsage(tenantId, userId);
   }
 
+  // ── Internal (tenant-backend) read endpoints — scoped to the calling tenant by the tenant API ──
+
+  @Get('internal/tenant/:tenantId/summary')
+  @UseGuards(InternalServiceGuard)
+  getTenantSummaryInternal(@Param('tenantId') tenantId: string) {
+    return this.billingService.getTenantUsageSummary(tenantId);
+  }
+
+  @Get('internal/tenant/:tenantId/breakdown')
+  @UseGuards(InternalServiceGuard)
+  getTenantBreakdownInternal(@Param('tenantId') tenantId: string) {
+    return this.billingService.getTenantUserBreakdown(tenantId);
+  }
+
+  @Get('internal/tenant/:tenantId/user/:userId')
+  @UseGuards(InternalServiceGuard)
+  getUserUsageInternal(
+    @Param('tenantId') tenantId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.billingService.getUserUsage(tenantId, userId);
+  }
+
   /**
    * GET /ai/usage/budget-check/:tenantId
    * Check whether a tenant has remaining token budget (called by tenant-backend).
    */
   @Get('budget-check/:tenantId')
-  checkBudget(@Param('tenantId') tenantId: string, @Req() req: any) {
-    if (req.headers['x-internal-service'] !== 'tenant-backend') {
-      throw new UnauthorizedException('Internal service access only');
-    }
+  @UseGuards(InternalServiceGuard)
+  checkBudget(@Param('tenantId') tenantId: string) {
     return this.billingService.checkTokenBudget(tenantId);
   }
 
@@ -67,10 +89,8 @@ export class AiUsageAdminController {
    * Internal endpoint for tenant-backend to log an AI call.
    */
   @Post()
-  logUsage(@Body() payload: any, @Req() req: any) {
-    if (req.headers['x-internal-service'] !== 'tenant-backend') {
-      throw new UnauthorizedException('Internal service access only');
-    }
+  @UseGuards(InternalServiceGuard)
+  logUsage(@Body() payload: any) {
     return this.billingService.logUsage(payload);
   }
 }

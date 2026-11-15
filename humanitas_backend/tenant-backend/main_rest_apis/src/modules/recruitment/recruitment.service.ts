@@ -33,7 +33,6 @@ import {
 export class RecruitmentService {
   private readonly logger = new Logger(RecruitmentService.name);
   private readonly krinaiApiUrl = 'https://krinaiapi.ziontech.tech/api/v1';
-  private readonly ensuredDatabases = new Set<string>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -503,80 +502,6 @@ export class RecruitmentService {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Database Schema & Table Initialization
-  // ──────────────────────────────────────────────
-
-  async ensureRecruitmentTables(connection: any) {
-    const dbName = connection.options?.database || 'default';
-    if (this.ensuredDatabases.has(dbName)) return;
-
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS recruitment_interviews (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          tenant_id UUID,
-          company_id UUID,
-          branch_id UUID,
-          job_id VARCHAR(100) NOT NULL,
-          candidate_id VARCHAR(100) NOT NULL,
-          candidate_name VARCHAR(255) NOT NULL,
-          candidate_email VARCHAR(255),
-          interviewer_id UUID,
-          interviewer_name VARCHAR(255),
-          interview_type VARCHAR(50) DEFAULT 'technical',
-          scheduled_at TIMESTAMP NOT NULL,
-          duration_minutes INT DEFAULT 45,
-          meeting_link TEXT,
-          status VARCHAR(50) DEFAULT 'scheduled',
-          feedback TEXT,
-          rating INT,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_rec_interviews_job_cand ON recruitment_interviews(job_id, candidate_id);
-        CREATE INDEX IF NOT EXISTS idx_rec_interviews_scope ON recruitment_interviews(company_id, branch_id);
-
-        CREATE TABLE IF NOT EXISTS recruitment_offers (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          tenant_id UUID,
-          company_id UUID,
-          branch_id UUID,
-          job_id VARCHAR(100) NOT NULL,
-          candidate_id VARCHAR(100) NOT NULL,
-          candidate_name VARCHAR(255) NOT NULL,
-          candidate_email VARCHAR(255),
-          position_title VARCHAR(255) NOT NULL,
-          department VARCHAR(100),
-          offered_salary DECIMAL(12,2) NOT NULL,
-          currency VARCHAR(10) DEFAULT 'USD',
-          start_date DATE,
-          expiry_date DATE,
-          status VARCHAR(50) DEFAULT 'draft',
-          letter_content TEXT,
-          signed_at TIMESTAMP,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_rec_offers_job_cand ON recruitment_offers(job_id, candidate_id);
-        CREATE INDEX IF NOT EXISTS idx_rec_offers_scope ON recruitment_offers(company_id, branch_id);
-      `);
-      this.ensuredDatabases.add(dbName);
-    } catch (err: any) {
-      if (
-        err.message?.includes('already exists') ||
-        err.code === '23505'
-      ) {
-        this.ensuredDatabases.add(dbName);
-        return;
-      }
-      this.logger.error(`Error ensuring recruitment tables: ${err.message}`);
-      throw err;
-    }
-  }
-
   async getTenantConnection(tenantIdentifier: string) {
     if (!this.databaseService) {
       throw new BadRequestException('Database service not configured');
@@ -615,9 +540,6 @@ export class RecruitmentService {
       }
     }
 
-    if (connection) {
-      await this.ensureRecruitmentTables(connection);
-    }
     return connection;
   }
 
@@ -1145,11 +1067,11 @@ export class RecruitmentService {
       appliedCount = 0;
     }
 
-    if (appliedCount === 0) {
-      appliedCount = Math.max(interviewCount * 3, offerCount + interviewCount + rejectedCount, 15);
-    }
+    // Real counts only (no invented minimums). Everyone interviewed must have applied.
+    appliedCount = Math.max(appliedCount, interviewCount);
 
-    const screeningCount = Math.max(Math.round(appliedCount * 0.7), interviewCount);
+    // No separate screening stage is recorded yet: candidates who reached interview passed screening.
+    const screeningCount = interviewCount;
 
     const applicantToInterview = appliedCount > 0 ? Number(((interviewCount / appliedCount) * 100).toFixed(2)) : 0;
     const interviewToOffer = interviewCount > 0 ? Number(((offerCount / interviewCount) * 100).toFixed(2)) : 0;
@@ -1183,7 +1105,7 @@ export class RecruitmentService {
       WHERE o.status = 'accepted' AND o.signed_at IS NOT NULL AND i.scheduled_at IS NOT NULL
     `);
     const rawDays = parseFloat(timeToHireRes[0]?.avg_days);
-    const timeToHire = !isNaN(rawDays) && rawDays > 0 ? Number(rawDays.toFixed(1)) : 18.5;
+    const timeToHire = !isNaN(rawDays) && rawDays > 0 ? Number(rawDays.toFixed(1)) : 0;
 
     // Filled positions & avg cost
     const filledRes = await connection.query(`
@@ -1193,7 +1115,10 @@ export class RecruitmentService {
     `);
     const filledPositions = parseInt(filledRes[0]?.count || '0', 10);
     const avgSalary = parseFloat(filledRes[0]?.avg_salary) || 0;
-    const costPerHire = avgSalary > 0 ? Number((avgSalary * 0.08).toFixed(2)) : 2450.0;
+    // Recruiting costs (ads, agency fees…) are not captured yet, so cost-per-hire is not computed.
+    // (Previously an invented "8% of salary" / 2450 placeholder.) avgSalary kept for future use.
+    void avgSalary;
+    const costPerHire = 0;
 
     // Open positions count from Krinai jobs or fallback
     let openPositions = 0;
@@ -1203,9 +1128,6 @@ export class RecruitmentService {
       openPositions = items.filter((j: any) => j.status === 'open' || j.status === 'active' || !j.status).length;
     } catch {
       openPositions = 0;
-    }
-    if (openPositions === 0) {
-      openPositions = Math.max(5, filledPositions > 0 ? filledPositions + 2 : 5);
     }
 
     // Department breakdown
@@ -1218,21 +1140,12 @@ export class RecruitmentService {
       GROUP BY COALESCE(department, 'General')
     `);
 
-    let departmentBreakdown = (deptRows || []).map((r: any) => ({
+    const departmentBreakdown = (deptRows || []).map((r: any) => ({
       department: r.department,
-      open: 2,
+      open: 0, // per-department open roles are not tracked yet
       filled: parseInt(r.hired_count || '0', 10),
-      total_candidates: parseInt(r.total_offers || '0', 10) * 4,
+      total_candidates: parseInt(r.total_offers || '0', 10),
     }));
-
-    if (departmentBreakdown.length === 0) {
-      departmentBreakdown = [
-        { department: 'Engineering', open: 3, filled: 4, total_candidates: 45 },
-        { department: 'Marketing', open: 1, filled: 2, total_candidates: 18 },
-        { department: 'Sales', open: 2, filled: 3, total_candidates: 25 },
-        { department: 'Human Resources', open: 1, filled: 1, total_candidates: 12 },
-      ];
-    }
 
     return {
       time_to_hire_days: timeToHire,

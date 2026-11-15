@@ -11,26 +11,8 @@ export class AnnouncementsService {
         private readonly notificationsService: NotificationsService,
         private readonly notificationsGateway: NotificationsGateway,
     ) { }
-
-    async ensureAnnouncementsTables(connection: any) {
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS announcements (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                title VARCHAR(255) NOT NULL,
-                content TEXT NOT NULL,
-                priority VARCHAR(20) DEFAULT 'normal',
-                target_type VARCHAR(20) NOT NULL,
-                target_ids TEXT[],
-                created_by UUID,
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            );
-        `);
-    }
-
     async findAll(tenantId: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureAnnouncementsTables(connection);
 
         return connection.query(`
             SELECT a.*, u.full_name as created_by_name
@@ -55,7 +37,6 @@ export class AnnouncementsService {
 
     async create(tenantId: string, userId: string, dto: CreateAnnouncementDto) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureAnnouncementsTables(connection);
 
         const result = await connection.query(`
             INSERT INTO announcements (title, content, priority, target_type, target_ids, created_by)

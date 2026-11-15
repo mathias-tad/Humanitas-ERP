@@ -158,7 +158,10 @@ describe('AiDocumentService', () => {
       );
 
       expect(mockDatabaseService.getTenantConnection).toHaveBeenCalledWith('tenant_db_1');
-      expect(mockTenantConn.query).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS ai_document_audit_logs'));
+      // Table now comes from tenant migrations; no DDL may run at request time.
+      for (const call of mockTenantConn.query.mock.calls) {
+        expect(String(call[0])).not.toMatch(/\b(CREATE|ALTER|DROP)\s+TABLE\b/i);
+      }
       expect(mockTenantConn.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO ai_document_audit_logs'),
         ['tenant-1', 'user-uuid-123', 'individual_payslip', 'pdf', 'payslip_oct_2026.pdf', JSON.stringify({ employee_id: 'emp-1' })],

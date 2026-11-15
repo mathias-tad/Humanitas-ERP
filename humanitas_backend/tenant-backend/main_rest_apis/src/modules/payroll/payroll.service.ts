@@ -27,7 +27,6 @@ export class PayrollService {
         { min_salary: 10900, max_salary: null, rate: 35, deduction: 1500 },
       ];
 
-      await connection.query(`ALTER TABLE tax_rules ALTER COLUMN max_salary DROP NOT NULL`);
       await connection.query(`UPDATE tax_rules SET is_active = false WHERE is_active = true`);
 
       for (const bracket of taxBrackets) {

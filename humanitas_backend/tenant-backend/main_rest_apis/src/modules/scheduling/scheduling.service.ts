@@ -22,103 +22,6 @@ export class SchedulingService {
     private readonly settingsService: SettingsService,
     private readonly holidaysService: HolidaysService,
   ) { }
-
-  private async ensureSchedulingTables(connection: any) {
-    // Run migration check before creating schema to ensure clean state or after?
-    // Better after creating new tables so we can insert into them.
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS shifts (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        start_time TIME NOT NULL,
-        end_time TIME NOT NULL,
-        color VARCHAR(20) DEFAULT '#3B82F6',
-        is_overnight BOOLEAN DEFAULT false,
-        description TEXT,
-        grace_minutes INTEGER DEFAULT 15,
-        wait_for_absent_minutes INTEGER DEFAULT NULL,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS schedules (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        shift_id UUID REFERENCES shifts(id),
-        date DATE NOT NULL,
-        is_day_off BOOLEAN DEFAULT false,
-        is_override BOOLEAN DEFAULT false,
-        note TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, date)
-      );
-
-      CREATE TABLE IF NOT EXISTS shift_patterns (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        cycle_length_days INTEGER NOT NULL,
-        shifts JSONB NOT NULL,
-        enable_dayoff_rotation BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS user_shift_patterns (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        pattern_id UUID REFERENCES shift_patterns(id),
-        start_date DATE NOT NULL,
-        end_date DATE,
-        day_off_days JSONB DEFAULT '[]',
-        auto_rotate_dayoff BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id)
-      );
-
-      CREATE TABLE IF NOT EXISTS attendance_records (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        date DATE NOT NULL,
-        shift_id UUID REFERENCES shifts(id),
-        scheduled_in TIME,
-        scheduled_out TIME,
-        actual_in TIMESTAMP,
-        actual_out TIMESTAMP,
-        status VARCHAR(20) DEFAULT 'Pending',
-        work_hours INTERVAL,
-        remarks TEXT,
-        is_corrected BOOLEAN DEFAULT false,
-        corrected_by UUID,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, date)
-      );
-    `);
-
-    // Migration for existing tenants
-    try {
-      await connection.query(`
-        ALTER TABLE shift_patterns ADD COLUMN IF NOT EXISTS enable_dayoff_rotation BOOLEAN DEFAULT false;
-        ALTER TABLE user_shift_patterns ADD COLUMN IF NOT EXISTS day_off_days JSONB DEFAULT '[]';
-        ALTER TABLE user_shift_patterns ADD COLUMN IF NOT EXISTS auto_rotate_dayoff BOOLEAN DEFAULT true;
-        ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id);
-        ALTER TABLE shifts ADD COLUMN IF NOT EXISTS grace_minutes INTEGER DEFAULT 15;
-        ALTER TABLE shifts ADD COLUMN IF NOT EXISTS wait_for_absent_minutes INTEGER DEFAULT NULL;
-      `);
-    } catch (e) {
-      console.log('[Scheduling] Migration columns might already exist');
-    }
-
-    // Trigger Migration
-    await this.migrateLegacyData(connection);
-  }
-
   // ============ MIGRATION LOGIC ============
   private async migrateLegacyData(connection: any) {
     try {
@@ -236,7 +139,6 @@ export class SchedulingService {
   async createShift(tenantId: string, dto: CreateShiftDto, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     const result = await connection.query(
       `
       INSERT INTO shifts (name, start_time, end_time, color, is_overnight, description, grace_minutes, wait_for_absent_minutes)
@@ -269,13 +171,11 @@ export class SchedulingService {
   async getShifts(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     return await connection.query(`SELECT * FROM shifts WHERE is_active = true ORDER BY name`);
   }
 
   async updateShift(tenantId: string, shiftId: string, dto: UpdateShiftDto, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     const result = await connection.query(
       `
@@ -316,7 +216,6 @@ export class SchedulingService {
   async deleteShift(tenantId: string, shiftId: string, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     // Soft delete
     await connection.query(
@@ -342,7 +241,6 @@ export class SchedulingService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     const result = await connection.query(
       `
       INSERT INTO shift_patterns (name, description, cycle_length_days, shifts, enable_dayoff_rotation)
@@ -372,7 +270,6 @@ export class SchedulingService {
   async getPatterns(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     return await connection.query(
       `SELECT * FROM shift_patterns WHERE is_active = true ORDER BY name`,
     );
@@ -381,7 +278,6 @@ export class SchedulingService {
   async getPatternById(tenantId: string, patternId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     const result = await connection.query(
       `SELECT * FROM shift_patterns WHERE id = $1 AND is_active = true`,
       [patternId],
@@ -401,7 +297,6 @@ export class SchedulingService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     // Verify existence
     await this.getPatternById(tenantId, patternId);
@@ -428,7 +323,6 @@ export class SchedulingService {
   async deletePattern(tenantId: string, patternId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     // Soft delete
     await connection.query(
@@ -449,7 +343,6 @@ export class SchedulingService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     const result = await connection.query(
       `
@@ -487,7 +380,6 @@ export class SchedulingService {
   async assignPattern(tenantId: string, dto: AssignPatternDto, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     const startDate = dto.start_date || new Date().toISOString().split('T')[0];
 
@@ -527,7 +419,6 @@ export class SchedulingService {
 
   async getUserShiftPatterns(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     return await connection.query(`
       SELECT usp.*, 
@@ -555,7 +446,6 @@ export class SchedulingService {
 
   async getUsersWithAssignments(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     return await connection.query(`
       SELECT u.id, u.full_name, u.email, u.department, u.position, u.avatar_url,
@@ -573,7 +463,6 @@ export class SchedulingService {
 
   async removePatternAssignment(tenantId: string, userId: string, auditUserId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     await connection.query(`DELETE FROM user_shift_patterns WHERE user_id = $1`, [userId]);
 
@@ -594,7 +483,6 @@ export class SchedulingService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -801,7 +689,6 @@ export class SchedulingService {
   async getAuditLogs(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureSchedulingTables(connection);
     return await connection.query(`
             SELECT a.*, u.full_name as user_name, u.email as user_email 
             FROM audit_logs a

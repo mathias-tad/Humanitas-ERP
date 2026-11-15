@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { internalServiceHeaders } from '../internal-service-headers';
 
 export interface UsageLogPayload {
   tenant_id: string;
@@ -35,7 +36,7 @@ export class AiUsageService {
       // Fire-and-forget — do not await to avoid slowing down AI responses
       axios.post(`${adminUrl}/ai/usage`, payload, {
         timeout: 5000,
-        headers: { 'x-internal-service': 'tenant-backend' },
+        headers: internalServiceHeaders(this.configService),
       }).catch((err) => {
         console.error('Failed to log AI usage to admin-backend:', err.message, err.response?.data);
       });
@@ -55,7 +56,7 @@ export class AiUsageService {
     try {
       const res = await axios.get(`${adminUrl}/ai/usage/budget-check/${tenantId}`, {
         timeout: 3000,
-        headers: { 'x-internal-service': 'tenant-backend' },
+        headers: internalServiceHeaders(this.configService),
       });
       return res.data;
     } catch {

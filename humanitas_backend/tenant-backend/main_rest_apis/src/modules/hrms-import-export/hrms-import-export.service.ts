@@ -22,53 +22,10 @@ export class HrmsImportExportService {
   private async getConnection(tenantId: string) {
     const conn = await this.dbService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureTables(conn);
       this.ensuredTenants.add(tenantId);
     }
     return conn;
   }
-
-  private async ensureTables(conn: any) {
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS import_export_jobs (
-        id VARCHAR(36) PRIMARY KEY,
-        company_id VARCHAR(36),
-        branch_id VARCHAR(36),
-        job_type VARCHAR(20) NOT NULL,
-        entity_type VARCHAR(50) NOT NULL,
-        format VARCHAR(10) NOT NULL DEFAULT 'csv',
-        status VARCHAR(20) NOT NULL DEFAULT 'pending',
-        file_name VARCHAR(255),
-        file_url VARCHAR(500),
-        total_rows INT DEFAULT 0,
-        processed_rows INT DEFAULT 0,
-        error_rows INT DEFAULT 0,
-        validation_errors JSON,
-        rollback_window_expires_at TIMESTAMP NULL,
-        can_rollback BOOLEAN DEFAULT TRUE,
-        created_by VARCHAR(36),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS export_templates (
-        id VARCHAR(36) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        entity_type VARCHAR(50) NOT NULL,
-        selected_fields JSON NOT NULL,
-        filter_config JSON,
-        schedule_cron VARCHAR(50),
-        delivery_email VARCHAR(255),
-        created_by VARCHAR(36),
-        is_active BOOLEAN DEFAULT TRUE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
   getTemplateSchema(entityType: EntityType) {
     switch (entityType) {
       case EntityType.EMPLOYEES:

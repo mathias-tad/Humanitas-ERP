@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Param } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Param, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
@@ -11,13 +11,25 @@ import { LoggerService } from './logger.service';
 @Controller('logs')
 @RequireModule('logs')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
-@RequirePermissions('view_logs')
+@RequirePermissions('manage_system')
 export class LoggerController {
   constructor(private readonly loggerService: LoggerService) { }
+
+  /**
+   * SECURITY: these files are SERVER-WIDE (they contain every tenant's activity), so they must
+   * not be readable by tenant users. Platform admins read them through the admin API instead.
+   * Set ENABLE_TENANT_LOG_FILES=true only for single-tenant / development deployments.
+   */
+  private assertEnabled(): void {
+    if (process.env.ENABLE_TENANT_LOG_FILES !== 'true') {
+      throw new NotFoundException();
+    }
+  }
 
   @Get('files')
   @ApiOperation({ summary: 'Get list of log files' })
   async getLogFiles() {
+    this.assertEnabled();
     return this.loggerService.getLogFiles();
   }
 
@@ -28,6 +40,7 @@ export class LoggerController {
     @Query('lines') lines?: string,
     @Query('offset') offset?: string,
   ) {
+    this.assertEnabled();
     return this.loggerService.readLogFile(
       filename,
       lines ? parseInt(lines) : 500,
@@ -42,6 +55,7 @@ export class LoggerController {
     @Query('query') query: string,
     @Query('limit') limit?: string,
   ) {
+    this.assertEnabled();
     return this.loggerService.searchLogs(
       filename,
       query,
@@ -52,6 +66,7 @@ export class LoggerController {
   @Get('recent')
   @ApiOperation({ summary: 'Get recent logs from all files' })
   async getRecentLogs(@Query('lines') lines?: string) {
+    this.assertEnabled();
     const files = this.loggerService.getLogFiles();
     const recentLogs: { file: string; logs: string[] }[] = [];
 

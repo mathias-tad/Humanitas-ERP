@@ -7,7 +7,6 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Body,
-  Post,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UserService } from './user.service';
@@ -22,11 +21,8 @@ export class UserController {
 
   // ==================== ADMIN USERS (must be before :id routes) ====================
 
-  @Post('admins/seed')
-  @ApiOperation({ summary: 'Seed super admin (use only for initial setup)' })
-  seedAdmin() {
-    return this.userService.seedSuperAdmin();
-  }
+  // NOTE: the public `POST users/admins/seed` endpoint was removed (security).
+  // The first super admin is bootstrapped from SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD on startup.
 
   @Get('admins/all')
   @UseGuards(JwtAuthGuard, AdminGuard)

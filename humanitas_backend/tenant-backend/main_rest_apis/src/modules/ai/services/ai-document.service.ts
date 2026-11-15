@@ -279,19 +279,6 @@ export class AiDocumentService {
       );
       if (!rows || !rows.length) return;
       const dataSource = await this.databaseService.getTenantConnection(rows[0].database_name);
-      await dataSource.query(`
-        CREATE TABLE IF NOT EXISTS ai_document_audit_logs (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          tenant_id VARCHAR(100),
-          user_id VARCHAR(100),
-          template_id VARCHAR(100),
-          format VARCHAR(20),
-          filename VARCHAR(255),
-          parameters JSONB,
-          executed_by VARCHAR(50) DEFAULT 'ai_on_behalf',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
       await dataSource.query(
         `INSERT INTO ai_document_audit_logs (tenant_id, user_id, template_id, format, filename, parameters, executed_by)
          VALUES ($1, $2, $3, $4, $5, $6, 'ai_on_behalf')`,

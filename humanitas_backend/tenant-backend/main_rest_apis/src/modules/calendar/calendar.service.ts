@@ -29,36 +29,6 @@ export class CalendarService {
   private readonly logger = new Logger(CalendarService.name);
 
   constructor(private readonly databaseService: DatabaseService) {}
-
-  async ensureCalendarTables(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS calendar_events (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        start_date TIMESTAMP NOT NULL,
-        end_date TIMESTAMP,
-        all_day BOOLEAN DEFAULT false,
-        event_type VARCHAR(50) NOT NULL DEFAULT 'custom',
-        color VARCHAR(20),
-        source_module VARCHAR(50) DEFAULT 'calendar',
-        source_id UUID,
-        recurrence_rule TEXT,
-        location VARCHAR(255),
-        is_public BOOLEAN DEFAULT true,
-        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-        company_id UUID,
-        branch_id UUID,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_calendar_events_start_date ON calendar_events(start_date);
-      CREATE INDEX IF NOT EXISTS idx_calendar_events_company_id ON calendar_events(company_id);
-      CREATE INDEX IF NOT EXISTS idx_calendar_events_branch_id ON calendar_events(branch_id);
-      CREATE INDEX IF NOT EXISTS idx_calendar_events_type ON calendar_events(event_type);
-    `);
-  }
-
   async getSources(enabledFeatures: string[] = []) {
     const isModuleOn = (mod: string) => {
       if (!enabledFeatures || enabledFeatures.length === 0 || enabledFeatures.includes('*')) return true;
@@ -105,7 +75,6 @@ export class CalendarService {
     branchId?: string,
   ): Promise<CalendarEventResponse[]> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureCalendarTables(connection);
 
     const now = new Date();
     const defaultStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
@@ -681,7 +650,6 @@ export class CalendarService {
 
   async findOne(tenantId: string, id: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureCalendarTables(connection);
 
     const rows = await connection.query(`
       SELECT c.*, u.full_name as created_by_name
@@ -696,7 +664,6 @@ export class CalendarService {
 
   async create(tenantId: string, userId: string, dto: CreateCalendarEventDto, defaultCompanyId?: string, defaultBranchId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureCalendarTables(connection);
 
     const companyId = dto.company_id || defaultCompanyId || null;
     const branchId = dto.branch_id || defaultBranchId || null;
@@ -730,7 +697,6 @@ export class CalendarService {
 
   async update(tenantId: string, id: string, userId: string, dto: UpdateCalendarEventDto) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureCalendarTables(connection);
 
     const existing = await this.findOne(tenantId, id);
     if (!existing) throw new NotFoundException('Calendar event not found');
@@ -765,7 +731,6 @@ export class CalendarService {
 
   async delete(tenantId: string, id: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureCalendarTables(connection);
 
     const result = await connection.query(`
       DELETE FROM calendar_events

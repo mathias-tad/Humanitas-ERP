@@ -1,6 +1,9 @@
 import {
-  Controller, Post, Body, Headers, HttpCode, HttpStatus,
+  Controller, Post, Body, Headers, HttpCode, HttpStatus, Req, Logger,
+  UnauthorizedException, ServiceUnavailableException, RawBodyRequest,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { BillingService } from './billing.service';
 
 interface LemonSqueezyWebhookPayload {
@@ -22,20 +25,57 @@ interface LemonSqueezyWebhookPayload {
   };
 }
 
+/**
+ * Verifies a LemonSqueezy webhook signature.
+ * LemonSqueezy sends `X-Signature` = hex(HMAC-SHA256(signingSecret, rawBody)).
+ */
+export function verifyLemonSqueezySignature(
+  rawBody: Buffer | string | undefined,
+  signature: string | undefined,
+  secret: string,
+): boolean {
+  if (!rawBody || !signature || !secret) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest();
+  let provided: Buffer;
+  try {
+    provided = Buffer.from(signature.trim(), 'hex');
+  } catch {
+    return false;
+  }
+  if (provided.length !== expected.length) return false;
+  return crypto.timingSafeEqual(provided, expected);
+}
+
 @Controller('webhooks/lemonsqueezy')
 export class LemonSqueezyController {
-  constructor(private readonly billingService: BillingService) {}
+  private readonly logger = new Logger(LemonSqueezyController.name);
+
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async handleWebhook(
+    @Req() req: RawBodyRequest<{ rawBody?: Buffer }>,
     @Body() payload: LemonSqueezyWebhookPayload,
     @Headers('x-signature') signature: string,
   ) {
+    // ── SECURITY: reject anything not signed by LemonSqueezy (fail closed) ──
+    const secret = this.configService.get<string>('LEMONSQUEEZY_WEBHOOK_SECRET') || '';
+    if (!secret) {
+      this.logger.error('LEMONSQUEEZY_WEBHOOK_SECRET is not set — rejecting webhook.');
+      throw new ServiceUnavailableException('Webhook not configured');
+    }
+    if (!verifyLemonSqueezySignature(req.rawBody, signature, secret)) {
+      this.logger.warn('Rejected LemonSqueezy webhook with invalid signature');
+      throw new UnauthorizedException('Invalid signature');
+    }
+
     const eventName = payload?.meta?.event_name;
     const tenantId = payload?.meta?.custom_data?.tenant_id;
     const packageId = payload?.meta?.custom_data?.package_id;
-    const lsSubId = payload?.data?.id;
 
     if (!tenantId) {
       return { received: true, processed: false, reason: 'No tenant_id in custom_data' };

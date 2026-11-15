@@ -9,6 +9,7 @@ from app.services.overtime_service import OvertimeService
 from app.services.payroll_service import PayrollService
 from app.database import db_manager
 import requests
+from app.webhook_client import notify_tenant_api
 
 # Task handlers - maps task_name to handler function
 async def handle_calculate_overtime_daily(payload: dict):
@@ -27,7 +28,7 @@ async def handle_calculate_overtime_daily(payload: dict):
         # Send webhook notification
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_COMPLETED",
                     "logId": log_id,
@@ -65,7 +66,7 @@ async def handle_calculate_overtime_period(payload: dict):
         # Send webhook notification
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_COMPLETED",
                     "logId": log_id,
@@ -125,7 +126,7 @@ async def send_failure_webhook(payload: dict, error: str):
     
     if log_id:
         try:
-            requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+            notify_tenant_api({
                 "tenantId": tenant_id,
                 "type": "OVERTIME_CALCULATION_FAILED",
                 "logId": log_id,

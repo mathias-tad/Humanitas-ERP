@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { internalServiceHeaders } from '../internal-service-headers';
 import axios from 'axios';
 
 export interface ResolvedAiSettings {
@@ -48,7 +49,7 @@ export class AiSettingsFetchService {
           `${adminUrl}/admin/ai-settings/internal/${id}/decrypted`,
           {
             timeout: 5000,
-            headers: { 'x-internal-service': 'tenant-backend' },
+            headers: internalServiceHeaders(this.configService),
           },
         );
 

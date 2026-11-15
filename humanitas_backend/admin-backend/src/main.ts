@@ -15,6 +15,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({ logger: true }),
+    // rawBody is required to verify HMAC signatures on incoming webhooks (LemonSqueezy)
+    { rawBody: true },
   );
 
   // Enable graceful shutdown on SIGTERM / SIGINT for Docker containers

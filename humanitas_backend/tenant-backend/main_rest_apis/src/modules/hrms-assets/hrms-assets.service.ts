@@ -30,76 +30,9 @@ export class HrmsAssetsService {
 
   private async ensureTables(connection: any) {
     try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS asset_categories (
-          id VARCHAR(36) PRIMARY KEY,
-          name VARCHAR(100) NOT NULL,
-          code VARCHAR(50),
-          description TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS company_assets (
-          id VARCHAR(36) PRIMARY KEY,
-          company_id VARCHAR(36),
-          branch_id VARCHAR(36),
-          category_id VARCHAR(36) NOT NULL,
-          name VARCHAR(255) NOT NULL,
-          model VARCHAR(150),
-          serial_number VARCHAR(100),
-          asset_tag VARCHAR(100) NOT NULL,
-          qr_code_data TEXT,
-          status VARCHAR(50) DEFAULT 'available',
-          current_condition VARCHAR(50) DEFAULT 'good',
-          purchase_cost DECIMAL(12, 2) DEFAULT 0.00,
-          purchase_date DATE,
-          warranty_expiry DATE,
-          location VARCHAR(150),
-          notes TEXT,
-          current_assigned_user_id VARCHAR(36),
-          created_by VARCHAR(36),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS asset_assignments (
-          id VARCHAR(36) PRIMARY KEY,
-          asset_id VARCHAR(36) NOT NULL,
-          user_id VARCHAR(36) NOT NULL,
-          assigned_by VARCHAR(36),
-          assigned_date DATE NOT NULL,
-          expected_return_date DATE,
-          returned_date DATE,
-          received_by VARCHAR(36),
-          return_condition VARCHAR(50),
-          is_active BOOLEAN DEFAULT TRUE,
-          acknowledged_at TIMESTAMP NULL,
-          acknowledgment_signature TEXT,
-          notes TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS asset_maintenance_logs (
-          id VARCHAR(36) PRIMARY KEY,
-          asset_id VARCHAR(36) NOT NULL,
-          title VARCHAR(255) NOT NULL,
-          description TEXT,
-          cost DECIMAL(10, 2) DEFAULT 0.00,
-          service_provider VARCHAR(150),
-          service_date DATE NOT NULL,
-          next_service_date DATE,
-          status VARCHAR(50) DEFAULT 'completed',
-          logged_by VARCHAR(36),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
       // Seed default categories if empty
       const existing = await connection.query(`SELECT COUNT(*) as count FROM asset_categories`);

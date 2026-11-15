@@ -11,28 +11,8 @@ export class EventsService {
         private readonly notificationsService: NotificationsService,
         private readonly notificationsGateway: NotificationsGateway,
     ) { }
-
-    async ensureEventsTables(connection: any) {
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS events (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                title VARCHAR(255) NOT NULL,
-                content TEXT,
-                event_date DATE NOT NULL,
-                event_time TIME,
-                location VARCHAR(255),
-                target_type VARCHAR(20) NOT NULL,
-                target_ids TEXT[],
-                created_by UUID,
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            );
-        `);
-    }
-
     async findAll(tenantId: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureEventsTables(connection);
 
         return connection.query(`
             SELECT e.*, u.full_name as created_by_name,
@@ -59,7 +39,6 @@ export class EventsService {
 
     async create(tenantId: string, userId: string, dto: CreateEventDto) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureEventsTables(connection);
 
         const result = await connection.query(`
             INSERT INTO events (title, content, event_date, event_time, location, target_type, target_ids, created_by)

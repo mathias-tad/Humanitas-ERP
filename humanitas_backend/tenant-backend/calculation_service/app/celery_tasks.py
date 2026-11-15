@@ -4,6 +4,7 @@ from celery import shared_task
 from app.services.overtime_service import OvertimeService
 from app.database import db_manager
 import requests
+from app.webhook_client import notify_tenant_api
 
 # Helper to run async code in sync Celery tasks
 def run_async(coro):
@@ -36,7 +37,7 @@ def calculate_overtime_daily_task(self, tenant_id: str, date_str: str, log_id: s
         # Send webhook notification
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_COMPLETED",
                     "logId": log_id,
@@ -53,7 +54,7 @@ def calculate_overtime_daily_task(self, tenant_id: str, date_str: str, log_id: s
         # Send failure webhook
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_FAILED",
                     "logId": log_id,
@@ -95,7 +96,7 @@ def calculate_overtime_period_task(self, tenant_id: str, year: int = None, month
         # Send webhook notification
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_COMPLETED",
                     "logId": log_id,
@@ -112,7 +113,7 @@ def calculate_overtime_period_task(self, tenant_id: str, year: int = None, month
         # Send failure webhook
         if log_id:
             try:
-                requests.post("http://localhost:3001/api/v1/overtime/webhook/notification", json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_FAILED",
                     "logId": log_id,

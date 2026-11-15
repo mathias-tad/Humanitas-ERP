@@ -132,337 +132,10 @@ export class AttendanceService {
 
     return { dayIndex, dayAbbrev };
   }
-
-  private async ensureAttendanceTables(connection: any) {
-    // Shifts table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS shifts (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        start_time TIME NOT NULL,
-        end_time TIME NOT NULL,
-        grace_minutes INTEGER DEFAULT 15,
-        wait_for_absent_minutes INTEGER DEFAULT NULL,
-        color VARCHAR(50) DEFAULT 'bg-blue-500',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Schedule patterns table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS schedule_patterns (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        rotation_type VARCHAR(20) DEFAULT 'fixed',
-        auto_rotate BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Rotation weeks table (links patterns to shifts)
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS rotation_weeks (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        pattern_id UUID REFERENCES schedule_patterns(id) ON DELETE CASCADE,
-        week_number INTEGER NOT NULL,
-        shift_id UUID REFERENCES shifts(id) ON DELETE SET NULL,
-        days_off TEXT[] DEFAULT ARRAY['Sat', 'Sun'],
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // User shift assignments table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS shift_assignments (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        pattern_id UUID REFERENCES schedule_patterns(id) ON DELETE CASCADE,
-        current_week_in_rotation INTEGER DEFAULT 1,
-        effective_date DATE DEFAULT CURRENT_DATE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id)
-      )
-    `);
-
-    // Attendance records table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS attendance_records (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        date DATE NOT NULL,
-        shift_id UUID REFERENCES shifts(id),
-        scheduled_in TIME,
-        scheduled_out TIME,
-        actual_in TIMESTAMP,
-        actual_out TIMESTAMP,
-        status VARCHAR(20) DEFAULT 'Pending',
-        work_hours INTERVAL,
-        remarks TEXT,
-        is_corrected BOOLEAN DEFAULT false,
-        corrected_by UUID REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, date)
-      )
-    `);
-
-    // Schema Patch: Add missing columns to attendance_records
-    await connection.query(`
-      ALTER TABLE attendance_records 
-      ADD COLUMN IF NOT EXISTS shift_id UUID,
-      ADD COLUMN IF NOT EXISTS scheduled_in TIME,
-      ADD COLUMN IF NOT EXISTS scheduled_out TIME,
-      ADD COLUMN IF NOT EXISTS actual_in TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS actual_out TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS remarks TEXT,
-      ADD COLUMN IF NOT EXISTS is_corrected BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS corrected_by UUID REFERENCES users(id),
-      ADD COLUMN IF NOT EXISTS ot_duration_normal INTERVAL DEFAULT '0',
-      ADD COLUMN IF NOT EXISTS ot_duration_night INTERVAL DEFAULT '0',
-      ADD COLUMN IF NOT EXISTS ot_duration_holiday INTERVAL DEFAULT '0',
-      ADD COLUMN IF NOT EXISTS ot_duration_dayoff INTERVAL DEFAULT '0',
-      ADD COLUMN IF NOT EXISTS forced_clock_out_by UUID REFERENCES users(id),
-      ADD COLUMN IF NOT EXISTS forced_at TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS missed_punch_type VARCHAR(20) DEFAULT 'none',
-      ADD COLUMN IF NOT EXISTS is_overnight BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS overtime_hours NUMERIC(5,2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS ot_approved BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS correction_status VARCHAR(20) DEFAULT 'none',
-      ADD COLUMN IF NOT EXISTS in_punch_log_id UUID,
-      ADD COLUMN IF NOT EXISTS out_punch_log_id UUID,
-      ADD COLUMN IF NOT EXISTS auto_closed_at TIMESTAMP WITH TIME ZONE,
-      ADD COLUMN IF NOT EXISTS auto_close_reason VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS reconciled_from_offline_sync BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS pending_overtime_approval BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS pending_overtime_hours NUMERIC(5,2) DEFAULT 0.00;
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS biometric_punch_logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id UUID,
-        company_id UUID,
-        branch_id UUID,
-        device_id UUID,
-        device_serial_number VARCHAR(100),
-        pin VARCHAR(100) NOT NULL,
-        user_id UUID,
-        punch_time TIMESTAMP WITH TIME ZONE NOT NULL,
-        punch_type VARCHAR(50) DEFAULT 'auto',
-        verify_method VARCHAR(50) DEFAULT 'fingerprint',
-        status VARCHAR(50) DEFAULT 'processed',
-        raw_payload TEXT,
-        is_offline_sync BOOLEAN DEFAULT false,
-        reconciled_record_id UUID,
-        reconciled_at TIMESTAMP WITH TIME ZONE,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-      ALTER TABLE biometric_punch_logs
-        ADD COLUMN IF NOT EXISTS is_offline_sync BOOLEAN DEFAULT false,
-        ADD COLUMN IF NOT EXISTS reconciled_record_id UUID,
-        ADD COLUMN IF NOT EXISTS reconciled_at TIMESTAMP WITH TIME ZONE;
-
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_biometric_punch_logs_natural_key 
-        ON biometric_punch_logs (COALESCE(device_serial_number, 'MANUAL'), pin, punch_time);
-      CREATE INDEX IF NOT EXISTS idx_biometric_punch_logs_user_punch ON biometric_punch_logs(user_id, punch_time);
-      CREATE INDEX IF NOT EXISTS idx_biometric_punch_logs_status ON biometric_punch_logs(status);
-
-      CREATE TABLE IF NOT EXISTS attendance_correction_requests (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id UUID,
-        company_id UUID,
-        branch_id UUID,
-        attendance_record_id UUID REFERENCES attendance_records(id) ON DELETE CASCADE,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        work_date DATE NOT NULL,
-        shift_id UUID REFERENCES shifts(id) ON DELETE SET NULL,
-        requested_in TIME,
-        requested_out TIME,
-        reason TEXT NOT NULL,
-        status VARCHAR(20) DEFAULT 'pending',
-        reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
-        reviewer_notes TEXT,
-        reviewed_at TIMESTAMP WITH TIME ZONE,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_att_corr_user_status ON attendance_correction_requests(user_id, status);
-
-      CREATE TABLE IF NOT EXISTS attendance_alarm_dismissals (
-        user_id UUID NOT NULL,
-        date DATE NOT NULL,
-        dismissed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        PRIMARY KEY (user_id, date)
-      );
-    `);
-
-    try {
-      await connection.query(`
-        DO $$
-        BEGIN
-          IF EXISTS (
-            SELECT 1 FROM information_schema.columns 
-            WHERE table_name = 'attendance_records' 
-              AND column_name = 'actual_in' 
-              AND data_type = 'time without time zone'
-          ) THEN
-            ALTER TABLE attendance_records ALTER COLUMN actual_in TYPE TIMESTAMP USING (date + actual_in);
-          END IF;
-
-          IF EXISTS (
-            SELECT 1 FROM information_schema.columns 
-            WHERE table_name = 'attendance_records' 
-              AND column_name = 'work_hours' 
-              AND data_type IN ('numeric', 'decimal')
-          ) THEN
-            ALTER TABLE attendance_records ALTER COLUMN work_hours TYPE INTERVAL USING (work_hours || ' hours')::interval;
-          END IF;
-        EXCEPTION WHEN OTHERS THEN
-          NULL;
-        END $$;
-      `);
-    } catch (_) {
-      // Ignore type conversion errors if column already converted or incompatible
-    }
-
-
-    // Overtime Entires for Approval
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS overtime_entries (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL REFERENCES users(id),
-        date DATE NOT NULL,
-        attendance_id UUID REFERENCES attendance_records(id),
-        normal_ot_hours NUMERIC(5,2) DEFAULT 0,
-        night_ot_hours NUMERIC(5,2) DEFAULT 0,
-        holiday_ot_hours NUMERIC(5,2) DEFAULT 0,
-        dayoff_ot_hours NUMERIC(5,2) DEFAULT 0,
-        total_amount NUMERIC(10,2) DEFAULT 0,
-        status VARCHAR(20) DEFAULT 'Pending', -- Pending, Approved, Rejected
-        is_manual BOOLEAN DEFAULT false,
-        approved_by UUID REFERENCES users(id),
-        approved_at TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, date)
-      )
-    `);
-
-    // Schedules table (Manual Overrides / Daily Assignments) - Moved/Shared from SchedulingService
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS schedules (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        shift_id UUID REFERENCES shifts(id),
-        date DATE NOT NULL,
-        is_day_off BOOLEAN DEFAULT false,
-        is_override BOOLEAN DEFAULT false,
-        note TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_by UUID REFERENCES users(id),
-        UNIQUE(user_id, date)
-      )
-    `);
-
-    // Schema Patch: Add updated_by if missing (for existing tables)
-    await connection.query(`
-      ALTER TABLE schedules 
-      ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id);
-    `);
-
-    // User device binding table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS user_devices (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        device_id VARCHAR(255) NOT NULL,
-        device_name VARCHAR(255),
-        device_type VARCHAR(50),
-        is_active BOOLEAN DEFAULT true,
-        registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_used_at TIMESTAMP,
-        approved_by UUID,
-        approved_at TIMESTAMP,
-        UNIQUE(user_id, device_id)
-      )
-    `);
-
-    // QR codes table for rotating codes
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS attendance_qr_codes (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        code VARCHAR(100) NOT NULL UNIQUE,
-        type VARCHAR(20) DEFAULT 'clock_in',
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Allowed networks table for attendance
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS allowed_networks (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        ip_address INET,
-        subnet_mask VARCHAR(15),
-        description TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Ensure Lateness Summary Table exists
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS late_minutes_summary (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        date DATE NOT NULL,
-        week_start_date DATE NOT NULL,
-        month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
-        year INTEGER NOT NULL,
-        
-        late_minutes INTEGER DEFAULT 0,
-        late_penalty_amount DECIMAL(10,2) DEFAULT 0,
-        
-        weekly_late_minutes INTEGER DEFAULT 0,
-        weekly_late_penalty DECIMAL(10,2) DEFAULT 0,
-        
-        monthly_late_minutes INTEGER DEFAULT 0,
-        monthly_late_penalty DECIMAL(10,2) DEFAULT 0,
-        
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        
-        UNIQUE(user_id, date)
-      )
-    `);
-
-
-    // Add wait_for_absent_minutes column if it doesn't exist (Migration)
-    try {
-      await connection.query(`
-        ALTER TABLE shifts ADD COLUMN IF NOT EXISTS wait_for_absent_minutes INTEGER DEFAULT NULL;
-        ALTER TABLE shifts ADD COLUMN IF NOT EXISTS grace_minutes INTEGER DEFAULT 15;
-        ALTER TABLE shifts ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
-        ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS clock_method VARCHAR(20) DEFAULT 'manual';
-        ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS device_id UUID REFERENCES biometric_devices(id);
-    `);
-    } catch (e) {
-      console.log('Columns might already exist or error adding them');
-    }
-  }
-
   // ============ SHIFTS ============
   async getShifts(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
     SELECT * FROM shifts WHERE is_active = true ORDER BY name
@@ -473,7 +146,6 @@ export class AttendanceService {
   async createShift(tenantId: string, data: any, userId?: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(
       `
@@ -557,7 +229,6 @@ export class AttendanceService {
   async getSchedulePatterns(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const patterns =
       (await connection.query(`
@@ -585,7 +256,6 @@ export class AttendanceService {
   async createSchedulePattern(tenantId: string, data: any, userId?: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Create pattern
     const patternResult = await connection.query(
@@ -720,7 +390,6 @@ export class AttendanceService {
   async getShiftAssignments(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT sa.*,
@@ -739,7 +408,6 @@ export class AttendanceService {
   async assignShift(tenantId: string, data: any, userId?: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(
       `
@@ -826,7 +494,6 @@ export class AttendanceService {
   // Assign/Override specific day
   async assignSchedule(tenantId: string, data: any, userId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Fetch previous state for Audit & Target User Name
     // IMPORTANT: Use date range to handle timezone offset (DB stores dates at 21:00 UTC for UTC+3 midnight)
@@ -945,7 +612,6 @@ export class AttendanceService {
     endDate: string,
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Normalize inputs to UTC Midnight
     const start = new Date(startDate + 'T00:00:00.000Z');
@@ -1122,7 +788,6 @@ export class AttendanceService {
     query: { page?: number; limit?: number; search?: string } = {},
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAuditTable(connection);
 
     const page = query.page || 1;
     const limit = query.limit || 50;
@@ -1181,20 +846,6 @@ export class AttendanceService {
     };
   }
 
-  // Helper to ensure audit table exists
-  private async ensureAuditTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS audit_logs(
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID,
-      action VARCHAR(100),
-      target_id VARCHAR(255),
-      details JSONB,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    `);
-  }
-
   // ============ ATTENDANCE CORRECTION ============
   async correctAttendance(
     tenantId: string,
@@ -1208,7 +859,6 @@ export class AttendanceService {
     correctedBy: string,
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // 1. Get the existing record with user info
     const existingResult = await connection.query(
@@ -1359,7 +1009,6 @@ export class AttendanceService {
     query: { userId?: string; page?: number; limit?: number } = {},
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAuditTable(connection);
 
     const page = query.page || 1;
     const limit = query.limit || 20;
@@ -1531,7 +1180,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const now = new Date();
     const month = filters?.month || now.getMonth() + 1;
@@ -1801,7 +1449,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     let query = `
       SELECT ar.*,
@@ -1890,7 +1537,6 @@ export class AttendanceService {
   async recordAttendance(tenantId: string, data: any) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(
       `
@@ -1931,7 +1577,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Check for any open session (Clock-In without Clock-Out)
     // This prevents consecutive Clock-Ins even across different days
@@ -2225,7 +1870,6 @@ export class AttendanceService {
   async getUnassignedUsers(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT u.id, u.full_name, u.email, u.department, u.position, u.avatar_url
@@ -2242,7 +1886,6 @@ export class AttendanceService {
   async getUsersWithAssignments(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT u.id, u.full_name, u.email, u.department, u.position, u.avatar_url,
@@ -2267,7 +1910,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Clean up expired codes
     await connection.query(
@@ -2297,7 +1939,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Get valid code
     const existing = await connection.query(
@@ -2346,7 +1987,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Check if user already has a registered device
     const userDevices = await connection.query(
@@ -2410,7 +2050,6 @@ export class AttendanceService {
   async getUserDevices(tenantId: string, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(
       `
@@ -2460,7 +2099,6 @@ export class AttendanceService {
   async getUserTodaySchedule(tenantId: string, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Get company timezone
     const timezone = await this.getCompanyTimezone(connection);
@@ -2845,7 +2483,6 @@ export class AttendanceService {
   async getAllDevices(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT ud.*, u.full_name, u.email, u.department
@@ -2924,7 +2561,6 @@ export class AttendanceService {
   async getPendingDevices(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT ud.*, u.full_name, u.email, u.department
@@ -2982,7 +2618,6 @@ export class AttendanceService {
   async getAllowedNetworks(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(`
       SELECT * FROM allowed_networks WHERE is_active = true ORDER BY name
@@ -3003,7 +2638,6 @@ export class AttendanceService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const result = await connection.query(
       `
@@ -3045,7 +2679,6 @@ export class AttendanceService {
   ): Promise<{ allowed: boolean; message: string; clientIp: string }> {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Get all allowed networks
     const networks = await connection.query(`
@@ -3131,7 +2764,6 @@ export class AttendanceService {
   async processAbsentUsers(tenantId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     // Get company timezone
     const timezone = await this.getCompanyTimezone(connection);
@@ -3387,7 +3019,6 @@ export class AttendanceService {
     try {
       console.error(`[Audit] Logging action: ${action} by user: ${userId}`);
       const connection = await this.databaseService.getTenantConnectionById(tenantId);
-      await this.ensureAuditTable(connection);
       await connection.query(
         `INSERT INTO audit_logs (user_id, action, target_id, details) VALUES ($1, $2, $3, $4)`,
         [userId, action, targetId, details],
@@ -3411,7 +3042,6 @@ export class AttendanceService {
       return { success: true, count: 0 };
     }
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const records = await connection.query(
       `SELECT id, user_id, date, status FROM attendance_records WHERE id = ANY($1)`,
@@ -3618,7 +3248,6 @@ export class AttendanceService {
     },
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const {
       userId,
@@ -4187,7 +3816,6 @@ export class AttendanceService {
   // ============ PENDING OVERTIME APPROVALS FROM RECONCILIATION ============
   async getPendingReconciliationOvertime(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     return connection.query(`
       SELECT ar.*, u.first_name, u.last_name, u.email,
@@ -4208,7 +3836,6 @@ export class AttendanceService {
     reviewerId: string,
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const rec = await connection.query(`
       SELECT * FROM attendance_records WHERE id = $1
@@ -4277,7 +3904,6 @@ export class AttendanceService {
     data: { requested_in?: string; requested_out?: string; reason: string },
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const recResult = await connection.query(`
       SELECT * FROM attendance_records WHERE id = $1
@@ -4337,7 +3963,6 @@ export class AttendanceService {
 
   async getAttendanceCorrectionRequests(tenantId: string, filter?: { status?: string }) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     let whereClause = "";
     const params: any[] = [];
@@ -4364,7 +3989,6 @@ export class AttendanceService {
 
   async getMyAttendanceCorrectionRequests(tenantId: string, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     return connection.query(`
       SELECT acr.*, sh.name as shift_name,
@@ -4384,7 +4008,6 @@ export class AttendanceService {
     data: { status: 'approved' | 'rejected'; reviewer_notes?: string },
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
 
     const reqResult = await connection.query(`
       SELECT * FROM attendance_correction_requests WHERE id = $1
@@ -4467,7 +4090,6 @@ export class AttendanceService {
 
   async dismissMissedClockInAlarm(tenantId: string, userId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today } = this.getCurrentTimeInTimezone(timezone);
 
@@ -4483,7 +4105,6 @@ export class AttendanceService {
   // ============ AUTOMATED CRON WORKERS & REMINDERS ============
   async checkMissedClockInAlarms(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
 
@@ -4518,7 +4139,6 @@ export class AttendanceService {
 
   async checkPreShiftEndReminders(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
 
@@ -4558,7 +4178,6 @@ export class AttendanceService {
 
   async checkVetShiftReminders(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today, currentMinutes } = this.getCurrentTimeInTimezone(timezone);
 
@@ -4603,7 +4222,6 @@ export class AttendanceService {
 
   async sendPreMidnightWarning(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today } = this.getCurrentTimeInTimezone(timezone);
 
@@ -4646,7 +4264,6 @@ export class AttendanceService {
 
   async autoCloseDayShiftsAtMidnight(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today } = this.getCurrentTimeInTimezone(timezone);
     const yesterday = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -4677,7 +4294,6 @@ export class AttendanceService {
 
   async autoCloseOvernightShifts(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureAttendanceTables(connection);
     const timezone = await this.getCompanyTimezone(connection);
     const { today } = this.getCurrentTimeInTimezone(timezone);
     const yesterday = new Date(new Date(today).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];

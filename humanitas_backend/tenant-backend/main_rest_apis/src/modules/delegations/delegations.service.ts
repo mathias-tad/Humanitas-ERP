@@ -16,7 +16,6 @@ import {
 @Injectable()
 export class DelegationsService {
   private readonly logger = new Logger(DelegationsService.name);
-  private readonly ensuredDatabases = new Set<string>();
 
   constructor(
     private readonly databaseService: DatabaseService,
@@ -25,79 +24,8 @@ export class DelegationsService {
 
   private async getConnection(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureDelegationTables(connection, tenantId);
     return connection;
   }
-
-  async ensureDelegationTables(connection: any, tenantId?: string) {
-    if (tenantId && this.ensuredDatabases.has(tenantId)) return;
-
-    try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS user_delegations (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          tenant_id UUID,
-          company_id UUID,
-          branch_id UUID,
-          delegator_id UUID NOT NULL,
-          delegatee_id UUID NOT NULL,
-          start_date TIMESTAMPTZ NOT NULL,
-          end_date TIMESTAMPTZ NOT NULL,
-          scope VARCHAR(50) NOT NULL DEFAULT 'ALL',
-          reason TEXT,
-          status VARCHAR(20) NOT NULL DEFAULT 'active',
-          created_by UUID,
-          is_acting_assignment BOOLEAN DEFAULT FALSE,
-          acting_position_title VARCHAR(150),
-          acting_allowance_type VARCHAR(30) DEFAULT 'percentage',
-          acting_allowance_percentage NUMERIC(5, 2) DEFAULT 0.00,
-          acting_allowance_amount NUMERIC(12, 2) DEFAULT 0.00,
-          acting_approved_by UUID,
-          acting_approved_at TIMESTAMPTZ,
-          acting_notes TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
-
-        -- Add acting assignment columns if table was created previously without them
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS is_acting_assignment BOOLEAN DEFAULT FALSE;
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_position_title VARCHAR(150);
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_allowance_type VARCHAR(30) DEFAULT 'percentage';
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_allowance_percentage NUMERIC(5, 2) DEFAULT 0.00;
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_allowance_amount NUMERIC(12, 2) DEFAULT 0.00;
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_approved_by UUID;
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_approved_at TIMESTAMPTZ;
-        ALTER TABLE user_delegations ADD COLUMN IF NOT EXISTS acting_notes TEXT;
-
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_delegator ON user_delegations(delegator_id);
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_delegatee ON user_delegations(delegatee_id);
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_active ON user_delegations(delegatee_id, status, start_date, end_date);
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_company ON user_delegations(company_id);
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_branch ON user_delegations(branch_id);
-        CREATE INDEX IF NOT EXISTS idx_user_delegations_acting ON user_delegations(is_acting_assignment, status);
-
-        CREATE TABLE IF NOT EXISTS delegation_audit_logs (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          delegation_id UUID,
-          performed_by UUID NOT NULL,
-          on_behalf_of UUID NOT NULL,
-          action VARCHAR(100) NOT NULL,
-          resource VARCHAR(100),
-          details JSONB,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_delegation_audit_delegation ON delegation_audit_logs(delegation_id);
-        CREATE INDEX IF NOT EXISTS idx_delegation_audit_performed ON delegation_audit_logs(performed_by);
-        CREATE INDEX IF NOT EXISTS idx_delegation_audit_on_behalf ON delegation_audit_logs(on_behalf_of);
-        CREATE INDEX IF NOT EXISTS idx_delegation_audit_created ON delegation_audit_logs(created_at);
-      `);
-      if (tenantId) this.ensuredDatabases.add(tenantId);
-    } catch (err: any) {
-      this.logger.warn(`Failed to ensure delegation tables: ${err.message}`);
-    }
-  }
-
   async createDelegation(
     tenantId: string,
     delegatorId: string,

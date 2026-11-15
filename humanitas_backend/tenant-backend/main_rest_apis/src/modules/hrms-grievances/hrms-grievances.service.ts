@@ -26,83 +26,10 @@ export class HrmsGrievancesService {
   private async getConnection(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureTables(connection);
       this.ensuredTenants.add(tenantId);
     }
     return connection;
   }
-
-  async ensureTables(connection: any) {
-    try {
-      await connection.query(`
-        -- Master Grievances Table
-        CREATE TABLE IF NOT EXISTS grievances (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          ticket_number VARCHAR(32) UNIQUE NOT NULL,
-          user_id UUID,
-          is_anonymous BOOLEAN DEFAULT FALSE,
-          category VARCHAR(64) NOT NULL,
-          subject VARCHAR(255) NOT NULL,
-          description TEXT NOT NULL,
-          priority VARCHAR(32) DEFAULT 'medium',
-          status VARCHAR(32) DEFAULT 'filed',
-          incident_date DATE,
-          incident_location VARCHAR(255),
-          accused_parties VARCHAR(255),
-          witnesses TEXT,
-          assigned_investigator_id UUID,
-          investigation_notes TEXT,
-          resolution_summary TEXT,
-          resolution_action_items TEXT,
-          resolution_date TIMESTAMP,
-          acknowledged_at TIMESTAMP,
-          sla_acknowledgment_deadline TIMESTAMP,
-          sla_resolution_deadline TIMESTAMP,
-          is_sla_breached BOOLEAN DEFAULT FALSE,
-          retaliation_monitoring_flag BOOLEAN DEFAULT FALSE,
-          satisfaction_score INT,
-          satisfaction_feedback TEXT,
-          company_id UUID,
-          branch_id UUID,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- Grievance Timeline & Audit Events
-        CREATE TABLE IF NOT EXISTS grievance_timeline (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          grievance_id UUID NOT NULL,
-          actor_id UUID,
-          action VARCHAR(64) NOT NULL,
-          notes TEXT,
-          is_confidential BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- Grievance Attachments
-        CREATE TABLE IF NOT EXISTS grievance_attachments (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          grievance_id UUID NOT NULL,
-          uploaded_by UUID,
-          file_name VARCHAR(255) NOT NULL,
-          file_url TEXT NOT NULL,
-          file_size INT,
-          file_type VARCHAR(64),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_grievances_user_id ON grievances(user_id);
-        CREATE INDEX IF NOT EXISTS idx_grievances_status ON grievances(status);
-        CREATE INDEX IF NOT EXISTS idx_grievances_company_id ON grievances(company_id);
-        CREATE INDEX IF NOT EXISTS idx_grievance_timeline_grievance_id ON grievance_timeline(grievance_id);
-      `);
-      this.logger.log('Grievance tables verified/created successfully');
-    } catch (error) {
-      this.logger.error('Failed to create grievance tables', error);
-      throw error;
-    }
-  }
-
   private generateTicketNumber(): string {
     const d = new Date();
     const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;

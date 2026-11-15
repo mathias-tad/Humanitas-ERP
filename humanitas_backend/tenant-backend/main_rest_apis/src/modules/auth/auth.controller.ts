@@ -155,9 +155,15 @@ export class AuthController {
     reply.clearCookie('access_token', { path: '/' });
     reply.clearCookie('refresh_token', { path: '/' });
 
-    // If user is authenticated, also invalidate on backend
-    if (req.user?.sub && req.user?.tenantId) {
-      await this.authService.logout(req.user.sub, req.user.tenantId);
+    // Revoke the stored refresh token. This route is intentionally unguarded (logout must work
+    // with an expired access token), so identify the session from the cookies themselves.
+    try {
+      await this.authService.revokeSessionFromTokens(
+        req.cookies?.refresh_token,
+        req.cookies?.access_token,
+      );
+    } catch {
+      // Logout should never fail for the client
     }
 
     return { message: 'Logged out successfully' };

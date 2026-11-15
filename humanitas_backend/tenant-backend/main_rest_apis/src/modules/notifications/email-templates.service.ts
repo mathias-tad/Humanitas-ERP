@@ -42,35 +42,10 @@ export class EmailTemplatesService {
   private async getConnection(tenantId: string) {
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureTables(conn);
       this.ensuredTenants.add(tenantId);
     }
     return conn;
   }
-
-  private async ensureTables(conn: any) {
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS email_templates (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        template_key VARCHAR(100) NOT NULL,
-        display_name VARCHAR(255) NOT NULL,
-        subject VARCHAR(255) NOT NULL,
-        html_body TEXT NOT NULL,
-        plain_text_body TEXT,
-        available_variables TEXT,
-        is_system_default BOOLEAN DEFAULT FALSE,
-        is_active BOOLEAN DEFAULT TRUE,
-        last_edited_by VARCHAR(36),
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(template_key, is_system_default)
-      )
-    `);
-
-    // Seed system defaults
-    await this.seedSystemDefaults(conn);
-  }
-
   private getTemplateDir(): string {
     return path.join(__dirname, 'email-templates');
   }

@@ -5,36 +5,7 @@ import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
 @Injectable()
 export class HolidaysService {
     constructor(private readonly databaseService: DatabaseService) { }
-
-    async ensureHolidaysTable(connection: any) {
-        // Create table if it doesn't exist
-        await connection.query(`
-      CREATE TABLE IF NOT EXISTS holidays (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR NOT NULL,
-        date DATE NOT NULL,
-        description TEXT,
-        is_recurring BOOLEAN DEFAULT TRUE,
-        type VARCHAR DEFAULT 'public',
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-        // Check for missing 'type' column (migration for existing tables)
-        const hasTypeColumn = await connection.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'holidays' AND column_name = 'type'
-        `);
-
-        if (hasTypeColumn.length === 0) {
-            await connection.query(`ALTER TABLE holidays ADD COLUMN type VARCHAR DEFAULT 'public'`);
-        }
-    }
-
     async seedDefaultHolidays(connection: any) {
-        await this.ensureHolidaysTable(connection);
 
         // Check if any holidays exist
         const existing = await connection.query(`SELECT COUNT(*) as count FROM holidays`);
@@ -65,7 +36,6 @@ export class HolidaysService {
 
     async findAll(tenantId: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureHolidaysTable(connection);
         // Format date as YYYY-MM-DD string to avoid timezone issues on frontend
         return connection.query(`
             SELECT id, name, TO_CHAR(date, 'YYYY-MM-DD') as date, description, is_recurring, type, created_at, updated_at 
@@ -76,7 +46,6 @@ export class HolidaysService {
 
     async create(tenantId: string, dto: CreateHolidayDto) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureHolidaysTable(connection);
 
         const result = await connection.query(
             `INSERT INTO holidays (name, date, description, is_recurring, type) 
@@ -88,7 +57,6 @@ export class HolidaysService {
 
     async update(tenantId: string, id: string, dto: UpdateHolidayDto) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureHolidaysTable(connection);
 
         // Dynamic update query builder
         const fields: string[] = [];
@@ -117,7 +85,6 @@ export class HolidaysService {
 
     async delete(tenantId: string, id: string) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureHolidaysTable(connection);
         await connection.query(`DELETE FROM holidays WHERE id = $1`, [id]);
         return { success: true };
     }

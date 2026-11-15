@@ -191,15 +191,6 @@ export class ModuleSubscriptionGuard implements CanActivate {
       tenant.database_name,
     );
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS tenant_modules (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        module_key VARCHAR(50) NOT NULL UNIQUE,
-        is_active BOOLEAN NOT NULL DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     // Check AI module keys in tenant_modules if applicable
     if (req.startsWith('ai')) {
