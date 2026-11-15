@@ -208,7 +208,7 @@ export function MessageThread({
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [newMessage, setNewMessage] = useState("");
-    const typingTimeoutRef = useRef<number | null>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
