@@ -218,7 +218,7 @@ export class DelegationsService {
     const connection = await this.getConnection(tenantId);
 
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filters.status) {
@@ -373,7 +373,7 @@ export class DelegationsService {
   ) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = ["d.is_acting_assignment = true", "d.status = 'active'"];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (userId) {
@@ -440,7 +440,7 @@ export class DelegationsService {
     const connection = await this.getConnection(tenantId);
 
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (delegationId) {

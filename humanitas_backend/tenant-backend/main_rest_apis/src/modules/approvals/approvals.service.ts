@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   Logger,
@@ -33,8 +34,8 @@ export class ApprovalsService {
     return connection;
   }
 
-  public async ensureApprovalTables(connection: any, tenantId?: string): Promise<void> {
-    const dbKey = tenantId || connection?.options?.database || 'default';
+  public async ensureApprovalTables(connection: DataSource, tenantId?: string): Promise<void> {
+    const dbKey = tenantId || String(connection?.options?.database || 'default');
     if (this.ensuredDatabases.has(dbKey)) return;
 
     const existingPromise = this.ensuringPromises.get(dbKey);
@@ -73,7 +74,7 @@ export class ApprovalsService {
     await initPromise;
   }
 
-  private async seedDefaultWorkflows(connection: any): Promise<void> {
+  private async seedDefaultWorkflows(connection: DataSource): Promise<void> {
     try {
       this.logger.log('Seeding default approval workflows...');
 
@@ -233,7 +234,7 @@ export class ApprovalsService {
   ) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (options?.workflow_type) {
@@ -394,7 +395,7 @@ export class ApprovalsService {
     await this.getWorkflowById(tenantId, id);
 
     const updateFields: string[] = [];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
     let idx = 2;
 
     if (dto.name !== undefined) {
@@ -489,7 +490,7 @@ export class ApprovalsService {
   async getRequests(tenantId: string, options?: FilterApprovalRequestsDto) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (options?.status && options.status !== 'all') {
@@ -985,7 +986,7 @@ export class ApprovalsService {
   async getApprovalAnalytics(tenantId: string, company_id?: string, branch_id?: string) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (company_id) {

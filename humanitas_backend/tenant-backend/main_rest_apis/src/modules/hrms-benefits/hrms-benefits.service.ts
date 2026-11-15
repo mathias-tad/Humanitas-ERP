@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   Logger,
@@ -30,7 +31,7 @@ export class HrmsBenefitsService {
     return connection;
   }
 
-  async ensureTables(connection: any) {
+  async ensureTables(connection: DataSource) {
     try {
 
       // Seed default benefit plans if empty
@@ -62,7 +63,7 @@ export class HrmsBenefitsService {
       FROM benefit_plans bp
       WHERE bp.is_active = TRUE
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (planType && planType !== 'all') {
@@ -137,7 +138,7 @@ export class HrmsBenefitsService {
     }
 
     const updates: string[] = [];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
     let pIdx = 2;
 
     if (dto.name !== undefined) {
@@ -244,7 +245,7 @@ export class HrmsBenefitsService {
         JOIN users u ON be.user_id = u.id
         WHERE 1=1
       `;
-      const params: any[] = [];
+      const params: unknown[] = [];
       let pIdx = 1;
 
       if (!hasManagePerm) {
@@ -389,7 +390,7 @@ export class HrmsBenefitsService {
   async getOpenEnrollmentPeriods(tenantId: string, companyId?: string) {
     const connection = await this.getConnection(tenantId);
     let query = 'SELECT * FROM open_enrollment_periods WHERE 1=1';
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (companyId) {
       query += ' AND (company_id = $1 OR company_id IS NULL)';
       params.push(companyId);
@@ -434,7 +435,7 @@ export class HrmsBenefitsService {
       JOIN users u ON be.user_id = u.id
       WHERE be.status = 'enrolled'
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (companyId) {
       query += ` AND be.company_id = $1`;
       params.push(companyId);
@@ -446,7 +447,7 @@ export class HrmsBenefitsService {
   async getStats(tenantId: string, companyId?: string, branchId?: string) {
     const connection = await this.getConnection(tenantId);
     let whereClause = "WHERE be.status = 'enrolled'";
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {

@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
@@ -29,7 +30,7 @@ export class WfmOpportunitiesService {
   /**
    * Helper to ensure wfm_settings and related tables exist (lazy fallback)
    */
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
 
     // Self-heal permissions for all active roles so existing tenants never get 403
     try {
@@ -57,7 +58,7 @@ export class WfmOpportunitiesService {
   /**
    * Helper: Auto-expire past opportunities whose expiration deadline has passed
    */
-  private async autoExpireOpportunities(connection: any) {
+  private async autoExpireOpportunities(connection: DataSource) {
     try {
       await connection.query(`
         UPDATE wfm_opportunities
@@ -76,7 +77,7 @@ export class WfmOpportunitiesService {
    * Both desktop (WebSocket) and mobile (Push) via NotificationsService
    */
   private async notifyEligibleDepartmentUsers(
-    connection: any,
+    connection: DataSource,
     tenantId: string,
     opportunity: any,
     isReopen = false,
@@ -160,7 +161,7 @@ export class WfmOpportunitiesService {
     await this.autoExpireOpportunities(connection);
 
     let query = `SELECT * FROM wfm_settings WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {
@@ -443,7 +444,7 @@ export class WfmOpportunitiesService {
       LEFT JOIN shifts s ON o.shift_id = s.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filters.type && filters.type !== 'all') {
@@ -856,7 +857,7 @@ export class WfmOpportunitiesService {
    * Helper: Apply Approved Claim to Scheduling, Overtime, and Attendance
    */
   private async applyApprovedClaim(
-    connection: any,
+    connection: DataSource,
     claim: any,
     opportunity: any,
     settings: any,
@@ -1314,7 +1315,7 @@ export class WfmOpportunitiesService {
       JOIN users u ON c.user_id = u.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filters.status && filters.status !== 'all') {
@@ -1358,7 +1359,7 @@ export class WfmOpportunitiesService {
     await this.autoExpireOpportunities(connection);
 
     let scopeWhere = 'WHERE 1=1';
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {

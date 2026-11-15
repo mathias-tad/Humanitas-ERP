@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
@@ -661,7 +662,7 @@ export class AttendanceBiometricService {
   }
 
 
-  private async getAssignedShiftForDate(connection: any, userId: string, dateStr: string): Promise<any> {
+  private async getAssignedShiftForDate(connection: DataSource, userId: string, dateStr: string): Promise<any> {
     // 1. Check direct schedule override
     const override = await connection.query(`
       SELECT s.*, sh.name as shift_name, sh.start_time, sh.end_time, sh.grace_minutes, sh.is_overnight

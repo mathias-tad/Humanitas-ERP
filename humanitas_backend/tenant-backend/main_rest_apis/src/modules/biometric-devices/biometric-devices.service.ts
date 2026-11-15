@@ -27,7 +27,7 @@ export class BiometricDevicesService {
     `);
   }
 
-  private async ensureBiometricTables(connection: any) {
+  private async ensureBiometricTables(connection: DataSource) {
 
     // Seed Protocols if empty
     const protocolCount = await connection.query('SELECT count(*) as count FROM device_protocols');
@@ -180,7 +180,7 @@ export class BiometricDevicesService {
     await this.ensureBiometricTables(connection);
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     const allowedFields = [
@@ -247,7 +247,7 @@ export class BiometricDevicesService {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     if (statusUpdates.status) {

@@ -10,7 +10,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { SettingsService } from '../settings/settings.service';
 import { DatabaseService } from '../database/database.service';
 import { Tenant } from '../auth/entities/tenant.entity';
@@ -507,7 +507,7 @@ export class RecruitmentService {
       throw new BadRequestException('Database service not configured');
     }
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdentifier);
-    let connection: any;
+    let connection: DataSource;
     if (isUuid) {
       try {
         connection = await this.databaseService.getTenantConnectionById(tenantIdentifier);
@@ -550,7 +550,7 @@ export class RecruitmentService {
   async getInterviews(tenantIdentifier: string, filter: FilterInterviewDto = {}) {
     const connection = await this.getTenantConnection(tenantIdentifier);
     let query = `SELECT * FROM recruitment_interviews WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filter.job_id) {
@@ -649,7 +649,7 @@ export class RecruitmentService {
     }
 
     const updates: string[] = [];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
     let pIdx = 2;
 
     if (data.feedback !== undefined) {
@@ -705,7 +705,7 @@ export class RecruitmentService {
   async getOffers(tenantIdentifier: string, filter: FilterOfferDto = {}) {
     const connection = await this.getTenantConnection(tenantIdentifier);
     let query = `SELECT * FROM recruitment_offers WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filter.job_id) {
@@ -806,7 +806,7 @@ export class RecruitmentService {
     }
 
     const updates: string[] = [`status = $2`];
-    const params: any[] = [id, data.status];
+    const params: unknown[] = [id, data.status];
     let pIdx = 3;
 
     if (signedAt !== null) {

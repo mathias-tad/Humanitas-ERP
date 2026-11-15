@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { randomUUID } from 'crypto';
@@ -28,7 +29,7 @@ export class HrmsAssetsService {
     return connection;
   }
 
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
     try {
 
 
@@ -98,7 +99,7 @@ export class HrmsAssetsService {
       LEFT JOIN users u ON a.current_assigned_user_id::text = u.id::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {
@@ -237,7 +238,7 @@ export class HrmsAssetsService {
     }
 
     const updates: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (dto.name !== undefined) {
@@ -455,7 +456,7 @@ export class HrmsAssetsService {
       FROM asset_maintenance_logs ml
       JOIN company_assets a ON ml.asset_id = a.id
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (assetId) {
       query += ` WHERE ml.asset_id = $1`;
       params.push(assetId);
@@ -475,7 +476,7 @@ export class HrmsAssetsService {
   async getAssetAnalytics(tenantId: string, companyId?: string, branchId?: string) {
     const conn = await this.getConnection(tenantId);
     let filterClause = '';
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {

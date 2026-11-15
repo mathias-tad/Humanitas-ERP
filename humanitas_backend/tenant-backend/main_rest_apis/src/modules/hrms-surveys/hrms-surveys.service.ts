@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { randomUUID } from 'crypto';
@@ -27,7 +28,7 @@ export class HrmsSurveysService {
     return connection;
   }
 
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
     try {
 
 
@@ -115,7 +116,7 @@ export class HrmsSurveysService {
       LEFT JOIN survey_questions q ON s.id = q.survey_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {
@@ -448,7 +449,7 @@ export class HrmsSurveysService {
       JOIN surveys s ON ai.survey_id = s.id
       LEFT JOIN users u ON ai.assigned_to_user_id::text = u.id::text
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (surveyId) {
       query += ` WHERE ai.survey_id = $1`;
       params.push(surveyId);
@@ -484,7 +485,7 @@ export class HrmsSurveysService {
   async updateActionItem(tenantId: string, id: string, dto: UpdateSurveyActionItemDto) {
     const conn = await this.getConnection(tenantId);
     const updates: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (dto.status !== undefined) {
@@ -507,7 +508,7 @@ export class HrmsSurveysService {
   async getSurveyAnalytics(tenantId: string, companyId?: string, branchId?: string) {
     const conn = await this.getConnection(tenantId);
     let filterClause = '';
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {

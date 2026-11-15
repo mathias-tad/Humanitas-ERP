@@ -421,7 +421,7 @@ export class AttendanceClockService {
       LEFT JOIN late_minutes_summary lms ON ar.user_id = lms.user_id AND ar.date = lms.date
       WHERE 1 = 1
       `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (filters?.startDate && filters?.endDate) {

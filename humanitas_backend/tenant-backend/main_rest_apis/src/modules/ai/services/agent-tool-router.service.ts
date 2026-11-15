@@ -37,7 +37,7 @@ export class AgentToolRouterService {
             FROM ai_knowledge_entries
             WHERE 1=1
           `;
-          const params: any[] = [];
+          const params: unknown[] = [];
           let idx = 1;
 
           if (module) {

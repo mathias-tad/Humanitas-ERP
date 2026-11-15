@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   NotFoundException,
@@ -13,7 +14,7 @@ export class LeaveService {
 
   // Helper: Check if user is in probation period
   private async isUserInProbation(
-    connection: any,
+    connection: DataSource,
     userId: string,
     probationDays: number,
   ): Promise<{
@@ -70,7 +71,7 @@ export class LeaveService {
   }
 
   // Helper: Get HR settings
-  private async getHRSettings(connection: any): Promise<any> {
+  private async getHRSettings(connection: DataSource): Promise<any> {
     try {
       const result = await connection.query(`
         SELECT data FROM settings WHERE category = 'hr'
@@ -415,7 +416,7 @@ export class LeaveService {
       LEFT JOIN users a ON lr.approved_by = a.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (filters?.status) {

@@ -160,7 +160,7 @@ export class AiActionService {
         try {
           const { ds } = await getConn();
           const fields: string[] = [];
-          const values: any[] = [];
+          const values: unknown[] = [];
           let idx = 1;
           if (position !== undefined) { fields.push(`position = $${idx++}`); values.push(position); }
           if (department !== undefined) { fields.push(`department = $${idx++}`); values.push(department); }
@@ -942,7 +942,7 @@ export class AiActionService {
         try {
           const { ds } = await getConn();
           let query = 'SELECT id, name, type, provider_name, employer_contribution, employee_contribution, frequency, is_active FROM benefit_plans';
-          const params: any[] = [];
+          const params: unknown[] = [];
           if (is_active !== undefined) {
             query += ' WHERE is_active = $1';
             params.push(is_active);
@@ -994,7 +994,7 @@ export class AiActionService {
         try {
           const { ds } = await getConn();
           let query = 'SELECT id, title, category, delivery_method, duration_hours, is_mandatory, passing_score, provider_name FROM training_courses WHERE is_active = true';
-          const params: any[] = [];
+          const params: unknown[] = [];
           let idx = 1;
           if (category) {
             query += ` AND category = $${idx++}`;
@@ -1256,7 +1256,7 @@ export class AiActionService {
         try {
           const { ds } = await getConn();
           let query = 'SELECT name, asset_tag, model, status, current_condition, location FROM company_assets WHERE 1=1';
-          const params: any[] = [];
+          const params: unknown[] = [];
           if (status) {
             query += ' AND status = $1';
             params.push(status);

@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApprovalsService } from './approvals.service';
 import { DatabaseService } from '../database/database.service';
@@ -436,7 +437,7 @@ describe('ApprovalsService Unit Tests', () => {
     // Schema now comes from the tenant migration (20261115000001_consolidate_runtime_schema.sql);
     // this method only seeds default workflows and must not run DDL at request time.
     it('should not run any DDL at request time', async () => {
-      await service.ensureApprovalTables(mockConnection);
+      await service.ensureApprovalTables(mockConnection as unknown as DataSource);
       const ddlCalls = mockConnection.query.mock.calls.filter(([sql]: [string]) =>
         /\b(CREATE\s+TABLE|ALTER\s+TABLE|CREATE\s+(UNIQUE\s+)?INDEX)\b/i.test(String(sql)),
       );

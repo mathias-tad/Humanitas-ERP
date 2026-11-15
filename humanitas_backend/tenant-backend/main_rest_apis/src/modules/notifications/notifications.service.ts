@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Optional } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsGateway } from './notifications.gateway';
@@ -188,7 +189,7 @@ export class NotificationsService {
         return [];
     }
 
-    async getActiveModulesForTenant(connection: any): Promise<string[]> {
+    async getActiveModulesForTenant(connection: DataSource): Promise<string[]> {
         try {
             const rows = await connection.query(
                 `SELECT module_key FROM tenant_modules WHERE is_active = true`

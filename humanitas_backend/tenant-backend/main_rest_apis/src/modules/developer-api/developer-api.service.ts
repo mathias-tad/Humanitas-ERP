@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateApiKeyDto, UpdateApiKeyDto, CreateWebhookDto, UpdateWebhookDto, TestWebhookDto } from './dto/developer-api.dto';
@@ -80,7 +81,7 @@ export class DeveloperApiService {
       FROM developer_api_keys
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (companyId) {
       params.push(companyId);
@@ -225,7 +226,7 @@ export class DeveloperApiService {
       FROM webhook_subscriptions w
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (companyId) {
       params.push(companyId);
@@ -252,7 +253,7 @@ export class DeveloperApiService {
     }
 
     const updates: string[] = ['updated_at = NOW()'];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
 
     if (dto.name !== undefined) {
       params.push(dto.name);
@@ -329,7 +330,7 @@ export class DeveloperApiService {
   }
 
   private async sendWebhookRequest(
-    connection: any,
+    connection: DataSource,
     webhook: { id: string; target_url: string; secret_key: string },
     event: string,
     payload: any,
@@ -481,7 +482,7 @@ export class DeveloperApiService {
       INNER JOIN webhook_subscriptions w ON w.id = d.webhook_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (webhookId) {
       params.push(webhookId);

@@ -568,7 +568,7 @@ export class PayrollService {
   async getHolidays(tenantId: string, year?: number) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     let query = `SELECT * FROM holidays WHERE is_active = true`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (year) {
       query += ` AND (EXTRACT(YEAR FROM date) = $1 OR is_recurring = true)`;
       params.push(year);
@@ -616,7 +616,7 @@ export class PayrollService {
   async getLoans(tenantId: string, userId?: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     let query = `SELECT l.*, u.full_name as user_name, u.email FROM loans l JOIN users u ON l.user_id = u.id WHERE l.status = 'active'`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (userId) { query += ` AND l.user_id = $1`; params.push(userId); }
     query += ` ORDER BY l.created_at DESC`;
     return (await connection.query(query, params)) || [];

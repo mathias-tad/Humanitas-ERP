@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -138,7 +139,7 @@ export class OvertimeService {
       JOIN users u ON oe.user_id = u.id
       WHERE 1=1
     `;
-        const params: any[] = [];
+        const params: unknown[] = [];
         let pIdx = 1;
 
         if (filters.startDate) {
@@ -206,7 +207,7 @@ export class OvertimeService {
         return { message: 'Overtime updated successfully' };
     }
 
-    private async calculateOvertimeAmount(connection: any, userId: string, hours: { normal: number, night: number, holiday: number, dayoff: number }) {
+    private async calculateOvertimeAmount(connection: DataSource, userId: string, hours: { normal: number, night: number, holiday: number, dayoff: number }) {
         try {
             // 1. Get Payroll Settings
             const settingsRes = await connection.query("SELECT data FROM settings WHERE category = 'payroll'");

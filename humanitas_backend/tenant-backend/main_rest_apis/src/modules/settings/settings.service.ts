@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
 import { Tenant } from '../auth/entities/tenant.entity';
 import {
@@ -165,7 +165,7 @@ export class SettingsService {
       await this.databaseService.getTenantConnection(databaseName);
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (data.name !== undefined) {
@@ -214,7 +214,7 @@ export class SettingsService {
   // =============================================
   // Companies CRUD
   // =============================================
-  private async ensureCompaniesTable(connection: any) {
+  private async ensureCompaniesTable(connection: DataSource) {
     // Ensure there is always at least one default company
     const existing = await connection.query(`SELECT id FROM companies WHERE is_default = true LIMIT 1`);
     if (existing.length === 0) {
@@ -275,7 +275,7 @@ export class SettingsService {
     }
     const fields = ['name','legal_name','registration_number','tax_number','industry','address','city','state','country','postal_code','phone','email','website','logo_url','is_default'];
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
     for (const f of fields) {
       if (data[f as keyof typeof data] !== undefined) {
@@ -304,7 +304,7 @@ export class SettingsService {
   // =============================================
   // Branches CRUD
   // =============================================
-  private async ensureBranchesTable(connection: any) {
+  private async ensureBranchesTable(connection: DataSource) {
     // Ensure there is always at least one default branch per default company
     const existing = await connection.query(`SELECT id FROM branches WHERE is_default = true LIMIT 1`);
     if (existing.length === 0) {
@@ -390,7 +390,7 @@ export class SettingsService {
     }
     const fields = ['company_id','name','code','address','city','state','country','postal_code','phone','email','manager_id','is_default'];
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
     for (const f of fields) {
       if (data[f as keyof typeof data] !== undefined) {
@@ -984,7 +984,7 @@ export class SettingsService {
     }
   }
 
-  private async seedDefaultCategories(connection: any) {
+  private async seedDefaultCategories(connection: DataSource) {
     const categories = [
       { slug: 'management', name: 'Management', description: 'Senior Management Members' },
       { slug: 'field', name: 'Field Worker', description: 'Employees working mostly outside' },
@@ -1001,7 +1001,7 @@ export class SettingsService {
     }
   }
 
-  private async seedDefaultIncomeTypes(connection: any) {
+  private async seedDefaultIncomeTypes(connection: DataSource) {
     // 1. Transport Allowance (Category Specific)
     const transportCheck = await connection.query(`SELECT id FROM income_types WHERE name = 'Transport Allowance'`);
     let transportId: string;

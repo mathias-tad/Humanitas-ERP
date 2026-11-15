@@ -113,7 +113,7 @@ export class CalendarService {
           WHERE c.start_date <= $2
             AND (c.end_date IS NULL OR c.end_date >= $1)
         `;
-        const params: any[] = [start, end];
+        const params: unknown[] = [start, end];
 
         if (companyId) {
           sql += ` AND (c.company_id IS NULL OR c.company_id = $${params.length + 1})`;
@@ -702,7 +702,7 @@ export class CalendarService {
     if (!existing) throw new NotFoundException('Calendar event not found');
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     if (dto.title !== undefined) { fields.push(`title = $${idx++}`); values.push(dto.title); }

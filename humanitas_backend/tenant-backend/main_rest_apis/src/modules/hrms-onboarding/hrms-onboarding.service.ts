@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   Logger,
@@ -34,7 +35,7 @@ export class HrmsOnboardingService {
     }
     return connection;
   }
-  private async seedDefaultTemplates(connection: any) {
+  private async seedDefaultTemplates(connection: DataSource) {
     try {
       await connection.query(`
         INSERT INTO onboarding_templates (id, name, type, is_default, description)
@@ -93,7 +94,7 @@ export class HrmsOnboardingService {
       FROM onboarding_templates t
       LEFT JOIN onboarding_template_items ti ON t.id = ti.template_id
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (type) {
       query += ` WHERE t.type = $1`;
       params.push(type);
@@ -261,7 +262,7 @@ export class HrmsOnboardingService {
     const connection = await this.getConnection(tenantId);
 
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters?.status) {

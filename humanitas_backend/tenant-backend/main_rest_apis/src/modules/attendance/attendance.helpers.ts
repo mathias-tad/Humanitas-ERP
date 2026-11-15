@@ -1,9 +1,10 @@
+import type { DataSource } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
 
 /** Shared helpers used by the attendance services (moved verbatim from AttendanceService). */
 
 // Get company timezone from general settings
-export async function getCompanyTimezone(connection: any): Promise<string> {
+export async function getCompanyTimezone(connection: DataSource): Promise<string> {
   try {
     const result = await connection.query(
       `SELECT data FROM settings WHERE category = 'general'`,
@@ -25,7 +26,7 @@ export async function getCompanyTimezone(connection: any): Promise<string> {
 
 
 // Get HR settings
-export async function getHRSettings(connection: any): Promise<any> {
+export async function getHRSettings(connection: DataSource): Promise<any> {
   try {
     const result = await connection.query(
       `SELECT data FROM settings WHERE category = 'hr'`,

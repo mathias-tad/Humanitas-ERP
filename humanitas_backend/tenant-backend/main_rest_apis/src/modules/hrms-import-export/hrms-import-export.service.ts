@@ -527,7 +527,7 @@ export class HrmsImportExportService {
   async updateExportTemplate(tenantId: string, id: string, dto: UpdateExportTemplateDto) {
     const conn = await this.getConnection(tenantId);
     const fields: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (dto.name !== undefined) {

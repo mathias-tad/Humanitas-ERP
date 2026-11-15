@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { CreateShiftDto, UpdateShiftDto } from './dto/create-shift.dto';
 import { CreateShiftPatternDto, UpdateShiftPatternDto } from './dto/create-pattern.dto';
 import {
@@ -23,7 +24,7 @@ export class SchedulingService {
     private readonly holidaysService: HolidaysService,
   ) { }
   // ============ MIGRATION LOGIC ============
-  private async migrateLegacyData(connection: any) {
+  private async migrateLegacyData(connection: DataSource) {
     try {
       // 1. Check if legacy tables exist
       const legacyTablesExist = await connection.query(`

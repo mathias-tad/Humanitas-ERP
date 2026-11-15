@@ -247,7 +247,7 @@ Encrypt=0`;
     tenantInfo: ResolvedTenantInfo,
     device: any,
     data: string,
-    connection: any,
+    connection: DataSource,
   ) {
     // 1. Check HR Settings: is 'biometric' accepted?
     const hrSettingsResult = await connection.query(
@@ -425,7 +425,7 @@ Encrypt=0`;
   private async processUserInfo(
     tenantInfo: ResolvedTenantInfo,
     body: string,
-    connection: any,
+    connection: DataSource,
   ) {
     const lines = body.split('\n').filter((l) => l.trim().length > 0);
     for (const line of lines) {
