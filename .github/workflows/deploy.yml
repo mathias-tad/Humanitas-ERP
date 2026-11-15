@@ -130,6 +130,18 @@ jobs:
             fi
 
             docker compose build
-            docker compose up -d --remove-orphans
+            # An interrupted recreate can leave a container renamed to '<12-hex-id>_<name>',
+            # which makes the next 'up' fail with a name conflict. If that happens, remove
+            # only such leftovers from this compose project and try once more.
+            if ! docker compose up -d --remove-orphans; then
+              PROJECT=$(basename "$PWD" | tr '[:upper:]' '[:lower:]')
+              STALE=$(docker ps -a --filter "label=com.docker.compose.project=$PROJECT" --format '{{.ID}} {{.Names}}' | awk '$2 ~ /^[0-9a-f]{12}_/ {print $1}')
+              if [ -n "$STALE" ]; then
+                echo "Removing stale containers left by an interrupted deploy: $STALE"
+                docker rm -f $STALE
+              fi
+              docker compose up -d --remove-orphans
+            fi
+            docker compose ps
             docker image prune -f
             echo "✅ Humanitas-ERP Deployed Successfully!"
