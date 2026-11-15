@@ -4,6 +4,7 @@ import { ModuleSubscriptionGuard } from './module-subscription.guard';
 import { DatabaseService } from '../../database/database.service';
 import { Repository } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
+import { JwtService } from '@nestjs/jwt';
 
 describe('ModuleSubscriptionGuard', () => {
   let guard: ModuleSubscriptionGuard;
@@ -193,6 +194,61 @@ describe('ModuleSubscriptionGuard', () => {
 
       const context = createMockContext({ tenantSlug: 'test-tenant' });
       await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('token fallback when the guard runs before JwtAuthGuard', () => {
+    const SECRET = 'test-secret-for-module-guard-0123456789';
+    const OLD_SECRET = process.env.JWT_SECRET;
+    const payload = { sub: 'u1', email: 'u@x.test', tenantId: 't1', tenantSlug: 'victim-co', role: 'owner' };
+
+    const contextWithBearer = (token: string, request: any = {}) =>
+      ({
+        getHandler: () => ({}),
+        getClass: () => ({}),
+        switchToHttp: () => ({
+          getRequest: () => Object.assign(request, { headers: { authorization: `Bearer ${token}` } }),
+        }),
+      }) as unknown as ExecutionContext;
+
+    beforeEach(() => {
+      process.env.JWT_SECRET = SECRET;
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue('notifications'); // core module: no DB needed
+    });
+    afterAll(() => {
+      if (OLD_SECRET === undefined) delete process.env.JWT_SECRET;
+      else process.env.JWT_SECRET = OLD_SECRET;
+    });
+
+    it('accepts a correctly signed access token and sets req.user', async () => {
+      const token = new JwtService({ secret: SECRET }).sign(payload);
+      const request: any = {};
+      await expect(guard.canActivate(contextWithBearer(token, request))).resolves.toBe(true);
+      expect(request.user).toMatchObject({ sub: 'u1', tenantSlug: 'victim-co' });
+    });
+
+    it('rejects an unsigned/forged token', async () => {
+      const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+      const forged = `${b64({ alg: 'none', typ: 'JWT' })}.${b64(payload)}.`;
+      const request: any = {};
+      await expect(guard.canActivate(contextWithBearer(forged, request))).rejects.toThrow(ForbiddenException);
+      expect(request.user).toBeUndefined();
+    });
+
+    it('rejects a token signed with a different secret', async () => {
+      const token = new JwtService({ secret: 'some-other-secret-0123456789abcdef' }).sign(payload);
+      await expect(guard.canActivate(contextWithBearer(token))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects refresh tokens', async () => {
+      const token = new JwtService({ secret: SECRET }).sign({ ...payload, token_use: 'refresh' });
+      await expect(guard.canActivate(contextWithBearer(token))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('fails closed when JWT_SECRET is not configured', async () => {
+      const token = new JwtService({ secret: SECRET }).sign(payload);
+      delete process.env.JWT_SECRET;
+      await expect(guard.canActivate(contextWithBearer(token))).rejects.toThrow(ForbiddenException);
     });
   });
 });

@@ -10,6 +10,7 @@ import { DatabaseService } from '../../database/database.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
+import { JwtService } from '@nestjs/jwt';
 
 export const MODULE_KEY = 'requiredModule';
 
@@ -19,6 +20,23 @@ export const MODULE_KEY = 'requiredModule';
  */
 export const RequireModule = (moduleName: string) =>
   SetMetadata(MODULE_KEY, moduleName);
+
+/**
+ * Verify an access token's signature and expiry with JWT_SECRET (the same
+ * secret JwtStrategy uses). Returns the payload, or undefined if the token is
+ * forged, expired, a refresh token, or the secret is not configured.
+ */
+export function verifyAccessToken(token: string): Record<string, any> | undefined {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return undefined;
+  try {
+    const payload = new JwtService({ secret }).verify<Record<string, any>>(token);
+    if (payload?.token_use === 'refresh') return undefined;
+    return payload;
+  } catch {
+    return undefined;
+  }
+}
 
 @Injectable()
 export class ModuleSubscriptionGuard implements CanActivate {
@@ -54,16 +72,9 @@ export class ModuleSubscriptionGuard implements CanActivate {
       }
 
       if (rawToken) {
-        try {
-          const base64Payload = rawToken.split('.')[1];
-          if (base64Payload) {
-            const normalized = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
-            user = JSON.parse(Buffer.from(normalized, 'base64').toString('utf8'));
-            request.user = user;
-          }
-        } catch {
-          // ignore parsing error, will fail on user validation below
-        }
+        // Only trust a token whose signature checks out (same secret as JwtStrategy).
+        user = verifyAccessToken(rawToken);
+        if (user) request.user = user;
       }
     }
 
