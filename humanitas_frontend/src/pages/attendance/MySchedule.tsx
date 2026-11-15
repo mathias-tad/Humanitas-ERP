@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -334,8 +335,8 @@ export default function MySchedule() {
       setIsMissedPunchOpen(false);
       setPunchReason("");
       fetchMonthlyData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit request");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to submit request");
     } finally {
       setIsSubmittingPunch(false);
     }

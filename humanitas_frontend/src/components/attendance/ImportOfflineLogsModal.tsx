@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from "react";
 import {
   Dialog,
@@ -79,8 +80,8 @@ export function ImportOfflineLogsModal({
       toast.success(
         `Successfully synced ${res.total} punches (${res.reconciled} shifts reconciled)!`
       );
-    } catch (err: any) {
-      toast.error(err.message || "Failed to import offline punch logs.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to import offline punch logs.");
     }
   };
 

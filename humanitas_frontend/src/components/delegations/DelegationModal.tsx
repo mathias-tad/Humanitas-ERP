@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from "react";
 import {
   Dialog,
@@ -166,8 +167,8 @@ export const DelegationModal: React.FC<DelegationModalProps> = ({
         acting_allowance_amount: 0,
         acting_notes: "",
       });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delegate authority");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to delegate authority");
     }
   };
 
@@ -178,8 +179,8 @@ export const DelegationModal: React.FC<DelegationModalProps> = ({
     try {
       await revokeMutation.mutateAsync(id);
       toast.success("Delegation revoked successfully");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to revoke delegation");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to revoke delegation");
     }
   };
 

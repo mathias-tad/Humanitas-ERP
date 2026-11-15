@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
     Card,
@@ -320,9 +321,9 @@ export function UserIncomeSettings() {
 
             setIsModalOpen(false);
             selectUser(selectedUser); // Refresh
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(`Error: ${e.message}`);
+            alert(`Error: ${errorMessage(e)}`);
         } finally {
             setLoading(false);
         }

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -164,8 +165,8 @@ export default function BenefitsPage() {
         max_dependents: 4,
         min_tenure_months: 0,
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create plan');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create plan');
     }
   };
 
@@ -187,8 +188,8 @@ export default function BenefitsPage() {
       });
       toast.success('Employee enrolled successfully');
       setShowEnrollModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to enroll employee');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to enroll employee');
     }
   };
 
@@ -217,8 +218,8 @@ export default function BenefitsPage() {
         national_id: '',
         gender: 'male',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add dependent');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to add dependent');
     }
   };
 
@@ -226,8 +227,8 @@ export default function BenefitsPage() {
     try {
       await removeDepMutation.mutateAsync(depId);
       toast.success('Dependent removed from coverage');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to remove dependent');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to remove dependent');
     }
   };
 
@@ -242,8 +243,8 @@ export default function BenefitsPage() {
       });
       toast.success('Open enrollment campaign scheduled');
       setShowOpenPeriodModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to schedule period');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to schedule period');
     }
   };
 

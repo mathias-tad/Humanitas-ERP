@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -201,11 +202,11 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
           setCurrentConvoId(result.conversationId);
           loadHistory();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         const errorMsg: AiMessage = {
           id: (Date.now() + 1).toString(),
           role: "system",
-          content: error.message || "Failed to process request. Please try again.",
+          content: errorMessage(error) || "Failed to process request. Please try again.",
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, errorMsg]);
@@ -232,8 +233,8 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
       setDownloadingDocId(docId);
       try {
         await aiChatService.generateDocument(prompt, format);
-      } catch (e: any) {
-        alert("Failed to download document: " + e.message);
+      } catch (e: unknown) {
+        alert("Failed to download document: " + errorMessage(e));
       } finally {
         setDownloadingDocId(null);
       }
@@ -252,8 +253,8 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
         setSelectedTemplate(null);
         setTemplateParams({});
         setCustomNotes("");
-      } catch (e: any) {
-        alert("Failed to generate document: " + e.message);
+      } catch (e: unknown) {
+        alert("Failed to generate document: " + errorMessage(e));
       } finally {
         setIsGeneratingDoc(false);
       }
@@ -274,8 +275,8 @@ export const AiAssistantWidget = forwardRef<AiAssistantWidgetHandle>(
         setCustomTemplateFile(null);
         setCustomPrompt("");
         if (customTemplateInputRef.current) customTemplateInputRef.current.value = "";
-      } catch (e: any) {
-        alert("Failed to generate custom template document: " + e.message);
+      } catch (e: unknown) {
+        alert("Failed to generate custom template document: " + errorMessage(e));
       } finally {
         setIsGeneratingDoc(false);
       }

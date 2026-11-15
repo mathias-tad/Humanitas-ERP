@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -133,7 +134,7 @@ export function ChatAccessRequestsModal({
       if (!res.ok) throw new Error('Failed to load access requests');
       const data = await res.json();
       setRequests(data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
     } finally {
       setIsLoading(false);
@@ -165,7 +166,7 @@ export function ChatAccessRequestsModal({
       if (!res.ok) throw new Error('Failed to load role restrictions');
       const data = await res.json();
       setRestrictions(data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
     } finally {
       setIsLoadingRestrictions(false);
@@ -200,8 +201,8 @@ export function ChatAccessRequestsModal({
       toast.success(action === 'approve' ? `Direct chat access granted (${duration})` : 'Request declined');
       loadRequests();
       onRequestsUpdated?.();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to respond to request');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to respond to request');
     } finally {
       setRespondingId(null);
     }
@@ -236,8 +237,8 @@ export function ChatAccessRequestsModal({
       setProactiveNote('');
       loadActiveGrants();
       onRequestsUpdated?.();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to grant direct access');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to grant direct access');
     } finally {
       setIsGrantingProactive(false);
     }
@@ -255,8 +256,8 @@ export function ChatAccessRequestsModal({
       toast.success('Direct chat access revoked');
       loadActiveGrants();
       onRequestsUpdated?.();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to revoke access');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to revoke access');
     } finally {
       setRevokingId(null);
     }
@@ -282,8 +283,8 @@ export function ChatAccessRequestsModal({
           ? 'Direct chat unlocked: all employees can now message you directly'
           : 'Role restriction restored: requests or AI triage required'
       );
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to toggle override');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to toggle override');
     } finally {
       setIsUpdatingOverride(false);
     }
@@ -310,8 +311,8 @@ export function ChatAccessRequestsModal({
 
       if (!res.ok) throw new Error('Failed to save restrictions');
       toast.success('Chat role restrictions saved successfully');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to save restrictions');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to save restrictions');
     } finally {
       setIsSavingRestrictions(false);
     }

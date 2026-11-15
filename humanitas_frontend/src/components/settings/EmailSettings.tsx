@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,8 +88,8 @@ export function EmailSettings({ disabled: _disabled = false }: EmailSettingsProp
       }
 
       setSuccess("Email settings saved successfully");
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      setError(errorMessage(error));
     } finally {
       setIsSaving(false);
     }
@@ -113,8 +114,8 @@ export function EmailSettings({ disabled: _disabled = false }: EmailSettingsProp
       } else {
         setTestResult({ success: false, message: data.message || "Failed to send test email" });
       }
-    } catch (error: any) {
-      setTestResult({ success: false, message: error.message || "Connection error" });
+    } catch (error: unknown) {
+      setTestResult({ success: false, message: errorMessage(error) || "Connection error" });
     } finally {
       setIsTesting(false);
     }

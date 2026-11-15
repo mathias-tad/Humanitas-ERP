@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -159,8 +160,8 @@ export default function TrainingPage() {
         provider_name: '',
         cost_per_learner: 0,
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create course');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create course');
     }
   };
 
@@ -170,8 +171,8 @@ export default function TrainingPage() {
       await createSessionMutation.mutateAsync(sessionForm);
       toast.success('Cohort session scheduled successfully');
       setShowSessionModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to schedule session');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to schedule session');
     }
   };
 
@@ -181,8 +182,8 @@ export default function TrainingPage() {
       await enrollLearnerMutation.mutateAsync(enrollForm);
       toast.success('Learner enrollment registered successfully');
       setShowEnrollModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to enroll learner');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to enroll learner');
     }
   };
 
@@ -196,8 +197,8 @@ export default function TrainingPage() {
       });
       toast.success('Enrollment progress and certification updated');
       setShowProgressModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update progress');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update progress');
     }
   };
 
@@ -207,8 +208,8 @@ export default function TrainingPage() {
       await upsertSkillMutation.mutateAsync(skillForm);
       toast.success('Employee skill recorded in matrix');
       setShowSkillModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to log skill');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to log skill');
     }
   };
 

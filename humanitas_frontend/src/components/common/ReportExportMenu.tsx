@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,8 +86,8 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       downloadBlob(blob, `${filenamePrefix}_${formatTimestamp()}.csv`);
       toast.success(`Exported ${data.length} records to CSV successfully`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to export CSV");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to export CSV");
     } finally {
       setIsExporting(false);
     }
@@ -133,8 +134,8 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
       const blob = new Blob(["\uFEFF" + template], { type: "application/vnd.ms-excel;charset=utf-8;" });
       downloadBlob(blob, `${filenamePrefix}_${formatTimestamp()}.xls`);
       toast.success(`Exported ${data.length} records to Excel format successfully`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to export Excel file");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to export Excel file");
     } finally {
       setIsExporting(false);
     }
@@ -232,8 +233,8 @@ export const ReportExportMenu: React.FC<ReportExportMenuProps> = ({
       const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" });
       downloadBlob(blob, `${filenamePrefix}_${formatTimestamp()}.json`);
       toast.success(`Exported ${data.length} records to JSON successfully`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to export JSON");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to export JSON");
     } finally {
       setIsExporting(false);
     }

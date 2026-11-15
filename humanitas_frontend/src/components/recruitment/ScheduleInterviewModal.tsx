@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -101,8 +102,8 @@ export function ScheduleInterviewModal({
       toast.success(`Interview scheduled successfully for ${candidateName}`);
       onOpenChange(false);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to schedule interview");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to schedule interview");
     }
   };
 

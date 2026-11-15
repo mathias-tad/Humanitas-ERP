@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -164,8 +165,8 @@ export default function GrievancesPage() {
         witnesses: '',
       });
       setActiveTab('cases');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to file grievance');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to file grievance');
     }
   };
 
@@ -179,8 +180,8 @@ export default function GrievancesPage() {
       toast.success('Investigator assigned successfully');
       setShowAssignModal(false);
       setSelectedInvestigator('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to assign investigator');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to assign investigator');
     }
   };
 
@@ -200,8 +201,8 @@ export default function GrievancesPage() {
       setShowResolutionModal(false);
       setResolutionSummary('');
       setActionItems('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit resolution');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit resolution');
     }
   };
 
@@ -215,8 +216,8 @@ export default function GrievancesPage() {
       });
       toast.success('Thank you for providing resolution feedback');
       setShowFeedbackModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit feedback');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit feedback');
     }
   };
 
@@ -230,8 +231,8 @@ export default function GrievancesPage() {
       });
       toast.success('Investigation note recorded');
       setNewNote('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add note');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to add note');
     }
   };
 
@@ -243,8 +244,8 @@ export default function GrievancesPage() {
         status,
       });
       toast.success(`Case status updated to ${status}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update status');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update status');
     }
   };
 

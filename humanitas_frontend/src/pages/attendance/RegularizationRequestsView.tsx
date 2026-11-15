@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from "react";
 import {
   Table,
@@ -66,8 +67,8 @@ export function RegularizationRequestsView() {
       );
       setIsConfirmOpen(false);
       setSelectedRequest(null);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to process review.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to process review.");
     }
   };
 

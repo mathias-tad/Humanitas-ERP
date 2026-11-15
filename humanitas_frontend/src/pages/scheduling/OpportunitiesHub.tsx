@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import {
   useWfmSettings,
@@ -200,8 +201,8 @@ export default function OpportunitiesHub() {
       });
       toast.success(res.message || 'Claim submitted successfully!');
       setClaimDialogOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to claim opportunity');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to claim opportunity');
     }
   };
 
@@ -211,8 +212,8 @@ export default function OpportunitiesHub() {
     try {
       await cancelClaimMutation.mutateAsync(claimId);
       toast.success('Claim cancelled successfully');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel claim');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to cancel claim');
     }
   };
 
@@ -251,8 +252,8 @@ export default function OpportunitiesHub() {
       });
       toast.success('Opportunity broadcasted! Notifications sent to department.');
       setBroadcastOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to broadcast opportunity');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to broadcast opportunity');
     }
   };
 
@@ -274,8 +275,8 @@ export default function OpportunitiesHub() {
       });
       toast.success(`Claim ${reviewAction} successfully!`);
       setReviewDialogOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to review claim');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to review claim');
     }
   };
 

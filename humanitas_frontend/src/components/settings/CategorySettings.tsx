@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
     Card,
@@ -238,8 +239,8 @@ export function CategorySettings({ disabled: _disabled = false }: CategorySettin
             await fetchCategories();
             setIsModalOpen(false);
             setMessage({ type: "success", text: `Category ${editingCategory ? 'updated' : 'created'} successfully` });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message || "Failed to save category" });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) || "Failed to save category" });
         } finally {
             setIsSaving(false);
         }
@@ -261,8 +262,8 @@ export function CategorySettings({ disabled: _disabled = false }: CategorySettin
 
             await fetchCategories();
             setMessage({ type: "success", text: "Category deleted successfully" });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message || "Failed to delete category" });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) || "Failed to delete category" });
         }
     };
 
@@ -301,8 +302,8 @@ export function CategorySettings({ disabled: _disabled = false }: CategorySettin
                 default_tier: 'none'
             });
             setMessage({ type: "success", text: "Allowance added successfully" });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message || "Failed to add allowance" });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) || "Failed to add allowance" });
         } finally {
             setIsAddingAllowance(false);
         }
@@ -325,8 +326,8 @@ export function CategorySettings({ disabled: _disabled = false }: CategorySettin
                 await fetchCategoryAllowances(editingCategory.id);
             }
             setMessage({ type: "success", text: "Allowance removed successfully" });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message || "Failed to remove allowance" });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) || "Failed to remove allowance" });
         }
     };
 

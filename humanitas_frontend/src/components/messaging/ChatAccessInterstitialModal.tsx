@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -87,8 +88,8 @@ export function ChatAccessInterstitialModal({
       setSubmittedRequest(data.grant || { status: 'pending', reason: reason.trim() });
       onAccessGranted?.();
       setReason('');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to submit access request');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || 'Failed to submit access request');
     } finally {
       setIsSubmitting(false);
     }

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -110,8 +111,8 @@ export function GenerateOfferModal({
       toast.success(`Official offer letter generated for ${candidateName}`);
       onOpenChange(false);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to generate offer letter");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to generate offer letter");
     }
   };
 

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useEffect, useState } from "react";
 import {
   Dialog,
@@ -298,8 +299,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
       setNewDeptName("");
       setNewDeptDesc("");
       setIsNewDeptDialogOpen(false);
-    } catch (e: any) {
-      toast.error(e.message || "Failed to create department");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e) || "Failed to create department");
     } finally {
       setIsCreatingDept(false);
     }
@@ -370,8 +371,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
 
       await onSave(dataToSave);
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to save user");
+    } catch (err: unknown) {
+      setError(errorMessage(err) || "Failed to save user");
     } finally {
       setIsSaving(false);
     }

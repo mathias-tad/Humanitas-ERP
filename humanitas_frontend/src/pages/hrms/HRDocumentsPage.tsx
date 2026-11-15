@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuthHeaders } from '@/context/AuthContext';
@@ -137,8 +138,8 @@ export default function HRDocumentsPage() {
       setUploadFileName('');
       setUploadExpiryDate('');
       setUploadNotes('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to upload document');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to upload document');
     }
   };
 
@@ -153,8 +154,8 @@ export default function HRDocumentsPage() {
       toast.success(`Document marked as ${verifyStatus}`);
       setVerifyModalDoc(null);
       setVerifyNotes('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to verify document');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to verify document');
     }
   };
 
@@ -163,8 +164,8 @@ export default function HRDocumentsPage() {
     try {
       await deleteDocument(doc.id);
       toast.success('Document deleted');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete document');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to delete document');
     }
   };
 
@@ -192,8 +193,8 @@ export default function HRDocumentsPage() {
       } else {
         toast.success('Letter drafted and preview generated');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to generate letter');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to generate letter');
     }
   };
 

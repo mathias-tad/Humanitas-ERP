@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -127,8 +128,8 @@ export default function ExpensesPage() {
       setShowReportModal(false);
       setReportForm({ title: '', purpose: '', currency: 'USD' });
       setSelectedReportId(res.id);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create report');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create report');
     }
   };
 
@@ -150,8 +151,8 @@ export default function ExpensesPage() {
         amount: 50,
         receipt_url: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add item');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to add item');
     }
   };
 
@@ -159,8 +160,8 @@ export default function ExpensesPage() {
     try {
       await deleteItemMutation.mutateAsync({ reportId, itemId });
       toast.success('Item deleted');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete item');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to delete item');
     }
   };
 
@@ -169,8 +170,8 @@ export default function ExpensesPage() {
       await submitReportMutation.mutateAsync(reportId);
       toast.success('Expense report submitted for manager approval');
       setShowDetailModal(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit report');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit report');
     }
   };
 
@@ -194,8 +195,8 @@ export default function ExpensesPage() {
       toast.success('Expense report approved');
       setShowApproveModal(false);
       setActiveReport(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to approve report');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to approve report');
     }
   };
 
@@ -216,8 +217,8 @@ export default function ExpensesPage() {
       toast.success('Expense report rejected');
       setShowRejectModal(false);
       setActiveReport(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to reject report');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to reject report');
     }
   };
 
@@ -225,8 +226,8 @@ export default function ExpensesPage() {
     try {
       await reimburseMutation.mutateAsync(reportId);
       toast.success('Report marked as fully reimbursed/paid');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to mark reimbursed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to mark reimbursed');
     }
   };
 
@@ -244,8 +245,8 @@ export default function ExpensesPage() {
         daily_per_diem_cap: 75,
         requires_receipt: true,
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create category');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create category');
     }
   };
 
