@@ -25,6 +25,7 @@ import {
   DecideApprovalRequestDto,
   FilterApprovalRequestsDto,
 } from './dto/approvals.dto';
+import { firstHeader, type AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @ApiTags('Dynamic Approvals')
 @Controller('approvals')
@@ -34,12 +35,12 @@ import {
 export class ApprovalsController {
   constructor(private readonly approvalsService: ApprovalsService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId || req.user?.tenantSlug;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user?.tenantId || headerTenantId || req.user?.tenantSlug;
   }
 
   private resolveScope(
-    req: any,
+    req: AuthenticatedRequest,
     queryCompanyId?: string,
     queryBranchId?: string,
     headerCompanyId?: string,
@@ -48,15 +49,11 @@ export class ApprovalsController {
     const company_id =
       queryCompanyId ||
       headerCompanyId ||
-      req.headers?.['x-company-id'] ||
-      req.user?.company_id ||
-      req.user?.companyId;
+      firstHeader(req.headers['x-company-id']);
     const branch_id =
       queryBranchId ||
       headerBranchId ||
-      req.headers?.['x-branch-id'] ||
-      req.user?.branch_id ||
-      req.user?.branchId;
+      firstHeader(req.headers['x-branch-id']);
     return { company_id, branch_id };
   }
 
@@ -66,7 +63,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_rules')
   @ApiOperation({ summary: 'Get approval workflows' })
   async getWorkflows(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -97,7 +94,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_rules')
   @ApiOperation({ summary: 'Get approval workflow by ID' })
   async getWorkflowById(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -109,7 +106,7 @@ export class ApprovalsController {
   @RequirePermissions('manage_approval_rules')
   @ApiOperation({ summary: 'Create a new approval workflow' })
   async createWorkflow(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CreateWorkflowDto,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
@@ -134,7 +131,7 @@ export class ApprovalsController {
   @RequirePermissions('manage_approval_rules')
   @ApiOperation({ summary: 'Update an approval workflow (PUT)' })
   async updateWorkflowPut(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowDto,
     @Headers('x-tenant-id') headerTenantId?: string,
@@ -147,7 +144,7 @@ export class ApprovalsController {
   @RequirePermissions('manage_approval_rules')
   @ApiOperation({ summary: 'Update an approval workflow (PATCH)' })
   async updateWorkflowPatch(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateWorkflowDto,
     @Headers('x-tenant-id') headerTenantId?: string,
@@ -160,7 +157,7 @@ export class ApprovalsController {
   @RequirePermissions('manage_approval_rules')
   @ApiOperation({ summary: 'Delete an approval workflow' })
   async deleteWorkflow(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -174,7 +171,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_requests', 'approve_requests')
   @ApiOperation({ summary: 'Get pending approvals count alias' })
   async getPendingCount(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     return this.getMyPendingCount(req, headerTenantId);
@@ -184,12 +181,12 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_requests', 'approve_requests')
   @ApiOperation({ summary: 'Get pending approvals count for current authenticated user' })
   async getMyPendingCount(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id;
-    const userRole = req.user?.role || req.user?.role_name || '';
+    const userId = req.user?.sub;
+    const userRole = req.user?.role || '';
     return this.approvalsService.getMyPendingCount(tenantId, userId, userRole);
   }
 
@@ -197,7 +194,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_requests', 'approve_requests')
   @ApiOperation({ summary: 'Get pending approvals count for current authenticated user (requests alias)' })
   async getRequestsMyPendingCount(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     return this.getMyPendingCount(req, headerTenantId);
@@ -207,7 +204,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_rules', 'view_approval_requests')
   @ApiOperation({ summary: 'Get approval analytics, cycle times, and volume trends' })
   async getAnalytics(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -233,7 +230,7 @@ export class ApprovalsController {
   @RequirePermissions('approve_requests', 'view_approval_requests')
   @ApiOperation({ summary: 'Get approval requests list with filters' })
   async getRequests(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: FilterApprovalRequestsDto,
     @Query('companyId') queryCompanyIdCamel?: string,
     @Query('branchId') queryBranchIdCamel?: string,
@@ -253,8 +250,8 @@ export class ApprovalsController {
       ...query,
       company_id,
       branch_id,
-      user_id: req.user?.sub || req.user?.id,
-      user_role: req.user?.role || req.user?.role_name,
+      user_id: req.user?.sub,
+      user_role: req.user?.role,
     });
   }
 
@@ -262,7 +259,7 @@ export class ApprovalsController {
   @RequirePermissions('approve_requests', 'view_approval_requests')
   @ApiOperation({ summary: 'Get approval request details, workflow steps and audit trail' })
   async getRequestById(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -274,7 +271,7 @@ export class ApprovalsController {
   @RequirePermissions('view_approval_requests', 'approve_requests')
   @ApiOperation({ summary: 'Submit an approval request with workflow auto-matching' })
   async submitRequest(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: SubmitApprovalRequestDto,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
@@ -299,15 +296,15 @@ export class ApprovalsController {
   @RequirePermissions('approve_requests')
   @ApiOperation({ summary: 'Approve, reject, or escalate an approval request' })
   async decideRequest(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: DecideApprovalRequestDto,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id || '00000000-0000-0000-0000-000000000001';
-    const userName = req.user?.full_name || req.user?.name || req.user?.email || 'Approver';
-    const userRole = req.user?.role || req.user?.role_name || 'manager';
+    const userId = req.user?.sub || '00000000-0000-0000-0000-000000000001';
+    const userName = req.user?.email || 'Approver';
+    const userRole = req.user?.role || 'manager';
     return this.approvalsService.decideRequest(
       tenantId,
       id,

@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { AiUsageService } from './services/ai-usage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +27,7 @@ export class AiUsageController {
    */
   @Get('summary')
   @Permissions('view_ai_usage')
-  async getSummary(@Req() req) {
+  async getSummary(@Req() req: AuthenticatedRequest) {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
       const res = await axios.get(`${adminUrl}/ai/usage/internal/tenant/${req.user.tenantId}/summary`, {
@@ -45,7 +46,7 @@ export class AiUsageController {
    */
   @Get('breakdown')
   @Permissions('view_ai_usage')
-  async getBreakdown(@Req() req) {
+  async getBreakdown(@Req() req: AuthenticatedRequest) {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
       const res = await axios.get(`${adminUrl}/ai/usage/internal/tenant/${req.user.tenantId}/breakdown`, {
@@ -64,7 +65,7 @@ export class AiUsageController {
    */
   @Get('me')
   @Permissions('use_ai')
-  async getMyUsage(@Req() req) {
+  async getMyUsage(@Req() req: AuthenticatedRequest) {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
       const res = await axios.get(

@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { AiConversationService } from './services/ai-conversation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,19 +24,19 @@ export class AiConversationController {
 
   @Get()
   @Permissions('view_ai_history')
-  async getConversations(@Req() req) {
+  async getConversations(@Req() req: AuthenticatedRequest) {
     return this.conversationService.getConversations(req.user.tenantSlug, req.user.sub);
   }
 
   @Post()
   @Permissions('use_ai')
-  async createConversation(@Req() req, @Body() body: CreateConversationDto) {
+  async createConversation(@Req() req: AuthenticatedRequest, @Body() body: CreateConversationDto) {
     return this.conversationService.createConversation(req.user.tenantSlug, req.user.sub, body.title);
   }
 
   @Get(':id')
   @Permissions('view_ai_history')
-  async getConversation(@Req() req, @Param('id') id: string) {
+  async getConversation(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.conversationService.getConversation(req.user.tenantSlug, req.user.sub, id);
   }
 }

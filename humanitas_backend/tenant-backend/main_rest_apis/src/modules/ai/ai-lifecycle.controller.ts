@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Post, Get, Body, UseGuards, Req, Param } from '@nestjs/common';
 import { AiOnboardingService } from './services/ai-onboarding.service';
 import { AiPerformanceService } from './services/ai-performance.service';
@@ -34,7 +35,7 @@ export class AiLifecycleController {
    */
   @Get('onboarding/:employeeId')
   @Permissions('use_ai')
-  async getOnboardingChecklist(@Req() req, @Param('employeeId') employeeId: string) {
+  async getOnboardingChecklist(@Req() req: AuthenticatedRequest, @Param('employeeId') employeeId: string) {
     return this.onboardingService.generateOnboardingChecklist(req.user.tenantSlug, employeeId);
   }
 
@@ -56,7 +57,7 @@ export class AiLifecycleController {
    */
   @Get('attrition')
   @Permissions('use_ai')
-  async getAttritionReport(@Req() req) {
+  async getAttritionReport(@Req() req: AuthenticatedRequest) {
     const user = req.user;
     // Only admin/owner/HR can access org-wide attrition data
     if (!['owner', 'admin', 'hr'].includes(user.role?.toLowerCase())) {

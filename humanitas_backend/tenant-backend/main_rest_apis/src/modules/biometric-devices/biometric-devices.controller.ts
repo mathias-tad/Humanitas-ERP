@@ -18,6 +18,7 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 
 import { DeviceConnectorService } from './device-connector.service';
 import { CreateDeviceDto, UpdateDeviceDto } from './dto/device.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('biometric-devices')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -30,42 +31,42 @@ export class BiometricDevicesController {
 
     @Get()
     @RequirePermissions('view_devices', 'manage_devices')
-    async getAllDevices(@Req() req: any) {
+    async getAllDevices(@Req() req: AuthenticatedRequest) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.getAllDevices(tenantId);
     }
 
     @Get('server-info')
     @RequirePermissions('view_devices', 'manage_devices')
-    async getServerInfo(@Req() req: any) {
+    async getServerInfo(@Req() req: AuthenticatedRequest) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.getServerInfo(tenantId);
     }
 
     @Get('pending')
     @RequirePermissions('view_devices', 'manage_devices')
-    async getPendingDevices(@Req() req: any) {
+    async getPendingDevices(@Req() req: AuthenticatedRequest) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.getPendingDevices(tenantId);
     }
 
     @Get('users/:userId/biometric-status')
     @RequirePermissions('view_devices', 'view_users')
-    async getUserBiometricStatus(@Req() req: any, @Param('userId') userId: string) {
+    async getUserBiometricStatus(@Req() req: AuthenticatedRequest, @Param('userId') userId: string) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.getUserBiometricStatus(tenantId, userId);
     }
 
     @Get('protocols')
     @RequirePermissions('view_devices', 'manage_devices')
-    async getProtocols(@Req() req: any) {
+    async getProtocols(@Req() req: AuthenticatedRequest) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.getProtocols(tenantId);
     }
 
     @Get(':id')
     @RequirePermissions('view_devices', 'manage_devices')
-    async getDeviceById(@Req() req: any, @Param('id') id: string) {
+    async getDeviceById(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         const device = await this.biometricDevicesService.getDeviceById(tenantId, id);
         if (!device) {
@@ -76,32 +77,32 @@ export class BiometricDevicesController {
 
     @Patch(':id/authorize')
     @RequirePermissions('authorize_devices')
-    async authorizeDevice(@Req() req: any, @Param('id') id: string) {
+    async authorizeDevice(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
-        return this.biometricDevicesService.authorizeDevice(tenantId, id, req.user.userId);
+        return this.biometricDevicesService.authorizeDevice(tenantId, id, req.user.sub);
     }
 
     @Patch(':id/revoke')
     @RequirePermissions('authorize_devices')
-    async revokeDevice(@Req() req: any, @Param('id') id: string) {
+    async revokeDevice(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.revokeDevice(tenantId, id);
     }
 
     @Post()
     @RequirePermissions('manage_devices')
-    async createDevice(@Req() req: any, @Body() body: CreateDeviceDto) {
+    async createDevice(@Req() req: AuthenticatedRequest, @Body() body: CreateDeviceDto) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.createDevice(tenantId, {
             ...body,
-            created_by: req.user.userId,
+            created_by: req.user.sub,
         });
     }
 
     @Patch(':id')
     @RequirePermissions('manage_devices')
     async updateDevice(
-        @Req() req: any,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() body: UpdateDeviceDto,
     ) {
@@ -111,28 +112,28 @@ export class BiometricDevicesController {
 
     @Delete(':id')
     @RequirePermissions('manage_devices')
-    async deleteDevice(@Req() req: any, @Param('id') id: string) {
+    async deleteDevice(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.deleteDevice(tenantId, id);
     }
 
     @Post(':id/test-connection')
     @RequirePermissions('manage_devices')
-    async testConnection(@Req() req: any, @Param('id') id: string) {
+    async testConnection(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.deviceConnectorService.testConnection(tenantId, id);
     }
 
     @Post(':id/sync')
     @RequirePermissions('manage_devices')
-    async syncDevice(@Req() req: any, @Param('id') id: string) {
+    async syncDevice(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.deviceConnectorService.syncDeviceLogs(tenantId, id);
     }
 
     @Post(':id/sync-users')
     @RequirePermissions('sync_devices', 'manage_devices')
-    async syncUsers(@Req() req: any, @Param('id') id: string) {
+    async syncUsers(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantId = req.user.tenantId;
         return this.biometricDevicesService.syncUsersToDevice(tenantId, id);
     }

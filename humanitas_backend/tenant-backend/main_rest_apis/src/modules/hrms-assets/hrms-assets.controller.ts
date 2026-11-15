@@ -24,18 +24,18 @@ import {
   ReturnAssetDto,
   CreateMaintenanceLogDto,
 } from './dto/hrms-assets.dto';
+import { firstHeader, type AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('hrms/assets')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class HrmsAssetsController {
   constructor(private readonly assetsService: HrmsAssetsService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
     return (
-      headerTenantId ||
       req?.user?.tenantId ||
-      req?.user?.tenant_id ||
-      req?.headers?.['x-tenant-id'] ||
+      headerTenantId ||
+      firstHeader(req?.headers['x-tenant-id']) ||
       'default'
     );
   }
@@ -43,7 +43,7 @@ export class HrmsAssetsController {
   @Get('categories')
   @RequirePermissions('view_assets')
   async getCategories(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
@@ -54,7 +54,7 @@ export class HrmsAssetsController {
   @Post('categories')
   @RequirePermissions('manage_assets')
   async createCategory(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Body() dto: CreateAssetCategoryDto
   ) {
@@ -66,11 +66,11 @@ export class HrmsAssetsController {
   @Get('my-assets')
   @RequirePermissions('view_my_assets')
   async getMyAssets(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     const data = await this.assetsService.getMyAssets(tenantId, userId);
     return { data };
   }
@@ -78,12 +78,12 @@ export class HrmsAssetsController {
   @Post('assignments/:assignmentId/acknowledge')
   @RequirePermissions('view_my_assets')
   async acknowledgeAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('assignmentId') assignmentId: string
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     const data = await this.assetsService.acknowledgeAsset(tenantId, assignmentId, userId);
     return { data, message: 'Asset custody acknowledged successfully' };
   }
@@ -91,7 +91,7 @@ export class HrmsAssetsController {
   @Get('analytics')
   @RequirePermissions('view_asset_reports')
   async getAnalytics(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -108,7 +108,7 @@ export class HrmsAssetsController {
   @Get('maintenance')
   @RequirePermissions('view_assets')
   async getMaintenanceLogs(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('asset_id') assetId?: string
   ) {
@@ -120,7 +120,7 @@ export class HrmsAssetsController {
   @Get()
   @RequirePermissions('view_assets')
   async getAssets(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -145,7 +145,7 @@ export class HrmsAssetsController {
   @Get(':id')
   @RequirePermissions('view_assets')
   async getAssetById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string
   ) {
@@ -157,14 +157,14 @@ export class HrmsAssetsController {
   @Post()
   @RequirePermissions('manage_assets')
   async createAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Headers('x-company-id') headerCompanyId: string,
     @Headers('x-branch-id') headerBranchId: string,
     @Body() dto: CreateAssetDto
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const createdBy = req.user?.sub || req.user?.id;
+    const createdBy = req.user?.sub;
     const companyId = dto.company_id || headerCompanyId;
     const branchId = dto.branch_id || headerBranchId;
     const data = await this.assetsService.createAsset(
@@ -180,7 +180,7 @@ export class HrmsAssetsController {
   @Put(':id')
   @RequirePermissions('manage_assets')
   async updateAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateAssetDto
@@ -193,7 +193,7 @@ export class HrmsAssetsController {
   @Delete(':id')
   @RequirePermissions('manage_assets')
   async deleteAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string
   ) {
@@ -205,13 +205,13 @@ export class HrmsAssetsController {
   @Post(':id/assign')
   @RequirePermissions('assign_assets')
   async assignAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string,
     @Body() dto: AssignAssetDto
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const assignedBy = req.user?.sub || req.user?.id;
+    const assignedBy = req.user?.sub;
     const data = await this.assetsService.assignAsset(tenantId, id, dto, assignedBy);
     return { data, message: 'Asset assigned successfully' };
   }
@@ -219,13 +219,13 @@ export class HrmsAssetsController {
   @Post(':id/return')
   @RequirePermissions('manage_assets')
   async returnAsset(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string,
     @Body() dto: ReturnAssetDto
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const receivedBy = req.user?.sub || req.user?.id;
+    const receivedBy = req.user?.sub;
     const data = await this.assetsService.returnAsset(tenantId, id, dto, receivedBy);
     return { data, message: 'Asset returned successfully' };
   }
@@ -233,13 +233,13 @@ export class HrmsAssetsController {
   @Post(':id/maintenance')
   @RequirePermissions('manage_assets')
   async logMaintenance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId: string,
     @Param('id') id: string,
     @Body() dto: CreateMaintenanceLogDto
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const loggedBy = req.user?.sub || req.user?.id;
+    const loggedBy = req.user?.sub;
     const data = await this.assetsService.createMaintenanceLog(tenantId, id, dto, loggedBy);
     return { data, message: 'Maintenance record logged successfully' };
   }

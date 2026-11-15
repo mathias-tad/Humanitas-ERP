@@ -4,20 +4,21 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { AiSettingsConfigService } from './ai-settings.service';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('ai/settings')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class AiSettingsController {
   constructor(private aiSettingsService: AiSettingsConfigService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   @Get()
   @RequirePermissions('view_ai_settings')
   async getSettings(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
@@ -27,7 +28,7 @@ export class AiSettingsController {
   @Put()
   @RequirePermissions('manage_ai_settings')
   async updateSettings(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: any,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {

@@ -23,6 +23,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('developer-api')
 @RequireModule('developer_api')
@@ -30,8 +31,8 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 export class DeveloperApiController {
   constructor(private readonly developerApiService: DeveloperApiService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   // ── API Key Endpoints ───────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export class DeveloperApiController {
   @Get('keys')
   @RequirePermissions('view_developer_api')
   async getApiKeys(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -55,19 +56,19 @@ export class DeveloperApiController {
   @Post('keys')
   @RequirePermissions('manage_developer_api')
   async createApiKey(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateApiKeyDto,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId = req.user?.sub;
     return this.developerApiService.createApiKey(tenantId, userId, dto);
   }
 
   @Delete('keys/:id')
   @RequirePermissions('manage_developer_api')
   async revokeApiKey(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -78,7 +79,7 @@ export class DeveloperApiController {
   @Get('keys/:id/logs')
   @RequirePermissions('view_developer_api')
   async getApiKeyLogs(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('limit') limit?: number,
@@ -92,7 +93,7 @@ export class DeveloperApiController {
   @Get('webhooks')
   @RequirePermissions('view_developer_api')
   async getWebhooks(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
@@ -108,19 +109,19 @@ export class DeveloperApiController {
   @Post('webhooks')
   @RequirePermissions('manage_developer_api')
   async createWebhook(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateWebhookDto,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
     const tenantId = this.getTenantId(req, headerTenantId);
-    const userId = req.user?.sub || req.user?.id || req.user?.userId;
+    const userId = req.user?.sub;
     return this.developerApiService.createWebhook(tenantId, userId, dto);
   }
 
   @Put('webhooks/:id')
   @RequirePermissions('manage_developer_api')
   async updateWebhook(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateWebhookDto,
     @Headers('x-tenant-id') headerTenantId?: string,
@@ -132,7 +133,7 @@ export class DeveloperApiController {
   @Delete('webhooks/:id')
   @RequirePermissions('manage_developer_api')
   async deleteWebhook(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -143,7 +144,7 @@ export class DeveloperApiController {
   @Post('webhooks/test')
   @RequirePermissions('manage_developer_api')
   async testWebhook(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: TestWebhookDto,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
@@ -156,7 +157,7 @@ export class DeveloperApiController {
   @Get('deliveries')
   @RequirePermissions('view_developer_api')
   async getDeliveries(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('webhook_id') webhookId?: string,
     @Query('limit') limit?: number,
@@ -174,7 +175,7 @@ export class DeveloperApiController {
   @Post('deliveries/:id/retry')
   @RequirePermissions('manage_developer_api')
   async retryDelivery(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {

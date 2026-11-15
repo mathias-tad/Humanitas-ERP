@@ -1,3 +1,5 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import type { TenantUser } from '../auth/entities/tenant-user.entity';
 import {
     Controller,
     Get,
@@ -35,26 +37,26 @@ export class PmsController {
     // ============ PROJECTS ============
     @Post('projects')
     @RequirePermissions('create_projects')
-    createProject(@Req() req, @Body() dto: CreateProjectDto) {
+    createProject(@Req() req: AuthenticatedRequest, @Body() dto: CreateProjectDto) {
         return this.pmsService.createProject(req.user.tenantId, req.user.sub, dto);
     }
 
     @Get('projects')
     @RequirePermissions('view_projects', 'view_pms', 'view_tasks', 'view_my_tasks')
-    findAllProjects(@Req() req) {
+    findAllProjects(@Req() req: AuthenticatedRequest) {
         return this.pmsService.findAllProjects(req.user.tenantId, req.user?.sub, req.user?.role);
     }
 
     @Get('projects/:id')
     @RequirePermissions('view_projects', 'view_pms', 'view_tasks')
-    findOneProject(@Req() req, @Param('id') id: string) {
+    findOneProject(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneProject(req.user.tenantId, id, req.user?.sub, req.user?.role);
     }
 
     @Patch('projects/:id')
     @RequirePermissions('edit_projects')
     updateProject(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() dto: UpdateProjectDto,
     ) {
@@ -63,20 +65,20 @@ export class PmsController {
 
     @Delete('projects/:id')
     @RequirePermissions('delete_projects')
-    removeProject(@Req() req, @Param('id') id: string) {
+    removeProject(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeProject(req.user.tenantId, id);
     }
 
     @Get('projects/:id/kpi')
     @RequirePermissions('view_pms_reports')
-    getProjectKPIs(@Req() req, @Param('id') id: string) {
+    getProjectKPIs(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectKPIs(req.user.tenantId, id);
     }
 
     @Post('projects/:id/members')
     @RequirePermissions('manage_project_members')
     addProjectMember(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() dto: AddProjectMemberDto,
     ) {
@@ -86,7 +88,7 @@ export class PmsController {
     @Delete('projects/:id/members/:userId')
     @RequirePermissions('manage_project_members')
     removeProjectMember(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Param('userId') userId: string,
     ) {
@@ -95,7 +97,7 @@ export class PmsController {
 
     @Get('projects/:id/members')
     @RequirePermissions('view_project_members')
-    getProjectMembers(@Req() req, @Param('id') id: string) {
+    getProjectMembers(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectMembers(req.user.tenantId, id);
     }
 
@@ -103,7 +105,7 @@ export class PmsController {
     @Patch('projects/:id/members/:userId')
     @RequirePermissions('edit_projects')
     updateProjectMember(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Param('userId') userId: string,
         @Body() dto: AddProjectMemberDto
@@ -113,27 +115,27 @@ export class PmsController {
 
     @Post('sprints')
     @RequirePermissions('manage_sprints')
-    createSprint(@Req() req, @Body() dto: CreateSprintDto) {
+    createSprint(@Req() req: AuthenticatedRequest, @Body() dto: CreateSprintDto) {
         return this.pmsService.createSprint(req.user.tenantId, dto);
     }
 
     @Get('sprints')
     @RequirePermissions('view_sprints')
-    findAllSprints(@Req() req, @Query('projectId') projectId: string) {
+    findAllSprints(@Req() req: AuthenticatedRequest, @Query('projectId') projectId: string) {
         return this.pmsService.findAllSprints(req.user.tenantId, projectId);
     }
 
     // ============ TASKS ============
     @Post('tasks')
     @RequirePermissions('create_tasks')
-    createTask(@Req() req, @Body() dto: CreateTaskDto) {
-        return this.pmsService.createTask(req.user.tenantId, req.user, dto);
+    createTask(@Req() req: AuthenticatedRequest, @Body() dto: CreateTaskDto) {
+        return this.pmsService.createTask(req.user.tenantId, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */, dto);
     }
 
     @Get('tasks')
     // We allow view_tasks AND view_my_tasks. 
     @RequirePermissions('view_pms', 'view_tasks', 'view_my_tasks')
-    findAllTasks(@Req() req, @Query() filters: any) {
+    findAllTasks(@Req() req: AuthenticatedRequest, @Query() filters: any) {
         // Basic filter logic could be enhanced to restrict 'view_my_tasks' users to only their tasks
         // logic inside service or here based on permissions.
         // For now assuming view_pms allows listing, filtering handled by UI.
@@ -142,13 +144,13 @@ export class PmsController {
 
     @Get('tasks/:id')
     @RequirePermissions('view_pms', 'view_tasks', 'view_my_tasks')
-    findOneTask(@Req() req, @Param('id') id: string) {
+    findOneTask(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneTask(req.user.tenantId, id);
     }
 
     @Get('tasks/:id/history')
     async getTaskHistory(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
     ) {
         return this.pmsService.getTaskHistory(req.user.tenantId, id);
@@ -157,7 +159,7 @@ export class PmsController {
     @Patch('tasks/:id')
     @RequirePermissions('edit_tasks', 'edit_own_tasks')
     updateTask(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() dto: UpdateTaskDto,
     ) {
@@ -168,39 +170,39 @@ export class PmsController {
 
     @Delete('tasks/:id')
     @RequirePermissions('delete_tasks')
-    removeTask(@Req() req, @Param('id') id: string) {
+    removeTask(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeTask(req.user.tenantId, id);
     }
 
     @Post('tasks/log-time')
     @RequirePermissions('log_time')
-    logTime(@Req() req, @Body() dto: LogTimeDto) {
+    logTime(@Req() req: AuthenticatedRequest, @Body() dto: LogTimeDto) {
         return this.pmsService.logTime(req.user.tenantId, req.user.sub, dto);
     }
 
     // ============ SETTINGS ============
     @Get('settings')
     @RequirePermissions('view_pms') // Basic access
-    getSettings(@Req() req) {
+    getSettings(@Req() req: AuthenticatedRequest) {
         return this.pmsService.getSettings(req.user.tenantId);
     }
 
     @Patch('settings')
     @RequirePermissions('manage_pms_settings')
-    updateSettings(@Req() req, @Body() dto: UpdatePMSSettingsDto) {
+    updateSettings(@Req() req: AuthenticatedRequest, @Body() dto: UpdatePMSSettingsDto) {
         return this.pmsService.updateSettings(req.user.tenantId, dto);
     }
 
     // ============ USER KPI ============
     @Get('kpi/user/:userId')
     @RequirePermissions('view_team_kpis', 'view_own_kpis')
-    getUserKPIs(@Req() req, @Param('userId') userId: string) {
+    getUserKPIs(@Req() req: AuthenticatedRequest, @Param('userId') userId: string) {
         return this.pmsService.getUserKPIs(req.user.tenantId, userId);
     }
 
     @Get('kpi/tenant/:tenantId')
     @RequirePermissions('view_pms_reports')
-    getTenantKPIs(@Req() req, @Param('tenantId') tenantId: string) {
+    getTenantKPIs(@Req() req: AuthenticatedRequest, @Param('tenantId') tenantId: string) {
         // Security check: ensure user is requesting for their own tenant
         if (tenantId !== req.user.tenantId) {
             // Or just ignore param and use req.user.tenantId? 
@@ -213,147 +215,147 @@ export class PmsController {
 
     @Get('kpi/all-users')
     @RequirePermissions('view_pms_reports', 'view_team_kpis')
-    getAllUsersKPIs(@Req() req) {
+    getAllUsersKPIs(@Req() req: AuthenticatedRequest) {
         return this.pmsService.getAllUsersKPIs(req.user.tenantId);
     }
 
     // ============ TEAMS ============
     @Post('teams')
     @RequirePermissions('create_teams')
-    createTeam(@Req() req, @Body() dto: CreateTeamDto) {
+    createTeam(@Req() req: AuthenticatedRequest, @Body() dto: CreateTeamDto) {
         return this.pmsService.createTeam(req.user.tenantId, dto);
     }
 
     @Get('teams')
     @RequirePermissions('view_teams')
-    findAllTeams(@Req() req) {
+    findAllTeams(@Req() req: AuthenticatedRequest) {
         return this.pmsService.findAllTeams(req.user.tenantId);
     }
 
     @Get('teams/:id')
     @RequirePermissions('view_teams')
-    findOneTeam(@Req() req, @Param('id') id: string) {
+    findOneTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneTeam(req.user.tenantId, id);
     }
 
     @Patch('teams/:id')
     @RequirePermissions('edit_teams')
-    updateTeam(@Req() req, @Param('id') id: string, @Body() dto: UpdateTeamDto) {
+    updateTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateTeamDto) {
         return this.pmsService.updateTeam(req.user.tenantId, id, dto);
     }
 
     @Delete('teams/:id')
     @RequirePermissions('delete_teams')
-    removeTeam(@Req() req, @Param('id') id: string) {
+    removeTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeTeam(req.user.tenantId, id);
     }
 
     @Post('teams/:id/members')
     @RequirePermissions('manage_team_members')
-    addTeamMember(@Req() req, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
-        return this.pmsService.addTeamMember(req.user.tenantId, id, dto, req.user);
+    addTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
+        return this.pmsService.addTeamMember(req.user.tenantId, id, dto, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */);
     }
 
     @Delete('teams/:id/members/:userId')
     @RequirePermissions('manage_team_members')
-    removeTeamMember(@Req() req, @Param('id') id: string, @Param('userId') userId: string) {
-        return this.pmsService.removeTeamMember(req.user.tenantId, id, userId, req.user);
+    removeTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Param('userId') userId: string) {
+        return this.pmsService.removeTeamMember(req.user.tenantId, id, userId, req.user as unknown as TenantUser /* FIXME(auth): JWT user has no id/role_id; see PmsService */);
     }
 
     @Get('teams/:id/members')
     @RequirePermissions('view_teams')
-    getTeamMembers(@Req() req, @Param('id') id: string) {
+    getTeamMembers(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTeamMembers(req.user.tenantId, id);
     }
 
     @Get('teams/:id/dashboard')
     @RequirePermissions('view_team_dashboard')
-    getTeamDashboard(@Req() req, @Param('id') id: string) {
+    getTeamDashboard(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTeamDashboard(req.user.tenantId, id);
     }
 
     // ============ MANUAL METRICS ============
     @Post('metrics')
     @RequirePermissions('manage_pms_settings')
-    createMetric(@Req() req, @Body() dto: CreateManualMetricDto) {
+    createMetric(@Req() req: AuthenticatedRequest, @Body() dto: CreateManualMetricDto) {
         return this.pmsService.createMetric(req.user.tenantId, dto);
     }
 
     @Get('metrics')
     @RequirePermissions('view_pms_settings', 'manage_pms_settings')
-    findAllMetrics(@Req() req) {
+    findAllMetrics(@Req() req: AuthenticatedRequest) {
         return this.pmsService.findAllMetrics(req.user.tenantId);
     }
 
     @Patch('metrics/:id')
     @RequirePermissions('manage_pms_settings')
-    updateMetric(@Req() req, @Param('id') id: string, @Body() dto: UpdateManualMetricDto) {
+    updateMetric(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateManualMetricDto) {
         return this.pmsService.updateMetric(req.user.tenantId, id, dto);
     }
 
     @Delete('metrics/:id')
     @RequirePermissions('manage_pms_settings')
-    deleteMetric(@Req() req, @Param('id') id: string) {
+    deleteMetric(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.deleteMetric(req.user.tenantId, id);
     }
 
     // ============ AGILE SPRINTS & BURNDOWN ============
     @Get('sprints/:id/burndown')
     @RequirePermissions('view_sprints', 'view_pms')
-    getSprintBurndown(@Req() req, @Param('id') id: string) {
+    getSprintBurndown(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getSprintBurndown(req.user.tenantId, id);
     }
 
     @Get('projects/:id/velocity')
     @RequirePermissions('view_sprints', 'view_pms', 'view_pms_reports')
-    getSprintVelocity(@Req() req, @Param('id') id: string) {
+    getSprintVelocity(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getSprintVelocity(req.user.tenantId, id);
     }
 
     // ============ BACKLOG MANAGEMENT ============
     @Get('projects/:id/backlog')
     @RequirePermissions('view_tasks', 'view_pms')
-    getProjectBacklog(@Req() req, @Param('id') id: string) {
+    getProjectBacklog(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectBacklog(req.user.tenantId, id);
     }
 
     @Put('tasks/backlog-order')
     @RequirePermissions('manage_sprints', 'edit_tasks')
-    updateBacklogOrder(@Req() req, @Body() body: { task_ids: string[] }) {
+    updateBacklogOrder(@Req() req: AuthenticatedRequest, @Body() body: { task_ids: string[] }) {
         return this.pmsService.updateBacklogOrder(req.user.tenantId, body.task_ids || []);
     }
 
     @Put('tasks/:id/assign-sprint')
     @RequirePermissions('manage_sprints', 'edit_tasks')
-    assignTaskToSprint(@Req() req, @Param('id') id: string, @Body() body: { sprint_id?: string | null }) {
+    assignTaskToSprint(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { sprint_id?: string | null }) {
         return this.pmsService.assignTaskToSprint(req.user.tenantId, id, body.sprint_id ?? null);
     }
 
     // ============ GANTT & MILESTONES ============
     @Get('projects/:id/gantt')
     @RequirePermissions('view_tasks', 'view_pms')
-    getProjectGanttData(@Req() req, @Param('id') id: string) {
+    getProjectGanttData(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectGanttData(req.user.tenantId, id);
     }
 
     // ============ PROJECT CALENDAR ============
     @Get('projects/:id/calendar')
     @RequirePermissions('view_tasks', 'view_pms')
-    getProjectCalendarEvents(@Req() req, @Param('id') id: string) {
+    getProjectCalendarEvents(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectCalendarEvents(req.user.tenantId, id);
     }
 
     // ============ TIME TRACKING & BILLABLE SUMMARY ============
     @Get('projects/:id/time-summary')
     @RequirePermissions('view_pms_reports', 'view_pms')
-    getTimeTrackingSummary(@Req() req, @Param('id') id: string) {
+    getTimeTrackingSummary(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTimeTrackingSummary(req.user.tenantId, id);
     }
 
     @Post('projects/:id/convert-to-invoice')
     @RequirePermissions('manage_projects')
     convertBillableToInvoice(
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
         @Param('id') projectId: string,
         @Body() body: { start_date: string; end_date: string },
     ) {

@@ -22,6 +22,7 @@ import {
   RequestSensitiveChangeDto,
   ReviewSensitiveChangeDto,
 } from './dto/self-service.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('self-service')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -31,78 +32,79 @@ export class SelfServiceController {
 
   @Get('dashboard')
   @RequirePermissions('view_self_service')
-  async getDashboard(@Request() req: any) {
+  async getDashboard(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.getDashboard(tenantId, userId);
   }
 
   @Get('attendance-heatmap')
   @RequirePermissions('view_self_service')
   async getAttendanceHeatmap(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('days') days?: string,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     const daysBack = days ? parseInt(days, 10) : 90;
     return this.selfServiceService.getAttendanceHeatmap(tenantId, userId, daysBack);
   }
 
   @Get('payslips')
   @RequirePermissions('view_self_service')
-  async getPayslips(@Request() req: any) {
+  async getPayslips(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.getPayslips(tenantId, userId);
   }
 
   @Get('profile')
   @RequirePermissions('view_self_service')
-  async getProfile(@Request() req: any) {
+  async getProfile(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.getProfile(tenantId, userId);
   }
 
   @Put('profile')
   @RequirePermissions('edit_my_profile')
   async updateProfile(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: UpdateProfileSelfDto,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.updateProfile(tenantId, userId, dto);
   }
 
   @Post('change-request')
   @RequirePermissions('edit_my_profile')
   async requestSensitiveChange(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: RequestSensitiveChangeDto,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.requestSensitiveChange(tenantId, userId, dto);
   }
 
   @Get('change-requests')
   @RequirePermissions('view_self_service')
   async getChangeRequests(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
     const tenantId = req.user.tenantId;
     const user = req.user;
-    const userId = user.sub || user.id;
+    const userId = user.sub;
     const userRole = (user?.role || '').toLowerCase();
     const isManagerOrAdmin =
       userRole === 'admin' ||
       userRole === 'owner' ||
       userRole === 'administrator' ||
       userRole === 'manager' ||
-      user?.permissions?.includes('manage_profile_requests');
+      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
+      user?.permissions?.includes('manage_profile_requests') === true;
 
     return this.selfServiceService.getChangeRequests(
       tenantId,
@@ -116,19 +118,19 @@ export class SelfServiceController {
   @RequirePermissions('manage_profile_requests')
   async reviewChangeRequest(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: ReviewSensitiveChangeDto,
   ) {
     const tenantId = req.user.tenantId;
-    const reviewerId = req.user.sub || req.user.id;
+    const reviewerId = req.user.sub;
     return this.selfServiceService.reviewChangeRequest(tenantId, id, reviewerId, dto);
   }
 
   @Get('analytics')
   @RequirePermissions('view_self_service')
-  async getAnalytics(@Request() req: any) {
+  async getAnalytics(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.selfServiceService.getAnalytics(tenantId, userId);
   }
 }

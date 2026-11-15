@@ -19,6 +19,7 @@ import { LeaveGateway } from './leave.gateway';
 import { LeaveScheduler } from './leave.scheduler';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { SetLeaveWorkflowDto } from './dto/set-leave-workflow.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @ApiTags('Leave')
 @ApiBearerAuth()
@@ -37,14 +38,14 @@ export class LeaveController {
   @Get('types')
   @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get available leave types' })
-  async getLeaveTypes(@Request() req: any) {
+  async getLeaveTypes(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getLeaveTypes(req.user.tenantId);
   }
 
   @Get('my-requests')
   @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user leave requests' })
-  async getMyLeaveRequests(@Request() req: any) {
+  async getMyLeaveRequests(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getMyLeaveRequests(
       req.user.tenantId,
       req.user.sub,
@@ -54,7 +55,7 @@ export class LeaveController {
   @Get('my-balances')
   @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user leave balances' })
-  async getMyLeaveBalances(@Request() req: any) {
+  async getMyLeaveBalances(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getMyLeaveBalances(
       req.user.tenantId,
       req.user.sub,
@@ -64,7 +65,7 @@ export class LeaveController {
   @Post('apply')
   @RequirePermissions('request_leave')
   @ApiOperation({ summary: 'Apply for leave' })
-  async applyForLeave(@Request() req: any, @Body() data: ApplyLeaveDto) {
+  async applyForLeave(@Request() req: AuthenticatedRequest, @Body() data: ApplyLeaveDto) {
     const result = await this.leaveService.applyForLeave(
       req.user.tenantId,
       req.user.sub,
@@ -84,7 +85,7 @@ export class LeaveController {
   @Delete('my-requests/:id')
   @RequirePermissions('request_leave')
   @ApiOperation({ summary: 'Cancel a pending leave request' })
-  async cancelLeaveRequest(@Request() req: any, @Param('id') id: string) {
+  async cancelLeaveRequest(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     const result = await this.leaveService.cancelLeaveRequest(
       req.user.tenantId,
       req.user.sub,
@@ -100,7 +101,7 @@ export class LeaveController {
   @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get all leave requests (admin)' })
   async getAllLeaveRequests(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
     @Query('user_id') userId?: string,
   ) {
@@ -115,21 +116,21 @@ export class LeaveController {
   @Get('workflow')
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get leave approval workflow' })
-  async getWorkflow(@Request() req: any) {
+  async getWorkflow(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getWorkflow(req.user.tenantId);
   }
 
   @Post('workflow')
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Set leave approval workflow' })
-  async setWorkflow(@Request() req: any, @Body() dto: SetLeaveWorkflowDto) {
+  async setWorkflow(@Request() req: AuthenticatedRequest, @Body() dto: SetLeaveWorkflowDto) {
     return this.leaveService.setWorkflowSteps(req.user.tenantId, dto.steps);
   }
 
   @Get('roles')
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get roles for workflow config' })
-  async getRoles(@Request() req: any) {
+  async getRoles(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getRoles(req.user.tenantId);
   }
 
@@ -140,7 +141,7 @@ export class LeaveController {
   @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Approve a leave request' })
   async approveLeaveRequest(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { comment?: string }
   ) {
@@ -162,7 +163,7 @@ export class LeaveController {
   @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Reject a leave request' })
   async rejectLeaveRequest(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { reason?: string },
   ) {
@@ -187,7 +188,7 @@ export class LeaveController {
   @ApiOperation({
     summary: 'Get current user leave status (probation, years of service)',
   })
-  async getMyLeaveStatus(@Request() req: any) {
+  async getMyLeaveStatus(@Request() req: AuthenticatedRequest) {
     return this.leaveService.getUserLeaveStatus(
       req.user.tenantId,
       req.user.sub,
@@ -198,7 +199,7 @@ export class LeaveController {
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user leave status (admin)' })
   async getUserLeaveStatus(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
   ) {
     return this.leaveService.getUserLeaveStatus(req.user.tenantId, userId);
@@ -207,7 +208,7 @@ export class LeaveController {
   @Get('calculated-balance')
   @RequirePermissions('view_leave')
   @ApiOperation({ summary: 'Get current user calculated leave balance' })
-  async getMyCalculatedBalance(@Request() req: any) {
+  async getMyCalculatedBalance(@Request() req: AuthenticatedRequest) {
     return this.leaveService.calculateUserLeaveBalance(
       req.user.tenantId,
       req.user.sub,
@@ -218,7 +219,7 @@ export class LeaveController {
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user calculated leave balance (admin)' })
   async getUserCalculatedBalance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
   ) {
     return this.leaveService.calculateUserLeaveBalance(
@@ -230,7 +231,7 @@ export class LeaveController {
   @Post('accrual/run')
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Run monthly leave accrual for all users (admin)' })
-  async runMonthlyAccrual(@Request() req: any) {
+  async runMonthlyAccrual(@Request() req: AuthenticatedRequest) {
     return this.leaveService.runMonthlyLeaveAccrual(req.user.tenantId);
   }
 
@@ -239,7 +240,7 @@ export class LeaveController {
   @ApiOperation({
     summary: 'Trigger monthly leave accrual manually (for testing)',
   })
-  async triggerMonthlyAccrual(@Request() req: any) {
+  async triggerMonthlyAccrual(@Request() req: AuthenticatedRequest) {
     return this.leaveScheduler.triggerLeaveAccrual(req.user.tenantId);
   }
 
@@ -250,7 +251,7 @@ export class LeaveController {
   @ApiOperation({
     summary: 'Get user leave balances with calculated annual leave (admin)',
   })
-  async getUserBalances(@Request() req: any, @Param('userId') userId: string) {
+  async getUserBalances(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
     return this.leaveService.getUserBalancesWithCalculation(
       req.user.tenantId,
       userId,
@@ -263,7 +264,7 @@ export class LeaveController {
     summary: 'Register/update initial leave balance for existing employee',
   })
   async registerInitialBalance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
     @Body()
     data: {
@@ -288,7 +289,7 @@ export class LeaveController {
       'Auto-calculate leave balance based on hire date and years of service',
   })
   async calculateAndSetBalance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
   ) {
     return this.leaveService.calculateAndSetInitialBalance(

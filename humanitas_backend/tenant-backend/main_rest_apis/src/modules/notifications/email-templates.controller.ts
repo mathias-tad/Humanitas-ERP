@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('notifications/email-templates')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -13,14 +14,14 @@ export class EmailTemplatesController {
 
   @Get()
   @RequirePermissions('manage_notification_templates')
-  async getAllTemplates(@Request() req: any) {
+  async getAllTemplates(@Request() req: AuthenticatedRequest) {
     return this.emailTemplatesService.getAllTemplates(req.user.tenantId);
   }
 
   @Put(':key')
   @RequirePermissions('manage_notification_templates')
   async upsertTemplate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('key') key: string,
     @Body() body: { subject: string; html_body: string; plain_text_body?: string },
   ) {
@@ -30,7 +31,7 @@ export class EmailTemplatesController {
 
   @Post(':key/reset')
   @RequirePermissions('manage_notification_templates')
-  async resetToDefault(@Request() req: any, @Param('key') key: string) {
+  async resetToDefault(@Request() req: AuthenticatedRequest, @Param('key') key: string) {
     await this.emailTemplatesService.resetToDefault(req.user.tenantId, key);
     return { success: true };
   }
@@ -38,7 +39,7 @@ export class EmailTemplatesController {
   @Get(':key/preview')
   @RequirePermissions('manage_notification_templates')
   async previewTemplate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('key') key: string,
     @Query() query: Record<string, string>,
   ) {

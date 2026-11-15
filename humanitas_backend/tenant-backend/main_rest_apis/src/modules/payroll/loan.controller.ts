@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Post, Get, Put, Delete, Param, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -17,7 +18,7 @@ export class LoanController {
     @Post(':userId')
     @RequirePermissions('manage_payroll')
     async createLoan(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('userId') userId: string,
         @Body() body: CreateLoanDto,
     ) {
@@ -37,27 +38,27 @@ export class LoanController {
     // ADMIN: Get all pending loans (MUST BE BEFORE :userId route)
     @Get('pending')
     @RequirePermissions('view_payroll')
-    async getPendingLoans(@Request() req) {
+    async getPendingLoans(@Request() req: AuthenticatedRequest) {
         return this.loanService.getPendingLoans(req.user.tenantSlug);
     }
 
     // ADMIN: Get loans for a specific user
     @Get(':userId')
     @RequirePermissions('view_payroll')
-    async getLoans(@Request() req, @Param('userId') userId: string) {
+    async getLoans(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
         return this.loanService.getLoans(req.user.tenantSlug, userId);
     }
 
     // ADMIN: Cancel loan
     @Delete(':id')
     @RequirePermissions('manage_payroll')
-    async deleteLoan(@Request() req, @Param('id') id: string) {
+    async deleteLoan(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.loanService.deleteLoan(req.user.tenantSlug, id);
     }
 
     // USER: Request a loan (self-service)
     @Post('my-requests')
-    async requestMyLoan(@Request() req, @Body() body: CreateLoanDto) {
+    async requestMyLoan(@Request() req: AuthenticatedRequest, @Body() body: CreateLoanDto) {
         const { total_amount, term_months, start_month, start_year } = body;
         if (!total_amount || !term_months || !start_month || !start_year) {
             throw new BadRequestException("Missing required loan fields");
@@ -72,19 +73,19 @@ export class LoanController {
 
     // USER: Get my loans
     @Get('my-requests')
-    async getMyLoans(@Request() req) {
+    async getMyLoans(@Request() req: AuthenticatedRequest) {
         return this.loanService.getMyLoans(req.user.tenantSlug, req.user.sub);
     }
 
     // USER: Get loan configuration (allow_employee_loans, etc.)
     @Get('config')
-    async getLoanConfig(@Request() req) {
+    async getLoanConfig(@Request() req: AuthenticatedRequest) {
         return this.loanService.getLoanConfig(req.user.tenantSlug);
     }
 
     // USER: Update my pending loan
     @Put('my-requests/:id')
-    async updateMyLoan(@Request() req, @Param('id') id: string, @Body() body: UpdateLoanDto) {
+    async updateMyLoan(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: UpdateLoanDto) {
         return this.loanService.updateLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -96,7 +97,7 @@ export class LoanController {
     // ADMIN: Approve loan
     @Post(':id/approve')
     @RequirePermissions('approve_loans')
-    async approveLoan(@Request() req, @Param('id') id: string, @Body() body: ApproveLoanDto) {
+    async approveLoan(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: ApproveLoanDto) {
         return this.loanService.approveLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -108,7 +109,7 @@ export class LoanController {
     // ADMIN: Reject loan
     @Post(':id/reject')
     @RequirePermissions('approve_loans')
-    async rejectLoan(@Request() req, @Param('id') id: string, @Body() body: RejectLoanDto) {
+    async rejectLoan(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: RejectLoanDto) {
         return this.loanService.rejectLoan(
             req.user.tenantSlug,
             req.user.sub,
@@ -120,20 +121,20 @@ export class LoanController {
     // ADMIN: Freeze loan
     @Post(':id/freeze')
     @RequirePermissions('manage_payroll')
-    async freezeLoan(@Request() req, @Param('id') id: string) {
+    async freezeLoan(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.loanService.freezeLoan(req.user.tenantSlug, id);
     }
 
     // WORKFLOW MANAGEMENT
     @Get('workflow/config')
     @RequirePermissions('manage_payroll')
-    async getWorkflow(@Request() req) {
+    async getWorkflow(@Request() req: AuthenticatedRequest) {
         return this.loanService.getWorkflow(req.user.tenantSlug);
     }
 
     @Post('workflow/config')
     @RequirePermissions('manage_payroll')
-    async setWorkflow(@Request() req, @Body() body: SetLoanWorkflowDto) {
+    async setWorkflow(@Request() req: AuthenticatedRequest, @Body() body: SetLoanWorkflowDto) {
         const steps = (body.steps || []).map((s) => ({
             role_required: s.role_required,
             is_final: Boolean(s.is_final),
@@ -143,13 +144,13 @@ export class LoanController {
 
     @Delete('workflow/config')
     @RequirePermissions('manage_payroll')
-    async deleteWorkflow(@Request() req) {
+    async deleteWorkflow(@Request() req: AuthenticatedRequest) {
         return this.loanService.deleteWorkflow(req.user.tenantSlug);
     }
 
     @Get('workflow/roles')
     @RequirePermissions('manage_payroll')
-    async getRoles(@Request() req) {
+    async getRoles(@Request() req: AuthenticatedRequest) {
         return this.loanService.getRoles(req.user.tenantSlug);
     }
 

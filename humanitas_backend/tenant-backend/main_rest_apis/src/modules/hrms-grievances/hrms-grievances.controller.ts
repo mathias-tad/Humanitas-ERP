@@ -23,6 +23,7 @@ import {
   SubmitSatisfactionFeedbackDto,
   AddGrievanceNoteDto,
 } from './dto/hrms-grievances.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('hrms/grievances')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -30,30 +31,30 @@ import {
 export class HrmsGrievancesController {
   constructor(private readonly grievancesService: HrmsGrievancesService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   @Post()
   @RequirePermissions('file_grievance', 'manage_grievances')
   async fileGrievance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Headers('x-company-id') companyIdHeader: string,
     @Headers('x-branch-id') branchIdHeader: string,
     @Body() dto: FileGrievanceDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
-    const companyId = req.user.company_id || companyIdHeader;
-    const branchId = req.user.branch_id || branchIdHeader;
+    const userId = req.user.sub;
+    const companyId = companyIdHeader;
+    const branchId = branchIdHeader;
     return this.grievancesService.fileGrievance(tenantId, userId, dto, companyId, branchId);
   }
 
   @Get()
   @RequirePermissions('view_grievances', 'manage_grievances')
   async getGrievances(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Headers('x-company-id') companyIdHeader: string,
     @Headers('x-branch-id') branchIdHeader: string,
@@ -61,8 +62,9 @@ export class HrmsGrievancesController {
     @Query('category') category?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =
@@ -73,8 +75,8 @@ export class HrmsGrievancesController {
     const filters = {
       status,
       category,
-      company_id: companyIdHeader || req.user.company_id,
-      branch_id: branchIdHeader || req.user.branch_id,
+      company_id: companyIdHeader,
+      branch_id: branchIdHeader,
     };
 
     return this.grievancesService.getGrievances(tenantId, userId, hasManagePerm, filters);
@@ -83,27 +85,28 @@ export class HrmsGrievancesController {
   @Get('reports/stats')
   @RequirePermissions('view_grievance_reports', 'manage_grievances')
   async getStats(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Headers('x-company-id') companyIdHeader: string,
     @Headers('x-branch-id') branchIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const companyId = companyIdHeader || req.user.company_id;
-    const branchId = branchIdHeader || req.user.branch_id;
+    const companyId = companyIdHeader;
+    const branchId = branchIdHeader;
     return this.grievancesService.getStats(tenantId, companyId, branchId);
   }
 
   @Get(':id')
   @RequirePermissions('view_grievances', 'manage_grievances')
   async getGrievanceById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =
@@ -117,65 +120,65 @@ export class HrmsGrievancesController {
   @Put(':id/status')
   @RequirePermissions('manage_grievances', 'investigate_grievances')
   async updateStatus(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: UpdateGrievanceStatusDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     return this.grievancesService.updateStatus(tenantId, id, userId, dto);
   }
 
   @Post(':id/assign')
   @RequirePermissions('manage_grievances')
   async assignInvestigator(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: AssignInvestigatorDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     return this.grievancesService.assignInvestigator(tenantId, id, userId, dto);
   }
 
   @Post(':id/resolution')
   @RequirePermissions('manage_grievances', 'investigate_grievances')
   async proposeResolution(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: ProposeResolutionDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     return this.grievancesService.proposeResolution(tenantId, id, userId, dto);
   }
 
   @Post(':id/feedback')
   @RequirePermissions('view_grievances', 'file_grievance')
   async submitFeedback(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: SubmitSatisfactionFeedbackDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     return this.grievancesService.submitFeedback(tenantId, id, userId, dto);
   }
 
   @Post(':id/notes')
   @RequirePermissions('manage_grievances', 'investigate_grievances')
   async addNote(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: AddGrievanceNoteDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = req.user.sub || req.user.id || req.user.sub;
+    const userId = req.user.sub;
     return this.grievancesService.addNote(tenantId, id, userId, dto);
   }
 }

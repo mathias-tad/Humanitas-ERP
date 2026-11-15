@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('announcements')
 @RequireModule('announcements')
@@ -17,31 +18,31 @@ export class AnnouncementsController {
 
     @Get()
     @RequirePermissions('view_announcements')
-    async findAll(@Request() req: any) {
+    async findAll(@Request() req: AuthenticatedRequest) {
         return this.announcementsService.findAll(req.user.tenantId);
     }
 
     @Get(':id')
     @RequirePermissions('view_announcements')
-    async findOne(@Request() req: any, @Param('id') id: string) {
+    async findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.announcementsService.findOne(req.user.tenantId, id);
     }
 
     @Post()
     @RequirePermissions('create_announcements')
-    async create(@Request() req: any, @Body() dto: CreateAnnouncementDto) {
+    async create(@Request() req: AuthenticatedRequest, @Body() dto: CreateAnnouncementDto) {
         return this.announcementsService.create(req.user.tenantId, req.user.sub, dto);
     }
 
     @Patch(':id')
     @RequirePermissions('edit_announcements')
-    async update(@Request() req: any, @Param('id') id: string, @Body() dto: UpdateAnnouncementDto) {
+    async update(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateAnnouncementDto) {
         return this.announcementsService.update(req.user.tenantId, id, dto);
     }
 
     @Delete(':id')
     @RequirePermissions('delete_announcements')
-    async delete(@Request() req: any, @Param('id') id: string) {
+    async delete(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.announcementsService.delete(req.user.tenantId, id);
     }
 }

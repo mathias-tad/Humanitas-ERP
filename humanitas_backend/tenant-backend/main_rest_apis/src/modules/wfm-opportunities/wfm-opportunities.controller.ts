@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { firstHeader, type AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('wfm')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -28,35 +29,35 @@ export class WfmOpportunitiesController {
 
   @Get('settings')
   @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'manage_wfm_settings', 'manage_schedules')
-  getSettings(@Req() req: any, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const companyId = req.headers['x-company-id'] || qCompanyId;
-    const branchId = req.headers['x-branch-id'] || qBranchId;
+  getSettings(@Req() req: AuthenticatedRequest, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
+    const tenantId = req.user.tenantId;
+    const companyId = firstHeader(req.headers['x-company-id']) || qCompanyId;
+    const branchId = firstHeader(req.headers['x-branch-id']) || qBranchId;
     return this.wfmService.getSettings(tenantId, companyId, branchId);
   }
 
   @Put('settings')
   @RequirePermissions('manage_wfm_settings', 'manage_schedules')
-  updateSettings(@Req() req: any, @Body() dto: UpdateWfmSettingsDto) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  updateSettings(@Req() req: AuthenticatedRequest, @Body() dto: UpdateWfmSettingsDto) {
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
     return this.wfmService.updateSettings(tenantId, dto, userId);
   }
 
   @Post('opportunities')
   @RequirePermissions('broadcast_wfm_opportunities', 'manage_schedules')
-  broadcastOpportunity(@Req() req: any, @Body() dto: CreateOpportunityDto) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  broadcastOpportunity(@Req() req: AuthenticatedRequest, @Body() dto: CreateOpportunityDto) {
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
-    const companyId = req.headers['x-company-id'] || dto.company_id;
-    const branchId = req.headers['x-branch-id'] || dto.branch_id;
+    const companyId = firstHeader(req.headers['x-company-id']) || dto.company_id;
+    const branchId = firstHeader(req.headers['x-branch-id']) || dto.branch_id;
     return this.wfmService.broadcastOpportunity(tenantId, { ...dto, company_id: companyId, branch_id: branchId }, userId);
   }
 
   @Get('opportunities')
   @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
   getOpportunities(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('startDate') startDate?: string,
@@ -65,10 +66,10 @@ export class WfmOpportunitiesController {
     @Query('companyId') qCompanyId?: string,
     @Query('branchId') qBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
-    const companyId = req.headers['x-company-id'] || qCompanyId;
-    const branchId = req.headers['x-branch-id'] || qBranchId;
+    const companyId = firstHeader(req.headers['x-company-id']) || qCompanyId;
+    const branchId = firstHeader(req.headers['x-branch-id']) || qBranchId;
 
     return this.wfmService.getOpportunities(tenantId, {
       type,
@@ -84,16 +85,16 @@ export class WfmOpportunitiesController {
 
   @Delete('opportunities/:id')
   @RequirePermissions('broadcast_wfm_opportunities', 'manage_schedules')
-  cancelOpportunity(@Req() req: any, @Param('id') id: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  cancelOpportunity(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
     return this.wfmService.cancelOpportunity(tenantId, id, userId);
   }
 
   @Get('my-claims')
   @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
-  getMyClaims(@Req() req: any) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  getMyClaims(@Req() req: AuthenticatedRequest) {
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
     return this.wfmService.getMyClaims(tenantId, userId);
   }
@@ -101,21 +102,21 @@ export class WfmOpportunitiesController {
   @Post('opportunities/:id/claim')
   @RequirePermissions('claim_wfm_opportunities', 'view_wfm_opportunities', 'view_schedules')
   claimOpportunity(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: ClaimOpportunityDto,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
-    const companyId = req.headers['x-company-id'];
-    const branchId = req.headers['x-branch-id'];
+    const companyId = firstHeader(req.headers['x-company-id']);
+    const branchId = firstHeader(req.headers['x-branch-id']);
     return this.wfmService.claimOpportunity(tenantId, id, userId, dto, companyId, branchId);
   }
 
   @Delete('claims/:claimId/cancel')
   @RequirePermissions('claim_wfm_opportunities', 'view_wfm_opportunities', 'view_schedules')
-  cancelClaim(@Req() req: any, @Param('claimId') claimId: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  cancelClaim(@Req() req: AuthenticatedRequest, @Param('claimId') claimId: string) {
+    const tenantId = req.user.tenantId;
     const userId = req.user?.sub;
     return this.wfmService.cancelClaim(tenantId, claimId, userId);
   }
@@ -123,15 +124,15 @@ export class WfmOpportunitiesController {
   @Get('claims')
   @RequirePermissions('manage_wfm_claims', 'broadcast_wfm_opportunities', 'manage_schedules')
   getClaimsReviewQueue(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('status') status?: string,
     @Query('departmentId') departmentId?: string,
     @Query('companyId') qCompanyId?: string,
     @Query('branchId') qBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const companyId = req.headers['x-company-id'] || qCompanyId;
-    const branchId = req.headers['x-branch-id'] || qBranchId;
+    const tenantId = req.user.tenantId;
+    const companyId = firstHeader(req.headers['x-company-id']) || qCompanyId;
+    const branchId = firstHeader(req.headers['x-branch-id']) || qBranchId;
 
     return this.wfmService.getClaimsReviewQueue(tenantId, {
       status,
@@ -144,21 +145,21 @@ export class WfmOpportunitiesController {
   @Post('claims/:claimId/review')
   @RequirePermissions('manage_wfm_claims', 'broadcast_wfm_opportunities', 'manage_schedules')
   reviewClaim(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('claimId') claimId: string,
     @Body() dto: ReviewClaimDto,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     const reviewerId = req.user?.sub;
     return this.wfmService.reviewClaim(tenantId, claimId, reviewerId, dto);
   }
 
   @Get('stats')
   @RequirePermissions('view_wfm_opportunities', 'view_schedules', 'claim_wfm_opportunities')
-  getWfmStats(@Req() req: any, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const companyId = req.headers['x-company-id'] || qCompanyId;
-    const branchId = req.headers['x-branch-id'] || qBranchId;
+  getWfmStats(@Req() req: AuthenticatedRequest, @Query('companyId') qCompanyId?: string, @Query('branchId') qBranchId?: string) {
+    const tenantId = req.user.tenantId;
+    const companyId = firstHeader(req.headers['x-company-id']) || qCompanyId;
+    const branchId = firstHeader(req.headers['x-branch-id']) || qBranchId;
     return this.wfmService.getWfmStats(tenantId, companyId, branchId);
   }
 }

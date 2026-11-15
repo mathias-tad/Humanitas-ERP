@@ -26,6 +26,7 @@ import {
   SubmitExitInterviewDto,
   OnboardingFilterDto,
 } from './dto/hrms-onboarding.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('hrms')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -33,8 +34,8 @@ import {
 export class HrmsOnboardingController {
   constructor(private readonly onboardingService: HrmsOnboardingService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   // ── TEMPLATES ─────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/templates')
   @RequirePermissions('view_onboarding')
   async getTemplates(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('type') type?: string,
   ) {
@@ -53,7 +54,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/templates/:id')
   @RequirePermissions('view_onboarding')
   async getTemplateById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
@@ -64,7 +65,7 @@ export class HrmsOnboardingController {
   @Post('onboarding/templates')
   @RequirePermissions('manage_onboarding')
   async createTemplate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: CreateChecklistTemplateDto,
   ) {
@@ -75,7 +76,7 @@ export class HrmsOnboardingController {
   @Post('onboarding/templates/:id/items')
   @RequirePermissions('manage_onboarding')
   async createTemplateItem(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') templateId: string,
     @Body() dto: CreateChecklistItemDto,
@@ -90,7 +91,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/stats')
   @RequirePermissions('view_onboarding')
   async getOnboardingStats(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -100,7 +101,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/instances')
   @RequirePermissions('view_onboarding')
   async getOnboardings(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query() filters: OnboardingFilterDto,
     @Headers('x-company-id') headerCompanyId?: string,
@@ -108,6 +109,7 @@ export class HrmsOnboardingController {
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     const userRole = req.user?.role?.toLowerCase() || '';
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
 
     const isPrivileged =
@@ -120,7 +122,7 @@ export class HrmsOnboardingController {
 
     // Normal employee only sees their own onboarding record
     if (!isPrivileged) {
-      filters.user_id = (req.user?.sub || req.user?.id);
+      filters.user_id = (req.user?.sub);
     }
 
     return this.onboardingService.getOnboardings(tenantId, filters);
@@ -129,7 +131,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/instances/:id')
   @RequirePermissions('view_onboarding')
   async getOnboardingById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
@@ -140,26 +142,26 @@ export class HrmsOnboardingController {
   @Post('onboarding/start')
   @RequirePermissions('manage_onboarding')
   async startOnboarding(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: StartOnboardingDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const createdBy = (req.user?.sub || req.user?.id);
+    const createdBy = (req.user?.sub);
     return this.onboardingService.startOnboarding(tenantId, dto, createdBy);
   }
 
   @Put('onboarding/tasks/:id')
   @RequirePermissions('manage_onboarding')
   async updateOnboardingTask(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateOnboardingTaskDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     if (!dto.completed_by) {
-      dto.completed_by = (req.user?.sub || req.user?.id);
+      dto.completed_by = (req.user?.sub);
     }
     return this.onboardingService.updateOnboardingTask(tenantId, taskId, dto);
   }
@@ -167,7 +169,7 @@ export class HrmsOnboardingController {
   @Post('onboarding/probation')
   @RequirePermissions('manage_onboarding')
   async recordProbationOutcome(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: RecordProbationOutcomeDto,
   ) {
@@ -180,7 +182,7 @@ export class HrmsOnboardingController {
   @Get('offboarding/instances')
   @RequirePermissions('view_onboarding')
   async getOffboardings(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -190,7 +192,7 @@ export class HrmsOnboardingController {
   @Get('offboarding/instances/:id')
   @RequirePermissions('view_onboarding')
   async getOffboardingById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
@@ -201,19 +203,19 @@ export class HrmsOnboardingController {
   @Post('offboarding/start')
   @RequirePermissions('manage_onboarding')
   async startOffboarding(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: StartOffboardingDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const initiatedBy = (req.user?.sub || req.user?.id);
+    const initiatedBy = (req.user?.sub);
     return this.onboardingService.startOffboarding(tenantId, dto, initiatedBy);
   }
 
   @Put('offboarding/tasks/:id')
   @RequirePermissions('manage_onboarding')
   async updateOffboardingTask(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') taskId: string,
     @Body() dto: UpdateOffboardingTaskDto,
@@ -225,12 +227,12 @@ export class HrmsOnboardingController {
   @Post('offboarding/exit-interview')
   @RequirePermissions('view_onboarding')
   async submitExitInterview(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: SubmitExitInterviewDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const userId = (req.user?.sub || req.user?.id);
+    const userId = (req.user?.sub);
     return this.onboardingService.submitExitInterview(tenantId, dto, userId);
   }
 
@@ -239,26 +241,26 @@ export class HrmsOnboardingController {
   @Get('onboarding/welcome-portal')
   @RequirePermissions('view_onboarding')
   async getWelcomeStatus(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('userId') userId?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const targetId = userId || (req.user?.sub || req.user?.id);
+    const targetId = userId || (req.user?.sub);
     return this.onboardingService.getWelcomePortalStatus(tenantId, targetId);
   }
 
   @Put('onboarding/welcome-portal/step')
   @RequirePermissions('view_onboarding')
   async updateWelcomeStep(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() body: { step: string; value: boolean; e_signature?: string },
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     return this.onboardingService.updateWelcomePortalStep(
       tenantId,
-      (req.user?.sub || req.user?.id),
+      (req.user?.sub),
       body.step,
       body.value,
       body.e_signature,
@@ -270,7 +272,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/reports/offboarding-compliance')
   @RequirePermissions('view_onboarding')
   async getOffboardingCompliance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -280,7 +282,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/reports/retention')
   @RequirePermissions('view_onboarding')
   async getRetentionReport(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -292,7 +294,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/welcome/:userId')
   @RequirePermissions('view_onboarding')
   async getWelcomeChecklist(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('userId') userId: string,
   ) {
@@ -303,7 +305,7 @@ export class HrmsOnboardingController {
   @Put('onboarding/welcome/:userId')
   @RequirePermissions('view_onboarding')
   async updateWelcomeChecklist(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('userId') userId: string,
     @Body() body: { onboarding_id?: string; updates: Record<string, boolean> },
@@ -320,7 +322,7 @@ export class HrmsOnboardingController {
   @Get('onboarding/retention-metrics')
   @RequirePermissions('view_onboarding')
   async getRetentionMetrics(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -330,7 +332,7 @@ export class HrmsOnboardingController {
   @Get('offboarding/compliance-report')
   @RequirePermissions('view_onboarding')
   async getOffboardingComplianceReportEndpoint(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
@@ -340,7 +342,7 @@ export class HrmsOnboardingController {
   @Get('offboarding/separation-preview/:userId')
   @RequirePermissions('manage_onboarding')
   async get1ClickPreview(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('userId') userId: string,
   ) {
@@ -351,12 +353,12 @@ export class HrmsOnboardingController {
   @Post('offboarding/1-click-separation')
   @RequirePermissions('manage_onboarding')
   async execute1ClickSeparation(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() body: { user_id: string },
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    const initiatedBy = (req.user?.sub || req.user?.id);
+    const initiatedBy = (req.user?.sub);
     return this.onboardingService.execute1ClickSeparation(tenantId, body.user_id, initiatedBy);
   }
 }
