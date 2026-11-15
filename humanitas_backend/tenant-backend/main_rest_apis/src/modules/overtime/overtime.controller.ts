@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import {
     Controller, Get, Patch, Post, Put, Body, Param, Query, UseGuards, Request
 } from '@nestjs/common';
@@ -16,57 +17,57 @@ export class OvertimeController {
 
     @Get()
     @RequirePermissions('overtime_view')
-    async findAll(@Request() req, @Query() query) {
+    async findAll(@Request() req: AuthenticatedRequest, @Query() query) {
         return this.overtimeService.findAll(req.user.tenantId, query);
     }
 
     @Get('periods')
     @RequirePermissions('overtime_view')
-    async getPeriods(@Request() req) {
+    async getPeriods(@Request() req: AuthenticatedRequest) {
         return this.overtimeService.getAvailablePeriods(req.user.tenantId);
     }
 
     @Get('period-status')
     @RequirePermissions('overtime_view')
-    async getPeriodStatus(@Request() req) {
+    async getPeriodStatus(@Request() req: AuthenticatedRequest) {
         return this.overtimeService.getPeriodPhase(req.user.tenantId);
     }
 
     @Patch(':id')
     @RequirePermissions('overtime_management')
     async update(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() updateDto: UpdateOvertimeDto
     ) {
-        return this.overtimeService.update(req.user.tenantId, id, req.user.userId, updateDto);
+        return this.overtimeService.update(req.user.tenantId, id, req.user.sub, updateDto);
     }
 
     @Put('entries/:id')
     @RequirePermissions('overtime_management')
     async updateEntry(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() updateDto: { normal_ot_hours?: number; night_ot_hours?: number; holiday_ot_hours?: number; dayoff_ot_hours?: number }
     ) {
-        return this.overtimeService.updateEntryWithRecalc(req.user.tenantId, id, req.user.userId, updateDto);
+        return this.overtimeService.updateEntryWithRecalc(req.user.tenantId, id, req.user.sub, updateDto);
     }
 
     @Post('approve')
     @RequirePermissions('overtime_management')
-    async approve(@Request() req, @Body() body: { ids: string[] }) {
-        return this.overtimeService.bulkApprove(req.user.tenantId, req.user.userId, body.ids);
+    async approve(@Request() req: AuthenticatedRequest, @Body() body: { ids: string[] }) {
+        return this.overtimeService.bulkApprove(req.user.tenantId, req.user.sub, body.ids);
     }
 
     @Post('reject')
     @RequirePermissions('overtime_management')
-    async reject(@Request() req, @Body() body: { ids: string[] }) {
-        return this.overtimeService.bulkReject(req.user.tenantId, req.user.userId, body.ids);
+    async reject(@Request() req: AuthenticatedRequest, @Body() body: { ids: string[] }) {
+        return this.overtimeService.bulkReject(req.user.tenantId, req.user.sub, body.ids);
     }
 
     @Post('calculate-period')
     @RequirePermissions('overtime_management')
-    async calculatePeriod(@Request() req, @Body() body: { year?: number; month?: number }) {
+    async calculatePeriod(@Request() req: AuthenticatedRequest, @Body() body: { year?: number; month?: number }) {
         return this.overtimeService.triggerPeriodCalculation(req.user.tenantId, body.year, body.month);
     }
 }

@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
+import { firstHeader } from '../../common/types/authenticated-request';
 import { RecruitmentService } from './recruitment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -64,12 +65,12 @@ export class RecruitmentController {
 
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
-  private getTenantIdentifier(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId || req.user?.tenantSlug;
+  private getTenantIdentifier(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user?.tenantId || headerTenantId || req.user?.tenantSlug;
   }
 
   private resolveScope(
-    req: any,
+    req: AuthenticatedRequest,
     headerCompanyId?: string,
     headerBranchId?: string,
     queryCompanyId?: string,
@@ -78,15 +79,11 @@ export class RecruitmentController {
     const company_id =
       queryCompanyId ||
       headerCompanyId ||
-      req.headers?.['x-company-id'] ||
-      req.user?.company_id ||
-      req.user?.companyId;
+      firstHeader(req.headers['x-company-id']);
     const branch_id =
       queryBranchId ||
       headerBranchId ||
-      req.headers?.['x-branch-id'] ||
-      req.user?.branch_id ||
-      req.user?.branchId;
+      firstHeader(req.headers['x-branch-id']);
     return { company_id, branch_id };
   }
 
@@ -400,7 +397,7 @@ export class RecruitmentController {
   @ApiConsumes('multipart/form-data')
   async uploadApplicationFileByToken(
     @Param('token') token: string,
-    @Req() req: any
+    @Req() req: AuthenticatedRequest
   ) {
     const data = await (req as any).file();
     if (!data) {

@@ -7,6 +7,7 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { UpdateNotificationPreferenceDto, BulkUpdateNotificationPreferencesDto } from './dto/notification-preferences.dto';
 import { RolesService } from '../roles/roles.service';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -19,7 +20,7 @@ export class NotificationsController {
     ) { }
 
     @Get()
-    async getNotifications(@Request() req: any) {
+    async getNotifications(@Request() req: AuthenticatedRequest) {
         return this.notificationsService.getUserNotifications(
             req.user.tenantId,
             req.user.sub,
@@ -27,7 +28,7 @@ export class NotificationsController {
     }
 
     @Get('unread-count')
-    async getUnreadCount(@Request() req: any) {
+    async getUnreadCount(@Request() req: AuthenticatedRequest) {
         const count = await this.notificationsService.getUnreadCount(
             req.user.tenantId,
             req.user.sub,
@@ -36,7 +37,7 @@ export class NotificationsController {
     }
 
     @Post(':id/read')
-    async markAsRead(@Request() req: any, @Param('id') id: string) {
+    async markAsRead(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.notificationsService.markAsRead(
             req.user.tenantId,
             req.user.sub,
@@ -45,7 +46,7 @@ export class NotificationsController {
     }
 
     @Post('read-all')
-    async markAllAsRead(@Request() req: any) {
+    async markAllAsRead(@Request() req: AuthenticatedRequest) {
         return this.notificationsService.markAllAsRead(
             req.user.tenantId,
             req.user.sub,
@@ -65,7 +66,7 @@ export class NotificationsController {
     }
 
     @Get('preferences')
-    async getPreferences(@Request() req: any) {
+    async getPreferences(@Request() req: AuthenticatedRequest) {
         const user = req.user;
         const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.getNotificationPreferences(
@@ -76,7 +77,7 @@ export class NotificationsController {
     }
 
     @Put('preferences')
-    async updatePreference(@Request() req: any, @Body() body: UpdateNotificationPreferenceDto) {
+    async updatePreference(@Request() req: AuthenticatedRequest, @Body() body: UpdateNotificationPreferenceDto) {
         const user = req.user;
         const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.updateNotificationPreference(
@@ -89,7 +90,7 @@ export class NotificationsController {
     }
 
     @Put('preferences/bulk')
-    async bulkUpdatePreferences(@Request() req: any, @Body() body: BulkUpdateNotificationPreferencesDto) {
+    async bulkUpdatePreferences(@Request() req: AuthenticatedRequest, @Body() body: BulkUpdateNotificationPreferencesDto) {
         const user = req.user;
         const permissions = await this.resolveUserPermissions(user);
         return this.notificationsService.bulkUpdatePreferences(
@@ -102,69 +103,69 @@ export class NotificationsController {
 
     @Get('digest-config')
     @RequirePermissions('manage_notification_preferences')
-    async getDigestConfig(@Request() req: any) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getDigestConfig(@Request() req: AuthenticatedRequest) {
+        const tenantId = req.user.tenantId;
         return this.notificationsService.getDigestConfig(tenantId);
     }
 
     @Put('digest-config')
     @RequirePermissions('manage_notification_preferences')
     async updateDigestConfig(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Body() body: { mode: string; digest_time?: string },
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+        const tenantId = req.user.tenantId;
         return this.notificationsService.updateDigestConfig(tenantId, body);
     }
 
     @Get('reports/delivery-stats')
     @RequirePermissions('view_notification_reports')
     async getDeliveryStats(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Query('startDate') startDate?: string,
         @Query('endDate') endDate?: string,
         @Query('days') days?: number,
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+        const tenantId = req.user.tenantId;
         return this.notificationReportsService.getDeliveryStats(tenantId, startDate, endDate, days);
     }
 
     @Get('reports/preference-distribution')
     @RequirePermissions('view_notification_reports')
-    async getPreferenceDistribution(@Request() req: any) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getPreferenceDistribution(@Request() req: AuthenticatedRequest) {
+        const tenantId = req.user.tenantId;
         return this.notificationReportsService.getPreferenceDistribution(tenantId);
     }
 
     @Get('reports/channel-summary')
     @RequirePermissions('view_notification_reports')
-    async getChannelSummary(@Request() req: any, @Query('days') days: number = 30) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getChannelSummary(@Request() req: AuthenticatedRequest, @Query('days') days: number = 30) {
+        const tenantId = req.user.tenantId;
         return this.notificationReportsService.getChannelSummary(tenantId, Number(days) || 30);
     }
 
     @Get('reports/email-analytics')
     @RequirePermissions('view_notification_reports')
-    async getEmailAnalytics(@Request() req: any, @Query('days') days: number = 30) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getEmailAnalytics(@Request() req: AuthenticatedRequest, @Query('days') days: number = 30) {
+        const tenantId = req.user.tenantId;
         return this.notificationReportsService.getEmailAnalytics(tenantId, Number(days) || 30);
     }
 
     @Get('reports/bounced-emails')
     @RequirePermissions('view_notification_reports')
-    async getBouncedEmails(@Request() req: any, @Query('limit') limit: number = 50) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getBouncedEmails(@Request() req: AuthenticatedRequest, @Query('limit') limit: number = 50) {
+        const tenantId = req.user.tenantId;
         return this.notificationReportsService.getBouncedEmails(tenantId, Number(limit) || 50);
     }
 
     @Post('push/register')
     @RequirePermissions('view_notification_preferences')
     async registerPushToken(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Body() body: { token: string; platform?: 'android' | 'ios' | 'web' },
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
-        const userId = req.user?.sub || req.user?.id;
+        const tenantId = req.user.tenantId;
+        const userId = req.user?.sub;
         await this.notificationsService.registerPushToken(
             tenantId,
             userId,
@@ -177,11 +178,11 @@ export class NotificationsController {
     @Delete('push/deregister')
     @RequirePermissions('view_notification_preferences')
     async deregisterPushToken(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Body() body: { token: string },
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
-        const userId = req.user?.sub || req.user?.id;
+        const tenantId = req.user.tenantId;
+        const userId = req.user?.sub;
         await this.notificationsService.deregisterPushToken(
             tenantId,
             userId,
@@ -193,11 +194,11 @@ export class NotificationsController {
     @Post('push/deregister')
     @RequirePermissions('view_notification_preferences')
     async deregisterPushTokenPost(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Body() body: { token: string },
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
-        const userId = req.user?.sub || req.user?.id;
+        const tenantId = req.user.tenantId;
+        const userId = req.user?.sub;
         await this.notificationsService.deregisterPushToken(
             tenantId,
             userId,
@@ -208,18 +209,18 @@ export class NotificationsController {
 
     @Get('settings/birthday')
     @RequirePermissions('view_notification_preferences')
-    async getBirthdaySettings(@Request() req: any) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+    async getBirthdaySettings(@Request() req: AuthenticatedRequest) {
+        const tenantId = req.user.tenantId;
         return this.notificationsService.getBirthdayGreetingSettings(tenantId);
     }
 
     @Put('settings/birthday')
     @RequirePermissions('manage_notification_preferences')
     async updateBirthdaySettings(
-        @Request() req: any,
+        @Request() req: AuthenticatedRequest,
         @Body() body: { enabled?: boolean; notifyColleagues?: boolean; greetingMessage?: string },
     ) {
-        const tenantId = req.headers?.['x-tenant-id'] || req.user?.tenantId;
+        const tenantId = req.user.tenantId;
         return this.notificationsService.updateBirthdayGreetingSettings(tenantId, body);
     }
 }

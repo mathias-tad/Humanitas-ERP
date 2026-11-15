@@ -14,6 +14,7 @@ import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { HrmsReportsService } from './hrms-reports.service';
 import { HrmsReportsFilterDto, BankTransferExportDto } from './dto/hrms-reports.dto';
+import { firstHeader, type AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @ApiTags('HRMS Reports')
 @Controller('hrms/reports')
@@ -24,14 +25,14 @@ export class HrmsReportsController {
   constructor(private readonly reportsService: HrmsReportsService) {}
 
   private extractScope(
-    req: any,
+    req: AuthenticatedRequest,
     headerCompanyId?: string,
     headerBranchId?: string,
     queryCompanyId?: string,
     queryBranchId?: string,
   ): { company_id?: string; branch_id?: string } {
-    const company_id = queryCompanyId || headerCompanyId || req.headers?.['x-company-id'];
-    const branch_id = queryBranchId || headerBranchId || req.headers?.['x-branch-id'];
+    const company_id = queryCompanyId || headerCompanyId || firstHeader(req.headers['x-company-id']);
+    const branch_id = queryBranchId || headerBranchId || firstHeader(req.headers['x-branch-id']);
     return { company_id, branch_id };
   }
 
@@ -39,7 +40,7 @@ export class HrmsReportsController {
   @RequirePermissions('view_hrms_reports')
   @ApiOperation({ summary: 'Get high-level executive HR summary metrics' })
   async getSummary(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: HrmsReportsFilterDto,
     @Headers('x-company-id') hCompany?: string,
     @Headers('x-branch-id') hBranch?: string,
@@ -53,7 +54,7 @@ export class HrmsReportsController {
   @RequirePermissions('view_hrms_reports')
   @ApiOperation({ summary: 'Get detailed headcount demographics and distributions' })
   async getHeadcount(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: HrmsReportsFilterDto,
     @Headers('x-company-id') hCompany?: string,
     @Headers('x-branch-id') hBranch?: string,
@@ -67,7 +68,7 @@ export class HrmsReportsController {
   @RequirePermissions('view_hrms_reports')
   @ApiOperation({ summary: 'Get turnover and retention trends' })
   async getTurnover(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: HrmsReportsFilterDto,
     @Headers('x-company-id') hCompany?: string,
     @Headers('x-branch-id') hBranch?: string,
@@ -81,7 +82,7 @@ export class HrmsReportsController {
   @RequirePermissions('view_hrms_reports')
   @ApiOperation({ summary: 'Get attendance punctuality, absence, and overtime analytics' })
   async getAttendanceAnalytics(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: HrmsReportsFilterDto,
     @Headers('x-company-id') hCompany?: string,
     @Headers('x-branch-id') hBranch?: string,
@@ -95,7 +96,7 @@ export class HrmsReportsController {
   @RequirePermissions('view_hrms_reports')
   @ApiOperation({ summary: 'Get workforce payroll cost breakdowns by department and period' })
   async getPayrollAnalytics(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() query: HrmsReportsFilterDto,
     @Headers('x-company-id') hCompany?: string,
     @Headers('x-branch-id') hBranch?: string,
@@ -109,7 +110,7 @@ export class HrmsReportsController {
   @RequirePermissions('export_bank_transfer_file')
   @ApiOperation({ summary: 'Generate and download commercial bank direct transfer payment file (CSV/NACHA/ABA)' })
   async downloadBankTransferFile(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Res() res: any,
     @Query() query: BankTransferExportDto,
     @Headers('x-company-id') hCompany?: string,

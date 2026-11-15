@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import {
   Controller,
   Get,
@@ -50,7 +51,7 @@ export class AttendanceController {
   @RequirePermissions('view_roster')
   @ApiOperation({ summary: 'Get user schedule (roster) with pattern and overrides' })
   async getUserSchedule(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('userId') userId: string,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string
@@ -68,14 +69,14 @@ export class AttendanceController {
   @Get('shifts')
   @RequirePermissions('view_shifts')
   @ApiOperation({ summary: 'Get all shifts' })
-  async getShifts(@Request() req: any) {
+  async getShifts(@Request() req: AuthenticatedRequest) {
     return this.schedulingService.getShifts(req.user.tenantId);
   }
 
   @Post('shifts')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new shift' })
-  async createShift(@Request() req: any, @Body() data: CreateShiftDto) {
+  async createShift(@Request() req: AuthenticatedRequest, @Body() data: CreateShiftDto) {
     return this.schedulingService.createShift(req.user.tenantId, data, req.user.sub);
   }
 
@@ -83,7 +84,7 @@ export class AttendanceController {
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Update a shift' })
   async updateShift(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateShiftDto,
   ) {
@@ -92,7 +93,7 @@ export class AttendanceController {
 
   @Delete('shifts/:id')
   @ApiOperation({ summary: 'Delete a shift' })
-  async deleteShift(@Request() req: any, @Param('id') id: string) {
+  async deleteShift(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.deleteShift(req.user.tenantId, id, req.user.sub);
   }
 
@@ -100,14 +101,14 @@ export class AttendanceController {
   @Get('patterns')
   @RequirePermissions('view_shifts')
   @ApiOperation({ summary: 'Get all schedule patterns' })
-  async getSchedulePatterns(@Request() req: any) {
+  async getSchedulePatterns(@Request() req: AuthenticatedRequest) {
     return this.schedulingService.getPatterns(req.user.tenantId);
   }
 
   @Post('patterns')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new schedule pattern' })
-  async createSchedulePattern(@Request() req: any, @Body() data: CreateShiftPatternDto) {
+  async createSchedulePattern(@Request() req: AuthenticatedRequest, @Body() data: CreateShiftPatternDto) {
     return this.schedulingService.createPattern(
       req.user.tenantId,
       data,
@@ -117,7 +118,7 @@ export class AttendanceController {
 
   @Get('patterns/:id')
   @ApiOperation({ summary: 'Get schedule pattern by ID' })
-  async getSchedulePatternById(@Request() req: any, @Param('id') id: string) {
+  async getSchedulePatternById(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.getPatternById(req.user.tenantId, id);
   }
 
@@ -125,7 +126,7 @@ export class AttendanceController {
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Update a schedule pattern' })
   async updateSchedulePattern(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdateShiftPatternDto,
   ) {
@@ -138,40 +139,40 @@ export class AttendanceController {
 
   @Delete('patterns/:id')
   @ApiOperation({ summary: 'Delete a schedule pattern' })
-  async deleteSchedulePattern(@Request() req: any, @Param('id') id: string) {
+  async deleteSchedulePattern(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.deletePattern(req.user.tenantId, id);
   }
 
   // ============ SHIFT ASSIGNMENTS ============
   @Get('assignments')
   @ApiOperation({ summary: 'Get all shift assignments' })
-  async getShiftAssignments(@Request() req: any) {
+  async getShiftAssignments(@Request() req: AuthenticatedRequest) {
     return this.schedulingService.getUserShiftPatterns(req.user.tenantId);
   }
 
   @Post('assignments')
   @RequirePermissions('manage_shift_assignments')
   @ApiOperation({ summary: 'Assign shift to user' })
-  async assignShift(@Request() req: any, @Body() data: AssignPatternDto) {
+  async assignShift(@Request() req: AuthenticatedRequest, @Body() data: AssignPatternDto) {
     return this.schedulingService.assignPattern(req.user.tenantId, data, req.user.sub);
   }
 
   @Delete('assignments/:userId')
   @RequirePermissions('manage_shift_assignments')
   @ApiOperation({ summary: 'Remove shift assignment' })
-  async removeAssignment(@Request() req: any, @Param('userId') userId: string) {
+  async removeAssignment(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
     return this.schedulingService.removePatternAssignment(req.user.tenantId, userId, req.user.sub);
   }
 
   @Get('users/unassigned')
   @ApiOperation({ summary: 'Get users without shift assignments' })
-  async getUnassignedUsers(@Request() req: any) {
+  async getUnassignedUsers(@Request() req: AuthenticatedRequest) {
     return this.schedulingService.getUnassignedUsers(req.user.tenantId);
   }
 
   @Get('users/with-assignments')
   @ApiOperation({ summary: 'Get all users with their assignment status' })
-  async getUsersWithAssignments(@Request() req: any) {
+  async getUsersWithAssignments(@Request() req: AuthenticatedRequest) {
     return this.schedulingService.getUsersWithAssignments(req.user.tenantId);
   }
 
@@ -182,7 +183,7 @@ export class AttendanceController {
   @Post('assign-pattern')
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign pattern to user (Flexible)' })
-  async assignPattern(@Request() req: any, @Body() data: AssignPatternDto) {
+  async assignPattern(@Request() req: AuthenticatedRequest, @Body() data: AssignPatternDto) {
     return this.schedulingService.assignPattern(
       req.user.tenantId,
       data,
@@ -193,7 +194,7 @@ export class AttendanceController {
   @Post('assign-schedule')
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign/Override specific day schedule' })
-  async assignSchedule(@Request() req: any, @Body() data: AssignScheduleDto) {
+  async assignSchedule(@Request() req: AuthenticatedRequest, @Body() data: AssignScheduleDto) {
     return this.attendanceService.assignSchedule(
       req.user.tenantId,
       data,
@@ -204,7 +205,7 @@ export class AttendanceController {
   @Get('scheduling-audit-logs')
   @ApiOperation({ summary: 'Get scheduling audit logs' })
   async getSchedulingAuditLogs(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
@@ -222,7 +223,7 @@ export class AttendanceController {
   @RequirePermissions('correct_attendance')
   @ApiOperation({ summary: 'Correct an attendance record (admin)' })
   async correctAttendance(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: CorrectAttendanceDto,
   ) {
@@ -237,7 +238,7 @@ export class AttendanceController {
   @Get('correction-logs')
   @ApiOperation({ summary: 'Get attendance correction audit logs' })
   async getAttendanceCorrectionLogs(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('userId') userId?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -253,14 +254,14 @@ export class AttendanceController {
   @UseGuards(PermissionsGuard)
   @RequirePermissions('view_overtime_workers')
   @ApiOperation({ summary: 'Get currently working overtime employees' })
-  async getOvertimeWorkers(@Request() req: any) {
+  async getOvertimeWorkers(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getOvertimeWorkers(req.user.tenantId);
   }
 
   @Get('records/my')
   @ApiOperation({ summary: 'Get current user attendance records' })
   async getMyAttendanceRecordsNew(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('month') month: number,
     @Query('year') year: number,
   ) {
@@ -272,7 +273,7 @@ export class AttendanceController {
   @RequirePermissions('view_attendance')
   @ApiOperation({ summary: 'Get lateness summary (Today, Week, Month)' })
   async getLatenessSummary(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('date') date?: string,
     @Query('userId') userId?: string,
   ) {
@@ -284,7 +285,7 @@ export class AttendanceController {
   @RequirePermissions('force_clockout')
   @ApiOperation({ summary: 'Force clock out a user' })
   async forceClockOut(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { userId: string; reason?: string },
   ) {
     return this.attendanceService.forceClockOut(
@@ -299,7 +300,7 @@ export class AttendanceController {
   @Get('my-records')
   @ApiOperation({ summary: 'Get current user attendance records' })
   async getMyAttendanceRecords(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
@@ -316,7 +317,7 @@ export class AttendanceController {
   @Get('my-monthly-calendar')
   @ApiOperation({ summary: 'Get current user monthly attendance calendar (alias for my-records)' })
   async getMyMonthlyCalendar(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
@@ -334,7 +335,7 @@ export class AttendanceController {
   @RequirePermissions('view_attendance')
   @ApiOperation({ summary: 'Get attendance records' })
   async getAttendanceRecords(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('date') date?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -346,7 +347,7 @@ export class AttendanceController {
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     return this.attendanceService.getAttendanceRecords(tenantId, {
       date,
       startDate,
@@ -363,11 +364,11 @@ export class AttendanceController {
   @RequirePermissions('manage_attendance')
   @ApiOperation({ summary: 'Batch update attendance records status' })
   async batchUpdateAttendanceStatus(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: BatchAttendanceStatusDto,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const updatedBy = req.user?.sub || req.user?.id;
+    const tenantId = req.user.tenantId;
+    const updatedBy = req.user?.sub;
     return this.attendanceService.batchUpdateAttendanceStatus(
       tenantId,
       dto.record_ids,
@@ -380,8 +381,8 @@ export class AttendanceController {
   @Get('absence-thresholds')
   @RequirePermissions('view_attendance')
   @ApiOperation({ summary: 'Get absence alert thresholds' })
-  async getAbsenceThresholds(@Request() req: any) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  async getAbsenceThresholds(@Request() req: AuthenticatedRequest) {
+    const tenantId = req.user.tenantId;
     return this.attendanceService.getAbsenceThresholds(tenantId);
   }
 
@@ -389,22 +390,22 @@ export class AttendanceController {
   @RequirePermissions('manage_attendance')
   @ApiOperation({ summary: 'Update absence alert thresholds' })
   async updateAbsenceThresholds(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: AbsenceThresholdsDto,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     return this.attendanceService.updateAbsenceThresholds(tenantId, dto);
   }
 
   @Post('records')
   @ApiOperation({ summary: 'Create/update attendance record' })
-  async recordAttendance(@Request() req: any, @Body() data: RecordAttendanceDto) {
+  async recordAttendance(@Request() req: AuthenticatedRequest, @Body() data: RecordAttendanceDto) {
     return this.attendanceService.recordAttendance(req.user.tenantId, data);
   }
 
   @Post('clock-in')
   @ApiOperation({ summary: 'Clock in for current user' })
-  async clockIn(@Request() req: any) {
+  async clockIn(@Request() req: AuthenticatedRequest) {
     const result = await this.attendanceService.clockIn(
       req.user.tenantId,
       req.user.sub,
@@ -419,7 +420,7 @@ export class AttendanceController {
 
   @Post('clock-out')
   @ApiOperation({ summary: 'Clock out for current user' })
-  async clockOut(@Request() req: any) {
+  async clockOut(@Request() req: AuthenticatedRequest) {
     const result = await this.attendanceService.clockOut(
       req.user.tenantId,
       req.user.sub,
@@ -434,7 +435,7 @@ export class AttendanceController {
 
   @Post('clock-in/:userId')
   @ApiOperation({ summary: 'Clock in for specific user (admin)' })
-  async clockInUser(@Request() req: any, @Param('userId') userId: string) {
+  async clockInUser(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
     const result = await this.attendanceService.clockIn(
       req.user.tenantId,
       userId,
@@ -449,7 +450,7 @@ export class AttendanceController {
 
   @Post('clock-out/:userId')
   @ApiOperation({ summary: 'Clock out for specific user (admin)' })
-  async clockOutUser(@Request() req: any, @Param('userId') userId: string) {
+  async clockOutUser(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
     const result = await this.attendanceService.clockOut(
       req.user.tenantId,
       userId,
@@ -467,7 +468,7 @@ export class AttendanceController {
   @Get('qr-code')
   @ApiOperation({ summary: 'Get current QR code for attendance' })
   async getQRCode(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('type') type?: 'clock_in' | 'clock_out',
   ) {
     return this.attendanceService.getCurrentQRCode(
@@ -479,7 +480,7 @@ export class AttendanceController {
   @Post('qr-code/generate')
   @ApiOperation({ summary: 'Generate new QR code' })
   async generateQRCode(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { type?: 'clock_in' | 'clock_out' },
   ) {
     return this.attendanceService.generateQRCode(
@@ -491,7 +492,7 @@ export class AttendanceController {
   @Post('device/register')
   @ApiOperation({ summary: 'Register device for current user' })
   async registerDevice(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     body: { device_id: string; device_name?: string; device_type?: string },
   ) {
@@ -504,7 +505,7 @@ export class AttendanceController {
 
   @Get('device/my-devices')
   @ApiOperation({ summary: 'Get current user registered devices' })
-  async getMyDevices(@Request() req: any) {
+  async getMyDevices(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getUserDevices(
       req.user.tenantId,
       req.user.sub,
@@ -513,7 +514,7 @@ export class AttendanceController {
 
   @Delete('device/:deviceId')
   @ApiOperation({ summary: 'Remove device' })
-  async removeDevice(@Request() req: any, @Param('deviceId') deviceId: string) {
+  async removeDevice(@Request() req: AuthenticatedRequest, @Param('deviceId') deviceId: string) {
     return this.attendanceService.removeDevice(
       req.user.tenantId,
       req.user.sub,
@@ -525,7 +526,7 @@ export class AttendanceController {
   @ApiOperation({
     summary: 'Get current user today schedule and clock in eligibility',
   })
-  async getMySchedule(@Request() req: any) {
+  async getMySchedule(@Request() req: AuthenticatedRequest) {
     const schedule = await this.attendanceService.getUserTodaySchedule(
       req.user.tenantId,
       req.user.sub,
@@ -545,7 +546,7 @@ export class AttendanceController {
     summary: 'Secure clock in with QR code, device, and network validation',
   })
   async secureClockIn(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Ip() clientIp: string,
     @Body() body: { qr_code: string; device_id: string },
   ) {
@@ -569,7 +570,7 @@ export class AttendanceController {
     summary: 'Secure clock out with QR code, device, and network validation',
   })
   async secureClockOut(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Ip() clientIp: string,
     @Body() body: { qr_code: string; device_id: string },
   ) {
@@ -591,19 +592,19 @@ export class AttendanceController {
   // Admin endpoints for device management
   @Get('devices/all')
   @ApiOperation({ summary: 'Get all registered devices (admin)' })
-  async getAllDevices(@Request() req: any) {
+  async getAllDevices(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getAllDevices(req.user.tenantId);
   }
 
   @Get('devices/pending')
   @ApiOperation({ summary: 'Get pending device registrations (admin)' })
-  async getPendingDevices(@Request() req: any) {
+  async getPendingDevices(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getPendingDevices(req.user.tenantId);
   }
 
   @Post('devices/:id/approve')
   @ApiOperation({ summary: 'Approve device registration (admin)' })
-  async approveDevice(@Request() req: any, @Param('id') id: string) {
+  async approveDevice(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.attendanceService.approveDevice(
       req.user.tenantId,
       id,
@@ -613,7 +614,7 @@ export class AttendanceController {
 
   @Post('devices/:id/reject')
   @ApiOperation({ summary: 'Reject device registration (admin)' })
-  async rejectDevice(@Request() req: any, @Param('id') id: string) {
+  async rejectDevice(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.attendanceService.rejectDevice(req.user.tenantId, id);
   }
 
@@ -621,14 +622,14 @@ export class AttendanceController {
 
   @Get('networks')
   @ApiOperation({ summary: 'Get all allowed networks' })
-  async getAllowedNetworks(@Request() req: any) {
+  async getAllowedNetworks(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getAllowedNetworks(req.user.tenantId);
   }
 
   @Post('networks')
   @ApiOperation({ summary: 'Add allowed network (admin)' })
   async addAllowedNetwork(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body()
     body: {
       name: string;
@@ -646,13 +647,13 @@ export class AttendanceController {
 
   @Delete('networks/:id')
   @ApiOperation({ summary: 'Remove allowed network (admin)' })
-  async removeAllowedNetwork(@Request() req: any, @Param('id') id: string) {
+  async removeAllowedNetwork(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.attendanceService.removeAllowedNetwork(req.user.tenantId, id);
   }
 
   @Get('network-check')
   @ApiOperation({ summary: 'Check if current network is allowed' })
-  async checkNetwork(@Request() req: any, @Ip() clientIp: string) {
+  async checkNetwork(@Request() req: AuthenticatedRequest, @Ip() clientIp: string) {
     return this.attendanceService.isNetworkAllowed(req.user.tenantId, clientIp);
   }
 
@@ -662,7 +663,7 @@ export class AttendanceController {
   @RequirePermissions('mark_attendance')
   @ApiOperation({ summary: 'Submit attendance regularization/correction request' })
   async requestAttendanceCorrection(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { attendance_record_id?: string; work_date: string; requested_in?: string; requested_out?: string; reason: string },
   ) {
     return this.attendanceService.requestAttendanceCorrection(req.user.tenantId, req.user.sub, body.attendance_record_id || "", body);
@@ -671,7 +672,7 @@ export class AttendanceController {
   @Get('correction-requests/my')
   @RequirePermissions('mark_attendance')
   @ApiOperation({ summary: 'List current user attendance correction requests' })
-  async getMyCorrectionRequests(@Request() req: any) {
+  async getMyCorrectionRequests(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getMyAttendanceCorrectionRequests(req.user.tenantId, req.user.sub);
   }
 
@@ -679,7 +680,7 @@ export class AttendanceController {
   @RequirePermissions('correct_attendance')
   @ApiOperation({ summary: 'List all attendance correction requests for management review' })
   async getAllCorrectionRequests(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
     return this.attendanceService.getAttendanceCorrectionRequests(req.user.tenantId, status ? { status } : undefined);
@@ -689,7 +690,7 @@ export class AttendanceController {
   @RequirePermissions('correct_attendance')
   @ApiOperation({ summary: 'Review and approve/reject attendance correction request' })
   async reviewCorrectionRequest(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { status: 'approved' | 'rejected'; reviewer_notes?: string },
   ) {
@@ -706,7 +707,7 @@ export class AttendanceController {
   @Post('alarm/dismiss')
   @RequirePermissions('mark_attendance')
   @ApiOperation({ summary: 'Dismiss morning missed clock-in ringing alarm' })
-  async dismissAlarm(@Request() req: any) {
+  async dismissAlarm(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.dismissMissedClockInAlarm(req.user.tenantId, req.user.sub);
   }
 
@@ -716,7 +717,7 @@ export class AttendanceController {
   @RequirePermissions('manage_biometric_devices')
   @ApiOperation({ summary: 'Import offline biometric punch logs from USB / CSV / TXT backup' })
   async importOfflineLogs(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { device_serial_number: string; content: string },
   ) {
     return this.attendanceService.importOfflinePunchLogs(
@@ -729,7 +730,7 @@ export class AttendanceController {
   @Get('overtime/pending-reconciliation')
   @RequirePermissions('view_overtime_workers')
   @ApiOperation({ summary: 'Get records with pending overtime approval from offline sync reconciliation' })
-  async getPendingReconciliationOvertime(@Request() req: any) {
+  async getPendingReconciliationOvertime(@Request() req: AuthenticatedRequest) {
     return this.attendanceService.getPendingReconciliationOvertime(req.user.tenantId);
   }
 
@@ -737,7 +738,7 @@ export class AttendanceController {
   @RequirePermissions('force_clockout')
   @ApiOperation({ summary: 'Decide (grant or zero) overtime hours for reconciled offline records' })
   async decideReconciliationOvertime(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { record_id: string; grant_overtime: boolean },
   ) {
     return this.attendanceService.decideReconciliationOvertime(

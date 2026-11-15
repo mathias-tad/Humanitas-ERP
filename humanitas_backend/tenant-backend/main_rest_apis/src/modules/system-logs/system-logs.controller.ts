@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Get, Post, Param, Query, BadRequestException, UseGuards, Request, OnModuleInit } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SystemLogsService } from './system-logs.service';
@@ -52,7 +53,7 @@ export class SystemLogsController implements OnModuleInit {
     @Get('debug-permissions/:userId')
     @ApiOperation({ summary: "Debug a user's role permissions (caller's tenant only)" })
     @RequirePermissions('manage_system')
-    async debugPermissions(@Param('userId') userId: string, @Request() req) {
+    async debugPermissions(@Param('userId') userId: string, @Request() req: AuthenticatedRequest) {
         // SECURITY: only ever look inside the caller's own tenant database.
         const conn = await this.databaseService.getTenantConnectionById(req.user.tenantId);
         const user = await conn.query(
@@ -68,7 +69,7 @@ export class SystemLogsController implements OnModuleInit {
     @Post('repair-db')
     @ApiOperation({ summary: "Apply any pending schema migrations to the caller's tenant database" })
     @RequirePermissions('manage_system')
-    async repairDb(@Request() req) {
+    async repairDb(@Request() req: AuthenticatedRequest) {
         // The tenant schema is owned by src/migrations/tenant/*.sql (TenantMigrationService).
         // "Repair" now simply runs any pending migrations for the caller's own tenant —
         // there is no second, hand-maintained copy of the schema here any more.
@@ -85,14 +86,14 @@ export class SystemLogsController implements OnModuleInit {
     @Post('cleanup')
     @ApiOperation({ summary: 'Cleanup stuck jobs' })
     @RequirePermissions('manage_logs')
-    async cleanup(@Request() req) {
+    async cleanup(@Request() req: AuthenticatedRequest) {
         return this.logsService.cleanupStuckJobs(req.user.tenantId);
     }
 
     @Get('debug')
     @ApiOperation({ summary: 'Debug endpoint to check payroll_runs data' })
     @RequirePermissions('manage_system')
-    async debugPayrollRuns(@Request() req) {
+    async debugPayrollRuns(@Request() req: AuthenticatedRequest) {
         try {
             const tenantId = req.user.tenantId;
             const connection = await this.databaseService.getTenantConnectionById(tenantId);
@@ -138,7 +139,7 @@ export class SystemLogsController implements OnModuleInit {
     @ApiOperation({ summary: 'Get all calculation logs' })
     @RequirePermissions('view_logs', 'manage_logs')
     async getLogs(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Query('type') type?: CalculationType,
         @Query('status') status?: string,
         @Query('limit') limit?: number
@@ -163,7 +164,7 @@ export class SystemLogsController implements OnModuleInit {
     @Get(':id')
     @ApiOperation({ summary: 'Get log by ID' })
     @RequirePermissions('view_logs', 'manage_logs')
-    async getLog(@Param('id') id: string, @Request() req) {
+    async getLog(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
         const log = await this.logsService.findOne(id, req.user.tenantId);
         if (!log) throw new BadRequestException('Log not found');
         return log;
@@ -172,7 +173,7 @@ export class SystemLogsController implements OnModuleInit {
     @Post(':id/retry')
     @ApiOperation({ summary: 'Retry a failed calculation' })
     @RequirePermissions('manage_logs')
-    async retryLog(@Param('id') id: string, @Request() req) {
+    async retryLog(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
         const log = await this.logsService.findOne(id, req.user.tenantId);
         if (!log) throw new BadRequestException('Log not found');
 
@@ -198,7 +199,7 @@ export class SystemLogsController implements OnModuleInit {
                         tenant_id: req.user.tenantId,
                         month: log.payload.month,
                         year: log.payload.year,
-                        user_id: req.user.userId
+                        user_id: req.user.sub
                     })
                 });
 

@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import {
     Controller, Get, Post, Patch, Delete, Put,
     Body, Param, Query, UseGuards, Request,
@@ -34,38 +35,38 @@ export class MessagingController {
 
     // ─────────────────────── CONVERSATIONS ───────────────────────
     @Post('conversations')
-    create(@Request() req, @Body() dto: CreateConversationDto) {
+    create(@Request() req: AuthenticatedRequest, @Body() dto: CreateConversationDto) {
         return this.messagingService.createConversation(req.user.tenantId, req.user.sub, dto);
     }
 
     @Get('conversations')
-    findAll(@Request() req) {
+    findAll(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getConversations(req.user.tenantId, req.user.sub);
     }
 
     @Get('conversations/:id')
-    findOne(@Request() req, @Param('id') id: string) {
+    findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.messagingService.getConversation(req.user.tenantId, req.user.sub, id);
     }
 
     @Patch('conversations/:id')
-    updateConversation(@Request() req, @Param('id') id: string, @Body() dto: UpdateGroupDto) {
+    updateConversation(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateGroupDto) {
         return this.messagingService.updateConversation(req.user.tenantId, req.user.sub, id, dto);
     }
 
     @Post('conversations/:id/members')
-    addMembers(@Request() req, @Param('id') id: string, @Body() dto: AddMembersDto) {
+    addMembers(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: AddMembersDto) {
         return this.messagingService.addMembers(req.user.tenantId, req.user.sub, id, dto);
     }
 
     @Delete('conversations/:id/members/:userId')
-    removeMember(@Request() req, @Param('id') id: string, @Param('userId') userId: string) {
+    removeMember(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Param('userId') userId: string) {
         return this.messagingService.removeMember(req.user.tenantId, req.user.sub, id, userId);
     }
 
     @Patch('conversations/:id/members/:userId/role')
     updateMemberRole(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Param('userId') userId: string,
         @Body() dto: UpdateMemberRoleDto,
@@ -74,29 +75,29 @@ export class MessagingController {
     }
 
     @Post('conversations/:id/read')
-    markAsRead(@Request() req, @Param('id') conversationId: string) {
+    markAsRead(@Request() req: AuthenticatedRequest, @Param('id') conversationId: string) {
         return this.messagingService.markConversationAsRead(req.user.tenantId, req.user.sub, conversationId);
     }
 
     // ─────────────────────── MESSAGES ─────────────────────────────
     @Get('conversations/:id/messages')
-    getMessages(@Request() req, @Param('id') id: string) {
+    getMessages(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.messagingService.getMessages(req.user.tenantId, req.user.sub, id);
     }
 
     @Post('messages')
-    sendMessage(@Request() req, @Body() dto: SendMessageDto) {
+    sendMessage(@Request() req: AuthenticatedRequest, @Body() dto: SendMessageDto) {
         return this.messagingService.sendMessage(req.user.tenantId, req.user.sub, dto);
     }
 
     @Patch('messages/:id')
-    editMessage(@Request() req, @Param('id') id: string, @Body() dto: EditMessageDto) {
+    editMessage(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: EditMessageDto) {
         return this.messagingService.editMessage(req.user.tenantId, req.user.sub, id, dto);
     }
 
     @Delete('messages/:id')
     deleteMessage(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Query() query: DeleteMessageQueryDto,
     ) {
@@ -109,7 +110,7 @@ export class MessagingController {
 
     @Post('messages/:id/forward')
     forwardMessage(
-        @Request() req,
+        @Request() req: AuthenticatedRequest,
         @Param('id') id: string,
         @Body() body: { conversationIds: string[] },
     ) {
@@ -117,7 +118,7 @@ export class MessagingController {
     }
 
     @Post('conversations/:id/avatar')
-    async uploadConversationAvatar(@Request() req, @Param('id') id: string) {
+    async uploadConversationAvatar(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         try {
             // In NestJS+Fastify the decorated @Request() is already the Fastify request
             // Only members of the conversation may change its avatar
@@ -148,12 +149,12 @@ export class MessagingController {
     }
 
     @Post('messages/:id/react')
-    reactToMessage(@Request() req, @Param('id') id: string, @Body() dto: ReactMessageDto) {
+    reactToMessage(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: ReactMessageDto) {
         return this.messagingService.reactToMessage(req.user.tenantId, req.user.sub, id, dto);
     }
 
     @Post('upload')
-    async uploadFile(@Request() req) {
+    async uploadFile(@Request() req: AuthenticatedRequest) {
         try {
             const data = await req.file();
             if (!data) throw new BadRequestException('No file uploaded');
@@ -173,77 +174,77 @@ export class MessagingController {
 
     // ─────────────────────── USERS SEARCH ─────────────────────────
     @Get('users/search')
-    searchUsers(@Request() req, @Query() query: SearchUsersQueryDto) {
+    searchUsers(@Request() req: AuthenticatedRequest, @Query() query: SearchUsersQueryDto) {
         return this.messagingService.searchUsers(req.user.tenantId, query.q ?? '', req.user.sub);
     }
 
     // ─────────────────────── SETTINGS ─────────────────────────────
     @Get('settings')
-    getSettings(@Request() req) {
+    getSettings(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getSettings(req.user.tenantId, req.user.sub);
     }
 
     @Patch('settings')
-    updateSettings(@Request() req, @Body() dto: UpdateMessagingSettingsDto) {
+    updateSettings(@Request() req: AuthenticatedRequest, @Body() dto: UpdateMessagingSettingsDto) {
         return this.messagingService.updateSettings(req.user.tenantId, req.user.sub, dto);
     }
 
 
     // ─────────────────────── ACCESS CHECK & REQUESTS ────────────────
     @Get('access-check/:targetUserId')
-    checkAccess(@Request() req, @Param('targetUserId') targetUserId: string) {
+    checkAccess(@Request() req: AuthenticatedRequest, @Param('targetUserId') targetUserId: string) {
         return this.messagingService.checkDirectChatAccess(req.user.tenantId, req.user.sub, targetUserId);
     }
 
     @Post('access-requests')
-    requestAccess(@Request() req, @Body() dto: RequestChatAccessDto) {
+    requestAccess(@Request() req: AuthenticatedRequest, @Body() dto: RequestChatAccessDto) {
         return this.messagingService.requestDirectChatAccess(req.user.tenantId, req.user.sub, dto);
     }
 
     @Get('access-requests/incoming')
-    getIncomingRequests(@Request() req) {
+    getIncomingRequests(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getIncomingAccessRequests(req.user.tenantId, req.user.sub);
     }
 
     @Get('access-requests/sent')
-    getSentRequests(@Request() req) {
+    getSentRequests(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getMySentAccessRequests(req.user.tenantId, req.user.sub);
     }
 
     @Post('access-requests/:id/respond')
-    respondAccessRequest(@Request() req, @Param('id') id: string, @Body() dto: RespondChatAccessDto) {
+    respondAccessRequest(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: RespondChatAccessDto) {
         return this.messagingService.respondDirectChatAccess(req.user.tenantId, req.user.sub, id, dto);
     }
 
     @Patch('self-override')
-    toggleSelfOverride(@Request() req, @Body() dto: ToggleChatOverrideDto) {
+    toggleSelfOverride(@Request() req: AuthenticatedRequest, @Body() dto: ToggleChatOverrideDto) {
         return this.messagingService.toggleDirectChatOverride(req.user.tenantId, req.user.sub, dto.allowOverride);
     }
 
     @Get('role-restrictions')
-    getRoleRestrictions(@Request() req) {
+    getRoleRestrictions(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getRoleRestrictions(req.user.tenantId);
     }
 
     @Put('role-restrictions')
-    setRoleRestrictions(@Request() req, @Body() dto: SetRoleRestrictionsDto) {
+    setRoleRestrictions(@Request() req: AuthenticatedRequest, @Body() dto: SetRoleRestrictionsDto) {
         return this.messagingService.setRoleRestrictions(req.user.tenantId, req.user.sub, dto);
     }
 
 
 
     @Post('access-grants/proactive')
-    grantProactiveAccess(@Request() req, @Body() dto: GrantDirectAccessDto) {
+    grantProactiveAccess(@Request() req: AuthenticatedRequest, @Body() dto: GrantDirectAccessDto) {
         return this.messagingService.grantDirectAccessToEmployee(req.user.tenantId, req.user.sub, dto);
     }
 
     @Delete('access-grants/revoke/:id')
-    revokeAccess(@Request() req, @Param('id') id: string) {
+    revokeAccess(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.messagingService.revokeDirectAccess(req.user.tenantId, req.user.sub, id);
     }
 
     @Get('access-grants/active')
-    getActiveGrants(@Request() req) {
+    getActiveGrants(@Request() req: AuthenticatedRequest) {
         return this.messagingService.getActiveGrantsForMe(req.user.tenantId, req.user.sub);
     }
 

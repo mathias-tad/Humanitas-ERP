@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import {
   Controller,
   Get,
@@ -76,12 +77,12 @@ export class AiDocumentController {
   @Post('generate-from-template')
   @Permissions('use_ai')
   async generateFromTemplate(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Body() body: GenerateFromTemplateDto,
     @Res() res: FastifyReply,
   ) {
     const user = req.user;
-    const userId = user?.sub || user?.id;
+    const userId = user?.sub;
     const roleContext = await this.roleContextBuilder.buildContext(
       user.tenantSlug,
       user.sub,
@@ -129,12 +130,12 @@ export class AiDocumentController {
   @Post('generate')
   @Permissions('use_ai')
   async generateDocument(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Body() body: GenerateDocumentDto,
     @Res() res: FastifyReply,
   ) {
     const user = req.user;
-    const userId = user?.sub || user?.id;
+    const userId = user?.sub;
     const roleContext = await this.roleContextBuilder.buildContext(
       user.tenantSlug,
       user.sub,
@@ -197,7 +198,7 @@ export class AiDocumentController {
   @Permissions('use_ai')
   @UseInterceptors(FileInterceptor('file'))
   async generateDocumentWithReference(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { prompt: string; format: 'pdf' | 'docx' | 'excel' },
     @Res() res: FastifyReply,

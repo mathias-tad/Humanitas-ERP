@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('pms/reviews')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -51,10 +52,10 @@ export class PmsReviewsController {
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-company-id') companyId: string,
     @Headers('x-branch-id') branchId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CreateReviewCycleDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.createReviewCycle(tenantId, dto, userId, companyId, branchId);
   }
 
@@ -83,9 +84,9 @@ export class PmsReviewsController {
   @RequirePermissions('view_my_reviews', 'view_reviews')
   getMyReviews(
     @Headers('x-tenant-id') tenantId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.getMyReviews(tenantId, userId);
   }
 
@@ -114,10 +115,10 @@ export class PmsReviewsController {
   nominatePeers(
     @Headers('x-tenant-id') tenantId: string,
     @Param('id') reviewId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: NominatePeersDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.nominatePeers(tenantId, reviewId, dto, userId);
   }
 
@@ -126,10 +127,10 @@ export class PmsReviewsController {
   submitFeedback(
     @Headers('x-tenant-id') tenantId: string,
     @Param('id') feedbackId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: SubmitFeedbackDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.submitFeedback(tenantId, feedbackId, dto, userId);
   }
 
@@ -138,10 +139,10 @@ export class PmsReviewsController {
   calibrateReview(
     @Headers('x-tenant-id') tenantId: string,
     @Param('id') reviewId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CalibrateReviewDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.calibrateReview(tenantId, reviewId, dto, userId);
   }
 
@@ -172,10 +173,10 @@ export class PmsReviewsController {
     @Headers('x-tenant-id') tenantId: string,
     @Headers('x-company-id') companyId: string,
     @Headers('x-branch-id') branchId: string,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CreatePipDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;
+    const userId = req.user?.sub;
     return this.reviewsService.createPip(tenantId, dto, userId, companyId, branchId);
   }
 

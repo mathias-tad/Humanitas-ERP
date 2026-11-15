@@ -10,6 +10,7 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
@@ -18,6 +19,7 @@ import { TenantLoginDto } from './dto/login.dto';
 import { InitialSetupDto } from './dto/setup.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
+import { firstHeader, type AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -98,9 +100,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Complete user account setup' })
   completeUserSetup(
     @Body() body: { token: string; email: string; password: string },
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    const tenantSlug = req.headers['x-tenant-slug'];
+    const tenantSlug = firstHeader(req.headers['x-tenant-slug']);
+    if (!tenantSlug) {
+      throw new BadRequestException('Missing X-Tenant-Slug header');
+    }
     return this.authService.completeUserSetup(
       body.token,
       body.email,
@@ -120,7 +125,7 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token' })
   async refreshToken(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Res({ passthrough: true }) reply: any,
   ) {
     // Read refresh token from cookie
@@ -150,7 +155,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
-  async logout(@Request() req: any, @Res({ passthrough: true }) reply: any) {
+  async logout(@Request() req: AuthenticatedRequest, @Res({ passthrough: true }) reply: any) {
     // Clear cookies
     reply.clearCookie('access_token', { path: '/' });
     reply.clearCookie('refresh_token', { path: '/' });
@@ -174,7 +179,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user info' })
-  getCurrentUser(@Request() req: any) {
+  getCurrentUser(@Request() req: AuthenticatedRequest) {
     return {
       id: req.user.sub,
       email: req.user.email,
@@ -188,7 +193,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get WebSocket authentication token' })
-  async getWebSocketToken(@Request() req: any) {
+  async getWebSocketToken(@Request() req: AuthenticatedRequest) {
     // Return the access token from cookie or generate a new short-lived one
     const token =
       req.cookies?.access_token ||

@@ -303,6 +303,12 @@ describe('AttendanceService characterization', () => {
     jest.restoreAllMocks();
   });
 
+  it('runs with the timezone the snapshots were recorded in', () => {
+    // Pinned by test/jest-global-setup.js. If this fails, the snapshot
+    // diffs below are timezone noise, not behaviour changes.
+    expect(new Date('2026-01-01T00:00:00').toISOString()).toBe('2025-12-31T21:00:00.000Z');
+  });
+
   it('exposes every public method covered here', () => {
     const proto = AttendanceService.prototype as unknown as Record<string, unknown>;
     for (const [label] of CASES) {

@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 import { Controller, Post, Get, Body, Param, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { AbsencePenaltyService } from './absence-penalty.service';
@@ -18,7 +19,7 @@ export class AbsencePenaltyController {
 
     @Get('pending')
     @RequirePermissions('absence_penalty_approve')
-    async getPendingPenalties(@Request() req) {
+    async getPendingPenalties(@Request() req: AuthenticatedRequest) {
         const tenantSlug = req.user.tenantSlug;
         const connection = await this.databaseService.getTenantConnection(tenantSlug);
 
@@ -37,9 +38,9 @@ export class AbsencePenaltyController {
 
     @Post(':id/approve')
     @RequirePermissions('absence_penalty_approve')
-    async approvePenalty(@Request() req, @Param('id') id: string) {
+    async approvePenalty(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         const tenantSlug = req.user.tenantSlug;
-        const approverId = req.user.userId;
+        const approverId = req.user.sub;
         const connection = await this.databaseService.getTenantConnection(tenantSlug);
 
         // Update status
@@ -59,7 +60,7 @@ export class AbsencePenaltyController {
 
     @Post(':id/reject')
     @RequirePermissions('absence_penalty_approve')
-    async rejectPenalty(@Request() req, @Param('id') id: string, @Body('reason') reason: string) {
+    async rejectPenalty(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body('reason') reason: string) {
         const tenantSlug = req.user.tenantSlug;
         const connection = await this.databaseService.getTenantConnection(tenantSlug);
 

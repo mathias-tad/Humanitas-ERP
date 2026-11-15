@@ -15,6 +15,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../../auth/guards/module
 import { RequirePermissions } from '../../auth/decorators/permissions.decorator';
 import { ActingAssignmentsService } from './acting-assignments.service';
 import { CreateActingAssignmentDto } from '../dto/create-acting-assignment.dto';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request';
 
 @ApiTags('Payroll')
 @Controller('payroll/acting-assignments')
@@ -27,21 +28,21 @@ export class ActingAssignmentsController {
     @Post()
     @ApiOperation({ summary: 'Create Acting Assignment' })
     @RequirePermissions('edit_payroll_settings')
-    async create(@Req() req: any, @Body() body: CreateActingAssignmentDto) {
+    async create(@Req() req: AuthenticatedRequest, @Body() body: CreateActingAssignmentDto) {
         return this.actingService.create(req.user.tenantSlug, body);
     }
 
     @Get()
     @ApiOperation({ summary: 'List Acting Assignments' })
     @RequirePermissions('view_payroll_settings')
-    async findAll(@Req() req: any) {
+    async findAll(@Req() req: AuthenticatedRequest) {
         return this.actingService.findAll(req.user.tenantSlug);
     }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete Acting Assignment' })
     @RequirePermissions('edit_payroll_settings')
-    async remove(@Req() req: any, @Param('id') id: string) {
+    async remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.actingService.remove(req.user.tenantSlug, id);
     }
 }

@@ -30,6 +30,7 @@ import {
   UpdateSignatureDto,
   UpdateSignatureProviderDto,
 } from './dto/digital-signature.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('hrms/documents')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -42,13 +43,14 @@ export class HrmsDocumentsController {
   @Get()
   @RequirePermissions('view_employee_documents', 'view_my_documents', 'view_documents')
   async getDocuments(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query() query: DocumentsFilterDto,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+    const tenantId = req.user?.tenantId;
     const userRole = req.user?.role?.toLowerCase() || '';
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
 
     const isPrivileged =
@@ -60,7 +62,7 @@ export class HrmsDocumentsController {
     query.branch_id = query.branch_id || headerBranchId;
 
     if (!isPrivileged) {
-      query.userId = (req.user?.sub || req.user?.id);
+      query.userId = (req.user?.sub);
     }
 
     return this.documentsService.getDocuments(tenantId, query);
@@ -71,13 +73,13 @@ export class HrmsDocumentsController {
   @Get('expirations')
   @RequirePermissions('view_employee_documents', 'view_documents')
   async getExpirations(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+    const tenantId = req.user?.tenantId;
     const company_id = queryCompanyId || headerCompanyId;
     const branch_id = queryBranchId || headerBranchId;
     return this.documentsService.getExpiringDocumentsSummary(tenantId, { company_id, branch_id });
@@ -87,15 +89,15 @@ export class HrmsDocumentsController {
 
   @Get('missing-alerts')
   @RequirePermissions('manage_documents', 'view_employee_documents', 'manage_employee_documents')
-  async getMissingAlerts(@Request() req: any, @Headers('x-tenant-id') headerTenantId?: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  async getMissingAlerts(@Request() req: AuthenticatedRequest, @Headers('x-tenant-id') headerTenantId?: string) {
+    const tenantId = req.user.tenantId;
     return this.documentsService.getMissingDocumentAlerts(tenantId);
   }
 
   @Get('missing-required')
   @RequirePermissions('view_employee_documents', 'manage_documents')
-  async getMissingDocuments(@Request() req: any, @Headers('x-tenant-id') headerTenantId?: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  async getMissingDocuments(@Request() req: AuthenticatedRequest, @Headers('x-tenant-id') headerTenantId?: string) {
+    const tenantId = req.user.tenantId;
     return this.documentsService.getMissingDocumentAlerts(tenantId);
   }
 
@@ -104,13 +106,13 @@ export class HrmsDocumentsController {
   @Get('bulk-download')
   @RequirePermissions('manage_documents', 'manage_employee_documents', 'view_employee_documents')
   async bulkDownloadUrls(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('user_id') userId?: string,
     @Query('category') category?: string,
     @Query('department') dept?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.getBulkDownloadUrls(tenantId, {
       user_id: userId,
       category,
@@ -123,66 +125,66 @@ export class HrmsDocumentsController {
   @Post('bulk-generate')
   @RequirePermissions('manage_employee_documents', 'manage_documents')
   async bulkGenerate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() body: { template_id: string; employee_ids: string[] },
     @Headers('x-tenant-id') headerTenantId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.bulkGenerateLetters(tenantId, body.template_id, body.employee_ids);
   }
 
   @Get('letter-audit-log')
   @RequirePermissions('view_employee_documents', 'view_documents')
   async getLetterAuditLog(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('template_id') templateId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.getLetterAuditLog(tenantId, { from, to, template_id: templateId });
   }
 
   @Get('letters/audit-log')
   @RequirePermissions('view_documents', 'view_employee_documents')
   async getLettersAuditLog(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('template_id') templateId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.getLetterAuditLog(tenantId, { from, to, template_id: templateId });
   }
 
   @Post('letters/audit-log')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async logLetterGen(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Body() body?: { template_id: string; template_name: string; generated_for_user_id: string; generated_by: string; document_title: string; },
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.logLetterGeneration(tenantId, body as any);
   }
 
   @Get('letters/letterhead')
   @RequirePermissions('view_documents', 'view_employee_documents')
-  async getLetterhead(@Request() req: any, @Headers('x-tenant-id') headerTenantId?: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  async getLetterhead(@Request() req: AuthenticatedRequest, @Headers('x-tenant-id') headerTenantId?: string) {
+    const tenantId = req.user.tenantId;
     return this.documentsService.getLetterheadConfig(tenantId);
   }
 
   @Put('letters/letterhead')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async updateLetterhead(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Body() body?: any,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.updateLetterheadConfig(tenantId, body);
   }
 
@@ -191,13 +193,13 @@ export class HrmsDocumentsController {
   @Get('templates')
   @RequirePermissions('view_employee_documents', 'generate_employee_letters', 'view_documents')
   async getTemplates(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
     @Query('company_id') queryCompanyId?: string,
     @Query('branch_id') queryBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+    const tenantId = req.user?.tenantId;
     const company_id = queryCompanyId || headerCompanyId;
     const branch_id = queryBranchId || headerBranchId;
     return this.documentsService.getLetterTemplates(tenantId, { company_id, branch_id });
@@ -205,43 +207,44 @@ export class HrmsDocumentsController {
 
   @Get('templates/:id')
   @RequirePermissions('view_employee_documents', 'generate_employee_letters', 'view_documents')
-  async getTemplateById(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+  async getTemplateById(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    const tenantId = req.user?.tenantId;
     return this.documentsService.getLetterTemplateById(tenantId, id);
   }
 
   @Post('templates')
   @RequirePermissions('manage_letter_templates')
-  async createTemplate(@Request() req: any, @Body() dto: CreateLetterTemplateDto) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+  async createTemplate(@Request() req: AuthenticatedRequest, @Body() dto: CreateLetterTemplateDto) {
+    const tenantId = req.user?.tenantId;
     return this.documentsService.createLetterTemplate(tenantId, dto);
   }
 
   @Put('templates/:id')
   @RequirePermissions('manage_letter_templates')
   async updateTemplate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateLetterTemplateDto,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+    const tenantId = req.user?.tenantId;
     return this.documentsService.updateLetterTemplate(tenantId, id, dto);
   }
 
   @Post('generate-letter')
   @RequirePermissions('generate_employee_letters')
-  async generateLetter(@Request() req: any, @Body() dto: GenerateLetterDto) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
-    return this.documentsService.generateLetter(tenantId, dto, (req.user?.sub || req.user?.id));
+  async generateLetter(@Request() req: AuthenticatedRequest, @Body() dto: GenerateLetterDto) {
+    const tenantId = req.user?.tenantId;
+    return this.documentsService.generateLetter(tenantId, dto, (req.user?.sub));
   }
 
   // ── CREATE DOCUMENT ───────────────────────────────────────────────────────
 
   @Post()
   @RequirePermissions('manage_employee_documents', 'view_my_documents', 'manage_documents')
-  async createDocument(@Request() req: any, @Body() dto: CreateDocumentDto) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+  async createDocument(@Request() req: AuthenticatedRequest, @Body() dto: CreateDocumentDto) {
+    const tenantId = req.user?.tenantId;
     const userRole = req.user?.role?.toLowerCase() || '';
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
 
     const isPrivileged =
@@ -249,29 +252,30 @@ export class HrmsDocumentsController {
       permissions.includes('manage_employee_documents') ||
       permissions.includes('manage_documents');
 
-    if (!isPrivileged && dto.userId !== (req.user?.sub || req.user?.id)) {
+    if (!isPrivileged && dto.userId !== (req.user?.sub)) {
       throw new ForbiddenException('You are not authorized to upload documents for other employees');
     }
 
-    return this.documentsService.createDocument(tenantId, dto, (req.user?.sub || req.user?.id));
+    return this.documentsService.createDocument(tenantId, dto, (req.user?.sub));
   }
 
   // ── :id PARAMETERIZED ROUTES (always last) ────────────────────────────────
 
   @Get(':id')
   @RequirePermissions('view_employee_documents', 'view_my_documents', 'view_documents')
-  async getDocumentById(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+  async getDocumentById(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    const tenantId = req.user?.tenantId;
     const doc = await this.documentsService.getDocumentById(tenantId, id);
 
     const userRole = req.user?.role?.toLowerCase() || '';
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user?.permissions || [];
     const isPrivileged =
       ['admin', 'administrator', 'owner', 'manager'].includes(userRole) ||
       permissions.includes('view_employee_documents') ||
       permissions.includes('view_documents');
 
-    if (!isPrivileged && doc.user_id !== (req.user?.sub || req.user?.id)) {
+    if (!isPrivileged && doc.user_id !== (req.user?.sub)) {
       throw new ForbiddenException('You are not authorized to view this document');
     }
 
@@ -283,16 +287,16 @@ export class HrmsDocumentsController {
   @Post(':id/versions')
   @RequirePermissions('manage_employee_documents', 'manage_documents')
   async addVersion(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: { file_url: string; change_notes?: string; file_size?: number; file_name?: string },
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+    const tenantId = req.user?.tenantId;
     return this.documentsService.addDocumentVersion(tenantId, id, {
       file_url: body.file_url,
       file_name: body.file_name,
-      uploaded_by: (req.user?.sub || req.user?.id),
-      uploadedByName: req.user?.name || req.user?.full_name || req.user?.email,
+      uploaded_by: (req.user?.sub),
+      uploadedByName: req.user?.email,
       change_notes: body.change_notes,
       file_size: body.file_size,
     });
@@ -300,26 +304,26 @@ export class HrmsDocumentsController {
 
   @Get(':id/versions')
   @RequirePermissions('view_employee_documents', 'view_my_documents', 'view_documents')
-  async getVersions(@Request() req: any, @Param('id') id: string, @Headers('x-tenant-id') headerTenantId?: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  async getVersions(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Headers('x-tenant-id') headerTenantId?: string) {
+    const tenantId = req.user.tenantId;
     return this.documentsService.getDocumentVersions(tenantId, id);
   }
 
   @Patch(':id/verify')
   @RequirePermissions('verify_employee_documents')
   async verifyDocument(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: VerifyDocumentDto,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
-    return this.documentsService.verifyDocument(tenantId, id, dto, (req.user?.sub || req.user?.id));
+    const tenantId = req.user?.tenantId;
+    return this.documentsService.verifyDocument(tenantId, id, dto, (req.user?.sub));
   }
 
   @Delete(':id')
   @RequirePermissions('manage_employee_documents', 'manage_documents')
-  async deleteDocument(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id;
+  async deleteDocument(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
+    const tenantId = req.user?.tenantId;
     return this.documentsService.deleteDocument(tenantId, id);
   }
 }
@@ -333,53 +337,53 @@ export class HrmsLettersController {
   @Get('audit-log')
   @RequirePermissions('view_documents', 'view_employee_documents')
   async getLetterAuditLog(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('template_id') templateId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.getLetterAuditLog(tenantId, { from, to, template_id: templateId });
   }
 
   @Post('audit-log')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async logLetterGen(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Body() body?: { template_id: string; template_name: string; generated_for_user_id: string; generated_by: string; document_title: string; },
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.logLetterGeneration(tenantId, body as any);
   }
 
   @Get('letterhead')
   @RequirePermissions('view_documents', 'view_employee_documents')
-  async getLetterhead(@Request() req: any, @Headers('x-tenant-id') headerTenantId?: string) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  async getLetterhead(@Request() req: AuthenticatedRequest, @Headers('x-tenant-id') headerTenantId?: string) {
+    const tenantId = req.user.tenantId;
     return this.documentsService.getLetterheadConfig(tenantId);
   }
 
   @Put('letterhead')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async updateLetterhead(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Body() body?: any,
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.updateLetterheadConfig(tenantId, body);
   }
 
   @Post('generate-bulk')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async bulkGenerate(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') headerTenantId?: string,
     @Body() body?: { template_id: string; employee_ids: string[] },
   ) {
-    const tenantId = req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+    const tenantId = req.user.tenantId;
     return this.documentsService.bulkGenerateLetters(tenantId, body!.template_id, body!.employee_ids);
   }
 }
@@ -390,15 +394,15 @@ export class HrmsLettersController {
 export class HrmsDigitalSignatureController {
   constructor(private readonly documentsService: HrmsDocumentsService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req?.user?.tenantId || req?.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   // User signature endpoints (self-service)
   @Get('employees/:userId/signature')
   @RequirePermissions('view_employee_documents', 'view_my_documents')
   async getUserSignature(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantId: string,
     @Param('userId') userId: string,
   ) {
@@ -409,7 +413,7 @@ export class HrmsDigitalSignatureController {
   @Put('employees/:userId/signature')
   @RequirePermissions('view_employee_documents', 'view_my_documents')
   async upsertUserSignature(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantId: string,
     @Param('userId') userId: string,
     @Body() body: UpdateSignatureDto,
@@ -421,7 +425,7 @@ export class HrmsDigitalSignatureController {
   @Delete('employees/:userId/signature')
   @RequirePermissions('view_employee_documents', 'view_my_documents')
   async deleteUserSignature(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantId: string,
     @Param('userId') userId: string,
   ) {
@@ -433,7 +437,7 @@ export class HrmsDigitalSignatureController {
   @Get('esign/config')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async getEsignConfig(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantId: string,
   ) {
     const tid = this.getTenantId(req, tenantId);
@@ -443,7 +447,7 @@ export class HrmsDigitalSignatureController {
   @Put('esign/config')
   @RequirePermissions('manage_documents', 'manage_employee_documents')
   async updateEsignConfig(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantId: string,
     @Body() body: UpdateSignatureProviderDto,
   ) {

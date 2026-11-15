@@ -1,3 +1,4 @@
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
@@ -45,7 +46,7 @@ export class AiController {
 
   @Post('chat')
   @Permissions('use_ai')
-  async chat(@Req() req, @Body() body: ChatRequestDto) {
+  async chat(@Req() req: AuthenticatedRequest, @Body() body: ChatRequestDto) {
     const user = req.user;
     return this.aiService.processRequest(
       user.tenantId,
@@ -53,7 +54,7 @@ export class AiController {
       user.sub,
       user.role,
       body.message,
-      user.full_name || 'User',
+      'User',
       body.conversationId,
       body.currentRoute,
       body.currentModule,
@@ -65,7 +66,7 @@ export class AiController {
   @Permissions('use_ai')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
   async chatWithFile(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: ChatRequestDto,
   ) {
@@ -77,7 +78,7 @@ export class AiController {
         user.sub,
         user.role,
         body.message,
-        user.full_name || 'User',
+        'User',
         body.conversationId,
         body.currentRoute,
         body.currentModule,
@@ -90,7 +91,7 @@ export class AiController {
       user.sub,
       user.role,
       body.message || '',
-      user.full_name || 'User',
+      'User',
       file.buffer,
       file.mimetype,
       file.originalname,
@@ -104,7 +105,7 @@ export class AiController {
   @Get('knowledge')
   @Permissions('use_ai')
   async getKnowledge(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Query('q') query?: string,
     @Query('module') moduleKey?: string,
     @Query('platform') platform?: string,
@@ -115,14 +116,14 @@ export class AiController {
 
   @Post('knowledge')
   @Permissions('manage_system', 'manage_ai', '*')
-  async registerKnowledgeEntry(@Req() req, @Body() entry: any) {
+  async registerKnowledgeEntry(@Req() req: AuthenticatedRequest, @Body() entry: any) {
     const user = req.user;
     return this.aiService.upsertKnowledgeEntry(user.tenantSlug, entry);
   }
 
   @Get('audit-logs')
   @Permissions('view_logs', 'manage_system', '*')
-  async getAuditLogs(@Req() req, @Query('limit') limit?: number) {
+  async getAuditLogs(@Req() req: AuthenticatedRequest, @Query('limit') limit?: number) {
     const user = req.user;
     return this.aiService.getAuditLogs(user.tenantSlug, limit ? Number(limit) : 50);
   }
@@ -132,7 +133,7 @@ export class AiController {
   @Get('knowledge-vault/documents')
   @Permissions('use_ai')
   async getKnowledgeVaultDocuments(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Query('q') query?: string,
     @Query('category') category?: string,
     @Query('company_id') companyId?: string,
@@ -144,7 +145,7 @@ export class AiController {
 
   @Get('knowledge-vault/documents/:id')
   @Permissions('use_ai')
-  async getKnowledgeVaultDocumentById(@Req() req, @Param('id') id: string) {
+  async getKnowledgeVaultDocumentById(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const user = req.user;
     return this.knowledgeService.getDocumentById(user.tenantSlug, id);
   }
@@ -153,7 +154,7 @@ export class AiController {
   @Permissions('manage_ai_settings', 'manage_ai', 'manage_system', '*')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }))
   async createKnowledgeVaultDocument(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: any,
   ) {
@@ -180,7 +181,7 @@ export class AiController {
   @Put('knowledge-vault/documents/:id')
   @Permissions('manage_ai_settings', 'manage_ai', 'manage_system', '*')
   async updateKnowledgeVaultDocument(
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: UpdateKnowledgeDocumentDto,
   ) {
@@ -190,14 +191,14 @@ export class AiController {
 
   @Delete('knowledge-vault/documents/:id')
   @Permissions('manage_ai_settings', 'manage_ai', 'manage_system', '*')
-  async deleteKnowledgeVaultDocument(@Req() req, @Param('id') id: string) {
+  async deleteKnowledgeVaultDocument(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const user = req.user;
     return this.knowledgeService.deleteDocument(user.tenantSlug, id);
   }
 
   @Post('knowledge-vault/search')
   @Permissions('use_ai')
-  async searchKnowledgeVault(@Req() req, @Body() body: SearchKnowledgeDto) {
+  async searchKnowledgeVault(@Req() req: AuthenticatedRequest, @Body() body: SearchKnowledgeDto) {
     const user = req.user;
     return this.knowledgeService.searchKnowledge(
       user.tenantSlug,

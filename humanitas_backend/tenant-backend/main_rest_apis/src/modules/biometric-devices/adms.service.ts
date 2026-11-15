@@ -13,6 +13,13 @@ export interface ResolvedTenantInfo {
   databaseName: string;
 }
 
+/** The parts of an incoming device request that tenant resolution reads. */
+export interface DeviceRequestLike {
+  headers?: Record<string, string | string[] | undefined>;
+  query?: Record<string, unknown>;
+  hostname?: string;
+}
+
 @Injectable()
 export class AdmsService {
   private readonly logger = new Logger(AdmsService.name);
@@ -31,7 +38,7 @@ export class AdmsService {
   /**
    * Resolves tenant from request headers, host, query, or hardware serial registry.
    */
-  async resolveTenant(req: any, sn?: string): Promise<ResolvedTenantInfo | null> {
+  async resolveTenant(req: DeviceRequestLike, sn?: string): Promise<ResolvedTenantInfo | null> {
     const headers = req.headers || {};
     const query = req.query || {};
 

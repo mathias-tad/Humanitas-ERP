@@ -23,6 +23,7 @@ import {
   UpdateEnrollmentProgressDto,
   UpsertSkillDto,
 } from './dto/hrms-training.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('hrms/training')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -30,8 +31,8 @@ import {
 export class HrmsTrainingController {
   constructor(private readonly trainingService: HrmsTrainingService) {}
 
-  private getTenantId(req: any, headerTenantId?: string): string {
-    return req.user?.tenantId || req.user?.tenant_id || headerTenantId;
+  private getTenantId(req: AuthenticatedRequest, headerTenantId?: string): string {
+    return req.user.tenantId;
   }
 
   // ── COURSES CATALOG ───────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export class HrmsTrainingController {
   @Get('courses')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getCourses(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('category') category?: string,
     @Query('delivery_method') delivery_method?: string,
@@ -58,7 +59,7 @@ export class HrmsTrainingController {
   @Get('courses/:id')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getCourseById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
@@ -69,7 +70,7 @@ export class HrmsTrainingController {
   @Post('courses')
   @RequirePermissions('manage_training')
   async createCourse(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: CreateCourseDto,
   ) {
@@ -80,7 +81,7 @@ export class HrmsTrainingController {
   @Put('courses/:id')
   @RequirePermissions('manage_training')
   async updateCourse(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: UpdateCourseDto,
@@ -94,7 +95,7 @@ export class HrmsTrainingController {
   @Get('sessions')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getSessions(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('course_id') course_id?: string,
   ) {
@@ -105,7 +106,7 @@ export class HrmsTrainingController {
   @Post('sessions')
   @RequirePermissions('manage_training')
   async createSession(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: CreateSessionDto,
   ) {
@@ -118,19 +119,21 @@ export class HrmsTrainingController {
   @Get('enrollments')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getEnrollments(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('course_id') course_id?: string,
     @Query('user_id') user_id?: string,
     @Query('status') status?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_training') ||
+                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
     // Regular learners only view their own enrollments
-    const targetUserId = hasManage ? user_id : req.user.sub || req.user.id;
+    const targetUserId = hasManage ? user_id : req.user.sub;
     return this.trainingService.getEnrollments(tenantId, {
       course_id,
       user_id: targetUserId,
@@ -141,17 +144,17 @@ export class HrmsTrainingController {
   @Get('my-enrollments')
   @RequirePermissions('view_my_training', 'view_training_courses', 'manage_training')
   async getMyEnrollments(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    return this.trainingService.getEnrollments(tenantId, { user_id: req.user.sub || req.user.id });
+    return this.trainingService.getEnrollments(tenantId, { user_id: req.user.sub });
   }
 
   @Get('enrollments/:id')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getEnrollmentById(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
   ) {
@@ -162,27 +165,29 @@ export class HrmsTrainingController {
   @Post('enrollments')
   @RequirePermissions('enroll_training', 'manage_training')
   async enrollLearner(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: EnrollLearnerDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_training') ||
+                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub || req.user.id;
+    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub;
     return this.trainingService.enrollLearner(
       tenantId,
       { ...dto, user_id: targetUserId },
-      req.user.sub || req.user.id,
+      req.user.sub,
     );
   }
 
   @Put('enrollments/:id')
   @RequirePermissions('manage_training', 'complete_training')
   async updateEnrollmentProgress(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Param('id') id: string,
     @Body() dto: UpdateEnrollmentProgressDto,
@@ -196,38 +201,42 @@ export class HrmsTrainingController {
   @Get('skills')
   @RequirePermissions('view_skills', 'manage_skills', 'view_my_training')
   async getEmployeeSkills(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Query('user_id') user_id?: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_skills') ||
+                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage ? user_id : (user_id || req.user.sub || req.user.id);
+    const targetUserId = hasManage ? user_id : (user_id || req.user.sub);
     return this.trainingService.getEmployeeSkills(tenantId, targetUserId);
   }
 
   @Post('skills')
   @RequirePermissions('manage_skills', 'view_my_training')
   async upsertEmployeeSkill(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
     @Body() dto: UpsertSkillDto,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
+    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const hasManage = req.user?.permissions?.includes('manage_skills') ||
+                      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub || req.user.id;
+    const targetUserId = hasManage && dto.user_id ? dto.user_id : req.user.sub;
     const isVerified = hasManage ? dto.verified : false;
 
     return this.trainingService.upsertEmployeeSkill(
       tenantId,
       { ...dto, user_id: targetUserId, verified: isVerified },
-      req.user.sub || req.user.id,
+      req.user.sub,
     );
   }
 
@@ -236,7 +245,7 @@ export class HrmsTrainingController {
   @Get('stats')
   @RequirePermissions('view_training_reports', 'manage_training', 'view_my_training')
   async getTrainingStats(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);

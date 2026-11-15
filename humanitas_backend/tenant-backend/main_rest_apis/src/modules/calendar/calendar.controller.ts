@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @Controller('calendar')
 @RequireModule('calendar')
@@ -30,7 +31,8 @@ export class CalendarController {
 
   @Get('sources')
   @RequirePermissions('view_calendar')
-  async getSources(@Request() req: any) {
+  async getSources(@Request() req: AuthenticatedRequest) {
+    // FIXME(auth): req.user.enabledFeatures is never populated (always undefined), so this is always [].
     const enabledFeatures = req.user?.enabledFeatures || [];
     return this.calendarService.getSources(enabledFeatures);
   }
@@ -38,13 +40,13 @@ export class CalendarController {
   @Get('events')
   @RequirePermissions('view_calendar')
   async getEvents(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query() query: CalendarEventsQueryDto,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     const companyId = query.company_id || headerCompanyId;
     const branchId = query.branch_id || headerBranchId;
 
@@ -59,38 +61,38 @@ export class CalendarController {
 
   @Get('events/:id')
   @RequirePermissions('view_calendar')
-  async getEventById(@Request() req: any, @Param('id') id: string) {
+  async getEventById(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.calendarService.findOne(req.user.tenantId, id);
   }
 
   @Post('events')
   @RequirePermissions('create_calendar_events')
   async createEvent(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Body() dto: CreateCalendarEventDto,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.calendarService.create(tenantId, userId, dto, headerCompanyId, headerBranchId);
   }
 
   @Patch('events/:id')
   @RequirePermissions('edit_calendar_events')
   async updateEvent(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateCalendarEventDto,
   ) {
     const tenantId = req.user.tenantId;
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.sub;
     return this.calendarService.update(tenantId, id, userId, dto);
   }
 
   @Delete('events/:id')
   @RequirePermissions('delete_calendar_events')
-  async deleteEvent(@Request() req: any, @Param('id') id: string) {
+  async deleteEvent(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.calendarService.delete(req.user.tenantId, id);
   }
 }

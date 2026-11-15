@@ -22,6 +22,7 @@ import {
   DelegationsFilterDto,
   LogDelegatedActionDto,
 } from './dto/delegation.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 @ApiTags('Delegations')
 @Controller('delegations')
@@ -36,13 +37,13 @@ export class DelegationsController {
   @RequirePermissions('manage_delegations')
   @ApiOperation({ summary: 'Create authority delegation (self-delegating or admin)' })
   async createDelegation(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CreateDelegationDto,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const userId = req.user?.sub || req.user?.id;
+    const tenantId = req.user.tenantId;
+    const userId = req.user?.sub;
     const delegatorId = dto.delegator_id || userId;
 
     if (!dto.company_id && headerCompanyId) dto.company_id = headerCompanyId;
@@ -53,17 +54,17 @@ export class DelegationsController {
 
   @Get('my')
   @ApiOperation({ summary: 'Get current user delegations (both granted and received)' })
-  async getMyDelegations(@Req() req: any) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const userId = req.user?.sub || req.user?.id;
+  async getMyDelegations(@Req() req: AuthenticatedRequest) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user?.sub;
     return this.delegationsService.getMyDelegations(tenantId, userId);
   }
 
   @Get('active')
   @ApiOperation({ summary: 'Get currently active delegations received by user' })
-  async getActiveDelegations(@Req() req: any) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const userId = req.user?.sub || req.user?.id;
+  async getActiveDelegations(@Req() req: AuthenticatedRequest) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user?.sub;
     return this.delegationsService.getActiveDelegationsForUser(tenantId, userId);
   }
 
@@ -71,12 +72,12 @@ export class DelegationsController {
   @RequirePermissions('view_delegations')
   @ApiOperation({ summary: 'Get all delegations org-wide (Admin/Manager)' })
   async getAllDelegations(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query() filters: DelegationsFilterDto,
     @Headers('x-company-id') headerCompanyId?: string,
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     if (!filters.company_id && headerCompanyId) filters.company_id = headerCompanyId;
     if (!filters.branch_id && headerBranchId) filters.branch_id = headerBranchId;
 
@@ -86,12 +87,12 @@ export class DelegationsController {
   @Get('acting-preview')
   @ApiOperation({ summary: 'Calculate live acting allowance preview for a delegator' })
   async getActingPreview(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('delegator_id') delegatorId: string,
     @Query('percentage') percentage?: string,
     @Query('amount') amount?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     const pct = percentage ? parseFloat(percentage) : 0;
     const amt = amount ? parseFloat(amount) : 0;
     return this.delegationsService.calculateActingAllowancePreview(tenantId, delegatorId, pct, amt);
@@ -100,23 +101,24 @@ export class DelegationsController {
   @Get('acting-assignments')
   @ApiOperation({ summary: 'Get active HR acting assignments' })
   async getActingAssignments(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('user_id') userId?: string,
     @Query('start_date') startDate?: string,
     @Query('end_date') endDate?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+    const tenantId = req.user.tenantId;
     return this.delegationsService.getActiveActingAssignments(tenantId, userId, startDate, endDate);
   }
 
   @Put(':id/revoke')
   @ApiOperation({ summary: 'Revoke an active delegation' })
-  async revokeDelegation(@Req() req: any, @Param('id') id: string) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const userId = req.user?.sub || req.user?.id;
+  async revokeDelegation(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    const tenantId = req.user.tenantId;
+    const userId = req.user?.sub;
     const isAdmin =
       req.user?.role === 'owner' ||
       req.user?.role === 'admin' ||
+      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('manage_delegations');
 
     return this.delegationsService.revokeDelegation(tenantId, id, userId, isAdmin);
@@ -125,15 +127,17 @@ export class DelegationsController {
   @Get('audit')
   @ApiOperation({ summary: 'Get delegation audit trail' })
   async getDelegationAudit(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Query('delegation_id') delegationId?: string,
   ) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
-    const userId = req.user?.sub || req.user?.id;
+    const tenantId = req.user.tenantId;
+    const userId = req.user?.sub;
     const canViewAll =
       req.user?.role === 'owner' ||
       req.user?.role === 'admin' ||
+      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('view_audit_logs') ||
+      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('manage_delegations');
 
     return this.delegationsService.getDelegationAudit(tenantId, delegationId, userId, canViewAll);
@@ -141,8 +145,8 @@ export class DelegationsController {
 
   @Post('audit')
   @ApiOperation({ summary: 'Record action performed on behalf of delegator' })
-  async logDelegatedAction(@Req() req: any, @Body() dto: LogDelegatedActionDto) {
-    const tenantId = req.user?.tenantId || req.headers['x-tenant-id'];
+  async logDelegatedAction(@Req() req: AuthenticatedRequest, @Body() dto: LogDelegatedActionDto) {
+    const tenantId = req.user.tenantId;
     return this.delegationsService.logDelegatedAction(tenantId, dto);
   }
 }
