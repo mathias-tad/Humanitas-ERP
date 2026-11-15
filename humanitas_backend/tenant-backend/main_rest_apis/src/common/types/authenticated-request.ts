@@ -16,15 +16,11 @@ export interface AuthUser {
   role: string;
   type?: string;
   /**
-   * @deprecated NOT populated: JwtStrategy never sets these, so they are
-   * always undefined at runtime. Typed only so existing reads compile without
-   * a behaviour change; each read site is marked with a FIXME.
+   * The role's permissions, attached by PermissionsGuard on routes that use
+   * @RequirePermissions or @AttachPermissions. Undefined for owner/admin
+   * (they bypass the lookup) and on other routes.
    */
   permissions?: string[];
-  /** @deprecated NOT populated; always undefined. See permissions. */
-  enabledFeatures?: string[];
-  /** @deprecated NOT populated; always undefined. See permissions. */
-  companyName?: string;
 }
 
 /** A Fastify request that has passed JwtAuthGuard. */

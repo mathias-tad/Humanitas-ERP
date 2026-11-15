@@ -427,8 +427,7 @@ export class PayrollController {
       parseInt(month, 10),
       parseInt(year, 10),
       (format as BankTransferFormat) || 'generic',
-      // FIXME(auth): req.user.companyName is never populated, so the default name is always used.
-      req.user.companyName || 'Humanitas Enterprise',
+      await this.bankTransferExportService.getOriginatorName(req.user.tenantId, companyId),
       companyId,
       branchId,
     );

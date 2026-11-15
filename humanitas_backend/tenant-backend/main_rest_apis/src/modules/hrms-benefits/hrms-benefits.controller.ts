@@ -103,7 +103,6 @@ export class HrmsBenefitsController {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =
@@ -131,7 +130,6 @@ export class HrmsBenefitsController {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =
@@ -168,7 +166,6 @@ export class HrmsBenefitsController {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =
@@ -189,7 +186,6 @@ export class HrmsBenefitsController {
     const tenantId = this.getTenantId(req, tenantIdHeader);
     const userId = req.user.sub;
     const userRole = (req.user.role || '').toLowerCase();
-    // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
     const permissions: string[] = req.user.permissions || [];
 
     const hasManagePerm =

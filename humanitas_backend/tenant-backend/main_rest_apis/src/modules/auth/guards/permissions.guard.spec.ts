@@ -78,4 +78,45 @@ describe('PermissionsGuard', () => {
       expect(err.message).toContain('Access denied');
     }
   });
+
+  describe('attaching permissions to req.user', () => {
+    const roleConnection = (permissions: string[]) => {
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({ database_name: 'test_db' });
+      (databaseService.getTenantConnection as jest.Mock).mockResolvedValue({
+        query: jest.fn().mockResolvedValue([{ permissions }]),
+      });
+    };
+
+    it('attaches the role permissions it loaded for a protected route', async () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['view_training_courses']);
+      roleConnection(['view_training_courses', 'manage_training']);
+      const user: any = { sub: 'u1', role: 'employee', tenantSlug: 'acme' };
+
+      await expect(guard.canActivate(createMockContext(user))).resolves.toBe(true);
+      expect(user.permissions).toEqual(['view_training_courses', 'manage_training']);
+    });
+
+    it('@AttachPermissions loads permissions without requiring any', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockImplementation((key: any) => (key === 'attachPermissions' ? true : undefined));
+      roleConnection(['manage_delegations']);
+      const user: any = { sub: 'u1', role: 'employee', tenantSlug: 'acme' };
+
+      await expect(guard.canActivate(createMockContext(user))).resolves.toBe(true);
+      expect(user.permissions).toEqual(['manage_delegations']);
+    });
+
+    it('@AttachPermissions never blocks, even when the role is missing', async () => {
+      jest
+        .spyOn(reflector, 'getAllAndOverride')
+        .mockImplementation((key: any) => (key === 'attachPermissions' ? true : undefined));
+      (tenantRepository.findOne as jest.Mock).mockResolvedValue({ database_name: 'test_db' });
+      (databaseService.getTenantConnection as jest.Mock).mockResolvedValue({ query: jest.fn().mockResolvedValue([]) });
+      const user: any = { sub: 'u1', role: 'employee', tenantSlug: 'acme' };
+
+      await expect(guard.canActivate(createMockContext(user))).resolves.toBe(true);
+      expect(user.permissions).toBeUndefined();
+    });
+  });
 });

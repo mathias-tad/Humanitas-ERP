@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { DatabaseService } from '../../database/database.service';
@@ -11,6 +12,13 @@ import { Repository } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
 
 export const PERMISSIONS_KEY = 'permissions';
+export const ATTACH_PERMISSIONS_KEY = 'attachPermissions';
+
+/**
+ * Load the caller's role permissions onto req.user.permissions without
+ * requiring any. For handlers that branch on permissions themselves.
+ */
+export const AttachPermissions = () => SetMetadata(ATTACH_PERMISSIONS_KEY, true);
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -27,8 +35,15 @@ export class PermissionsGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
+    const attachOnly =
+      (!requiredPermissions || requiredPermissions.length === 0) &&
+      this.reflector.getAllAndOverride<boolean>(ATTACH_PERMISSIONS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) === true;
+
     // If no permissions are required, allow access
-    if (!requiredPermissions || requiredPermissions.length === 0) {
+    if ((!requiredPermissions || requiredPermissions.length === 0) && !attachOnly) {
       return true;
     }
 
@@ -68,10 +83,14 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!result || result.length === 0) {
+      if (attachOnly) return true;
       throw new ForbiddenException('User role not found');
     }
 
     const userPermissions: string[] = result[0].permissions || [];
+    // Make the role's permissions available to handlers (req.user.permissions).
+    user.permissions = userPermissions;
+    if (attachOnly) return true;
 
     // Check if user has wildcard permission
     if (userPermissions.includes('*')) {

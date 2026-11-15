@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { AttachPermissions } from '../auth/guards/permissions.guard';
 import {
   CreateDelegationDto,
   DelegationsFilterDto,
@@ -111,6 +112,7 @@ export class DelegationsController {
   }
 
   @Put(':id/revoke')
+  @AttachPermissions()
   @ApiOperation({ summary: 'Revoke an active delegation' })
   async revokeDelegation(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const tenantId = req.user.tenantId;
@@ -118,13 +120,13 @@ export class DelegationsController {
     const isAdmin =
       req.user?.role === 'owner' ||
       req.user?.role === 'admin' ||
-      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('manage_delegations');
 
     return this.delegationsService.revokeDelegation(tenantId, id, userId, isAdmin);
   }
 
   @Get('audit')
+  @AttachPermissions()
   @ApiOperation({ summary: 'Get delegation audit trail' })
   async getDelegationAudit(
     @Req() req: AuthenticatedRequest,
@@ -135,9 +137,7 @@ export class DelegationsController {
     const canViewAll =
       req.user?.role === 'owner' ||
       req.user?.role === 'admin' ||
-      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('view_audit_logs') ||
-      // FIXME(auth): req.user.permissions is never populated (always undefined), so this check only sees roles. Decide whether PermissionsGuard should attach the user's permissions.
       req.user?.permissions?.includes?.('manage_delegations');
 
     return this.delegationsService.getDelegationAudit(tenantId, delegationId, userId, canViewAll);

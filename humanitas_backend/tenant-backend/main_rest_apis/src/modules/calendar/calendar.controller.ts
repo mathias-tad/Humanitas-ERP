@@ -1,3 +1,6 @@
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from '../auth/entities/tenant.entity';
 import {
   Controller,
   Get,
@@ -27,13 +30,18 @@ import type { AuthenticatedRequest } from '../../common/types/authenticated-requ
 @RequireModule('calendar')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class CalendarController {
-  constructor(private readonly calendarService: CalendarService) {}
+  constructor(
+    private readonly calendarService: CalendarService,
+    @InjectRepository(Tenant)
+    private readonly tenantRepository: Repository<Tenant>,
+  ) {}
 
   @Get('sources')
   @RequirePermissions('view_calendar')
   async getSources(@Request() req: AuthenticatedRequest) {
-    // FIXME(auth): req.user.enabledFeatures is never populated (always undefined), so this is always [].
-    const enabledFeatures = req.user?.enabledFeatures || [];
+    // Features the tenant's package enables (empty = unrestricted, as before).
+    const tenant = await this.tenantRepository.findOne({ where: { slug: req.user.tenantSlug } });
+    const enabledFeatures = (tenant?.enabled_features ?? []).map((f: string) => f.toLowerCase().trim());
     return this.calendarService.getSources(enabledFeatures);
   }
 
