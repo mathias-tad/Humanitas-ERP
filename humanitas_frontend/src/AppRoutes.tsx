@@ -1,81 +1,82 @@
 import "./App.css";
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
-import Setup from "./pages/Setup";
-import SetupAccount from "./pages/SetupAccount";
-import Home from "./pages/Home";
-import Accounts from "./pages/Accounts";
-import AccessControl from "./pages/AccessControl";
-import Attendance from "./pages/attendance/Attendance";
-import QRDisplay from "./pages/attendance/QRDisplay";
-import ClockIn from "./pages/attendance/ClockIn";
-import Calendar from "./pages/Calendar";
-import UnifiedCalendar from "./pages/UnifiedCalendar";
-import Devices from "./pages/Devices";
-import { Settings } from "./pages/Settings";
-import PayrollDashboard from "./pages/payroll/Dashboard";
-import PMSAllTasks from "./pages/pms/AllTasks";
-import PMSDashboard from "./pages/pms/Dashboard";
-import PMSMyTasks from "./pages/pms/MyTasks";
-import PMSProjects from "./pages/pms/Projects";
-import AgileBacklogPage from "./pages/pms/AgileBacklogPage";
-import ProjectGanttPage from "./pages/pms/ProjectGanttPage";
-import ProjectCalendarPage from "./pages/pms/ProjectCalendarPage";
-import PMSTeam from "./pages/pms/Team";
-import PMSTeams from "./pages/pms/Teams";
-import PMSTeamDashboard from "./pages/pms/TeamDashboard";
-import PMSReports from "./pages/pms/Reports";
-import MySchedule from "./pages/attendance/MySchedule";
-import ReviewQueue from "./pages/pms/ReviewQueue";
+const Setup = lazy(() => import("./pages/Setup"));
+const SetupAccount = lazy(() => import("./pages/SetupAccount"));
+const Home = lazy(() => import("./pages/Home"));
+const Accounts = lazy(() => import("./pages/Accounts"));
+const AccessControl = lazy(() => import("./pages/AccessControl"));
+const Attendance = lazy(() => import("./pages/attendance/Attendance"));
+const QRDisplay = lazy(() => import("./pages/attendance/QRDisplay"));
+const ClockIn = lazy(() => import("./pages/attendance/ClockIn"));
+const Calendar = lazy(() => import("./pages/Calendar"));
+const UnifiedCalendar = lazy(() => import("./pages/UnifiedCalendar"));
+const Devices = lazy(() => import("./pages/Devices"));
+const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const PayrollDashboard = lazy(() => import("./pages/payroll/Dashboard"));
+const PMSAllTasks = lazy(() => import("./pages/pms/AllTasks"));
+const PMSDashboard = lazy(() => import("./pages/pms/Dashboard"));
+const PMSMyTasks = lazy(() => import("./pages/pms/MyTasks"));
+const PMSProjects = lazy(() => import("./pages/pms/Projects"));
+const AgileBacklogPage = lazy(() => import("./pages/pms/AgileBacklogPage"));
+const ProjectGanttPage = lazy(() => import("./pages/pms/ProjectGanttPage"));
+const ProjectCalendarPage = lazy(() => import("./pages/pms/ProjectCalendarPage"));
+const PMSTeam = lazy(() => import("./pages/pms/Team"));
+const PMSTeams = lazy(() => import("./pages/pms/Teams"));
+const PMSTeamDashboard = lazy(() => import("./pages/pms/TeamDashboard"));
+const PMSReports = lazy(() => import("./pages/pms/Reports"));
+const MySchedule = lazy(() => import("./pages/attendance/MySchedule"));
+const ReviewQueue = lazy(() => import("./pages/pms/ReviewQueue"));
 import EnterpriseLayout from "./layouts/EnterpriseLayout";
-import DelegationsPage from "./pages/DelegationsPage";
+const DelegationsPage = lazy(() => import("./pages/DelegationsPage"));
 import { AppearanceSettings } from "./components/settings/AppearanceSettings";
-import LeaveRequests from "./pages/leave/LeaveRequests";
-import MyLeaveRequests from "./pages/leave/MyRequests";
-import LeaveBalances from "./pages/leave/LeaveBalances";
-import MyPayslip from "./pages/payroll/MyPayslip";
-import RunPayroll from "./pages/payroll/RunPayroll";
-import SchedulingDashboard from "./pages/scheduling/SchedulingDashboard";
-import OpportunitiesHub from "./pages/scheduling/OpportunitiesHub";
-import Announcements from "./pages/Announcements";
-import Events from "./pages/Events";
-import { OvertimeMonitor } from "./pages/attendance/OvertimeMonitor";
-import PMSSettings from "./pages/pms/PMSSettings";
-import { SystemLogs } from "./pages/SystemLogs";
-import { PerDiemClaims } from "./pages/PerDiemClaims";
-import { AdminPerDiemClaims } from "./pages/admin/AdminPerDiemClaims";
-import LoanManagement from "./pages/admin/LoanManagement";
-import LoanWorkflowSettings from "./pages/admin/LoanWorkflowSettings";
-import LeaveWorkflowSettings from "./pages/admin/LeaveWorkflowSettings";
-import MyLoans from "./pages/MyLoans";
+const LeaveRequests = lazy(() => import("./pages/leave/LeaveRequests"));
+const MyLeaveRequests = lazy(() => import("./pages/leave/MyRequests"));
+const LeaveBalances = lazy(() => import("./pages/leave/LeaveBalances"));
+const MyPayslip = lazy(() => import("./pages/payroll/MyPayslip"));
+const RunPayroll = lazy(() => import("./pages/payroll/RunPayroll"));
+const SchedulingDashboard = lazy(() => import("./pages/scheduling/SchedulingDashboard"));
+const OpportunitiesHub = lazy(() => import("./pages/scheduling/OpportunitiesHub"));
+const Announcements = lazy(() => import("./pages/Announcements"));
+const Events = lazy(() => import("./pages/Events"));
+const OvertimeMonitor = lazy(() => import("./pages/attendance/OvertimeMonitor").then((m) => ({ default: m.OvertimeMonitor })));
+const PMSSettings = lazy(() => import("./pages/pms/PMSSettings"));
+const SystemLogs = lazy(() => import("./pages/SystemLogs").then((m) => ({ default: m.SystemLogs })));
+const PerDiemClaims = lazy(() => import("./pages/PerDiemClaims").then((m) => ({ default: m.PerDiemClaims })));
+const AdminPerDiemClaims = lazy(() => import("./pages/admin/AdminPerDiemClaims").then((m) => ({ default: m.AdminPerDiemClaims })));
+const LoanManagement = lazy(() => import("./pages/admin/LoanManagement"));
+const LoanWorkflowSettings = lazy(() => import("./pages/admin/LoanWorkflowSettings"));
+const LeaveWorkflowSettings = lazy(() => import("./pages/admin/LeaveWorkflowSettings"));
+const MyLoans = lazy(() => import("./pages/MyLoans"));
 import LandingPage from "./pages/LandingPage";
-import FeaturesPage from "./pages/FeaturesPage";
+const FeaturesPage = lazy(() => import("./pages/FeaturesPage"));
 import ComingSoonModulePage from "./components/common/ComingSoonModulePage";
-import OrganizationSettings from "./pages/settings/OrganizationSettings";
-import HRSettingsPage from "./pages/hrms/HRSettingsPage";
-import HRReportsDashboard from "./pages/hrms/HRReportsDashboard";
-import HRDocumentsPage from "./pages/hrms/HRDocumentsPage";
-import OnboardingPage from "./pages/hrms/OnboardingPage";
-import WelcomePortalPage from "./pages/hrms/onboarding/WelcomePortalPage";
+const OrganizationSettings = lazy(() => import("./pages/settings/OrganizationSettings"));
+const HRSettingsPage = lazy(() => import("./pages/hrms/HRSettingsPage"));
+const HRReportsDashboard = lazy(() => import("./pages/hrms/HRReportsDashboard"));
+const HRDocumentsPage = lazy(() => import("./pages/hrms/HRDocumentsPage"));
+const OnboardingPage = lazy(() => import("./pages/hrms/OnboardingPage"));
+const WelcomePortalPage = lazy(() => import("./pages/hrms/onboarding/WelcomePortalPage"));
 
-import GrievancesPage from "./pages/hrms/GrievancesPage";
-import SelfServicePage from "./pages/self-service/SelfServicePage";
-import BenefitsPage from "./pages/hrms/BenefitsPage";
-import TrainingPage from "./pages/hrms/TrainingPage";
-import ReviewsPage from "./pages/pms/ReviewsPage";
-import ExpensesPage from "./pages/hrms/ExpensesPage";
-import AssetsPage from "./pages/hrms/AssetsPage";
-import SurveysPage from "./pages/hrms/SurveysPage";
-import ImportExportPage from "./pages/settings/ImportExportPage";
-import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
-import NotificationReportsPage from "./pages/settings/NotificationReportsPage";
-import ApprovalsPage from "./pages/approvals/ApprovalsPage";
-import ApprovalSettingsPage from "./pages/settings/ApprovalSettingsPage";
-import DeveloperApiPage from "./pages/settings/DeveloperApiPage";
-import AiSettingsPage from "./pages/ai/AiSettingsPage";
-import ESignProviderPage from "./pages/settings/ESignProviderPage";
-import ProfilePage from "./pages/profile/ProfilePage";
+const GrievancesPage = lazy(() => import("./pages/hrms/GrievancesPage"));
+const SelfServicePage = lazy(() => import("./pages/self-service/SelfServicePage"));
+const BenefitsPage = lazy(() => import("./pages/hrms/BenefitsPage"));
+const TrainingPage = lazy(() => import("./pages/hrms/TrainingPage"));
+const ReviewsPage = lazy(() => import("./pages/pms/ReviewsPage"));
+const ExpensesPage = lazy(() => import("./pages/hrms/ExpensesPage"));
+const AssetsPage = lazy(() => import("./pages/hrms/AssetsPage"));
+const SurveysPage = lazy(() => import("./pages/hrms/SurveysPage"));
+const ImportExportPage = lazy(() => import("./pages/settings/ImportExportPage"));
+const NotificationPreferencesPage = lazy(() => import("./pages/settings/NotificationPreferencesPage"));
+const NotificationReportsPage = lazy(() => import("./pages/settings/NotificationReportsPage"));
+const ApprovalsPage = lazy(() => import("./pages/approvals/ApprovalsPage"));
+const ApprovalSettingsPage = lazy(() => import("./pages/settings/ApprovalSettingsPage"));
+const DeveloperApiPage = lazy(() => import("./pages/settings/DeveloperApiPage"));
+const AiSettingsPage = lazy(() => import("./pages/ai/AiSettingsPage"));
+const ESignProviderPage = lazy(() => import("./pages/settings/ESignProviderPage"));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
 
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
@@ -143,14 +144,24 @@ function PermissionRoute({
   );
 }
 
-import Leaderboard from "./pages/Leaderboard";
-import FormBuilder from "./pages/FormBuilder";
-import Recruitment from "./pages/Recruitment";
-import Apply from "./pages/Apply";
-import OrgChart from "./pages/hrms/OrgChart";
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const FormBuilder = lazy(() => import("./pages/FormBuilder"));
+const Recruitment = lazy(() => import("./pages/Recruitment"));
+const Apply = lazy(() => import("./pages/Apply"));
+const OrgChart = lazy(() => import("./pages/hrms/OrgChart"));
+
+// Shown only while a page's code is loading for the first time.
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
+  );
+}
 
 function AppRoutes() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -628,6 +639,7 @@ function AppRoutes() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
