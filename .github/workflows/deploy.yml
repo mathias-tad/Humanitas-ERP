@@ -58,6 +58,10 @@ jobs:
         working-directory: humanitas_frontend
         run: npm run build
 
+      - name: Frontend Unit Tests
+        working-directory: humanitas_frontend
+        run: npm test
+
   # =========================================================================
   # 3. Mobile Testing Suite (non-blocking)
   # =========================================================================
