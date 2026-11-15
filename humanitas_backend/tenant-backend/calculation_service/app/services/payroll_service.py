@@ -3,10 +3,28 @@ from typing import Optional
 import pandas as pd
 from io import BytesIO
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 import json
 
 from app.database import db_manager
+
+
+_CENT = Decimal("0.01")
+
+
+def money(value) -> Decimal:
+    """Round a monetary amount to 2 decimal places, half-up (never banker's rounding).
+
+    Converts via str() so binary-float artefacts (e.g. 2.675 -> 2.67499999...) don't leak
+    into stored amounts.
+    """
+    if value is None:
+        return Decimal("0.00")
+    if isinstance(value, Decimal):
+        d = value
+    else:
+        d = Decimal(str(value))
+    return d.quantize(_CENT, rounding=ROUND_HALF_UP)
 
 
 class PayrollService:
@@ -220,13 +238,12 @@ class PayrollService:
             holiday_dates = await self.get_holiday_dates(session, year, month)
             
             payroll_items = []
-            total_gross = 0
-            total_deductions = 0
-            total_net = 0
-            total_tax = 0
-            total_pension_employee = 0
-            total_pension_employer = 0
-            total_pension_employer = 0
+            total_gross = Decimal("0.00")
+            total_deductions = Decimal("0.00")
+            total_net = Decimal("0.00")
+            total_tax = Decimal("0.00")
+            total_pension_employee = Decimal("0.00")
+            total_pension_employer = Decimal("0.00")
             
             skipped_employees = []
             
@@ -709,6 +726,29 @@ class PayrollService:
                     total_deductions_for_emp = income_tax + pension_employee + total_penalties
                     net_salary = gross_salary - total_deductions_for_emp
                 
+                # ── Money: round each component once (half-up, 2dp) and derive totals from the
+                # ROUNDED components so that gross - deductions == net exactly on every payslip.
+                # Use actual_tax (recomputed after GROSS-base penalties) — previously the stored
+                # income_tax and run total_tax used the pre-penalty figure while net used actual_tax.
+                basic_salary_m = money(basic_salary)
+                total_allowances_m = money(total_allowances)
+                taxable_allowances_m = money(taxable_allowances)
+                non_taxable_allowances_m = money(non_taxable_allowances)
+                pensionable_income_m = money(pensionable_income)
+                taxable_income_m = money(taxable_income)
+                gross_salary_m = money(gross_salary)
+                income_tax_m = money(actual_tax)
+                pension_employee_m = money(pension_employee)
+                pension_employer_m = money(pension_employer)
+                loan_deduction_m = money(loan_deduction)
+                late_deduction_m = money(late_deduction)
+                penalty_deduction_m = money(penalty_deduction)
+                overtime_pay_m = money(overtime_pay)
+                total_deductions_m = (
+                    income_tax_m + pension_employee_m + loan_deduction_m + late_deduction_m + penalty_deduction_m
+                )
+                net_salary_m = gross_salary_m - total_deductions_m
+
                 # Insert payroll item with TIN and Account Number
                 await session.execute(
                     text("""
@@ -733,21 +773,21 @@ class PayrollService:
                     {
                         "payroll_run_id": payroll_run.id,
                         "user_id": str(emp.id),
-                        "basic_salary": basic_salary,
-                        "total_allowances": total_allowances,
-                        "taxable_allowances": taxable_allowances,
-                        "non_taxable_allowances": non_taxable_allowances,
-                        "pensionable_income": pensionable_income,
-                        "taxable_income": taxable_income,
-                        "gross_salary": gross_salary,
-                        "income_tax": income_tax,
-                        "pension_employee": pension_employee,
-                        "pension_employer": pension_employer,
-                        "loan_deduction": loan_deduction,
-                        "late_deduction": late_deduction,
-                        "penalty_deduction": penalty_deduction,
-                        "total_deductions": total_deductions_for_emp,
-                        "net_salary": net_salary,
+                        "basic_salary": basic_salary_m,
+                        "total_allowances": total_allowances_m,
+                        "taxable_allowances": taxable_allowances_m,
+                        "non_taxable_allowances": non_taxable_allowances_m,
+                        "pensionable_income": pensionable_income_m,
+                        "taxable_income": taxable_income_m,
+                        "gross_salary": gross_salary_m,
+                        "income_tax": income_tax_m,
+                        "pension_employee": pension_employee_m,
+                        "pension_employer": pension_employer_m,
+                        "loan_deduction": loan_deduction_m,
+                        "late_deduction": late_deduction_m,
+                        "penalty_deduction": penalty_deduction_m,
+                        "total_deductions": total_deductions_m,
+                        "net_salary": net_salary_m,
                         "days_worked": days_worked,
                         "days_absent": days_absent,
                         "late_minutes": late_minutes,
@@ -756,17 +796,17 @@ class PayrollService:
                         "penalty_breakdown": json.dumps(penalty_breakdown),
                         "tin": emp.tin,
                         "account_number": emp.account_number,
-                        "overtime_amount": overtime_pay,
+                        "overtime_amount": overtime_pay_m,
                         "overtime_breakdown": json.dumps(ot_breakdown)
                     }
                 )
                 
-                total_gross += gross_salary
-                total_deductions += total_deductions_for_emp
-                total_net += net_salary
-                total_tax += income_tax
-                total_pension_employee += pension_employee
-                total_pension_employer += pension_employer
+                total_gross += gross_salary_m
+                total_deductions += total_deductions_m
+                total_net += net_salary_m
+                total_tax += income_tax_m
+                total_pension_employee += pension_employee_m
+                total_pension_employer += pension_employer_m
             
             # Update payroll run totals
             await session.execute(
@@ -826,12 +866,13 @@ class PayrollService:
                 "month": month,
                 "year": year,
                 "total_employees": len(employees),
-                "total_gross": total_gross,
-                "total_deductions": total_deductions,
-                "total_net": total_net,
-                "total_tax": total_tax,
-                "total_pension_employee": total_pension_employee,
-                "total_pension_employer": total_pension_employer,
+                # floats here: this dict is JSON-serialised by callers (job logs / webhooks)
+                "total_gross": float(total_gross),
+                "total_deductions": float(total_deductions),
+                "total_net": float(total_net),
+                "total_tax": float(total_tax),
+                "total_pension_employee": float(total_pension_employee),
+                "total_pension_employer": float(total_pension_employer),
                 "currency": currency
             }
     

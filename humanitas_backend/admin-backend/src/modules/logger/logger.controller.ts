@@ -7,12 +7,13 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { LoggerService } from './logger.service';
 
 @ApiTags('Logs')
 @ApiBearerAuth()
 @Controller('logs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class LoggerController {
   constructor(private readonly loggerService: LoggerService) {}
 

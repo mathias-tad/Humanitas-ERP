@@ -59,7 +59,7 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@saas.com"
+                placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -95,9 +95,6 @@ export default function Login() {
             </Button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Default: admin@saas.com / admin123456
-          </p>
         </div>
       </div>
     </div>

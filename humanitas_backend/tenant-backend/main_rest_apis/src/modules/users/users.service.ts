@@ -56,55 +56,11 @@ export class UsersService {
     }
     return tenant.database_name;
   }
-
-  private async ensureUserColumns(connection: any) {
-    const columns = [
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id UUID',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS setup_token VARCHAR(255)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS setup_token_expires_at TIMESTAMP',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS is_password_set BOOLEAN DEFAULT false',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS city VARCHAR(100)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS state VARCHAR(100)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS country VARCHAR(100)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS postal_code VARCHAR(20)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS marital_status VARCHAR(20)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS nationality VARCHAR(100)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS national_id VARCHAR(50)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_name VARCHAR(255)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(50)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact_relationship VARCHAR(50)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS hire_date DATE',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS employment_type VARCHAR(50)',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS basic_salary DECIMAL(15,2) DEFAULT 0',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS transport_allowance_percent DECIMAL(5,2) DEFAULT 0',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS tin VARCHAR(50) DEFAULT NULL',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS account_number VARCHAR(50) DEFAULT NULL',
-      // Overrides
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS desert_allowance_override VARCHAR(20) DEFAULT NULL',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS hardship_allowance_override VARCHAR(20) DEFAULT NULL',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS transport_allowance_override VARCHAR(20) DEFAULT NULL',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS per_diem_allowance_override VARCHAR(20) DEFAULT NULL',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id UUID',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id UUID',
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS branch_id UUID',
-    ];
-    for (const sql of columns) {
-      try {
-        await connection.query(sql);
-      } catch (e) { }
-    }
-  }
-
   async getProfile(userId: string, tenantSlug: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     const result = await connection.query(
       `SELECT id, email, full_name, phone, role, department, position, avatar_url, is_active, 
@@ -134,7 +90,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -381,21 +336,8 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     // Ensure roles table exists
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        permissions JSONB NOT NULL DEFAULT '[]',
-        is_system BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     const whereConditions: string[] = [];
     const params: any[] = [];
@@ -451,7 +393,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     const whereConditions: string[] = ['u.is_active = true'];
     const params: any[] = [];
@@ -499,7 +440,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     const result = await connection.query(
       `SELECT u.id, u.email, u.full_name, u.phone, u.role_id, u.department, u.position, 
@@ -718,7 +658,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     // Check if email already exists
     const existingUser = await connection.query(
@@ -878,7 +817,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureUserColumns(connection);
 
     // Get current user state before update to check for changes
     const currentUser = await this.findUserById(tenantSlug, userId);
@@ -1211,32 +1149,11 @@ export class UsersService {
     return result[0].permissions || [];
   }
 
-  // User Attachments Methods
-  private async ensureAttachmentsTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS user_attachments (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        file_name VARCHAR(255) NOT NULL,
-        original_name VARCHAR(255) NOT NULL,
-        file_type VARCHAR(100) NOT NULL,
-        file_size INTEGER NOT NULL,
-        file_path VARCHAR(500) NOT NULL,
-        category VARCHAR(50) NOT NULL DEFAULT 'other',
-        description TEXT,
-        uploaded_by UUID NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
   async getUserAttachments(tenantSlug: string, userId: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureAttachmentsTable(connection);
 
     const result = await connection.query(
       `SELECT a.*, u.full_name as uploaded_by_name
@@ -1266,7 +1183,6 @@ export class UsersService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureAttachmentsTable(connection);
 
     // Generate unique filename
     const ext = path.extname(file.filename || '.pdf') || '.pdf';
@@ -1512,26 +1428,6 @@ export class UsersService {
 
     return { message: 'Allowance override updated successfully' };
   }
-
-  private async ensureCategoryAllowanceColumns(connection: any) {
-    const queries = [
-      "ALTER TABLE category_allowances ADD COLUMN IF NOT EXISTS min_amount DECIMAL(10,2) DEFAULT 0",
-      "ALTER TABLE category_allowances ADD COLUMN IF NOT EXISTS mid_amount DECIMAL(10,2) DEFAULT 0",
-      "ALTER TABLE category_allowances ADD COLUMN IF NOT EXISTS max_amount DECIMAL(10,2) DEFAULT 0",
-      "ALTER TABLE category_allowances ADD COLUMN IF NOT EXISTS default_tier VARCHAR(20) DEFAULT 'none'",
-      `CREATE TABLE IF NOT EXISTS user_allowance_settings (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL, 
-          income_type_id UUID NOT NULL, 
-          tier VARCHAR(20), 
-          custom_amount DECIMAL(10,2), 
-          created_at TIMESTAMP DEFAULT NOW(), 
-          updated_at TIMESTAMP DEFAULT NOW()
-       )`
-    ];
-    for (const q of queries) { try { await connection.query(q); } catch (e) { } }
-  }
-
   /**
    * Get all allowances assigned to a specific employee category
    */
@@ -1539,7 +1435,6 @@ export class UsersService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureCategoryAllowanceColumns(connection);
 
     const result = await connection.query(`
       SELECT ca.id, ca.amount, ca.min_amount, ca.mid_amount, ca.max_amount, ca.default_tier, ca.is_active,
@@ -1572,7 +1467,6 @@ export class UsersService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureCategoryAllowanceColumns(connection);
 
     // Check if this allowance already exists for this category
     const existing = await connection.query(`
@@ -1867,7 +1761,6 @@ export class UsersService {
   async getOrgChartTree(tenantSlug: string, department?: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureUserColumns(connection);
 
     let query = `
       SELECT 
@@ -1998,7 +1891,6 @@ export class UsersService {
   async getReportingChain(userId: string, tenantSlug: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureUserColumns(connection);
 
     const targetUserRes = await connection.query(`
       SELECT u.id, u.full_name, u.email, u.phone, u.position, u.department, u.avatar_url, u.manager_id
@@ -2070,7 +1962,6 @@ export class UsersService {
 
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection = await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureUserColumns(connection);
 
     // Verify employee exists
     const employeeRes = await connection.query(`SELECT id, full_name FROM users WHERE id = $1`, [employeeId]);

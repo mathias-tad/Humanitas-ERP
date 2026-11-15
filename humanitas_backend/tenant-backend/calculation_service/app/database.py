@@ -4,6 +4,17 @@ from typing import Dict
 import asyncpg
 
 
+
+def mask_db_url(url: str) -> str:
+    """Return the URL with credentials removed (safe to log). Handles '@' inside passwords."""
+    if not url:
+        return ""
+    scheme, sep, rest = url.partition("://")
+    if not sep:
+        return "<unparseable url>"
+    host_part = rest.rsplit("@", 1)[-1]
+    return f"{scheme}://***:***@{host_part}"
+
 class DatabaseManager:
     def __init__(self):
         self._admin_engine = None
@@ -16,7 +27,7 @@ class DatabaseManager:
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
             
-        print(f"[DB] Initializing admin connection with URL: {database_url[:40]}...{database_url[-20:]}")
+        print(f"[DB] Initializing admin connection to: {mask_db_url(database_url)}")
         self._admin_url = database_url
         self._admin_engine = create_async_engine(database_url, echo=False)
     

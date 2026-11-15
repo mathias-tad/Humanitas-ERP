@@ -433,11 +433,14 @@ describe('ApprovalsService Unit Tests', () => {
   });
 
   describe('ensureApprovalTables & seeding', () => {
-    it('should initialize approval tables and skip if already cached', async () => {
+    // Schema now comes from the tenant migration (20261115000001_consolidate_runtime_schema.sql);
+    // this method only seeds default workflows and must not run DDL at request time.
+    it('should not run any DDL at request time', async () => {
       await service.ensureApprovalTables(mockConnection);
-      expect(mockConnection.query).toHaveBeenCalledWith(
-        expect.stringContaining('CREATE TABLE IF NOT EXISTS approval_workflows'),
+      const ddlCalls = mockConnection.query.mock.calls.filter(([sql]: [string]) =>
+        /\b(CREATE\s+TABLE|ALTER\s+TABLE|CREATE\s+(UNIQUE\s+)?INDEX)\b/i.test(String(sql)),
       );
+      expect(ddlCalls).toHaveLength(0);
     });
   });
 

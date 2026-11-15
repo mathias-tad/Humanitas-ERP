@@ -66,22 +66,21 @@ describe('RecruitmentPipelineService Unit Tests', () => {
       mockOnboardingService,
       mockNotificationsService,
     );
-    // Mark database as ensured in tests so ensureRecruitmentTables does not consume mock query queues
-    (service as any).ensuredDatabases.add('demo_tenant_db');
   });
 
   describe('Database Schema & Table Initialization', () => {
-    it('creates recruitment_interviews and recruitment_offers tables idempotently', async () => {
-      (service as any).ensuredDatabases.clear();
-      mockConnection.query.mockResolvedValue([]);
-      await service.ensureRecruitmentTables(mockConnection);
-
-      expect(mockConnection.query).toHaveBeenCalledWith(
-        expect.stringContaining('CREATE TABLE IF NOT EXISTS recruitment_interviews'),
-      );
-      expect(mockConnection.query).toHaveBeenCalledWith(
-        expect.stringContaining('CREATE TABLE IF NOT EXISTS recruitment_offers'),
-      );
+    // Tables are created by the tenant migration, not at request time.
+    it('defines recruitment_interviews and recruitment_offers in the tenant migrations', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.join(__dirname, '..', '..', 'migrations', 'tenant');
+      const allSql = fs
+        .readdirSync(dir)
+        .filter((f: string) => f.endsWith('.sql'))
+        .map((f: string) => fs.readFileSync(path.join(dir, f), 'utf8'))
+        .join('\n');
+      expect(allSql).toContain('CREATE TABLE IF NOT EXISTS recruitment_interviews');
+      expect(allSql).toContain('CREATE TABLE IF NOT EXISTS recruitment_offers');
     });
   });
 
@@ -269,6 +268,30 @@ describe('RecruitmentPipelineService Unit Tests', () => {
   });
 
   describe('Recruitment Analytics & Reports', () => {
+    it('does not invent funnel or KPI numbers when there is no data', async () => {
+      mockConnection.query
+        .mockResolvedValueOnce([{ count: '0' }])
+        .mockResolvedValueOnce([{ total_offers: '0', hired: '0', rejected: '0' }]);
+      mockHttpService.get.mockReturnValueOnce(of({ data: { items: [], total: 0 } }));
+
+      const funnel = await service.getFunnelReport('demo-tenant', {});
+      expect(funnel.applied).toBe(0);
+      expect(funnel.screening).toBe(0);
+      expect(funnel.interview).toBe(0);
+
+      mockConnection.query
+        .mockResolvedValueOnce([{ avg_days: null }])
+        .mockResolvedValueOnce([{ count: '0', avg_salary: null }])
+        .mockResolvedValueOnce([]);
+      mockHttpService.get.mockReturnValueOnce(of({ data: { items: [], total: 0 } }));
+
+      const analytics = await service.getAnalyticsReport('demo-tenant');
+      expect(analytics.time_to_hire_days).toBe(0);
+      expect(analytics.cost_per_hire_avg).toBe(0);
+      expect(analytics.open_positions_count).toBe(0);
+      expect(analytics.department_breakdown).toEqual([]);
+    });
+
     it('calculates funnel stage counts and conversion rates accurately', async () => {
       // 1. interviews count
       mockConnection.query
@@ -324,7 +347,10 @@ describe('RecruitmentPipelineService Unit Tests', () => {
 
       expect(analytics.time_to_hire_days).toBe(19.4);
       expect(analytics.filled_positions_count).toBe(12);
-      expect(analytics.cost_per_hire_avg).toBe(6000.0);
+      // Recruiting cost data is not captured, so cost-per-hire is reported as 0
+      // (previously an invented "8% of average salary" figure).
+      expect(analytics.cost_per_hire_avg).toBe(0);
+      expect(analytics.department_breakdown[0].total_candidates).toBe(8);
       expect(analytics.department_breakdown).toHaveLength(2);
       expect(analytics.department_breakdown[0].department).toBe('Engineering');
     });

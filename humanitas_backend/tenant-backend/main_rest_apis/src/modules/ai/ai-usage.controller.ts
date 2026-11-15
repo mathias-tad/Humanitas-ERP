@@ -6,6 +6,7 @@ import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.gu
 import { SetMetadata } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { internalServiceHeaders } from './internal-service-headers';
 
 export const Permissions = (...permissions: string[]) =>
   SetMetadata(PERMISSIONS_KEY, permissions);
@@ -28,8 +29,8 @@ export class AiUsageController {
   async getSummary(@Req() req) {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
-      const res = await axios.get(`${adminUrl}/ai/usage/tenant/${req.user.tenantId}/summary`, {
-        headers: { 'x-internal-service': 'tenant-backend' },
+      const res = await axios.get(`${adminUrl}/ai/usage/internal/tenant/${req.user.tenantId}/summary`, {
+        headers: internalServiceHeaders(this.configService),
         timeout: 5000,
       });
       return res.data;
@@ -47,8 +48,8 @@ export class AiUsageController {
   async getBreakdown(@Req() req) {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
-      const res = await axios.get(`${adminUrl}/ai/usage/tenant/${req.user.tenantId}/breakdown`, {
-        headers: { 'x-internal-service': 'tenant-backend' },
+      const res = await axios.get(`${adminUrl}/ai/usage/internal/tenant/${req.user.tenantId}/breakdown`, {
+        headers: internalServiceHeaders(this.configService),
         timeout: 5000,
       });
       return res.data;
@@ -67,9 +68,9 @@ export class AiUsageController {
     const adminUrl = this.configService.get<string>('ADMIN_BACKEND_URL');
     try {
       const res = await axios.get(
-        `${adminUrl}/ai/usage/tenant/${req.user.tenantId}/user/${req.user.sub}`,
+        `${adminUrl}/ai/usage/internal/tenant/${req.user.tenantId}/user/${req.user.sub}`,
         {
-          headers: { 'x-internal-service': 'tenant-backend' },
+          headers: internalServiceHeaders(this.configService),
           timeout: 5000,
         },
       );

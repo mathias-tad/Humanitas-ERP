@@ -7,6 +7,7 @@ from sqlalchemy import text
 from datetime import date, datetime, timedelta
 import calendar
 import requests
+from app.webhook_client import notify_tenant_api
 
 @procrast_app.task(queue="calculation_jobs", retry=3)
 async def payroll_calculation(tenant_id: str, month: int, year: int, employee_ids: list[str] = None):
@@ -66,9 +67,7 @@ async def calculate_overtime_period_task(tenant_id: str, start_date: str = None,
             print(f"[Task] OT Calculated. Entries: {result.get('total_entries_created')}")
             
             # Send Notification via Webhook to NestJS
-            # Assuming NestJS runs on localhost:3000 (standard dev) logic
-            # or use env var for NEST_API_URL
-            webhook_url = "http://localhost:3000/api/overtime/webhook/notification"
+            # Authenticated callback to the tenant API (see app/webhook_client.py)
             payload = {
                 "tenantId": tenant_id,
                 "type": "OVERTIME_CALCULATION_COMPLETED",
@@ -80,7 +79,7 @@ async def calculate_overtime_period_task(tenant_id: str, start_date: str = None,
                 payload['userId'] = notification_user_id
 
             try:
-                requests.post(webhook_url, json=payload, timeout=5)
+                notify_tenant_api(payload, timeout=5)
                 print(f"[Task] Webhook sent to NestJS")
             except Exception as werr:
                  print(f"[Task] Webhook failed: {werr}")
@@ -89,9 +88,8 @@ async def calculate_overtime_period_task(tenant_id: str, start_date: str = None,
         print(f"[Task] Error in calculate_overtime_period_task: {e}")
         # Send Webhook on Failure if log_id exists
         if log_id:
-             webhook_url = "http://localhost:3000/api/overtime/webhook/notification"
              try:
-                requests.post(webhook_url, json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_FAILED",
                     "logId": log_id,
@@ -120,7 +118,6 @@ async def calculate_overtime_daily_task(tenant_id: str, date_str: str, log_id: s
             print(f"[Task] Daily OT Calculated. Result: {result}")
             
             # Send Webhook
-            webhook_url = "http://localhost:3000/api/overtime/webhook/notification"
             payload = {
                 "tenantId": tenant_id,
                 "type": "OVERTIME_CALCULATION_COMPLETED",
@@ -130,7 +127,7 @@ async def calculate_overtime_daily_task(tenant_id: str, date_str: str, log_id: s
             }
 
             try:
-                requests.post(webhook_url, json=payload, timeout=5)
+                notify_tenant_api(payload, timeout=5)
                 print(f"[Task] Webhook sent to NestJS")
             except Exception as werr:
                  print(f"[Task] Webhook failed: {werr}")
@@ -138,9 +135,8 @@ async def calculate_overtime_daily_task(tenant_id: str, date_str: str, log_id: s
     except Exception as e:
         print(f"[Task] Error in calculate_overtime_daily_task: {e}")
         if log_id:
-             webhook_url = "http://localhost:3000/api/overtime/webhook/notification"
              try:
-                requests.post(webhook_url, json={
+                notify_tenant_api({
                     "tenantId": tenant_id,
                     "type": "OVERTIME_CALCULATION_FAILED",
                     "logId": log_id,

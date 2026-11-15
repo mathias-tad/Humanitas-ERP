@@ -29,60 +29,6 @@ export class HrmsExpensesService {
 
   private async ensureTables(connection: any) {
     try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS expense_categories (
-          id VARCHAR(36) PRIMARY KEY,
-          company_id VARCHAR(36),
-          branch_id VARCHAR(36),
-          name VARCHAR(100) NOT NULL,
-          code VARCHAR(50) NOT NULL,
-          description TEXT,
-          spending_limit DECIMAL(12,2),
-          daily_per_diem_cap DECIMAL(12,2),
-          requires_receipt BOOLEAN DEFAULT TRUE,
-          is_active BOOLEAN DEFAULT TRUE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS expense_reports (
-          id VARCHAR(36) PRIMARY KEY,
-          report_number VARCHAR(50) NOT NULL,
-          employee_id VARCHAR(36) NOT NULL,
-          company_id VARCHAR(36),
-          branch_id VARCHAR(36),
-          title VARCHAR(255) NOT NULL,
-          purpose TEXT,
-          status VARCHAR(50) DEFAULT 'draft',
-          total_amount DECIMAL(12,2) DEFAULT 0,
-          approved_amount DECIMAL(12,2) DEFAULT 0,
-          currency VARCHAR(10) DEFAULT 'USD',
-          submitted_at TIMESTAMP,
-          approved_by VARCHAR(36),
-          approved_at TIMESTAMP,
-          rejection_reason TEXT,
-          reimbursed_at TIMESTAMP,
-          include_in_payroll BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS expense_items (
-          id VARCHAR(36) PRIMARY KEY,
-          report_id VARCHAR(36) NOT NULL,
-          category_id VARCHAR(36) NOT NULL,
-          expense_date DATE NOT NULL,
-          merchant_name VARCHAR(255),
-          description TEXT NOT NULL,
-          amount DECIMAL(12,2) NOT NULL,
-          currency VARCHAR(10) DEFAULT 'USD',
-          receipt_url TEXT,
-          ocr_scanned BOOLEAN DEFAULT FALSE,
-          policy_violation BOOLEAN DEFAULT FALSE,
-          violation_note TEXT,
-          status VARCHAR(50) DEFAULT 'pending',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
       // Seed default categories if none exist
       const existing = await connection.query(`SELECT COUNT(*) as count FROM expense_categories`);

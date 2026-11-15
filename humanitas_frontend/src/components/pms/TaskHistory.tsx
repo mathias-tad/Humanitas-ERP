@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ShieldAlert, GitPullRequest } from "lucide-react";
-import { API_BASE_URL } from "@/config/api.config";
+import { api } from "@/lib/api";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,38 +29,15 @@ export function TaskHistory({ taskId }: { taskId: string }) {
     const { settingsQuery } = useGeneralSettings();
     const timezone = settingsQuery.data?.timezone ? normalizeTimezone(settingsQuery.data.timezone) : "UTC";
 
-    // Debugging Timezone
-    useEffect(() => {
-        if (settingsQuery.isFetched) {
-            console.log('[TaskHistory] General Settings Loaded:', settingsQuery.data);
-            console.log('[TaskHistory] Resolved Timezone:', timezone);
-            console.log('[TaskHistory] Browser Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
-        }
-    }, [settingsQuery.isFetched, settingsQuery.data, timezone]);
-
     useEffect(() => {
         const fetchHistory = async () => {
-            console.log('[TaskHistory] Fetching history for taskId:', taskId);
             try {
-                const token = localStorage.getItem('token');
-
-                const res = await fetch(`${API_BASE_URL}/pms/tasks/${taskId}/history`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setLogs(data);
-                } else {
-                    const errText = await res.text();
-                    console.error('[TaskHistory] Error response:', errText);
-                    setError(`Failed to load history: ${res.status}`);
-                }
+                // Auth is the HttpOnly cookie — api sends credentials and refreshes on 401
+                const data = await api.get<TaskActivityLog[]>(`/pms/tasks/${taskId}/history`);
+                setLogs(Array.isArray(data) ? data : []);
             } catch (err) {
                 console.error("[TaskHistory] Failed to fetch history", err);
-                setError('Network error');
+                setError(err instanceof Error ? err.message : 'Failed to load history');
             } finally {
                 setLoading(false);
             }

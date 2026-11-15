@@ -34,6 +34,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.sub || !payload.email) {
       throw new UnauthorizedException('Invalid token');
     }
+    // Refresh tokens are never valid as access tokens
+    if ((payload as any).token_use === 'refresh') {
+      throw new UnauthorizedException('Invalid token');
+    }
 
     return {
       sub: payload.sub,

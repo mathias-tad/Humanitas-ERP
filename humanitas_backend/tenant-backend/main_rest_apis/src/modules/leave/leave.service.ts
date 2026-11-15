@@ -96,124 +96,11 @@ export class LeaveService {
   ): number {
     return baseAnnualLeave + yearsOfService * leaveIncreasePerYear;
   }
-
-  private async ensureSettingsTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category VARCHAR(50) NOT NULL UNIQUE,
-        data JSONB NOT NULL DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
-  private async ensureLeaveTables(connection: any) {
-    await this.ensureSettingsTable(connection);
-
-    // Check if leave_requests table has the correct schema
-    const tableCheck = await connection.query(`
-      SELECT column_name FROM information_schema.columns 
-      WHERE table_name = 'leave_requests' AND column_name = 'leave_type_id'
-    `);
-
-    // If table exists but doesn't have leave_type_id column, drop and recreate
-    if (tableCheck.length === 0) {
-      await connection.query(`DROP TABLE IF EXISTS leave_requests CASCADE`);
-      await connection.query(`DROP TABLE IF EXISTS leave_balances CASCADE`);
-    }
-
-    // Leave requests table (Updated)
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS leave_requests (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        leave_type_id VARCHAR(100) NOT NULL,
-        leave_type_name VARCHAR(100) NOT NULL,
-        start_date DATE NOT NULL,
-        end_date DATE NOT NULL,
-        days INTEGER NOT NULL,
-        reason TEXT,
-        status VARCHAR(20) DEFAULT 'Pending',
-        approval_status VARCHAR(20) DEFAULT 'Pending',
-        current_step INTEGER DEFAULT 0,
-        approved_by UUID,
-        approved_at TIMESTAMP,
-        rejection_reason TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Ensure new columns exist for existing tables
-    await connection.query(`
-        DO $$ 
-        BEGIN 
-            ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'Pending';
-            ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS current_step INTEGER DEFAULT 0;
-            ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
-        EXCEPTION WHEN others THEN NULL; 
-        END $$;
-    `);
-
-    // Leave Workflow Tables
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS leave_workflows (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        step_order INTEGER NOT NULL,
-        role_required VARCHAR(50) NOT NULL,
-        is_final BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS leave_approvals (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        leave_request_id UUID REFERENCES leave_requests(id) ON DELETE CASCADE,
-        step_number INTEGER NOT NULL,
-        approver_id UUID REFERENCES users(id),
-        status VARCHAR(20) NOT NULL,
-        comment TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Leave balances table
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS leave_balances (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        leave_type_id VARCHAR(100) NOT NULL,
-        leave_type_name VARCHAR(100) NOT NULL,
-        total_days DECIMAL(10,2) NOT NULL DEFAULT 0,
-        used_days DECIMAL(10,2) NOT NULL DEFAULT 0,
-        year INTEGER NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, leave_type_id, year)
-      )
-    `);
-
-    // Alter existing columns from INTEGER to DECIMAL if needed
-    try {
-      await connection.query(`
-        ALTER TABLE leave_balances 
-        ALTER COLUMN total_days TYPE DECIMAL(10,2),
-        ALTER COLUMN used_days TYPE DECIMAL(10,2)
-      `);
-    } catch (e) {
-      // Columns might already be DECIMAL or table is new
-    }
-  }
-
   // Get current user's leave requests
   async getMyLeaveRequests(tenantId: string, userId: string) {
     try {
       const connection =
         await this.databaseService.getTenantConnectionById(tenantId);
-      await this.ensureLeaveTables(connection);
 
       const result = await connection.query(
         `
@@ -239,7 +126,6 @@ export class LeaveService {
     try {
       const connection =
         await this.databaseService.getTenantConnectionById(tenantId);
-      await this.ensureLeaveTables(connection);
 
       const currentYear = new Date().getFullYear();
 
@@ -304,7 +190,6 @@ export class LeaveService {
       console.log('Applying for leave:', { tenantId, userId, data });
       const connection =
         await this.databaseService.getTenantConnectionById(tenantId);
-      await this.ensureLeaveTables(connection);
 
       // Get HR settings
       const hrSettings = await this.getHRSettings(connection);
@@ -520,7 +405,6 @@ export class LeaveService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
 
     let query = `
       SELECT lr.*, 
@@ -556,14 +440,12 @@ export class LeaveService {
 
   async getWorkflow(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
     const result = await connection.query(`SELECT * FROM leave_workflows ORDER BY step_order ASC`);
     return result || [];
   }
 
   async setWorkflowSteps(tenantId: string, steps: any[]) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
 
     // Transaction
     await connection.query('BEGIN');
@@ -768,7 +650,6 @@ export class LeaveService {
   async getUserBalancesWithCalculation(tenantId: string, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
 
     const hrSettings = await this.getHRSettings(connection);
     const leaveTypes = hrSettings.leave_types || [];
@@ -884,7 +765,6 @@ export class LeaveService {
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
 
     const hrSettings = await this.getHRSettings(connection);
     const leaveTypes = hrSettings.leave_types || [];
@@ -944,15 +824,6 @@ export class LeaveService {
         ? Number(data.total_days)
         : proRatedAnnualLeave + (data.carried_over || 0);
 
-    // Add carried_over column if not exists
-    try {
-      await connection.query(`
-        ALTER TABLE leave_balances ADD COLUMN IF NOT EXISTS carried_over DECIMAL(10,2) DEFAULT 0
-      `);
-    } catch (e) {
-      // Column might already exist
-    }
-
     // Insert or update balance
     await connection.query(
       `
@@ -999,7 +870,6 @@ export class LeaveService {
   async calculateAndSetInitialBalance(tenantId: string, userId: string) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureLeaveTables(connection);
 
     const hrSettings = await this.getHRSettings(connection);
     const leaveTypes = hrSettings.leave_types || [];
@@ -1031,15 +901,6 @@ export class LeaveService {
     const hireYear = hireDate.getFullYear();
     if (hireYear === currentYear) {
       monthsWorkedThisYear = 12 - hireDate.getMonth();
-    }
-
-    // Add carried_over column if not exists
-    try {
-      await connection.query(`
-        ALTER TABLE leave_balances ADD COLUMN IF NOT EXISTS carried_over DECIMAL(10,2) DEFAULT 0
-      `);
-    } catch (e) {
-      // Column might already exist
     }
 
     const results: any[] = [];

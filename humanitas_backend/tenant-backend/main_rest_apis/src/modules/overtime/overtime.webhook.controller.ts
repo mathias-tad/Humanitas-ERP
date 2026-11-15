@@ -1,11 +1,21 @@
-import { Controller, Post, Body, Inject, forwardRef, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Inject, forwardRef, BadRequestException, UseGuards, Logger } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
+import { InternalServiceGuard } from '../auth/internal-service.guard';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SystemLogsService } from '../system-logs/system-logs.service';
 import { CalculationStatus } from '../system-logs/entities/calculation-log.entity';
 import { OvertimeWebhookDto } from './dto/overtime-webhook.dto';
 
+/**
+ * Callbacks from the Python calculation service. Authenticated with the shared
+ * INTERNAL_SERVICE_SECRET (`x-internal-service-key` header) — never exposed to browsers.
+ */
 @Controller('overtime/webhook')
+@UseGuards(InternalServiceGuard)
+@SkipThrottle()
 export class OvertimeWebhookController {
+    private readonly logger = new Logger(OvertimeWebhookController.name);
+
     constructor(
         @Inject(forwardRef(() => NotificationsGateway))
         private readonly notificationsGateway: NotificationsGateway,
@@ -15,7 +25,7 @@ export class OvertimeWebhookController {
     @Post('notification')
     async handleNotification(@Body() body: OvertimeWebhookDto) {
         // body: { tenantId, type, payload, userId?, logId?, status? }
-        console.log('[Webhook] Received notification:', body);
+        this.logger.log(`Received ${body?.type} for tenant ${body?.tenantId}`);
 
         const { tenantId, type, payload, userId, logId, status, error } = body;
 

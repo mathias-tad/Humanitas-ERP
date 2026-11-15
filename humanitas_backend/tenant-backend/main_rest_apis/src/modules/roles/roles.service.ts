@@ -33,18 +33,6 @@ export class RolesService {
   }
 
   private async ensureRolesTable(connection: any): Promise<void> {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        permissions JSONB NOT NULL DEFAULT '[]',
-        is_system BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     // Insert default roles if they don't exist
     const existingRoles = await connection.query(
@@ -60,12 +48,6 @@ export class RolesService {
 
   public async migrateNewPermissions(connection: any): Promise<void> {
     // Create migration tracking table if not exists
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS _permission_migrations (
-        permission VARCHAR(100) PRIMARY KEY,
-        migrated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     const newPermissions = [
       'correct_attendance', 'view_holidays', 'manage_holidays',

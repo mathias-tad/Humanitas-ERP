@@ -215,7 +215,6 @@ export class LoanService {
             const existingPenalties = Number(penaltyRes[0]?.total || 0);
 
             // Ensure schema exists before querying
-            await this.ensureLoanSchema(connection);
 
             const activeLoans = await connection.query(
                 `SELECT start_month, start_year, term_months, monthly_deduction FROM loans 
@@ -341,7 +340,6 @@ export class LoanService {
         if (loan[0].status !== 'pending' && loan[0].status !== 'active') throw new BadRequestException('Loan is not amenable');
 
         // Ensure schema exists (auto-heal) before updating
-        await this.ensureLoanSchema(connection);
 
         // Determine current step
         const currentStep = loan[0].current_step || 1;
@@ -401,7 +399,6 @@ export class LoanService {
         if (loan[0].status !== 'pending') throw new BadRequestException('Loan is not pending approval');
 
         // Ensure schema exists (auto-heal) before updating
-        await this.ensureLoanSchema(connection);
 
         await connection.query(
             `UPDATE loans SET status = 'rejected', approval_status = 'rejected' WHERE id = $1`,
@@ -483,18 +480,6 @@ export class LoanService {
         for (const tenant of tenants) {
             try {
                 const connection = await this.databaseService.getTenantConnection(tenant.database_name);
-                await connection.query(`
-                    CREATE TABLE IF NOT EXISTS roles (
-                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                        name VARCHAR(100) NOT NULL,
-                        description TEXT,
-                        permissions JSONB NOT NULL DEFAULT '[]',
-                        is_system BOOLEAN DEFAULT false,
-                        is_active BOOLEAN DEFAULT true,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                `);
 
                 await connection.query(`
                     INSERT INTO roles (name, description, is_system)
@@ -529,42 +514,6 @@ export class LoanService {
         }
         return results;
     }
-
-    private async ensureLoanSchema(connection: any) {
-        // Ensure table exists
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS loans (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                user_id UUID NOT NULL,
-                loan_type VARCHAR(50) NOT NULL,
-                description TEXT,
-                total_amount DECIMAL(10, 2) NOT NULL,
-                monthly_deduction DECIMAL(10, 2) NOT NULL,
-                remaining_balance DECIMAL(10, 2) NOT NULL,
-                status VARCHAR(20) DEFAULT 'pending', -- pending, active, rejected, paid, cancelled, frozen
-                approved_by UUID,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Ensure columns exist (Auto-migrate)
-        await connection.query(`
-            DO $$ 
-            BEGIN 
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS start_month INTEGER DEFAULT 1;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS start_year INTEGER DEFAULT 2024;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS start_date DATE;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS term_months INTEGER DEFAULT 1;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'pending';
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS current_step INTEGER DEFAULT 0;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS approved_by UUID;
-                ALTER TABLE loans ADD COLUMN IF NOT EXISTS requested_by UUID;
-            EXCEPTION WHEN others THEN NULL; 
-            END $$;
-        `);
-    }
-
     async getLoanConfig(tenantSlug: string) {
         const databaseName = await this.getTenantDatabaseName(tenantSlug);
         const connection = await this.databaseService.getTenantConnection(databaseName);

@@ -53,6 +53,101 @@ const FORBIDDEN_KEYWORDS = [
   'POSTGRES_FDW',
 ];
 
+// ── Data-access policy for AI-generated SQL ────────────────────────────────
+// Credentials / secrets: never readable by the AI, for anyone.
+const SECRET_COLUMN_PATTERN =
+  /(password|passwd|pwd_hash|refresh_token|setup_token|reset_token|access_token|api_key|apikey|key_hash|secret|otp|totp|mfa|encryption|private_key|smtp_pass)/i;
+const SECRET_TABLES = ['developer_api_keys', 'api_keys', 'user_sessions', 'password_resets'];
+
+// Compensation data: only for users who may see payroll.
+const PAYROLL_PERMISSIONS = ['*', 'view_payroll', 'manage_payroll', 'edit_payroll', 'run_payroll'];
+const PAYROLL_TABLES = [
+  'payroll_runs', 'payroll_items', 'user_incomes', 'user_income_assignments', 'income_types',
+  'income_type_category_rules', 'category_allowances', 'acting_assignments', 'tax_rules',
+  'loans', 'loan_approvals', 'user_penalties', 'per_diem_claims', 'overtime_entries',
+];
+const PAYROLL_COLUMN_PATTERN =
+  /(salary|salaries|wage|gross|net_pay|total_net|total_gross|payslip|bank_account|account_number|iban|tin\b|national_id|tax_id|pension|allowance|deduction|bonus|compensation)/i;
+
+// Whole-row serialisation would bypass column checks (e.g. SELECT row_to_json(u) FROM users u).
+const ROW_SERIALISATION_FUNCTIONS = /\b(row_to_json|to_json|to_jsonb|json_agg|jsonb_agg|json_object_agg|jsonb_object_agg|json_populate_record|jsonb_populate_record|hstore|record_out|row)\s*\(/i;
+
+function referencedRelations(normalizedUpper: string): string[] {
+  const names = new Set<string>();
+  const re = /\b(?:FROM|JOIN)\s+("?[A-Z0-9_]+"?(?:\."?[A-Z0-9_]+"?)?)(?:\s+(?:AS\s+)?("?[A-Z0-9_]+"?))?/g;
+  let m: RegExpExecArray | null;
+  const reserved = new Set(['WHERE', 'ON', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'FULL', 'CROSS', 'GROUP', 'ORDER', 'LIMIT', 'UNION', 'HAVING', 'LATERAL', 'NATURAL', 'USING', 'OFFSET', 'WINDOW', 'SELECT']);
+  while ((m = re.exec(normalizedUpper))) {
+    const rel = m[1].replace(/"/g, '');
+    names.add(rel.includes('.') ? rel.split('.').pop()! : rel);
+    if (m[2] && !reserved.has(m[2].replace(/"/g, ''))) names.add(m[2].replace(/"/g, ''));
+  }
+  return [...names];
+}
+
+/** Enforces the data-access policy on a validated SELECT. Returns a reason when rejected. */
+function checkDataPolicy(stripped: string, canSeePayroll: boolean): string | null {
+  const upper = stripped.replace(/\s+/g, ' ').toUpperCase();
+  const lower = upper.toLowerCase();
+
+  if (ROW_SERIALISATION_FUNCTIONS.test(lower)) {
+    return 'Whole-row serialisation functions (row_to_json, to_json, json_agg, …) are not allowed. Select specific columns instead.';
+  }
+
+  const relations = referencedRelations(upper).map((r) => r.toLowerCase());
+  // Casting or wrapping a whole row/alias (u::text, (u).*, func(u)) is also row serialisation.
+  for (const rel of relations) {
+    const r = rel.replace(/[^a-z0-9_]/g, '');
+    if (!r) continue;
+    const wholeRow = new RegExp(`(\\b${r}\\s*::)|(\\(\\s*${r}\\s*\\))|(\\b${r}\\s*\\)\\s*\\.\\s*\\*)`, 'i');
+    if (wholeRow.test(lower)) {
+      return 'Casting or wrapping an entire row is not allowed. Select specific columns instead.';
+    }
+  }
+
+  for (const t of SECRET_TABLES) {
+    if (new RegExp(`\\b${t}\\b`, 'i').test(lower)) return 'That table contains credentials and cannot be queried.';
+  }
+  const identifiers = lower.match(/[a-z_][a-z0-9_]*/g) || [];
+  if (identifiers.some((id) => SECRET_COLUMN_PATTERN.test(id))) {
+    return 'Credential and secret columns cannot be queried.';
+  }
+
+  if (!canSeePayroll) {
+    for (const t of PAYROLL_TABLES) {
+      if (new RegExp(`\\b${t}\\b`, 'i').test(lower)) {
+        return 'Payroll and compensation data is only available to users with payroll permissions.';
+      }
+    }
+    if (identifiers.some((id) => PAYROLL_COLUMN_PATTERN.test(id))) {
+      return 'Salary and compensation fields are only available to users with payroll permissions.';
+    }
+  }
+  return null;
+}
+
+const BCRYPT_RE = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+const HEX_TOKEN_RE = /^[a-f0-9]{48,}$/i;
+const JWT_RE = /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+
+/** Last line of defence: strip sensitive keys (e.g. from SELECT *) and anything that looks like a credential. */
+function redactRows(value: any, canSeePayroll: boolean): any {
+  if (Array.isArray(value)) return value.map((v) => redactRows(v, canSeePayroll));
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (SECRET_COLUMN_PATTERN.test(k)) continue;
+      if (!canSeePayroll && PAYROLL_COLUMN_PATTERN.test(k)) continue;
+      out[k] = redactRows(v, canSeePayroll);
+    }
+    return out;
+  }
+  if (typeof value === 'string' && (BCRYPT_RE.test(value) || HEX_TOKEN_RE.test(value) || JWT_RE.test(value))) {
+    return '[REDACTED]';
+  }
+  return value;
+}
+
 const MAX_RESULT_CHARS = 5000;
 const MAX_ROWS = 100;
 
@@ -121,7 +216,13 @@ export class AiDbQueryService {
 
   constructor(private databaseService: DatabaseService) {}
 
-  getDbTool(tenantSlug: string, userPermissions: string) {
+  /**
+   * @param tenantSlug       tenant whose database is queried
+   * @param userPermissions  the caller's RBAC permission keys (['*'] for owner/admin)
+   */
+  getDbTool(tenantSlug: string, userPermissions: string[] | string = []) {
+    const perms = Array.isArray(userPermissions) ? userPermissions : [userPermissions];
+    const canSeePayroll = perms.some((p) => PAYROLL_PERMISSIONS.includes(p));
     return tool(
       async ({ query }) => {
         try {
@@ -136,6 +237,13 @@ export class AiDbQueryService {
             return `Security Error: ${validation.reason} Only read-only SELECT queries are permitted.`;
           }
           const safeQuery = validation.sanitized!;
+
+          // ── SECURITY: column/table data-access policy ─────────────────────
+          const policyViolation = checkDataPolicy(stripSqlComments(safeQuery), canSeePayroll);
+          if (policyViolation) {
+            this.logger.warn(`[AI-DB-QUERY] Policy rejection for tenant ${tenantSlug}: ${policyViolation}`);
+            return `Access Denied: ${policyViolation}`;
+          }
           // ─────────────────────────────────────────────────────────────────
 
           // Look up tenant database by slug
@@ -166,7 +274,7 @@ export class AiDbQueryService {
           }
           // ─────────────────────────────────────────────────────────────────
 
-          const jsonString = JSON.stringify(results);
+          const jsonString = JSON.stringify(redactRows(results, canSeePayroll));
           if (jsonString.length > MAX_RESULT_CHARS) {
             return (
               jsonString.substring(0, MAX_RESULT_CHARS) +

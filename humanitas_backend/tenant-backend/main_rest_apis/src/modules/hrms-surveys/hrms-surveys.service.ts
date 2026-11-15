@@ -29,78 +29,10 @@ export class HrmsSurveysService {
 
   private async ensureTables(connection: any) {
     try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS surveys (
-          id VARCHAR(36) PRIMARY KEY,
-          company_id VARCHAR(36),
-          branch_id VARCHAR(36),
-          title VARCHAR(255) NOT NULL,
-          description TEXT,
-          survey_type VARCHAR(50) DEFAULT 'pulse',
-          status VARCHAR(50) DEFAULT 'active',
-          is_anonymous BOOLEAN DEFAULT TRUE,
-          min_responses_for_results INT DEFAULT 3,
-          target_audience VARCHAR(50) DEFAULT 'all',
-          target_department VARCHAR(100),
-          target_branch_id VARCHAR(36),
-          start_date DATE,
-          end_date DATE,
-          created_by VARCHAR(36),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS survey_questions (
-          id VARCHAR(36) PRIMARY KEY,
-          survey_id VARCHAR(36) NOT NULL,
-          question_text TEXT NOT NULL,
-          question_type VARCHAR(50) NOT NULL,
-          options TEXT,
-          is_required BOOLEAN DEFAULT TRUE,
-          sort_order INT DEFAULT 0,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS survey_responses (
-          id VARCHAR(36) PRIMARY KEY,
-          survey_id VARCHAR(36) NOT NULL,
-          user_id VARCHAR(36),
-          submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS survey_answers (
-          id VARCHAR(36) PRIMARY KEY,
-          response_id VARCHAR(36) NOT NULL,
-          question_id VARCHAR(36) NOT NULL,
-          rating_value INT,
-          text_value TEXT,
-          selected_option VARCHAR(255),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS survey_action_items (
-          id VARCHAR(36) PRIMARY KEY,
-          survey_id VARCHAR(36) NOT NULL,
-          department VARCHAR(100),
-          title VARCHAR(255) NOT NULL,
-          description TEXT,
-          assigned_to_user_id VARCHAR(36),
-          due_date DATE,
-          status VARCHAR(50) DEFAULT 'open',
-          resolution_notes TEXT,
-          created_by VARCHAR(36),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
       // Seed default pulse survey templates if empty
       const existing = await connection.query(`SELECT COUNT(*) as count FROM surveys`);

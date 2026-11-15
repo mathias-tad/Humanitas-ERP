@@ -336,7 +336,8 @@ User message: ${message || 'Please analyse this document and provide a summary.'
     }
 
     const uiTools = this.toolRouter.getTools(tenantSlug, roleContext);
-    const dbTools = [this.dbQueryService.getDbTool(tenantSlug, roleContext)];
+    // SECURITY: pass real permission keys so payroll data is only exposed to payroll users
+    const dbTools = [this.dbQueryService.getDbTool(tenantSlug, userPermissions)];
     const analyticsTools = this.analyticsService.getAnalyticsTools(tenantSlug);
     // SECURITY: Pass userPermissions so only RBAC-permitted action tools are returned.
     // GATING: Only equip action tools if tenant package includes 'ai.actions' or 'ai.full'

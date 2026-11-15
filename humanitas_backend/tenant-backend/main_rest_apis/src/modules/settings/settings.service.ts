@@ -33,19 +33,6 @@ export class SettingsService {
     }
     return tenant.database_name;
   }
-
-  private async ensureSettingsTable(connection: any): Promise<void> {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        category VARCHAR(50) NOT NULL UNIQUE,
-        data JSONB NOT NULL DEFAULT '{}',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
   async getSettings(tenantIdentifier: string, category?: string) {
     let connection;
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdentifier);
@@ -57,7 +44,6 @@ export class SettingsService {
       connection = await this.databaseService.getTenantConnection(databaseName);
     }
 
-    await this.ensureSettingsTable(connection);
 
     if (category) {
       const result = await connection.query(
@@ -83,7 +69,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'general');
     const merged = { ...existing, ...dto };
@@ -105,7 +90,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'company');
     const merged = { ...existing, ...dto };
@@ -130,7 +114,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'notifications');
     const merged = { ...existing, ...dto };
@@ -144,28 +127,11 @@ export class SettingsService {
     return merged;
   }
 
-  // Departments CRUD
-  private async ensureDepartmentsTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS departments (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        parent_id UUID,
-        manager_id UUID,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-
   async getDepartments(tenantSlug: string) {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureDepartmentsTable(connection);
 
     const result = await connection.query(
       `SELECT * FROM departments WHERE is_active = true ORDER BY name`,
@@ -181,7 +147,6 @@ export class SettingsService {
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
 
-    await this.ensureDepartmentsTable(connection);
 
     const result = await connection.query(
       `INSERT INTO departments (name, description, parent_id) VALUES ($1, $2, $3) RETURNING *`,
@@ -250,29 +215,6 @@ export class SettingsService {
   // Companies CRUD
   // =============================================
   private async ensureCompaniesTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS companies (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(200) NOT NULL,
-        legal_name VARCHAR(200),
-        registration_number VARCHAR(100),
-        tax_number VARCHAR(100),
-        industry VARCHAR(100),
-        address TEXT,
-        city VARCHAR(100),
-        state VARCHAR(100),
-        country VARCHAR(100),
-        postal_code VARCHAR(20),
-        phone VARCHAR(50),
-        email VARCHAR(200),
-        website VARCHAR(200),
-        logo_url TEXT,
-        is_active BOOLEAN DEFAULT true,
-        is_default BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
     // Ensure there is always at least one default company
     const existing = await connection.query(`SELECT id FROM companies WHERE is_default = true LIMIT 1`);
     if (existing.length === 0) {
@@ -363,26 +305,6 @@ export class SettingsService {
   // Branches CRUD
   // =============================================
   private async ensureBranchesTable(connection: any) {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS branches (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
-        name VARCHAR(200) NOT NULL,
-        code VARCHAR(50),
-        address TEXT,
-        city VARCHAR(100),
-        state VARCHAR(100),
-        country VARCHAR(100),
-        postal_code VARCHAR(20),
-        phone VARCHAR(50),
-        email VARCHAR(200),
-        manager_id UUID,
-        is_active BOOLEAN DEFAULT true,
-        is_default BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
     // Ensure there is always at least one default branch per default company
     const existing = await connection.query(`SELECT id FROM branches WHERE is_default = true LIMIT 1`);
     if (existing.length === 0) {
@@ -504,7 +426,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'hr');
     const merged = { ...existing, ...dto };
@@ -523,10 +444,8 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     // Ensure payroll tables and seed defaults exist
-    await this.ensurePayrollTables(connection);
     await this.seedDefaultCategories(connection);
     await this.seedDefaultIncomeTypes(connection);
 
@@ -591,7 +510,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     // 1. Update basic payroll settings (JSON)
     const existing = await this.getSettings(tenantSlug, 'payroll');
@@ -736,7 +654,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'tasks');
     const merged = { ...existing, ...dto };
@@ -759,7 +676,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'kpi');
     const merged = { ...existing, ...dto };
@@ -782,7 +698,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'email');
     const merged = { ...existing, ...dto };
@@ -805,7 +720,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'integrations');
     const merged = { ...existing, ...dto };
@@ -1070,60 +984,6 @@ export class SettingsService {
     }
   }
 
-  // ==================== SEEDING HELPERS ====================
-  // Duplicated from PayrollService to ensure settings page triggers seeding
-  private async ensurePayrollTables(connection: any) {
-    // Basic tables needed for settings
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS income_types (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        is_taxable BOOLEAN DEFAULT true,
-        is_pensionable BOOLEAN DEFAULT false,
-        calculation_type VARCHAR(20) DEFAULT 'fixed',
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        check(calculation_type in ('fixed', 'percentage'))
-      )
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS income_type_category_rules (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        income_type_id UUID NOT NULL REFERENCES income_types(id) ON DELETE CASCADE,
-        employee_category_id UUID NOT NULL REFERENCES employee_categories(id) ON DELETE CASCADE,
-        fixed_amount DECIMAL(15,2) DEFAULT NULL,
-        percentage_value DECIMAL(5,2) DEFAULT NULL,
-        calculation_mode VARCHAR(20) DEFAULT 'both_highest',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(income_type_id, employee_category_id),
-        CHECK(calculation_mode IN ('fixed_only', 'percentage_only', 'both_highest'))
-      )
-    `);
-
-    // Add columns if missing
-    await connection.query(`
-      DO $$ BEGIN
-        ALTER TABLE income_types ADD COLUMN IF NOT EXISTS is_category_specific BOOLEAN DEFAULT false;
-        ALTER TABLE income_types ADD COLUMN IF NOT EXISTS universal_fixed_amount DECIMAL(15,2) DEFAULT NULL;
-        ALTER TABLE income_types ADD COLUMN IF NOT EXISTS universal_percentage_value DECIMAL(5,2) DEFAULT NULL;
-        ALTER TABLE income_types ADD COLUMN IF NOT EXISTS universal_calculation_mode VARCHAR(20) DEFAULT 'both_highest';
-      EXCEPTION WHEN others THEN NULL;
-      END $$;
-    `);
-
-    // Ensure is_active column exists (Fix for 500 error)
-    await connection.query(`
-      DO $$ BEGIN
-        ALTER TABLE income_types ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
-      EXCEPTION WHEN others THEN NULL;
-      END $$;
-    `);
-  }
-
   private async seedDefaultCategories(connection: any) {
     const categories = [
       { slug: 'management', name: 'Management', description: 'Senior Management Members' },
@@ -1131,29 +991,6 @@ export class SettingsService {
       { slug: 'general', name: 'General Staff', description: 'Standard office employees' },
     ];
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS employee_categories(
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        slug VARCHAR(50) NOT NULL UNIQUE,
-        name VARCHAR(100) NOT NULL,
-        description TEXT,
-        default_transport_allowance DECIMAL(10, 2) DEFAULT 0,
-        default_per_diem_fixed DECIMAL(10, 2) DEFAULT 0,
-        per_diem_no_receipt_fixed DECIMAL(10, 2) DEFAULT 0,
-        per_diem_no_receipt_percent DECIMAL(5, 2) DEFAULT 0,
-        per_diem_receipt_fixed DECIMAL(10, 2) DEFAULT 0,
-        per_diem_receipt_percent DECIMAL(5, 2) DEFAULT 0,
-        desert_min_percent DECIMAL(5, 2) DEFAULT 0,
-        desert_mid_percent DECIMAL(5, 2) DEFAULT 0,
-        desert_max_percent DECIMAL(5, 2) DEFAULT 0,
-        hardship_min_percent DECIMAL(5, 2) DEFAULT 0,
-        hardship_mid_percent DECIMAL(5, 2) DEFAULT 0,
-        hardship_max_percent DECIMAL(5, 2) DEFAULT 0,
-        is_system BOOLEAN DEFAULT false,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
 
     for (const cat of categories) {
       await connection.query(`
@@ -1258,7 +1095,6 @@ export class SettingsService {
     );
 
     // Ensure table structure exists (including is_active column)
-    await this.ensurePayrollTables(connection);
 
     const result = await connection.query(`
       SELECT id, name, description, is_taxable, is_pensionable, calculation_type, 
@@ -1279,7 +1115,6 @@ export class SettingsService {
     const databaseName = await this.getTenantDatabaseName(tenantSlug);
     const connection =
       await this.databaseService.getTenantConnection(databaseName);
-    await this.ensureSettingsTable(connection);
 
     const existing = await this.getSettings(tenantSlug, 'theme');
     const merged = { ...existing, ...dto };

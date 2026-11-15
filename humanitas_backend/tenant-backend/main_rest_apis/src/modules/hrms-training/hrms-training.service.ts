@@ -30,74 +30,9 @@ export class HrmsTrainingService {
 
   private async ensureTables(connection: any) {
     try {
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS training_courses (
-          id VARCHAR(36) PRIMARY KEY,
-          title VARCHAR(255) NOT NULL,
-          category VARCHAR(100) NOT NULL,
-          description TEXT,
-          prerequisites TEXT,
-          delivery_method VARCHAR(50) DEFAULT 'online',
-          duration_hours NUMERIC(5, 2) DEFAULT 1.0,
-          capacity_limit INT DEFAULT 50,
-          is_mandatory BOOLEAN DEFAULT false,
-          passing_score INT DEFAULT 80,
-          provider_name VARCHAR(255),
-          cost_per_learner NUMERIC(10, 2) DEFAULT 0.0,
-          is_active BOOLEAN DEFAULT true,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS training_sessions (
-          id VARCHAR(36) PRIMARY KEY,
-          course_id VARCHAR(36) NOT NULL,
-          instructor_name VARCHAR(255),
-          venue_or_link VARCHAR(500),
-          start_time TIMESTAMP NOT NULL,
-          end_time TIMESTAMP NOT NULL,
-          max_participants INT DEFAULT 30,
-          status VARCHAR(50) DEFAULT 'scheduled',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS training_enrollments (
-          id VARCHAR(36) PRIMARY KEY,
-          course_id VARCHAR(36) NOT NULL,
-          session_id VARCHAR(36),
-          user_id VARCHAR(36) NOT NULL,
-          enrolled_by VARCHAR(36),
-          status VARCHAR(50) DEFAULT 'confirmed',
-          completion_percentage INT DEFAULT 0,
-          score NUMERIC(5, 2),
-          attendance_confirmed BOOLEAN DEFAULT false,
-          certificate_issued BOOLEAN DEFAULT false,
-          completion_date DATE,
-          expiry_date DATE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS employee_skills (
-          id VARCHAR(36) PRIMARY KEY,
-          user_id VARCHAR(36) NOT NULL,
-          skill_name VARCHAR(150) NOT NULL,
-          category VARCHAR(100) NOT NULL,
-          proficiency_level VARCHAR(50) DEFAULT 'intermediate',
-          verified BOOLEAN DEFAULT false,
-          verified_by VARCHAR(36),
-          verified_at TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
 
       // Seed standard default courses if none exist
       const existing = await connection.query(`SELECT COUNT(*) as count FROM training_courses`);

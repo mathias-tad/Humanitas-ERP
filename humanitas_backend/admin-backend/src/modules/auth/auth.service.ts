@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { UserTenantMap, UserRole } from '../user/entities/user-tenant-map.entity';
 import { AdminUser, AdminRole } from '../user/entities/admin-user.entity';
 import { Tenant } from '../tenant/entities/tenant.entity';
@@ -25,6 +26,7 @@ export interface JwtPayload {
   tenantSlug?: string;
   role: string;
   type: 'user' | 'admin';
+  token_use?: 'access' | 'refresh';
   [key: string]: unknown;
 }
 
@@ -217,10 +219,8 @@ export class AuthService {
       type: 'admin',
     };
 
-    const access_token = this.jwtService.sign({ ...payload });
-    const refresh_token = this.jwtService.sign({ ...payload }, {
-      expiresIn: '30d',
-    });
+    const access_token = this.signAccessToken(payload);
+    const refresh_token = this.signRefreshToken(payload);
 
     // Update last login and refresh token
     admin.last_login_at = new Date();
@@ -267,7 +267,12 @@ export class AuthService {
     refresh_token: string;
   }> {
     try {
-      const payload = this.jwtService.verify<JwtPayload>(refreshToken);
+      const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
+        secret: this.getRefreshSecret(),
+      });
+      if (payload.token_use !== 'refresh') {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
       if (payload.type === 'admin') {
         const admin = await this.adminUserRepository.findOne({
@@ -284,10 +289,8 @@ export class AuthService {
           type: 'admin',
         };
 
-        const access_token = this.jwtService.sign({ ...newPayload });
-        const refresh_token = this.jwtService.sign({ ...newPayload }, {
-          expiresIn: '30d',
-        });
+        const access_token = this.signAccessToken(newPayload);
+        const refresh_token = this.signRefreshToken(newPayload);
 
         admin.refresh_token = refresh_token;
         await this.adminUserRepository.save(admin);
@@ -310,14 +313,40 @@ export class AuthService {
   }
 
   async logout(userId: string, type: 'user' | 'admin'): Promise<void> {
+    // NOTE: TypeORM skips `undefined` in update(); use null to actually clear the column.
     if (type === 'admin') {
-      await this.adminUserRepository.update(userId, { refresh_token: undefined });
+      await this.adminUserRepository.update(userId, { refresh_token: null as any });
     } else {
-      await this.userTenantRepository.update(userId, { refresh_token: undefined });
+      await this.userTenantRepository.update(userId, { refresh_token: null as any });
     }
   }
 
   // ==================== HELPERS ====================
+
+  /**
+   * Refresh tokens use a different signing key from access tokens, so the JWT strategy
+   * (which verifies with JWT_SECRET) can never accept a refresh token as an access token.
+   */
+  private getRefreshSecret(): string {
+    const accessSecret = this.configService.get<string>('JWT_SECRET') || '';
+    const configured = this.configService.get<string>('JWT_REFRESH_SECRET') || '';
+    if (configured && configured !== accessSecret) return configured;
+    return crypto.createHmac('sha256', accessSecret).update('humanitas-admin-refresh-token-v1').digest('hex');
+  }
+
+  private signAccessToken(payload: JwtPayload): string {
+    return this.jwtService.sign({ ...payload, token_use: 'access' });
+  }
+
+  private signRefreshToken(payload: JwtPayload): string {
+    return this.jwtService.sign(
+      { ...payload, token_use: 'refresh' },
+      {
+        secret: this.getRefreshSecret(),
+        expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '30d') as any,
+      },
+    );
+  }
 
   private async generateTokens(userMapping: UserTenantMap): Promise<{
     access_token: string;
@@ -332,10 +361,8 @@ export class AuthService {
       type: 'user',
     };
 
-    const access_token = this.jwtService.sign({ ...payload });
-    const refresh_token = this.jwtService.sign({ ...payload }, {
-      expiresIn: '30d',
-    });
+    const access_token = this.signAccessToken(payload);
+    const refresh_token = this.signRefreshToken(payload);
 
     // Save refresh token
     userMapping.refresh_token = refresh_token;

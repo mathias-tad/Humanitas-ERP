@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_BASE_URL } from "@/config/api.config";
+import { api } from "@/lib/api";
 import {
     Table,
     TableBody,
@@ -42,13 +42,8 @@ export function AbsencePenalties() {
     const { data: penalties = [], isLoading } = useQuery({
         queryKey: ["absence-penalties", "pending"],
         queryFn: async () => {
-            const response = await fetch(`${API_BASE_URL}/absence-penalty/pending`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`, // Start with simple token retrieval
-                },
-            });
-            if (!response.ok) throw new Error("Failed to fetch penalties");
-            return response.json();
+            // Auth is the HttpOnly cookie (credentials: 'include' + refresh-on-401 inside api)
+            return api.get<any[]>("/absence-penalty/pending");
         },
         enabled: !!hasPermission("absence_penalty_approve"),
     });
@@ -56,14 +51,7 @@ export function AbsencePenalties() {
     // Approve Mutation
     const approveMutation = useMutation({
         mutationFn: async (id: string) => {
-            const response = await fetch(`${API_BASE_URL}/absence-penalty/${id}/approve`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            if (!response.ok) throw new Error("Failed to approve penalty");
-            return response.json();
+            return api.post(`/absence-penalty/${id}/approve`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["absence-penalties"] });
@@ -77,16 +65,7 @@ export function AbsencePenalties() {
     // Reject Mutation
     const rejectMutation = useMutation({
         mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-            const response = await fetch(`${API_BASE_URL}/absence-penalty/${id}/reject`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify({ reason }),
-            });
-            if (!response.ok) throw new Error("Failed to reject penalty");
-            return response.json();
+            return api.post(`/absence-penalty/${id}/reject`, { reason });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["absence-penalties"] });

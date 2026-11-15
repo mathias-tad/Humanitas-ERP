@@ -10,37 +10,10 @@ export class NotificationReportsService {
   private async getConnection(tenantId: string) {
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureTables(conn);
       this.ensuredTenants.add(tenantId);
     }
     return conn;
   }
-
-  private async ensureTables(conn: any) {
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS notification_delivery_logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        tenant_id VARCHAR(36),
-        user_id VARCHAR(36),
-        category VARCHAR(100),
-        channel VARCHAR(10) NOT NULL,
-        status VARCHAR(20) DEFAULT 'sent',
-        template_name VARCHAR(100),
-        recipient_email VARCHAR(255),
-        error_message TEXT,
-        sent_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Add index if not exists
-    await conn.query(`
-      CREATE INDEX IF NOT EXISTS idx_ndl_tenant_sent ON notification_delivery_logs(tenant_id, sent_at);
-      ALTER TABLE notification_delivery_logs ADD COLUMN IF NOT EXISTS message_id VARCHAR(100);
-      ALTER TABLE notification_delivery_logs ADD COLUMN IF NOT EXISTS opened_at TIMESTAMP;
-      CREATE INDEX IF NOT EXISTS idx_ndl_msg_id ON notification_delivery_logs(message_id);
-    `).catch(() => {/* index may already exist */});
-  }
-
   async logDelivery(
     tenantId: string,
     data: {
@@ -153,16 +126,6 @@ export class NotificationReportsService {
     none: number;
   }> {
     const conn = await this.getConnection(tenantId);
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS user_notification_preferences (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        user_id UUID NOT NULL,
-        category VARCHAR(100) NOT NULL,
-        channel VARCHAR(10) NOT NULL DEFAULT 'both',
-        updated_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(user_id, category)
-      )
-    `).catch(() => {});
 
     const rows = await conn.query(`
       SELECT channel, COUNT(DISTINCT user_id)::int as count 

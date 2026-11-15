@@ -22,42 +22,10 @@ export class SelfServiceService {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureTables(connection);
       this.ensuredTenants.add(tenantId);
     }
     return connection;
   }
-
-  async ensureTables(connection: any) {
-    try {
-      // Ensure extra user columns if not exist
-      await connection.query(`
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100);
-      `);
-
-      // Profile sensitive change request table
-      await connection.query(`
-        CREATE TABLE IF NOT EXISTS profile_change_requests (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL,
-          field_name VARCHAR(100) NOT NULL,
-          current_value TEXT,
-          proposed_value TEXT NOT NULL,
-          reason TEXT,
-          supporting_doc_url TEXT,
-          status VARCHAR(50) DEFAULT 'pending',
-          reviewed_by UUID,
-          reviewed_at TIMESTAMP,
-          reviewer_notes TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-    } catch (e) {
-      this.logger.error('Failed to ensure self-service tables', e);
-    }
-  }
-
   async getDashboard(tenantId: string, userId: string) {
     const connection = await this.getConnection(tenantId);
 

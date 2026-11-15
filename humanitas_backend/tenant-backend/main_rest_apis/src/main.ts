@@ -14,8 +14,29 @@ import { join } from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { LoggerService } from './modules/logger/logger.service';
+import { setUploadResponseHeaders } from './modules/messaging/upload-utils';
+import axios from 'axios';
+
+/**
+ * Attach the shared INTERNAL_SERVICE_SECRET to every outgoing axios call that targets the
+ * admin backend (ADMIN_BACKEND_URL) — and only those, so the secret never reaches third parties.
+ * The admin backend's InternalServiceGuard rejects internal calls without it.
+ */
+function installInternalServiceAuth(): void {
+  const adminBase = (process.env.ADMIN_BACKEND_URL || '').replace(/\/+$/, '');
+  const secret = process.env.INTERNAL_SERVICE_SECRET || '';
+  if (!adminBase || !secret) return;
+  axios.interceptors.request.use((config) => {
+    const url = `${config.baseURL || ''}${config.url || ''}`;
+    if (url === adminBase || url.startsWith(`${adminBase}/`)) {
+      (config.headers as any)['x-internal-service-key'] = secret;
+    }
+    return config;
+  });
+}
 
 async function bootstrap() {
+
   // Ensure uploads directory exists
   const uploadsDir = join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -29,6 +50,9 @@ async function bootstrap() {
 
   // Enable graceful shutdown on SIGTERM / SIGINT for Docker containers
   app.enableShutdownHooks();
+
+  // After app creation so ConfigModule has loaded .env into process.env (local dev)
+  installInternalServiceAuth();
 
   // Wire ALL NestJS Logger calls (in every module) through our Winston LoggerService
   const logger = app.get(LoggerService);
@@ -59,6 +83,12 @@ async function bootstrap() {
   await app.register(fastifyStatic as any, {
     root: uploadsDir,
     prefix: '/uploads/',
+    index: false,
+    list: false,
+    dotfiles: 'deny',
+    // SECURITY: nosniff + sandbox CSP + forced download for non-media types,
+    // so an uploaded file can never execute script on the API origin.
+    setHeaders: (res: any, filePath: string) => setUploadResponseHeaders(res, filePath),
   });
 
   // Register Fastify content type parsers for ADMS biometric terminals (text/plain, octet-stream)

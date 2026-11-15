@@ -6,72 +6,14 @@ import { NOTIFICATION_CATEGORY_PERMISSION_MAP, NOTIFICATION_CATEGORY_MODULE_MAP 
 
 @Injectable()
 export class NotificationsService {
-    private ensuredDatabases = new Set<string>();
 
     constructor(
         private readonly databaseService: DatabaseService,
         private readonly notificationsGateway: NotificationsGateway,
         @Optional() private readonly pushNotificationService?: PushNotificationService,
     ) { }
-
-    async ensureNotificationsTables(connection: any) {
-        const dbName = connection.options?.database || 'default';
-        if (this.ensuredDatabases.has(dbName)) return;
-
-        try {
-            await connection.query(`
-                CREATE TABLE IF NOT EXISTS notifications (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    user_id UUID NOT NULL,
-                    type VARCHAR(50) NOT NULL,
-                    reference_id UUID,
-                    title VARCHAR(255) NOT NULL,
-                    message TEXT,
-                    deep_link VARCHAR(500),
-                    is_read BOOLEAN DEFAULT FALSE,
-                    created_at TIMESTAMP DEFAULT NOW()
-                );
-                ALTER TABLE notifications ADD COLUMN IF NOT EXISTS deep_link VARCHAR(500);
-                CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-                CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(user_id, is_read);
-                CREATE TABLE IF NOT EXISTS user_notification_preferences (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    user_id UUID NOT NULL,
-                    category VARCHAR(100) NOT NULL,
-                    channel VARCHAR(10) NOT NULL DEFAULT 'both',
-                    updated_at TIMESTAMP DEFAULT NOW(),
-                    UNIQUE(user_id, category)
-                );
-                CREATE INDEX IF NOT EXISTS idx_notif_prefs_user ON user_notification_preferences(user_id);
-                CREATE TABLE IF NOT EXISTS push_device_tokens (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    user_id UUID NOT NULL,
-                    token VARCHAR(500) NOT NULL,
-                    platform VARCHAR(20) DEFAULT 'android',
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at TIMESTAMP DEFAULT NOW(),
-                    updated_at TIMESTAMP DEFAULT NOW(),
-                    CONSTRAINT uniq_user_token UNIQUE (user_id, token)
-                );
-                CREATE INDEX IF NOT EXISTS idx_push_device_tokens_user ON push_device_tokens(user_id);
-            `);
-            this.ensuredDatabases.add(dbName);
-        } catch (err: any) {
-            if (
-                err.message?.includes('pg_type_typname_nsp_index') ||
-                err.message?.includes('already exists') ||
-                err.code === '23505'
-            ) {
-                this.ensuredDatabases.add(dbName);
-                return;
-            }
-            throw err;
-        }
-    }
-
     async getUserNotifications(tenantId: string, userId: string, limit = 20) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureNotificationsTables(connection);
 
         return connection.query(`
             SELECT id, user_id, type, reference_id, title, message, deep_link, is_read,
@@ -85,7 +27,6 @@ export class NotificationsService {
 
     async getUnreadCount(tenantId: string, userId: string): Promise<number> {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureNotificationsTables(connection);
 
         const result = await connection.query(`
             SELECT COUNT(*) as count FROM notifications 
@@ -101,7 +42,6 @@ export class NotificationsService {
         data: { type: string; referenceId?: string; title: string; message?: string; priority?: string; deep_link?: string }
     ) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureNotificationsTables(connection);
 
         const result = await connection.query(`
             INSERT INTO notifications (user_id, type, reference_id, title, message, deep_link)
@@ -146,7 +86,6 @@ export class NotificationsService {
         if (!userIds.length) return [];
 
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
-        await this.ensureNotificationsTables(connection);
 
         const results: any[] = [];
         for (const userId of userIds) {
@@ -276,7 +215,6 @@ export class NotificationsService {
     userPermissions: string[],
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     const activeModules = await this.getActiveModulesForTenant(connection);
 
     const saved = await connection.query(
@@ -324,7 +262,6 @@ export class NotificationsService {
     userPermissions: string[],
   ) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     const activeModules = await this.getActiveModulesForTenant(connection);
 
     const requiredPermission = NOTIFICATION_CATEGORY_PERMISSION_MAP[category];
@@ -385,7 +322,6 @@ export class NotificationsService {
     category: string,
   ): Promise<string> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     const activeModules = await this.getActiveModulesForTenant(connection);
 
     // If module is not active for this tenant, block notifications completely
@@ -403,13 +339,6 @@ export class NotificationsService {
 
   async getDigestConfig(tenantId: string): Promise<{ mode: 'instant' | 'daily' | 'weekly'; digest_time: string }> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).catch(() => {});
 
     const rows = await connection.query(`
       SELECT key, value FROM system_settings 
@@ -429,13 +358,6 @@ export class NotificationsService {
 
   async updateDigestConfig(tenantId: string, config: { mode: string; digest_time?: string }): Promise<{ success: boolean; mode: string; digest_time: string }> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).catch(() => {});
 
     if (config.mode) {
       await connection.query(`
@@ -467,7 +389,6 @@ export class NotificationsService {
     platform: 'android' | 'ios' | 'web' = 'android',
   ): Promise<void> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     await connection.query(`
       INSERT INTO push_device_tokens (user_id, token, platform, is_active, updated_at)
       VALUES ($1, $2, $3, TRUE, NOW())
@@ -482,7 +403,6 @@ export class NotificationsService {
     token: string,
   ): Promise<void> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     await connection.query(`
       UPDATE push_device_tokens 
       SET is_active = FALSE, updated_at = NOW()
@@ -492,7 +412,6 @@ export class NotificationsService {
 
   async getUserPushTokens(tenantId: string, userId: string): Promise<string[]> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await this.ensureNotificationsTables(connection);
     const rows = await connection.query(`
       SELECT token FROM push_device_tokens 
       WHERE user_id = $1 AND is_active = TRUE
@@ -506,13 +425,6 @@ export class NotificationsService {
     greetingMessage: string;
   }> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).catch(() => {});
 
     const rows = await connection.query(`
       SELECT key, value FROM system_settings 
@@ -541,13 +453,6 @@ export class NotificationsService {
     settings: { enabled?: boolean; notifyColleagues?: boolean; greetingMessage?: string },
   ): Promise<{ enabled: boolean; notifyColleagues: boolean; greetingMessage: string }> {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `).catch(() => {});
 
     if (settings.enabled !== undefined) {
       await connection.query(`

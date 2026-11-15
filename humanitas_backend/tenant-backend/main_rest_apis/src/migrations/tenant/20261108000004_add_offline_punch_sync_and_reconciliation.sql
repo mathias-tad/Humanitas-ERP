@@ -21,14 +21,18 @@ CREATE INDEX IF NOT EXISTS idx_attendance_records_reconciled ON attendance_recor
 CREATE INDEX IF NOT EXISTS idx_attendance_records_pending_ot ON attendance_records(pending_overtime_approval);
 
 -- 3. Register AI Knowledge entry for Offline Biometric Punch Sync & Historical Reconciliation
+-- (fixed: previously targeted columns that do not exist on ai_knowledge_entries,
+--  which made this migration fail on every tenant database)
 INSERT INTO ai_knowledge_entries (
-    id, tenant_id, module, title, slug, content, tags, platform, access_level, created_at, updated_at
+    module_key, feature_name, route_path, mobile_screen_name, mobile_nav_path, platform,
+    page_purpose, available_actions, button_locations, required_permissions, step_by_step_instructions
 ) VALUES (
-    gen_random_uuid(),
-    NULL,
     'attendance',
     'Offline Biometric Sync & Historical Shift Reconciliation',
-    'offline-biometric-sync-reconciliation',
+    '/attendance',
+    'AttendanceScreen',
+    'Bottom Bar -> Home -> Attendance',
+    'both',
     'Humanitas features an automated Offline Biometric Sync & Historical Shift Reconciliation engine for edge biometric terminals and intermittent server connectivity:
 1. Edge Retention: Hardware devices buffer 50,000+ attendance punches in flash memory with local hardware timestamps during network or server downtime.
 2. Chronological Batch Ingestion: Upon reconnection, ADMS or manual USB imports sort batch logs by punch_time ASC per employee, guaranteeing proper sequence evaluation.
@@ -36,9 +40,8 @@ INSERT INTO ai_knowledge_entries (
 4. Historical Reconciliation: When delayed punches arrive for previous days that were auto-closed by midnight cron (missed_out), the system automatically reopens the record, populates actual_out, calculates genuine work_hours, and upgrades status from Incomplete to Present.
 5. Overtime Governance: Extra hours beyond shift end from offline punches are tagged as pending_overtime_approval and routed to the Live Overtime Monitor for supervisory approval rather than blind accrual.
 6. Manual USB Backup: Administrators can upload raw terminal logs (.dat, .txt, .csv) via Time & Attendance -> Biometric ADMS -> Import Offline Logs.',
-    ARRAY['biometric', 'adms', 'offline_sync', 'reconciliation', 'overtime', 'attendance'],
-    'both',
-    'all',
-    NOW(),
-    NOW()
-) ON CONFLICT DO NOTHING;
+    '["import_offline_logs", "view_reconciled_records", "approve_pending_overtime"]'::jsonb,
+    '["Time & Attendance -> Biometric ADMS -> Import Offline Logs"]'::jsonb,
+    '["manage_attendance"]'::jsonb,
+    '{"steps": ["Open Time & Attendance", "Go to Biometric ADMS", "Click Import Offline Logs", "Upload the .dat, .txt or .csv terminal export", "Review reconciled records and pending overtime"]}'::jsonb
+) ON CONFLICT (module_key, feature_name) DO NOTHING;

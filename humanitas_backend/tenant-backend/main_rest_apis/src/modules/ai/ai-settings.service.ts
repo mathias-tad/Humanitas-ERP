@@ -39,14 +39,6 @@ export class AiSettingsConfigService {
 
   async updateAiConfig(tenantId: string, config: Partial<AiSettingsConfig>): Promise<void> {
     const conn = await this.getConn(tenantId);
-    await conn.query(`
-      CREATE TABLE IF NOT EXISTS system_settings (
-        id VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid(),
-        key VARCHAR(100) NOT NULL UNIQUE,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `).catch(() => {});
     const updates: Array<[string, string]> = [];
     if (config.ai_capability_tiers_enabled !== undefined) updates.push(['ai_capability_tiers_enabled', JSON.stringify(config.ai_capability_tiers_enabled)]);
     if (config.max_action_records_per_bulk !== undefined) updates.push(['ai_max_action_records', String(config.max_action_records_per_bulk)]);

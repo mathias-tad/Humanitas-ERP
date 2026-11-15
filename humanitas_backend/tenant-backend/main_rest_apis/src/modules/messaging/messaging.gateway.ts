@@ -10,6 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { DatabaseService } from '../database/database.service';
+import { isActiveParticipant } from './conversation-membership';
 
 @WebSocketGateway({
     cors: { origin: true, credentials: true },
@@ -19,10 +21,30 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
     @WebSocketServer()
     server: Server;
 
+    /** Short-lived cache of conversation participants (typing events are frequent). */
+    private readonly participantCache = new Map<string, { ids: string[]; expires: number }>();
+
     constructor(
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
+        private readonly databaseService: DatabaseService,
     ) { }
+
+    private async getParticipantIds(tenantId: string, conversationId: string): Promise<string[]> {
+        const key = `${tenantId}:${conversationId}`;
+        const hit = this.participantCache.get(key);
+        if (hit && hit.expires > Date.now()) return hit.ids;
+        const ds = await this.databaseService.getTenantConnectionById(tenantId);
+        const rows = await ds.query(
+            `SELECT user_id FROM conversation_participants
+             WHERE conversation_id::text = $1 AND left_at IS NULL`,
+            [String(conversationId)],
+        );
+        const ids = rows.map((r: any) => String(r.user_id));
+        this.participantCache.set(key, { ids, expires: Date.now() + 30_000 });
+        if (this.participantCache.size > 5000) this.participantCache.clear();
+        return ids;
+    }
 
     async handleConnection(client: Socket) {
         try {
@@ -71,24 +93,45 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
     // ── WS Events (client → server) ──────────────────────────────
 
     @SubscribeMessage('typing')
-    handleTyping(
+    async handleTyping(
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string; isTyping: boolean },
     ) {
-        const { userId, tenantId } = client.data;
-        this.server.to(`tenant:${tenantId}`).emit('typing', {
-            conversationId: data.conversationId,
-            userId,
-            isTyping: data.isTyping,
-        });
+        const { userId, tenantId } = client.data || {};
+        if (!userId || !tenantId || !data?.conversationId) return;
+        try {
+            // Only notify members of this conversation — and only if the sender is one of them.
+            const participantIds = await this.getParticipantIds(tenantId, data.conversationId);
+            if (!participantIds.includes(String(userId))) return;
+            const payload = { conversationId: data.conversationId, userId, isTyping: !!data.isTyping };
+            for (const pid of participantIds) {
+                if (pid !== String(userId)) this.server.to(`user:${tenantId}:${pid}`).emit('typing', payload);
+            }
+        } catch {
+            // ignore transient DB errors for typing indicators
+        }
     }
 
     @SubscribeMessage('joinConversation')
-    handleJoinConversation(
+    async handleJoinConversation(
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string },
     ) {
-        client.join(`conv:${data.conversationId}`);
+        const { userId, tenantId } = client.data || {};
+        if (!userId || !tenantId || !data?.conversationId) {
+            return { ok: false, error: 'unauthorized' };
+        }
+        try {
+            const ds = await this.databaseService.getTenantConnectionById(tenantId);
+            // SECURITY: only current participants may subscribe to a conversation's room.
+            if (!(await isActiveParticipant(ds, data.conversationId, userId))) {
+                return { ok: false, error: 'forbidden' };
+            }
+            client.join(`conv:${data.conversationId}`);
+            return { ok: true };
+        } catch {
+            return { ok: false, error: 'unavailable' };
+        }
     }
 
     @SubscribeMessage('leaveConversation')

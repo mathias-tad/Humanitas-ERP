@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -7,7 +7,9 @@ import { UserTenantMap, UserRole } from './entities/user-tenant-map.entity';
 import { AdminUser, AdminRole } from './entities/admin-user.entity';
 
 @Injectable()
-export class UserService {
+export class UserService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(UserTenantMap)
     private readonly userTenantRepository: Repository<UserTenantMap>,
@@ -100,31 +102,45 @@ export class UserService {
     return this.adminUserRepository.save(admin);
   }
 
-  async seedSuperAdmin(): Promise<{ message: string; admin?: AdminUser }> {
-    console.log('🔧 Running database seed...');
+  /**
+   * Bootstraps the first super admin from environment variables on startup.
+   * There is NO public endpoint for this and NO hardcoded credentials:
+   *   SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD (min 12 chars), SUPER_ADMIN_NAME (optional).
+   * If a super admin already exists, nothing happens (env values are ignored).
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    try {
+      const result = await this.seedSuperAdmin();
+      this.logger.log(result.message);
+    } catch (err) {
+      this.logger.error(`Super admin bootstrap failed: ${err.message}`);
+    }
+  }
 
+  async seedSuperAdmin(): Promise<{ message: string; admin?: AdminUser }> {
     // Create/update all required tables
     await this.createTables();
 
-    // Check if admin exists
     const existingAdmin = await this.adminUserRepository.findOne({
       where: { role: AdminRole.SUPER_ADMIN },
     });
-
     if (existingAdmin) {
-      console.log('✅ Super admin already exists');
-      return { message: 'Database tables updated. Super admin already exists.' };
+      return { message: 'Super admin already exists — bootstrap skipped.' };
     }
 
-    const admin = await this.createAdmin(
-      'admin@saas.com',
-      'admin123456',
-      'Super Admin',
-      AdminRole.SUPER_ADMIN,
-    );
+    const email = (this.configService.get<string>('SUPER_ADMIN_EMAIL') || '').trim().toLowerCase();
+    const password = this.configService.get<string>('SUPER_ADMIN_PASSWORD') || '';
+    const fullName = this.configService.get<string>('SUPER_ADMIN_NAME') || 'Super Admin';
 
-    console.log('✅ Super admin created');
-    return { message: 'Database seeded successfully', admin };
+    if (!email || password.length < 12) {
+      return {
+        message:
+          'No super admin exists. Set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD (min 12 chars) and restart to create one.',
+      };
+    }
+
+    const admin = await this.createAdmin(email, password, fullName, AdminRole.SUPER_ADMIN);
+    return { message: `Super admin created for ${email}. Remove SUPER_ADMIN_PASSWORD from the environment now.`, admin };
   }
 
   private async createTables(): Promise<void> {

@@ -44,7 +44,7 @@ export class SystemLogsService {
         return this.logsRepository.save(log);
     }
 
-    async cleanupStuckJobs(): Promise<void> {
+    async cleanupStuckJobs(tenantId: string): Promise<void> {
         // Update all QUEUED/PROCESSING/PENDING to FAILED
         await this.logsRepository.createQueryBuilder()
             .update(CalculationLog)
@@ -54,6 +54,7 @@ export class SystemLogsService {
                 completed_at: new Date()
             })
             .where("status IN (:...statuses)", { statuses: [CalculationStatus.QUEUED, CalculationStatus.PROCESSING, CalculationStatus.PENDING] })
+            .andWhere('tenant_id = :tenantId', { tenantId })
             .execute();
     }
 
@@ -80,19 +81,12 @@ export class SystemLogsService {
             try {
                 const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
-                // Build status filter for SQL
-                let statusClause = '';
-                if (statuses && statuses.length > 0) {
-                    const statusStrings = statuses.map(s => `'${s.toLowerCase()}'`).join(',');
-                    statusClause = `AND status IN (${statusStrings})`;
-                }
-
                 console.log(`[SystemLogs] Fetching payroll logs for tenant: ${tenantId}`);
-                const payrollRuns = await connection.query(`
-                    SELECT * FROM payroll_runs 
-                    ORDER BY created_at DESC 
-                    LIMIT ${limit}
-                `);
+                const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Math.min(Math.floor(Number(limit)), 500) : 50;
+                const payrollRuns = await connection.query(
+                    `SELECT * FROM payroll_runs ORDER BY created_at DESC LIMIT $1`,
+                    [safeLimit],
+                );
                 console.log(`[SystemLogs] Found ${payrollRuns.length} payroll runs`);
 
                 payrollLogs = payrollRuns.map(run => {
@@ -192,8 +186,9 @@ export class SystemLogsService {
         try {
             // Call Python service
             // Assuming hardcoded URL for now as per previous steps
-            const pythonUrl = 'http://localhost:8000';
-            const response = await fetch(`${pythonUrl}/api/system/logs?lines=${lines}`);
+            const pythonUrl = process.env.CALCULATION_SERVICE_URL || 'http://localhost:8000';
+            const safeLines = Number.isFinite(Number(lines)) && Number(lines) > 0 ? Math.min(Math.floor(Number(lines)), 2000) : 100;
+            const response = await fetch(`${pythonUrl}/api/system/logs?lines=${safeLines}`);
 
             if (!response.ok) {
                 return `Error fetching logs: ${response.statusText}`;

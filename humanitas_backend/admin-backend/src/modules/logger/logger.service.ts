@@ -42,13 +42,29 @@ export class LoggerService {
     }
   }
 
+  /**
+   * Resolves a log file name to an absolute path inside logsDir, or null.
+   * Only plain file names like "app-2026-11-15.log" are accepted — no separators, no "..".
+   */
+  private resolveLogFile(filename: string): string | null {
+    if (typeof filename !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.log$/.test(filename) || filename.includes('..')) {
+      return null;
+    }
+    const base = path.resolve(this.logsDir);
+    const full = path.resolve(base, filename);
+    return path.dirname(full) === base ? full : null;
+  }
+
   readLogFile(filename: string, lines: number = 500, offset: number = 0): { 
     content: string[]; 
     totalLines: number;
     hasMore: boolean;
   } {
     try {
-      const filePath = path.join(this.logsDir, filename);
+      const filePath = this.resolveLogFile(filename);
+      if (!filePath) {
+        throw new Error('invalid log file name');
+      }
       
       // Security check
       if (!filePath.startsWith(this.logsDir) || !filename.endsWith('.log')) {
@@ -79,7 +95,10 @@ export class LoggerService {
 
   searchLogs(filename: string, query: string, limit: number = 100): string[] {
     try {
-      const filePath = path.join(this.logsDir, filename);
+      const filePath = this.resolveLogFile(filename);
+      if (!filePath) {
+        throw new Error('invalid log file name');
+      }
       
       if (!filePath.startsWith(this.logsDir) || !filename.endsWith('.log')) {
         return [];

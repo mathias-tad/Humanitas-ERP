@@ -28,6 +28,10 @@ services:
       - THROTTLE_TTL=60
       - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:5173,http://localhost:1300}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - LEMONSQUEEZY_WEBHOOK_SECRET=${LEMONSQUEEZY_WEBHOOK_SECRET:-}
+      - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL:-}
+      - SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-}
     volumes:
       - ./uploads:/app/uploads
 
@@ -62,6 +66,7 @@ services:
       - CALCULATION_SERVICE_URL=http://python-api:8000
       - CORS_ORIGINS=${CORS_ORIGINS:-https://humanitas.ziontech.tech,https://admin.humanitas.ziontech.tech,https://api.humanitas.ziontech.tech,https://api-admin.humanitas.ziontech.tech,https://humanitas-erp.ziontech.tech,https://admin.humanitas-erp.ziontech.tech,https://api.humanitas-erp.ziontech.tech,https://api-admin.humanitas-erp.ziontech.tech,http://localhost:1300}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
     depends_on:
       - admin-api
@@ -92,6 +97,7 @@ services:
       - JWT_REFRESH_EXPIRES_IN=7d
       - CALCULATION_SERVICE_URL=http://python-api:8000
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
       - MESSAGE_ENCRYPTION_KEY=${MESSAGE_ENCRYPTION_KEY}
     volumes:
       - ./uploads:/app/uploads
@@ -110,6 +116,8 @@ services:
       - "127.0.0.1:5003:8000"
     environment:
       - ADMIN_DATABASE_URL=${DATABASE_URL}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - TENANT_API_INTERNAL_URL=http://tenant-api:3001/api/v1
       - DEBUG=false
     command: python run.py
 
@@ -125,6 +133,8 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - ADMIN_DATABASE_URL=${DATABASE_URL}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET}
+      - TENANT_API_INTERNAL_URL=http://tenant-api:3001/api/v1
       - DEBUG=false
     depends_on:
       - python-api

@@ -19,26 +19,12 @@ export class PerDiemService {
         }
         return `tenant_${tenantSlug.toLowerCase().replace(/-/g, '_')}`;
     }
-
-    private async ensurePerDiemTable(connection: any) {
-        // Ensure status column exists
-        await connection.query(`
-            DO $$ BEGIN
-                ALTER TABLE per_diem_claims ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'PENDING_USER_ACTION';
-                ALTER TABLE per_diem_claims ADD COLUMN IF NOT EXISTS assigned_by UUID DEFAULT NULL;
-                ALTER TABLE per_diem_claims ADD COLUMN IF NOT EXISTS rejection_reason TEXT DEFAULT NULL;
-            EXCEPTION WHEN others THEN NULL;
-            END $$;
-        `);
-    }
-
     /**
      * Admin assigns a per diem claim to a user
      */
     async assignPerDiem(tenantSlug: string, adminId: string, dto: AssignPerDiemDto) {
         const databaseName = await this.getTenantDatabaseName(tenantSlug);
         const connection = await this.databaseService.getTenantConnection(databaseName);
-        await this.ensurePerDiemTable(connection);
 
         // Check if claim already exists for this month/year
         const existing = await connection.query(

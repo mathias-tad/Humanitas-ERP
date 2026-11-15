@@ -5,6 +5,7 @@ import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
+import { ATTENDANCE_SERVICE_PROVIDERS } from './attendance.providers';
 import { AttendanceGateway } from './attendance.gateway';
 import { AttendanceScheduler } from './attendance.scheduler';
 import { KeepAliveService } from './keep-alive.service';
@@ -37,7 +38,7 @@ import { PayrollModule } from '../payroll/payroll.module';
   ],
   controllers: [AttendanceController],
   providers: [
-    AttendanceService,
+    ...ATTENDANCE_SERVICE_PROVIDERS,
     AttendanceGateway,
     AttendanceScheduler,
     KeepAliveService,

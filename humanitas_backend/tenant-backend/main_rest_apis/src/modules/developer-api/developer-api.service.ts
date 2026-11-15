@@ -20,79 +20,9 @@ export class DeveloperApiService {
   private readonly ensuredTenants = new Set<string>();
 
   constructor(private readonly databaseService: DatabaseService) {}
-
-  async ensureDeveloperApiTables(connection: any): Promise<void> {
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS developer_api_keys (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(150) NOT NULL,
-        key_prefix VARCHAR(15) NOT NULL,
-        key_hash VARCHAR(64) NOT NULL UNIQUE,
-        scopes JSONB NOT NULL DEFAULT '[]'::jsonb,
-        rate_limit_per_minute INT NOT NULL DEFAULT 60,
-        is_active BOOLEAN NOT NULL DEFAULT true,
-        expires_at TIMESTAMP NULL,
-        last_used_at TIMESTAMP NULL,
-        request_count INT NOT NULL DEFAULT 0,
-        created_by UUID NULL,
-        company_id UUID NULL,
-        branch_id UUID NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_dev_keys_hash ON developer_api_keys(key_hash);
-      CREATE INDEX IF NOT EXISTS idx_dev_keys_company ON developer_api_keys(company_id);
-
-      CREATE TABLE IF NOT EXISTS webhook_subscriptions (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(150) NOT NULL,
-        target_url TEXT NOT NULL,
-        secret_key VARCHAR(100) NOT NULL,
-        events JSONB NOT NULL DEFAULT '[]'::jsonb,
-        is_active BOOLEAN NOT NULL DEFAULT true,
-        company_id UUID NULL,
-        branch_id UUID NULL,
-        created_by UUID NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_webhooks_company ON webhook_subscriptions(company_id);
-
-      CREATE TABLE IF NOT EXISTS webhook_deliveries (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        webhook_id UUID NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
-        event VARCHAR(100) NOT NULL,
-        payload JSONB NOT NULL,
-        response_status INT NULL,
-        response_body TEXT NULL,
-        attempts INT NOT NULL DEFAULT 1,
-        status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending' | 'success' | 'failed' | 'retrying'
-        duration_ms INT NOT NULL DEFAULT 0,
-        last_attempt_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        created_at TIMESTAMP NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_wh ON webhook_deliveries(webhook_id);
-      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status);
-
-      CREATE TABLE IF NOT EXISTS api_key_activity_logs (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        api_key_id UUID NOT NULL REFERENCES developer_api_keys(id) ON DELETE CASCADE,
-        endpoint VARCHAR(255) NOT NULL,
-        method VARCHAR(10) NOT NULL,
-        status_code INT NOT NULL,
-        ip_address VARCHAR(45) NULL,
-        user_agent TEXT NULL,
-        duration_ms INT NOT NULL DEFAULT 0,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW()
-      );
-      CREATE INDEX IF NOT EXISTS idx_api_logs_key ON api_key_activity_logs(api_key_id);
-    `);
-  }
-
   private async getConnection(tenantId: string) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
     if (!this.ensuredTenants.has(tenantId)) {
-      await this.ensureDeveloperApiTables(connection);
       this.ensuredTenants.add(tenantId);
     }
     return connection;
