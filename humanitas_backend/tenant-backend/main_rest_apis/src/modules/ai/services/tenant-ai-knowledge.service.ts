@@ -246,7 +246,7 @@ export class TenantAiKnowledgeService {
       LEFT JOIN tenant_ai_knowledge_chunks c ON d.id = c.document_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (category) {
@@ -392,7 +392,7 @@ export class TenantAiKnowledgeService {
       JOIN tenant_ai_knowledge_documents d ON c.document_id = d.id
       WHERE d.is_active = true
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (category) {

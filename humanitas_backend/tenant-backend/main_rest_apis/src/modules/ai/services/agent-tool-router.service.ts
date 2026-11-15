@@ -1,3 +1,4 @@
+import { errorMessage } from '../../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
@@ -37,7 +38,7 @@ export class AgentToolRouterService {
             FROM ai_knowledge_entries
             WHERE 1=1
           `;
-          const params: any[] = [];
+          const params: unknown[] = [];
           let idx = 1;
 
           if (module) {
@@ -323,8 +324,8 @@ Content Excerpt:
           }).join('\n\n---\n\n');
 
           return `Found ${results.length} relevant excerpt(s) from official company documents:\n\n${formatted}\n\nDIRECT CITATION MANDATE: When answering, cite the Document Title and Section/Article explicitly. Do not assume or guess anything not written in these excerpts.`;
-        } catch (err: any) {
-          return `Error querying company knowledge vault: ${err.message}`;
+        } catch (err: unknown) {
+          return `Error querying company knowledge vault: ${errorMessage(err)}`;
         }
       },
       {

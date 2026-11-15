@@ -1,3 +1,5 @@
+import { errorMessage } from '../../common/errors';
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import {
@@ -25,7 +27,7 @@ export class HrmsDocumentsService {
     }
     return connection;
   }
-  private async seedDefaultTemplates(connection: any) {
+  private async seedDefaultTemplates(connection: DataSource) {
     const defaultTemplates = [
       {
         code: 'OFFER_LETTER',
@@ -188,7 +190,7 @@ Employee Acknowledgment: ____________________ Date: ____________`,
     const connection = await this.getConnection(tenantId);
 
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters.userId) {
@@ -331,8 +333,8 @@ Employee Acknowledgment: ____________________ Date: ____________`,
            VALUES ($1, 1, $2, $3, $4, $5, 'Initial upload')`,
           [doc.id, doc.file_url, doc.file_name, doc.file_size, creatorUserId || dto.userId],
         );
-      } catch (err: any) {
-        this.logger.warn(`Failed to auto-version document ${doc.id}: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to auto-version document ${doc.id}: ${errorMessage(err)}`);
       }
     }
     return doc;
@@ -364,7 +366,7 @@ Employee Acknowledgment: ____________________ Date: ____________`,
     const connection = await this.getConnection(tenantId);
 
     const conditions: string[] = ['d.expiry_date IS NOT NULL'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (scope?.company_id) {
@@ -417,7 +419,7 @@ Employee Acknowledgment: ____________________ Date: ____________`,
   async getLetterTemplates(tenantId: string, scope?: { company_id?: string; branch_id?: string }) {
     const connection = await this.getConnection(tenantId);
     let query = `SELECT * FROM letter_templates WHERE is_system = true`;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (scope?.company_id) {
       query += ` OR company_id = $1`;
@@ -706,7 +708,7 @@ ${signatureHtml}
   ): Promise<any[]> {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters?.template_id) {
@@ -837,7 +839,7 @@ ${signatureHtml}
   ): Promise<Array<{ id: string; title: string; file_url: string; file_name: string; user_name: string }>> {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters?.user_id) {
@@ -909,8 +911,8 @@ ${signatureHtml}
           ],
         );
         generated++;
-      } catch (err: any) {
-        errors.push(`Employee ${employeeId}: ${err.message}`);
+      } catch (err: unknown) {
+        errors.push(`Employee ${employeeId}: ${errorMessage(err)}`);
       }
     }
     return { generated, errors };

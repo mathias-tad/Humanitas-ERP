@@ -92,7 +92,7 @@ export class UsersService {
 
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (dto.full_name !== undefined) {
@@ -340,7 +340,7 @@ export class UsersService {
     // Ensure roles table exists
 
     const whereConditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (companyId) {
@@ -395,7 +395,7 @@ export class UsersService {
 
 
     const whereConditions: string[] = ['u.is_active = true'];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (companyId) {
@@ -822,7 +822,7 @@ export class UsersService {
     const currentUser = await this.findUserById(tenantSlug, userId);
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (dto.full_name !== undefined) {
@@ -1405,7 +1405,7 @@ export class UsersService {
     const percentColumn = `${type}_allowance_percent`;
 
     let updateQuery = '';
-    let values: any[] = [];
+    let values: unknown[] = [];
 
     if (tier === 'category' || tier === 'none') {
       // Reset to category default
@@ -1779,7 +1779,7 @@ export class UsersService {
       LEFT JOIN users m ON u.manager_id = m.id
       WHERE u.is_active = true
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (department && department.trim() !== '') {
       query += ` AND LOWER(u.department) = LOWER($1)`;
       params.push(department.trim());

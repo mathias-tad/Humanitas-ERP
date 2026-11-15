@@ -1,3 +1,5 @@
+import { errorMessage } from '../../common/errors';
+import type { DataSource } from 'typeorm';
 import { Injectable, Optional } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsGateway } from './notifications.gateway';
@@ -188,7 +190,7 @@ export class NotificationsService {
         return [];
     }
 
-    async getActiveModulesForTenant(connection: any): Promise<string[]> {
+    async getActiveModulesForTenant(connection: DataSource): Promise<string[]> {
         try {
             const rows = await connection.query(
                 `SELECT module_key FROM tenant_modules WHERE is_active = true`
@@ -309,8 +311,8 @@ export class NotificationsService {
           tenantId, userId, pref.category, pref.channel, userPermissions,
         );
         results.push(result);
-      } catch (err: any) {
-        results.push({ success: false, category: pref.category, error: err.message });
+      } catch (err: unknown) {
+        results.push({ success: false, category: pref.category, error: errorMessage(err) });
       }
     }
     return results;

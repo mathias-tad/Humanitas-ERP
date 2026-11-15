@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import {
     WebSocketGateway,
     WebSocketServer,
@@ -71,8 +72,8 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
             this.userSockets.get(userKey)?.add(client.id);
 
             console.log(`[Notifications WS] User ${userId} connected (${client.id})`);
-        } catch (error: any) {
-            console.error('[Notifications WS] Auth error:', error.message);
+        } catch (error: unknown) {
+            console.error('[Notifications WS] Auth error:', errorMessage(error));
             client.disconnect();
         }
     }

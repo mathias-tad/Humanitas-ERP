@@ -1,3 +1,5 @@
+import { errorCode, errorMessage, errorStack } from '../../common/errors';
+import type { DataSource } from 'typeorm';
 import {
   Injectable,
   Logger,
@@ -33,8 +35,8 @@ export class ApprovalsService {
     return connection;
   }
 
-  public async ensureApprovalTables(connection: any, tenantId?: string): Promise<void> {
-    const dbKey = tenantId || connection?.options?.database || 'default';
+  public async ensureApprovalTables(connection: DataSource, tenantId?: string): Promise<void> {
+    const dbKey = tenantId || String(connection?.options?.database || 'default');
     if (this.ensuredDatabases.has(dbKey)) return;
 
     const existingPromise = this.ensuringPromises.get(dbKey);
@@ -53,17 +55,17 @@ export class ApprovalsService {
         }
 
         this.ensuredDatabases.add(dbKey);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (
-          err.message?.includes('already exists') ||
-          err.message?.includes('duplicate key') ||
-          err.code === '42P07' ||
-          err.code === '23505'
+          errorMessage(err).includes('already exists') ||
+          errorMessage(err).includes('duplicate key') ||
+          errorCode(err) === '42P07' ||
+          errorCode(err) === '23505'
         ) {
           this.ensuredDatabases.add(dbKey);
           return;
         }
-        this.logger.error(`Error ensuring approval tables: ${err.message}`, err.stack);
+        this.logger.error(`Error ensuring approval tables: ${errorMessage(err)}`, errorStack(err));
       } finally {
         this.ensuringPromises.delete(dbKey);
       }
@@ -73,7 +75,7 @@ export class ApprovalsService {
     await initPromise;
   }
 
-  private async seedDefaultWorkflows(connection: any): Promise<void> {
+  private async seedDefaultWorkflows(connection: DataSource): Promise<void> {
     try {
       this.logger.log('Seeding default approval workflows...');
 
@@ -215,8 +217,8 @@ export class ApprovalsService {
           [salesWfId],
         );
       }
-    } catch (err: any) {
-      this.logger.warn(`Could not seed default workflows: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Could not seed default workflows: ${errorMessage(err)}`);
     }
   }
 
@@ -233,7 +235,7 @@ export class ApprovalsService {
   ) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (options?.workflow_type) {
@@ -394,7 +396,7 @@ export class ApprovalsService {
     await this.getWorkflowById(tenantId, id);
 
     const updateFields: string[] = [];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
     let idx = 2;
 
     if (dto.name !== undefined) {
@@ -489,7 +491,7 @@ export class ApprovalsService {
   async getRequests(tenantId: string, options?: FilterApprovalRequestsDto) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (options?.status && options.status !== 'all') {
@@ -743,8 +745,8 @@ export class ApprovalsService {
           referenceId: createdRequest.id,
         });
       }
-    } catch (notifErr: any) {
-      this.logger.warn(`Failed to dispatch step notification: ${notifErr.message}`);
+    } catch (notifErr: unknown) {
+      this.logger.warn(`Failed to dispatch step notification: ${errorMessage(notifErr)}`);
     }
 
     return {
@@ -858,8 +860,8 @@ export class ApprovalsService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to notify submitter of rejection: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to notify submitter of rejection: ${errorMessage(err)}`);
       }
     } else if (action === 'approved' || action === ApprovalActionType.APPROVED) {
       if (request.current_step_order < request.total_steps) {
@@ -893,8 +895,8 @@ export class ApprovalsService {
               message: `Your request "${request.title}" (${request.reference_number}) was approved by ${userName}.`,
             });
           }
-        } catch (err: any) {
-          this.logger.warn(`Failed to notify next approver: ${err.message}`);
+        } catch (err: unknown) {
+          this.logger.warn(`Failed to notify next approver: ${errorMessage(err)}`);
         }
       } else {
         await connection.query(
@@ -922,8 +924,8 @@ export class ApprovalsService {
               priority: 'normal',
             });
           }
-        } catch (err: any) {
-          this.logger.warn(`Failed to notify submitter of final approval: ${err.message}`);
+        } catch (err: unknown) {
+          this.logger.warn(`Failed to notify submitter of final approval: ${errorMessage(err)}`);
         }
       }
     } else if (action === 'escalated' || action === ApprovalActionType.ESCALATED) {
@@ -944,8 +946,8 @@ export class ApprovalsService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch escalation notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch escalation notification: ${errorMessage(err)}`);
       }
     }
 
@@ -985,7 +987,7 @@ export class ApprovalsService {
   async getApprovalAnalytics(tenantId: string, company_id?: string, branch_id?: string) {
     const connection = await this.getConnection(tenantId);
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (company_id) {

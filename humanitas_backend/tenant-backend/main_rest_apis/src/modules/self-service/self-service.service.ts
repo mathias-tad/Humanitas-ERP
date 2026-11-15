@@ -250,7 +250,7 @@ export class SelfServiceService {
     const connection = await this.getConnection(tenantId);
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     const allowed = [

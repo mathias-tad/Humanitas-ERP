@@ -536,7 +536,7 @@ CRITICAL RULES — MANDATORY, NON-NEGOTIABLE:
   async getKnowledgeEntries(tenantSlug: string, query?: string, moduleKey?: string, platform?: string) {
     const { ds } = await this.getConnection(tenantSlug);
     let sql = `SELECT * FROM ai_knowledge_entries WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
     if (moduleKey) {
       sql += ` AND module_key = $${idx++}`;

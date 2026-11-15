@@ -24,7 +24,7 @@ export class HrmsReportsService {
     startIndex = 1,
   ): { clause: string; params: any[]; nextIndex: number } {
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = startIndex;
 
     if (companyIds.length === 1) {

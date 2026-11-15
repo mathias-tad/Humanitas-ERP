@@ -70,7 +70,7 @@ export class AttendanceCorrectionsService {
 
     // 3. Build update query
     const setClauses: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (updates.status !== undefined && updates.status !== '') {
@@ -197,7 +197,7 @@ export class AttendanceCorrectionsService {
     const offset = (page - 1) * limit;
 
     let whereClause = `WHERE a.action = 'CORRECT_ATTENDANCE'`;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     // Filter by target user if specified (for employee self-view)
     if (query.userId) {
@@ -333,7 +333,7 @@ export class AttendanceCorrectionsService {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
     let whereClause = "";
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (filter?.status) {
       whereClause = "WHERE acr.status = $1";
       params.push(filter.status);

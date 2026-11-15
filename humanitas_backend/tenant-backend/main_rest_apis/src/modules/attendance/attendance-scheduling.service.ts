@@ -707,7 +707,7 @@ export class AttendanceSchedulingService {
         'ASSIGN_SCHEDULE', 'ASSIGN_PATTERN', 'REMOVE_ASSIGNMENT'
       )
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (search) {
       whereClause += ` AND(

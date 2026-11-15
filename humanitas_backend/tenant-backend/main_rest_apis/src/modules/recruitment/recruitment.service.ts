@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import {
   Injectable,
   Logger,
@@ -10,7 +11,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { SettingsService } from '../settings/settings.service';
 import { DatabaseService } from '../database/database.service';
 import { Tenant } from '../auth/entities/tenant.entity';
@@ -507,7 +508,7 @@ export class RecruitmentService {
       throw new BadRequestException('Database service not configured');
     }
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdentifier);
-    let connection: any;
+    let connection: DataSource;
     if (isUuid) {
       try {
         connection = await this.databaseService.getTenantConnectionById(tenantIdentifier);
@@ -550,7 +551,7 @@ export class RecruitmentService {
   async getInterviews(tenantIdentifier: string, filter: FilterInterviewDto = {}) {
     const connection = await this.getTenantConnection(tenantIdentifier);
     let query = `SELECT * FROM recruitment_interviews WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filter.job_id) {
@@ -633,8 +634,8 @@ export class RecruitmentService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch interview notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch interview notification: ${errorMessage(err)}`);
       }
     }
 
@@ -649,7 +650,7 @@ export class RecruitmentService {
     }
 
     const updates: string[] = [];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
     let pIdx = 2;
 
     if (data.feedback !== undefined) {
@@ -705,7 +706,7 @@ export class RecruitmentService {
   async getOffers(tenantIdentifier: string, filter: FilterOfferDto = {}) {
     const connection = await this.getTenantConnection(tenantIdentifier);
     let query = `SELECT * FROM recruitment_offers WHERE 1=1`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (filter.job_id) {
@@ -783,8 +784,8 @@ export class RecruitmentService {
             priority: 'normal',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to dispatch offer notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to dispatch offer notification: ${errorMessage(err)}`);
       }
     }
 
@@ -806,7 +807,7 @@ export class RecruitmentService {
     }
 
     const updates: string[] = [`status = $2`];
-    const params: any[] = [id, data.status];
+    const params: unknown[] = [id, data.status];
     let pIdx = 3;
 
     if (signedAt !== null) {
@@ -930,8 +931,8 @@ export class RecruitmentService {
           },
           currentUserId,
         );
-      } catch (err: any) {
-        this.logger.warn(`HrmsOnboardingService.startOnboarding error: ${err.message}. Initializing fallback onboarding.`);
+      } catch (err: unknown) {
+        this.logger.warn(`HrmsOnboardingService.startOnboarding error: ${errorMessage(err)}. Initializing fallback onboarding.`);
       }
     }
 
@@ -949,8 +950,8 @@ export class RecruitmentService {
           currentUserId || null,
         ]);
         onboarding = obResult[0];
-      } catch (e: any) {
-        this.logger.warn(`Direct employee_onboarding insertion error: ${e.message}`);
+      } catch (e: unknown) {
+        this.logger.warn(`Direct employee_onboarding insertion error: ${errorMessage(e)}`);
       }
     }
 
@@ -969,8 +970,8 @@ export class RecruitmentService {
         if (apiKey) {
           await this.updateApplicationStatus(tenantIdentifier, dto.job_id, candidateId, 'hired');
         }
-      } catch (e: any) {
-        this.logger.warn(`Could not update Krinai application status: ${e.message}`);
+      } catch (e: unknown) {
+        this.logger.warn(`Could not update Krinai application status: ${errorMessage(e)}`);
       }
     }
 
@@ -991,8 +992,8 @@ export class RecruitmentService {
             priority: 'high',
           });
         }
-      } catch (err: any) {
-        this.logger.warn(`Failed to send hired notification: ${err.message}`);
+      } catch (err: unknown) {
+        this.logger.warn(`Failed to send hired notification: ${errorMessage(err)}`);
       }
     }
 

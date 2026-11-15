@@ -57,7 +57,7 @@ export class BankTransferExportService {
       WHERE pr.month = $1 AND pr.year = $2
     `;
 
-    const params: any[] = [month, year];
+    const params: unknown[] = [month, year];
     let paramIdx = 3;
 
     if (companyId) {

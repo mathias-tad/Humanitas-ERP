@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
@@ -5,7 +6,7 @@ import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
 @Injectable()
 export class HolidaysService {
     constructor(private readonly databaseService: DatabaseService) { }
-    async seedDefaultHolidays(connection: any) {
+    async seedDefaultHolidays(connection: DataSource) {
 
         // Check if any holidays exist
         const existing = await connection.query(`SELECT COUNT(*) as count FROM holidays`);
@@ -60,7 +61,7 @@ export class HolidaysService {
 
         // Dynamic update query builder
         const fields: string[] = [];
-        const values: any[] = [];
+        const values: unknown[] = [];
         let paramIndex = 1;
 
         if (dto.name) { fields.push(`name = $${paramIndex++}`); values.push(dto.name); }

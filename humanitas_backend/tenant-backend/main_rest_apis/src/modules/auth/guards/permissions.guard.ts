@@ -155,7 +155,7 @@ export class PermissionsGuard implements CanActivate {
           }
         }
       }
-    } catch (_err: any) {
+    } catch (_err: unknown) {
       // If table does not exist or query fails, fall through to ForbiddenException
     }
 

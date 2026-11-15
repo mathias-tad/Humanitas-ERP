@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AttendanceService } from './attendance.service';
@@ -24,12 +25,12 @@ export class AttendanceScheduler {
             for (const tenant of tenants) {
                 try {
                     await this.attendanceService.processAbsentUsers(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Absent users check failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Absent users check failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in absent user scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in absent user scheduler: ${errorMessage(error)}`);
         }
     }
 
@@ -44,12 +45,12 @@ export class AttendanceScheduler {
             for (const tenant of tenants) {
                 try {
                     await this.attendanceService.checkMissedClockInAlarms(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Missed clock-in alarm failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Missed clock-in alarm failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in missed clock-in alarm scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in missed clock-in alarm scheduler: ${errorMessage(error)}`);
         }
     }
 
@@ -65,12 +66,12 @@ export class AttendanceScheduler {
                 try {
                     await this.attendanceService.checkPreShiftEndReminders(tenant.id);
                     await this.attendanceService.checkVetShiftReminders(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Pre-shift-end reminder failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Pre-shift-end reminder failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in pre-shift-end reminder scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in pre-shift-end reminder scheduler: ${errorMessage(error)}`);
         }
     }
 
@@ -85,12 +86,12 @@ export class AttendanceScheduler {
             for (const tenant of tenants) {
                 try {
                     await this.attendanceService.sendPreMidnightWarning(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Pre-midnight warning failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Pre-midnight warning failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in pre-midnight warning scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in pre-midnight warning scheduler: ${errorMessage(error)}`);
         }
     }
 
@@ -105,12 +106,12 @@ export class AttendanceScheduler {
             for (const tenant of tenants) {
                 try {
                     await this.attendanceService.autoCloseDayShiftsAtMidnight(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Midnight auto-close failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Midnight auto-close failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in midnight auto-close scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in midnight auto-close scheduler: ${errorMessage(error)}`);
         }
     }
 
@@ -125,12 +126,12 @@ export class AttendanceScheduler {
             for (const tenant of tenants) {
                 try {
                     await this.attendanceService.autoCloseOvernightShifts(tenant.id);
-                } catch (e: any) {
-                    this.logger.error(`[Cron] Overnight auto-close failed for ${tenant.slug}: ${e.message}`);
+                } catch (e: unknown) {
+                    this.logger.error(`[Cron] Overnight auto-close failed for ${tenant.slug}: ${errorMessage(e)}`);
                 }
             }
-        } catch (error: any) {
-            this.logger.error(`[Cron] Error in overnight auto-close scheduler: ${error.message}`);
+        } catch (error: unknown) {
+            this.logger.error(`[Cron] Error in overnight auto-close scheduler: ${errorMessage(error)}`);
         }
     }
 }

@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
@@ -84,7 +85,7 @@ export class LateMinuteService {
         }
     }
 
-    private async updateAggregates(connection: any, userId: string, weekStart: Date, month: number, year: number) {
+    private async updateAggregates(connection: DataSource, userId: string, weekStart: Date, month: number, year: number) {
         // Recalculate totals for the week and month
 
         // Weekly

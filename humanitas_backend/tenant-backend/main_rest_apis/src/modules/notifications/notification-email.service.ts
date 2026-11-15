@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as Handlebars from 'handlebars';
@@ -91,8 +92,8 @@ export class NotificationEmailService {
           };
         }
       }
-    } catch (err: any) {
-      this.logger.warn(`Could not load tenant email settings for ${tenantSlug}: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Could not load tenant email settings for ${tenantSlug}: ${errorMessage(err)}`);
     }
 
     return {
@@ -170,8 +171,8 @@ export class NotificationEmailService {
       });
 
       this.logger.log(`Email sent to ${options.to} (template: ${options.templateName})`);
-    } catch (err: any) {
-      this.logger.error(`Failed to send email to ${options.to}: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to send email to ${options.to}: ${errorMessage(err)}`);
       // Don't throw — email failure should never break main flow
     }
   }

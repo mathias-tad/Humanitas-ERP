@@ -1,3 +1,5 @@
+import { errorMessage } from '../../common/errors';
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateApiKeyDto, UpdateApiKeyDto, CreateWebhookDto, UpdateWebhookDto, TestWebhookDto } from './dto/developer-api.dto';
@@ -80,7 +82,7 @@ export class DeveloperApiService {
       FROM developer_api_keys
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (companyId) {
       params.push(companyId);
@@ -225,7 +227,7 @@ export class DeveloperApiService {
       FROM webhook_subscriptions w
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (companyId) {
       params.push(companyId);
@@ -252,7 +254,7 @@ export class DeveloperApiService {
     }
 
     const updates: string[] = ['updated_at = NOW()'];
-    const params: any[] = [id];
+    const params: unknown[] = [id];
 
     if (dto.name !== undefined) {
       params.push(dto.name);
@@ -329,7 +331,7 @@ export class DeveloperApiService {
   }
 
   private async sendWebhookRequest(
-    connection: any,
+    connection: DataSource,
     webhook: { id: string; target_url: string; secret_key: string },
     event: string,
     payload: any,
@@ -377,8 +379,8 @@ export class DeveloperApiService {
       responseStatus = res.status;
       responseBody = await res.text().catch(() => null);
       status = res.ok ? 'success' : 'failed';
-    } catch (err: any) {
-      responseBody = err.message || 'Connection failed';
+    } catch (err: unknown) {
+      responseBody = errorMessage(err) || 'Connection failed';
       status = 'failed';
     }
 
@@ -451,8 +453,8 @@ export class DeveloperApiService {
       responseStatus = res.status;
       responseBody = await res.text().catch(() => null);
       status = res.ok ? 'success' : 'failed';
-    } catch (err: any) {
-      responseBody = err.message || 'Retry failed';
+    } catch (err: unknown) {
+      responseBody = errorMessage(err) || 'Retry failed';
       status = 'failed';
     }
 
@@ -481,7 +483,7 @@ export class DeveloperApiService {
       INNER JOIN webhook_subscriptions w ON w.id = d.webhook_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
 
     if (webhookId) {
       params.push(webhookId);
@@ -539,12 +541,12 @@ export class DeveloperApiService {
         duration_ms: Date.now() - startTime,
         response_body: text.substring(0, 500),
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       return {
         success: false,
         status_code: 0,
         duration_ms: Date.now() - startTime,
-        error: err.message || 'Connection error',
+        error: errorMessage(err) || 'Connection error',
       };
     }
   }

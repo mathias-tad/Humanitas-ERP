@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
 import { Tenant } from '../auth/entities/tenant.entity';
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
@@ -32,7 +32,7 @@ export class RolesService {
     return tenant.database_name;
   }
 
-  private async ensureRolesTable(connection: any): Promise<void> {
+  private async ensureRolesTable(connection: DataSource): Promise<void> {
 
     // Insert default roles if they don't exist
     const existingRoles = await connection.query(
@@ -46,7 +46,7 @@ export class RolesService {
     }
   }
 
-  public async migrateNewPermissions(connection: any): Promise<void> {
+  public async migrateNewPermissions(connection: DataSource): Promise<void> {
     // Create migration tracking table if not exists
 
     const newPermissions = [
@@ -423,7 +423,7 @@ export class RolesService {
     // ===== END FORCE-PATCH =====
   }
 
-  private async seedDefaultRoles(connection: any): Promise<void> {
+  private async seedDefaultRoles(connection: DataSource): Promise<void> {
     const allPermissions = [
       // Dashboard
       'view_dashboard',
@@ -837,7 +837,7 @@ export class RolesService {
     await this.ensureRolesTable(connection);
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramIndex = 1;
 
     if (dto.name !== undefined) {
@@ -948,7 +948,7 @@ export class RolesService {
    * If the user is owner or admin, returns ['*'] for full capability.
    */
   async getPermissionsForUser(tenantSlugOrId: string, userId: string): Promise<string[]> {
-    let connection: any;
+    let connection: DataSource;
     try {
       const databaseName = await this.getTenantDatabaseName(tenantSlugOrId);
       connection = await this.databaseService.getTenantConnection(databaseName);

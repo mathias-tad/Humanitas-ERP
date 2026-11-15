@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { randomUUID } from 'crypto';
@@ -31,7 +32,7 @@ export class PmsReviewsService {
     return connection;
   }
 
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
     try {
 
       // Seed default competencies if none exist
@@ -64,7 +65,7 @@ export class PmsReviewsService {
       FROM pms_review_cycles rc
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (companyId) {
       params.push(companyId);
       query += ` AND (rc.company_id = $${params.length} OR rc.company_id IS NULL)`;
@@ -147,7 +148,7 @@ export class PmsReviewsService {
     return this.getReviewCycleById(tenantId, cycleId);
   }
 
-  private async enrollParticipant(connection: any, cycleId: string, empId: string, companyId?: string, branchId?: string) {
+  private async enrollParticipant(connection: DataSource, cycleId: string, empId: string, companyId?: string, branchId?: string) {
     const reviewId = randomUUID();
     // Find manager if available
     const managerRes = await connection.query(
@@ -187,7 +188,7 @@ export class PmsReviewsService {
     await this.getReviewCycleById(tenantId, cycleId);
 
     const fields: string[] = [];
-    const params: any[] = [cycleId];
+    const params: unknown[] = [cycleId];
 
     if (dto.title) {
       params.push(dto.title);
@@ -236,7 +237,7 @@ export class PmsReviewsService {
       JOIN pms_review_cycles rc ON rc.id = er.cycle_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (cycleId) {
       params.push(cycleId);
       query += ` AND er.cycle_id = $${params.length}`;
@@ -413,7 +414,7 @@ export class PmsReviewsService {
     return { success: true, feedback_id: feedbackId };
   }
 
-  private async recalculateReviewRatings(connection: any, reviewId: string) {
+  private async recalculateReviewRatings(connection: DataSource, reviewId: string) {
     const feedbacks = await connection.query(
       `SELECT reviewer_type, overall_rating FROM pms_review_feedbacks WHERE review_id = $1 AND status = 'submitted'`,
       [reviewId]
@@ -507,7 +508,7 @@ export class PmsReviewsService {
       LEFT JOIN users m ON m.id::text = pip.manager_id::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (employeeId) {
       params.push(employeeId);
       query += ` AND pip.employee_id = $${params.length}`;
@@ -563,7 +564,7 @@ export class PmsReviewsService {
   async updatePip(tenantId: string, pipId: string, dto: UpdatePipDto) {
     const connection = await this.getConnection(tenantId);
     const fields: string[] = [];
-    const params: any[] = [pipId];
+    const params: unknown[] = [pipId];
 
     if (dto.status) {
       params.push(dto.status);
@@ -611,7 +612,7 @@ export class PmsReviewsService {
       JOIN users u ON u.id::text = er.employee_id::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (cycleId) {
       params.push(cycleId);
       reviewsQuery += ` AND er.cycle_id = $${params.length}`;

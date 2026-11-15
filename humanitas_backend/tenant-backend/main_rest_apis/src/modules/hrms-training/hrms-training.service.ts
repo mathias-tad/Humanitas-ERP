@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import {
@@ -28,7 +29,7 @@ export class HrmsTrainingService {
     return connection;
   }
 
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
     try {
 
 
@@ -148,7 +149,7 @@ export class HrmsTrainingService {
       LEFT JOIN training_enrollments e ON c.id = e.course_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters?.category) {
@@ -217,7 +218,7 @@ export class HrmsTrainingService {
     await this.getCourseById(tenantId, id);
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     if (dto.title !== undefined) { fields.push(`title = $${idx++}`); values.push(dto.title); }
@@ -252,7 +253,7 @@ export class HrmsTrainingService {
       LEFT JOIN training_enrollments e ON s.id = e.session_id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (courseId) {
       query += ` AND s.course_id = $1`;
       params.push(courseId);
@@ -339,7 +340,7 @@ export class HrmsTrainingService {
       LEFT JOIN training_sessions s ON e.session_id = s.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let idx = 1;
 
     if (filters?.course_id) {
@@ -380,7 +381,7 @@ export class HrmsTrainingService {
     const enrollment = await this.getEnrollmentById(tenantId, id);
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let idx = 1;
 
     if (dto.status !== undefined) { fields.push(`status = $${idx++}`); values.push(dto.status); }
@@ -415,7 +416,7 @@ export class HrmsTrainingService {
       JOIN users u ON s.user_id::text = u.id::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (userId) {
       query += ` AND s.user_id = $1`;
       params.push(userId);

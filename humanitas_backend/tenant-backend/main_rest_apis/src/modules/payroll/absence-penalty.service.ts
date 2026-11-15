@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -147,7 +148,7 @@ export class AbsencePenaltyService {
     /**
      * Update or create absence summary stats
      */
-    private async updateAbsenceSummary(connection: any, userId: string, date: Date) {
+    private async updateAbsenceSummary(connection: DataSource, userId: string, date: Date) {
         const startOfWeek = new Date(date);
         startOfWeek.setDate(date.getDate() - date.getDay() + (date.getDay() === 0 ? -6 : 1)); // Adjust to Monday
 

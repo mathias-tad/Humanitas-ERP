@@ -52,7 +52,7 @@ export class NotificationReportsService {
     const conn = await this.getConnection(tenantId);
 
     let dateFilter = `AND sent_at >= NOW() - INTERVAL '30 days'`;
-    let params: any[] = [tenantId];
+    let params: unknown[] = [tenantId];
 
     if (startDate && endDate) {
       dateFilter = `AND sent_at BETWEEN $2 AND $3`;

@@ -70,7 +70,7 @@ export class EventsService {
         if (!existing) throw new NotFoundException('Event not found');
 
         const fields: string[] = [];
-        const values: any[] = [];
+        const values: unknown[] = [];
         let idx = 1;
 
         if (dto.title) { fields.push(`title = $${idx++}`); values.push(dto.title); }

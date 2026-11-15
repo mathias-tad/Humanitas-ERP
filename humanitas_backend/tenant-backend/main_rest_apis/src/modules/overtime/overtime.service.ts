@@ -1,3 +1,5 @@
+import { errorMessage } from '../../common/errors';
+import type { DataSource } from 'typeorm';
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -138,7 +140,7 @@ export class OvertimeService {
       JOIN users u ON oe.user_id = u.id
       WHERE 1=1
     `;
-        const params: any[] = [];
+        const params: unknown[] = [];
         let pIdx = 1;
 
         if (filters.startDate) {
@@ -206,7 +208,7 @@ export class OvertimeService {
         return { message: 'Overtime updated successfully' };
     }
 
-    private async calculateOvertimeAmount(connection: any, userId: string, hours: { normal: number, night: number, holiday: number, dayoff: number }) {
+    private async calculateOvertimeAmount(connection: DataSource, userId: string, hours: { normal: number, night: number, holiday: number, dayoff: number }) {
         try {
             // 1. Get Payroll Settings
             const settingsRes = await connection.query("SELECT data FROM settings WHERE category = 'payroll'");
@@ -393,9 +395,9 @@ export class OvertimeService {
                 message: 'Calculation completed successfully',
                 ...result
             };
-        } catch (error: any) {
-            console.error(`[OT] Error calling calculation service:`, error.message);
-            throw new BadRequestException(error.message || `Failed to calculate OT: ${error}`);
+        } catch (error: unknown) {
+            console.error(`[OT] Error calling calculation service:`, errorMessage(error));
+            throw new BadRequestException(errorMessage(error) || `Failed to calculate OT: ${error}`);
         }
     }
 
@@ -463,9 +465,9 @@ export class OvertimeService {
                 message: 'Period calculation completed successfully',
                 ...result
             };
-        } catch (error: any) {
-            console.error(`[OT] Error calling period calculation service:`, error.message);
-            throw new BadRequestException(`Failed to calculate period OT: ${error.message}`);
+        } catch (error: unknown) {
+            console.error(`[OT] Error calling period calculation service:`, errorMessage(error));
+            throw new BadRequestException(`Failed to calculate period OT: ${errorMessage(error)}`);
         }
     }
 

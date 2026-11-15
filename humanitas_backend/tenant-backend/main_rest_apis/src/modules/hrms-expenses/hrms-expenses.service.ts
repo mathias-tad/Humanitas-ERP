@@ -1,3 +1,4 @@
+import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { randomUUID } from 'crypto';
@@ -27,7 +28,7 @@ export class HrmsExpensesService {
     return connection;
   }
 
-  private async ensureTables(connection: any) {
+  private async ensureTables(connection: DataSource) {
     try {
 
       // Seed default categories if none exist
@@ -53,7 +54,7 @@ export class HrmsExpensesService {
   async getCategories(tenantId: string, companyId?: string, branchId?: string) {
     const connection = await this.getConnection(tenantId);
     let query = `SELECT * FROM expense_categories WHERE is_active = TRUE`;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (companyId) {
       params.push(companyId);
       query += ` AND (company_id = $${params.length} OR company_id IS NULL)`;
@@ -101,7 +102,7 @@ export class HrmsExpensesService {
       LEFT JOIN users appr ON appr.id::text = er.approved_by::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (employeeId) {
       params.push(employeeId);
       query += ` AND er.employee_id = $${params.length}`;
@@ -204,7 +205,7 @@ export class HrmsExpensesService {
     }
 
     const fields: string[] = [];
-    const params: any[] = [reportId];
+    const params: unknown[] = [reportId];
 
     if (dto.title) {
       params.push(dto.title);
@@ -283,7 +284,7 @@ export class HrmsExpensesService {
     return { success: true };
   }
 
-  private async recalculateReportTotal(connection: any, reportId: string) {
+  private async recalculateReportTotal(connection: DataSource, reportId: string) {
     const sumRes = await connection.query(
       `SELECT COALESCE(SUM(amount), 0) as total FROM expense_items WHERE report_id = $1`,
       [reportId]
@@ -389,7 +390,7 @@ export class HrmsExpensesService {
     const connection = await this.getConnection(tenantId);
 
     let whereCompany = '';
-    const params: any[] = [];
+    const params: unknown[] = [];
     if (companyId) {
       params.push(companyId);
       whereCompany += ` AND (er.company_id = $${params.length} OR er.company_id IS NULL)`;

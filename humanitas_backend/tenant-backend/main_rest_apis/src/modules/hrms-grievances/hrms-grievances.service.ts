@@ -134,7 +134,7 @@ export class HrmsGrievancesService {
       LEFT JOIN users inv ON g.assigned_investigator_id::text = inv.id::text
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: unknown[] = [];
     let paramIndex = 1;
 
     if (!hasManagePerm) {
@@ -254,7 +254,7 @@ export class HrmsGrievancesService {
     }
 
     let query = `UPDATE grievances SET status = $1, updated_at = CURRENT_TIMESTAMP`;
-    const params: any[] = [dto.status, id];
+    const params: unknown[] = [dto.status, id];
 
     if (dto.status === GrievanceStatus.ACKNOWLEDGED && !existing[0].acknowledged_at) {
       query += `, acknowledged_at = CURRENT_TIMESTAMP`;
@@ -406,7 +406,7 @@ export class HrmsGrievancesService {
   async getStats(tenantId: string, companyId?: string, branchId?: string) {
     const connection = await this.getConnection(tenantId);
     let whereClause = 'WHERE 1=1';
-    const params: any[] = [];
+    const params: unknown[] = [];
     let pIdx = 1;
 
     if (companyId) {

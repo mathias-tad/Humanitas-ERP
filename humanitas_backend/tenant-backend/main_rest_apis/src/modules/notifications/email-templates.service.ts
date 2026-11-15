@@ -1,3 +1,4 @@
+import { errorMessage } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import * as Handlebars from 'handlebars';
 import * as fs from 'fs';
@@ -101,8 +102,8 @@ export class EmailTemplatesService {
         [templateKey],
       );
       if (defaults.length > 0) return defaults[0];
-    } catch (err: any) {
-      this.logger.warn(`Could not load template ${templateKey}: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Could not load template ${templateKey}: ${errorMessage(err)}`);
     }
     return null;
   }
@@ -212,8 +213,8 @@ export class EmailTemplatesService {
     try {
       const compiled = Handlebars.compile(template.html_body);
       return compiled(context);
-    } catch (err: any) {
-      return `<p>Preview error: ${err.message}</p>`;
+    } catch (err: unknown) {
+      return `<p>Preview error: ${errorMessage(err)}</p>`;
     }
   }
 }

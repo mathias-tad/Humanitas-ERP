@@ -72,7 +72,7 @@ export class PerDiemService {
         const connection = await this.databaseService.getTenantConnection(databaseName);
 
         let query = `SELECT * FROM per_diem_claims WHERE user_id = $1`;
-        const params: any[] = [userId];
+        const params: unknown[] = [userId];
 
         if (year) {
             query += ` AND year = $2`;
@@ -392,7 +392,7 @@ export class PerDiemService {
       JOIN users u ON c.user_id = u.id
     `;
 
-        const params: any[] = [];
+        const params: unknown[] = [];
         const conditions: string[] = [];
 
         if (month) {
@@ -423,7 +423,7 @@ export class PerDiemService {
 
         const claim = await this.getClaim(tenantSlug, claimId);
         const setClauses: string[] = [];
-        const params: any[] = [claimId];
+        const params: unknown[] = [claimId];
 
         if (updates.receipt_amount !== undefined) {
             setClauses.push(`receipt_amount = $${params.length + 1}`);

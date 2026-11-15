@@ -1,3 +1,4 @@
+import { errorMessage, errorStack } from '../../common/errors';
 import { Injectable, Logger } from '@nestjs/common';
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getMessaging, type MulticastMessage } from 'firebase-admin/messaging';
@@ -54,8 +55,8 @@ export class PushNotificationService {
       } else {
         this.logger.warn(`Firebase service account file not found at ${serviceAccountPath}. Push sending will be queued in dry-run mode.`);
       }
-    } catch (err: any) {
-      this.logger.error(`Failed to initialize Firebase Admin SDK: ${err.message}`, err.stack);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to initialize Firebase Admin SDK: ${errorMessage(err)}`, errorStack(err));
     }
   }
 
@@ -113,8 +114,8 @@ export class PushNotificationService {
 
       const tokens: string[] = rows.map((r: any) => r.token);
       return this.sendPushToTokens(tenantId, tokens, payload);
-    } catch (err: any) {
-      this.logger.error(`Error querying tokens for user ${userId}: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Error querying tokens for user ${userId}: ${errorMessage(err)}`);
       return { sent: 0, failed: 0, totalTokens: 0 };
     }
   }
@@ -207,16 +208,16 @@ export class PushNotificationService {
               [invalidTokens],
             );
             this.logger.log(`Deactivated ${invalidTokens.length} stale FCM device token(s)`);
-          } catch (e: any) {
-            this.logger.warn(`Failed to deactivate stale tokens: ${e.message}`);
+          } catch (e: unknown) {
+            this.logger.warn(`Failed to deactivate stale tokens: ${errorMessage(e)}`);
           }
         }
       }
 
       this.logger.log(`FCM Multicast sent: ${sent} succeeded, ${failed} failed out of ${tokens.length} devices.`);
       return { sent, failed, totalTokens: tokens.length };
-    } catch (err: any) {
-      this.logger.error(`Failed to send FCM multicast: ${err.message}`, err.stack);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to send FCM multicast: ${errorMessage(err)}`, errorStack(err));
       return { sent: 0, failed: tokens.length, totalTokens: tokens.length };
     }
   }
