@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -102,8 +103,8 @@ export default function SelfServicePage() {
         emergency_contact_relationship: emergencyRel,
       });
       toast.success('Personal profile details updated successfully');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update profile');
     }
   };
 
@@ -123,8 +124,8 @@ export default function SelfServicePage() {
       setChangeModalOpen(false);
       setProposedValue('');
       setChangeReason('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit request');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit request');
     }
   };
 
@@ -139,8 +140,8 @@ export default function SelfServicePage() {
       toast.success(`Request successfully ${status}`);
       setSelectedRequest(null);
       setReviewerNotes('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to review request');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to review request');
     }
   };
 

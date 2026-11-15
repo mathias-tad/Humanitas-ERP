@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -105,8 +106,8 @@ export default function OrgChart() {
       };
       collect(data.rootNodes || []);
       setAllFlatEmployees(flatList);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load organization chart');
+    } catch (err: unknown) {
+      setError(errorMessage(err) || 'Failed to load organization chart');
     } finally {
       setLoading(false);
     }
@@ -180,8 +181,8 @@ export default function OrgChart() {
       await fetchOrgChart();
       // Refresh current drawer details
       handleSelectEmployee(selectedEmployee);
-    } catch (err: any) {
-      setReassignError(err?.message || 'Failed to update manager');
+    } catch (err: unknown) {
+      setReassignError(errorMessage(err) || 'Failed to update manager');
     } finally {
       setReassigning(false);
     }

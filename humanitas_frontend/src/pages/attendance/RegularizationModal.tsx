@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from "react";
 import {
   Dialog,
@@ -68,8 +69,8 @@ export function RegularizationModal({
       });
       toast.success("Attendance regularization request submitted for supervisor approval.");
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit regularization request.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to submit regularization request.");
     }
   };
 

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
     Card,
@@ -131,8 +132,8 @@ export function ActingSettings({ disabled: _disabled = false }: ActingSettingsPr
             setIsModalOpen(false);
             fetchData(); // Refresh list
             setFormData({ actor_user_id: "", target_user_id: "", start_date: "", end_date: "" });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) });
         } finally {
             setIsSaving(false);
         }
@@ -156,8 +157,8 @@ export function ActingSettings({ disabled: _disabled = false }: ActingSettingsPr
 
             if (!response.ok) throw new Error("Failed to save percentage");
             setMessage({ type: "success", text: "Acting allowance rate saved successfully" });
-        } catch (error: any) {
-            setMessage({ type: "error", text: error.message });
+        } catch (error: unknown) {
+            setMessage({ type: "error", text: errorMessage(error) });
         } finally {
             setIsSavingPercentage(false);
         }

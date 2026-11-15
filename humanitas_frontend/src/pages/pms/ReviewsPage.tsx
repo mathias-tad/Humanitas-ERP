@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -163,8 +164,8 @@ export default function ReviewsPage() {
         min_peers: 2,
         max_peers: 5,
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create review cycle');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create review cycle');
     }
   };
 
@@ -205,8 +206,8 @@ export default function ReviewsPage() {
       toast.success('Feedback submitted successfully!');
       setShowFeedbackModal(false);
       setActiveFeedback(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit feedback');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit feedback');
     }
   };
 
@@ -221,8 +222,8 @@ export default function ReviewsPage() {
       toast.success('Peers nominated successfully');
       setShowNominateModal(false);
       setSelectedPeers([]);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to nominate peers');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to nominate peers');
     }
   };
 
@@ -249,8 +250,8 @@ export default function ReviewsPage() {
       toast.success('Performance review calibrated and saved');
       setShowCalibrateModal(false);
       setActiveReview(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to calibrate review');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to calibrate review');
     }
   };
 
@@ -271,8 +272,8 @@ export default function ReviewsPage() {
         target_end_date: new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0],
         check_in_frequency: 'bi_weekly',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create PIP');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create PIP');
     }
   };
 
@@ -291,8 +292,8 @@ export default function ReviewsPage() {
       toast.success('PIP outcome recorded');
       setShowPipOutcomeModal(false);
       setActivePip(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to record PIP outcome');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to record PIP outcome');
     }
   };
 

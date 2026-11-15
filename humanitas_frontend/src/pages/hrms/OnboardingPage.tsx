@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useMemo } from 'react';
 
 import { PageHeader } from '@/components/design-system/PageHeader';
@@ -181,8 +182,8 @@ export default function OnboardingPage() {
       toast.success('Onboarding workflow initiated successfully');
       setStartOnboardingOpen(false);
       setOnbUserId('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start onboarding');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to start onboarding');
     }
   };
 
@@ -202,8 +203,8 @@ export default function OnboardingPage() {
       toast.success('Offboarding workflow initiated');
       setStartOffboardingOpen(false);
       setOffbUserId('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start offboarding');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to start offboarding');
     }
   };
 
@@ -217,8 +218,8 @@ export default function OnboardingPage() {
       toast.success(res.message || '1-Click Separation initiated successfully');
       setSeparationModalOpen(false);
       setSeparationUserId('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to execute separation');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to execute separation');
     }
   };
 
@@ -231,8 +232,8 @@ export default function OnboardingPage() {
         status: nextStatus,
       });
       toast.success(`Task marked as ${nextStatus}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update task');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update task');
     }
   };
 
@@ -245,8 +246,8 @@ export default function OnboardingPage() {
         status: nextStatus,
       });
       toast.success(`Task marked as ${nextStatus}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update task');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update task');
     }
   };
 
@@ -262,8 +263,8 @@ export default function OnboardingPage() {
       });
       toast.success(`Probation outcome recorded: ${probationOutcome}`);
       setProbationNotes('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to record probation outcome');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to record probation outcome');
     }
   };
 
@@ -282,8 +283,8 @@ export default function OnboardingPage() {
       setExitInterviewModalOpen(false);
       setExitReason('');
       setExitFeedback('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit exit interview');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit exit interview');
     }
   };
 
@@ -301,8 +302,8 @@ export default function OnboardingPage() {
       setCreateTemplateOpen(false);
       setTplName('');
       setTplDescription('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create template');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create template');
     }
   };
 
@@ -321,8 +322,8 @@ export default function OnboardingPage() {
       toast.success('Checklist item added to template');
       setCreateItemOpen(false);
       setItemTitle('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add checklist item');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to add checklist item');
     }
   };
 
@@ -1932,8 +1933,8 @@ function WelcomePortalEmployeeCard({
         },
       });
       toast.success(`Checklist updated`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update checklist item');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update checklist item');
     } finally {
       setUpdatingKey(null);
     }

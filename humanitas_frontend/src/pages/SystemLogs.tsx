@@ -111,7 +111,7 @@ export function SystemLogs() {
             setLoading(true);
             const response = await api.get<CalculationLog[]>(`/system/logs?tenant_id=${tenant?.id}`);
             setLogs(response || []);
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error("Failed to fetch logs");
             console.error(error);
         } finally {

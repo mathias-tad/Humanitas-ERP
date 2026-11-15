@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -142,7 +143,7 @@ export default function Recruitment() {
         : [];
       setJobs(jobsArray);
       setApplications(appsArray);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError(
         "Recruitment AI service is running in local mode or Krinai API key needs verification in Settings > Integrations."
@@ -296,8 +297,8 @@ export default function Recruitment() {
       });
 
       fetchRecruitmentData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to convert candidate to employee");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to convert candidate to employee");
     }
   };
 

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
 import { toast } from "sonner";
@@ -119,8 +120,8 @@ export function useCalendar(start?: string, end?: string, sources?: string[]) {
       toast.success("Event created successfully");
       queryClient.invalidateQueries({ queryKey: ["calendarEvents"] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to create event");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err) || "Failed to create event");
     },
   });
 
@@ -145,8 +146,8 @@ export function useCalendar(start?: string, end?: string, sources?: string[]) {
       toast.success("Event updated successfully");
       queryClient.invalidateQueries({ queryKey: ["calendarEvents"] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to update event");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err) || "Failed to update event");
     },
   });
 
@@ -167,8 +168,8 @@ export function useCalendar(start?: string, end?: string, sources?: string[]) {
       toast.success("Event deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["calendarEvents"] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to delete event");
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err) || "Failed to delete event");
     },
   });
 

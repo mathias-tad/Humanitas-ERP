@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -136,8 +137,8 @@ export default function DeveloperApiPage() {
         setCreatedKeyRawToken(res.raw_token);
       }
       toast.success('API key created successfully');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to generate API key');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to generate API key');
     }
   };
 
@@ -148,8 +149,8 @@ export default function DeveloperApiPage() {
     try {
       await revokeKeyMutation.mutateAsync(id);
       toast.success(`Key "${name}" revoked`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to revoke key');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to revoke key');
     }
   };
 
@@ -189,8 +190,8 @@ export default function DeveloperApiPage() {
       setWebhookName('');
       setWebhookUrl('');
       setWebhookSecret('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save webhook');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to save webhook');
     }
   };
 
@@ -199,8 +200,8 @@ export default function DeveloperApiPage() {
     try {
       await deleteWebhookMutation.mutateAsync(id);
       toast.success(`Webhook "${name}" deleted`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete webhook');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to delete webhook');
     }
   };
 
@@ -214,8 +215,8 @@ export default function DeveloperApiPage() {
       });
       setTestResult(res);
       toast.success(`Ping returned status ${res.status_code}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Webhook test failed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Webhook test failed');
     }
   };
 
@@ -223,8 +224,8 @@ export default function DeveloperApiPage() {
     try {
       await retryDeliveryMutation.mutateAsync(id);
       toast.success('Delivery retry queued');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to retry delivery');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to retry delivery');
     }
   };
 

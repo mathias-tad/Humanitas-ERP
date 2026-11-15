@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/config/api.config';
@@ -167,8 +168,8 @@ export default function OrganizationSettings() {
       toast.success(companyId ? 'Company updated' : 'Company created');
       setCompanyModal(false);
       fetchCompanies();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     } finally { setLoading(false); }
   };
   const deleteCompany = async (id: string) => {
@@ -182,8 +183,8 @@ export default function OrganizationSettings() {
       toast.success('Company deleted');
       setDeleteConfirm(null);
       fetchCompanies();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     } finally { setLoading(false); }
   };
 
@@ -215,8 +216,8 @@ export default function OrganizationSettings() {
       toast.success(branchId ? 'Branch updated' : 'Branch created');
       setBranchModal(false);
       fetchBranches();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     } finally { setLoading(false); }
   };
   const deleteBranch = async (id: string) => {
@@ -230,8 +231,8 @@ export default function OrganizationSettings() {
       toast.success('Branch deleted');
       setDeleteConfirm(null);
       fetchBranches();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     } finally { setLoading(false); }
   };
 

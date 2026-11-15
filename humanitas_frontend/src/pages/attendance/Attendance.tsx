@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Switch } from "@/components/ui/switch";
@@ -1450,9 +1451,9 @@ export default function Attendance() {
 
       setBatchRemarks('');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
 
-      toast.error(err.message || 'Failed to update selected records');
+      toast.error(errorMessage(err) || 'Failed to update selected records');
 
     }
 
@@ -4264,9 +4265,9 @@ export default function Attendance() {
 
                   setIsAbsenceModalOpen(false);
 
-                } catch (err: any) {
+                } catch (err: unknown) {
 
-                  toast.error(err.message || 'Failed to save rules');
+                  toast.error(errorMessage(err) || 'Failed to save rules');
 
                 }
 

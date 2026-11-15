@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -133,8 +134,8 @@ export default function ImportExportPage() {
       } else {
         toast.warning(`Validation flagged ${res.error_rows_count} rows with potential errors.`);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Validation failed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Validation failed');
     }
   };
 
@@ -155,8 +156,8 @@ export default function ImportExportPage() {
       setUploadedFileName('');
       refetchJobs();
       refetchStats();
-    } catch (err: any) {
-      toast.error(err.message || 'Commit failed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Commit failed');
     }
   };
 
@@ -197,8 +198,8 @@ export default function ImportExportPage() {
       toast.success(`Export generated: ${res.file_name} (${res.total_rows} rows)`);
       refetchJobs();
       refetchStats();
-    } catch (err: any) {
-      toast.error(err.message || 'Export failed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Export failed');
     }
   };
 
@@ -212,8 +213,8 @@ export default function ImportExportPage() {
       toast.success('Import batch rolled back successfully.');
       refetchJobs();
       refetchStats();
-    } catch (err: any) {
-      toast.error(err.message || 'Rollback failed');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Rollback failed');
     }
   };
 
@@ -235,8 +236,8 @@ export default function ImportExportPage() {
       setShowScheduleModal(false);
       setRecipeName('');
       refetchTemplates();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save recipe');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to save recipe');
     }
   };
 

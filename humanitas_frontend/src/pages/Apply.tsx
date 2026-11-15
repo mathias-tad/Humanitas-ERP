@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { API_BASE_URL } from "@/config/api.config";
@@ -35,8 +36,8 @@ export default function Apply() {
         }
         const data = await res.json();
         setFormDef(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(errorMessage(err));
       } finally {
         setIsLoading(false);
       }
@@ -68,8 +69,8 @@ export default function Apply() {
 
       const data = await res.json();
       setUploadedFiles(prev => ({ ...prev, [questionId]: data.object_key }));
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
     } finally {
       setUploadingQuestions(prev => ({ ...prev, [questionId]: false }));
     }
@@ -101,8 +102,8 @@ export default function Apply() {
       }
 
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

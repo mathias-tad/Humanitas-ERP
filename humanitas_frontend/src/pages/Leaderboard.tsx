@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
@@ -233,9 +234,9 @@ export default function Leaderboard() {
                 }
             }, 3000);
 
-        } catch (e: any) {
+        } catch (e: unknown) {
             setExportingKey(null);
-            setModalErrorMessage(e.message || "Something went wrong.");
+            setModalErrorMessage(errorMessage(e) || "Something went wrong.");
             setShowErrorModal(true);
         }
     };
@@ -276,8 +277,8 @@ export default function Leaderboard() {
             });
             if (!res.ok) throw new Error("Failed to rerank candidates");
             await fetchLeaderboard();
-        } catch (e: any) {
-            setModalErrorMessage(e.message || "Failed to rerank.");
+        } catch (e: unknown) {
+            setModalErrorMessage(errorMessage(e) || "Failed to rerank.");
             setShowErrorModal(true);
         } finally {
             setIsReranking(false);
@@ -302,9 +303,9 @@ export default function Leaderboard() {
             });
             if (!res.ok) throw new Error("Failed to estimate export size");
             setExportEstimate(await res.json());
-        } catch (e: any) {
+        } catch (e: unknown) {
             setShowExportEstimateModal(false);
-            setModalErrorMessage(e.message || "Failed to estimate export size.");
+            setModalErrorMessage(errorMessage(e) || "Failed to estimate export size.");
             setShowErrorModal(true);
         } finally {
             setIsEstimating(false);
@@ -333,8 +334,8 @@ export default function Leaderboard() {
             setCutoffScore("");
             setShowSuccessModal(true);
             await fetchLeaderboard();
-        } catch (e: any) {
-            setModalErrorMessage(e.message || "Something went wrong.");
+        } catch (e: unknown) {
+            setModalErrorMessage(errorMessage(e) || "Something went wrong.");
             setShowErrorModal(true);
         } finally {
             setIsBulkShortlisting(false);

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthHeaders } from '@/context/AuthContext';
@@ -130,8 +131,8 @@ export function CompanyKnowledgeVaultTab() {
       setUploadFile(null);
       qc.invalidateQueries({ queryKey: ['ai-knowledge-vault-docs'] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to upload document');
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err) || 'Failed to upload document');
     },
   });
 
@@ -171,8 +172,8 @@ export function CompanyKnowledgeVaultTab() {
       setWriteSummary('');
       qc.invalidateQueries({ queryKey: ['ai-knowledge-vault-docs'] });
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to save policy');
+    onError: (err: unknown) => {
+      toast.error(errorMessage(err) || 'Failed to save policy');
     },
   });
 

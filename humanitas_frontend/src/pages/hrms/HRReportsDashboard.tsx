@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -54,8 +55,8 @@ export default function HRReportsDashboard() {
       await downloadBankTransferFile(bankMonth, bankYear, bankFormat);
       toast.success(`Bank transfer file (${bankFormat.toUpperCase()}) downloaded successfully`);
       setBankModalOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to generate bank file');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to generate bank file');
     } finally {
       setIsExporting(false);
     }

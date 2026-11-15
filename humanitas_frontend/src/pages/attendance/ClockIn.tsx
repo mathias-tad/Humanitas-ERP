@@ -1,3 +1,4 @@
+import { errorMessage, errorName } from '@/lib/errors';
 import { useEffect, useState, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -289,21 +290,21 @@ export default function ClockIn() {
           // Scan error (ignore, keep scanning)
         }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Scanner error:", err);
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      if (errorName(err) === 'NotAllowedError' || errorName(err) === 'PermissionDeniedError') {
         setScannerError("Camera permission denied. Please allow camera access in your browser settings and try again.");
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      } else if (errorName(err) === 'NotFoundError' || errorName(err) === 'DevicesNotFoundError') {
         setScannerError("No camera found on this device.");
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      } else if (errorName(err) === 'NotReadableError' || errorName(err) === 'TrackStartError') {
         setScannerError("Camera is already in use by another application.");
-      } else if (err.name === 'OverconstrainedError') {
+      } else if (errorName(err) === 'OverconstrainedError') {
         setScannerError("Camera constraints not satisfied. Trying front camera...");
         // Try front camera as fallback
         tryFrontCamera();
         return;
       } else {
-        setScannerError(err?.message || "Failed to start camera. Please check camera permissions.");
+        setScannerError(errorMessage(err) || "Failed to start camera. Please check camera permissions.");
       }
       setIsScanning(false);
     }
@@ -330,7 +331,7 @@ export default function ClockIn() {
         },
         () => { }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Front camera error:", err);
       setScannerError("Could not access any camera. Please check permissions.");
       setIsScanning(false);

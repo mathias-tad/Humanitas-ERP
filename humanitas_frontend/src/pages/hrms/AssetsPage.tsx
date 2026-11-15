@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -155,8 +156,8 @@ export default function AssetsPage() {
         location: '',
         notes: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create asset');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create asset');
     }
   };
 
@@ -175,8 +176,8 @@ export default function AssetsPage() {
       setShowAssignModal(false);
       setSelectedAsset(null);
       setAssignForm({ user_id: '', expected_return_date: '', notes: '' });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to assign asset');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to assign asset');
     }
   };
 
@@ -191,8 +192,8 @@ export default function AssetsPage() {
       toast.success('Asset checked in successfully');
       setShowReturnModal(false);
       setSelectedAsset(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to return asset');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to return asset');
     }
   };
 
@@ -218,8 +219,8 @@ export default function AssetsPage() {
         service_date: new Date().toISOString().split('T')[0],
         next_service_date: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to log maintenance');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to log maintenance');
     }
   };
 
@@ -227,8 +228,8 @@ export default function AssetsPage() {
     try {
       await acknowledgeMutation.mutateAsync(assignmentId);
       toast.success('Asset receipt acknowledged');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to acknowledge asset');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to acknowledge asset');
     }
   };
 
@@ -243,8 +244,8 @@ export default function AssetsPage() {
       toast.success('Category created');
       setShowCategoryModal(false);
       setCategoryForm({ name: '', code: '', description: '' });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create category');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create category');
     }
   };
 

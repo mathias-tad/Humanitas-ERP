@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/config/api.config";
@@ -93,8 +94,8 @@ export default function LeaveBalances() {
         queryClient.invalidateQueries({ queryKey: ["users"] }),
       ]);
       return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to set employee hire date");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to set employee hire date");
       return false;
     } finally {
       setIsSavingHireDate(false);
@@ -254,8 +255,8 @@ export default function LeaveBalances() {
             `${netStartingAvailable} available days (${calculatedEntitlement} entitled + ${calcCarriedOver} carried over - ${calcLegacyUsed} legacy used).`
           );
         },
-        onError: (err: any) => {
-          toast.error(err.message || "Failed to apply onboarding balance");
+        onError: (err: unknown) => {
+          toast.error(errorMessage(err) || "Failed to apply onboarding balance");
         },
       }
     );

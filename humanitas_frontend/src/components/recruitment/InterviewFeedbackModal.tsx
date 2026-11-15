@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -70,8 +71,8 @@ export function InterviewFeedbackModal({
       );
       onOpenChange(false);
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update interview feedback");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || "Failed to update interview feedback");
     }
   };
 

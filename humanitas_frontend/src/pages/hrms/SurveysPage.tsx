@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState } from 'react';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { KPITile } from '@/components/design-system/KPITile';
@@ -127,8 +128,8 @@ export default function SurveysPage() {
       toast.success('Your feedback has been submitted anonymously. Thank you!');
       setShowTakeModal(false);
       setActiveSurvey(null);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit response');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit response');
     }
   };
 
@@ -174,8 +175,8 @@ export default function SurveysPage() {
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create survey');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create survey');
     }
   };
 
@@ -197,8 +198,8 @@ export default function SurveysPage() {
         assigned_to_user_id: '',
         due_date: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create action plan');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to create action plan');
     }
   };
 
@@ -207,8 +208,8 @@ export default function SurveysPage() {
     try {
       await updateActionMutation.mutateAsync({ id: item.id, status: nextStatus });
       toast.success(`Action marked ${nextStatus}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update action');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to update action');
     }
   };
 

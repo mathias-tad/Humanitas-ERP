@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,8 +76,8 @@ export function IntegrationsSettings({ disabled = false }: IntegrationsSettingsP
         await handleRegisterWebhook();
       }
 
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      setError(errorMessage(error));
     } finally {
       setIsSaving(false);
     }
@@ -98,9 +99,9 @@ export function IntegrationsSettings({ disabled = false }: IntegrationsSettingsP
       } else {
         setSuccess(prev => prev ? prev + " Webhook registered with Krinai successfully." : "Webhook registered with Krinai successfully.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Webhook registration failed:", err);
-      setError(`Webhook Error: ${err.message}`);
+      setError(`Webhook Error: ${errorMessage(err)}`);
     } finally {
       setIsRegisteringWebhook(false);
     }

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Bot,
@@ -278,7 +279,7 @@ How can I assist your business today?`,
           contact_name: data.draftTicket.contact_name || '',
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setMessages((prev) => [
         ...prev,
         {
@@ -352,8 +353,8 @@ Our human support team has received your ticket and conversation context. A spec
 
       setActiveDraft(null);
       toast.success(`Ticket #${ticketNum} submitted!`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit support ticket');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit support ticket');
     } finally {
       setIsSubmittingDraft(false);
     }
@@ -394,8 +395,8 @@ Our human support team has received your ticket and conversation context. A spec
         contact_name: '',
         description: '',
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to submit support ticket');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to submit support ticket');
     } finally {
       setIsSubmittingDirect(false);
     }
@@ -424,8 +425,8 @@ Our human support team has received your ticket and conversation context. A spec
 
       const data = await res.json();
       setTrackedTicket(data);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to locate ticket');
+    } catch (err: unknown) {
+      toast.error(errorMessage(err) || 'Failed to locate ticket');
     } finally {
       setIsTracking(false);
     }
