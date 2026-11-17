@@ -902,16 +902,22 @@ class PayrollService:
             return 0
         
         tax = 0
-        
-        # Find the applicable bracket based on taxable income
-        for rule in tax_rules:
+
+        # Brackets are stored with integer edges (0-600, 601-1650, 1651-3200, ...),
+        # so incomes such as 601 or 1650.50 sit in the 1-unit gaps between them.
+        # Use the first bracket (by min_salary) whose upper limit is not exceeded;
+        # the (income * rate - deduction) formula is continuous at the edges, so a
+        # gap income is taxed as at the edge. Incomes below the lowest bracket pay 0.
+        rules = sorted(tax_rules, key=lambda r: float(r.min_salary or 0))
+        for index, rule in enumerate(rules):
             min_salary = float(rule.min_salary or 0)
             max_salary = float(rule.max_salary) if rule.max_salary else float('inf')
             rate = float(rule.tax_rate or 0) / 100
             deduction = float(rule.deductible or 0)
-            
-            # Check if taxable income falls within this bracket
-            if taxable_income > min_salary and (taxable_income <= max_salary or max_salary == float('inf')):
+
+            if taxable_income <= max_salary:
+                if index == 0 and taxable_income < min_salary:
+                    break  # below the lowest bracket
                 # Apply tax formula: (taxable_income * rate) - deduction
                 tax = taxable_income * rate - (deduction * pro_rata_factor)
                 print(f"[Tax] Applied bracket {min_salary}-{max_salary}: rate={rate*100}%, deduction={deduction}, tax={tax}")
