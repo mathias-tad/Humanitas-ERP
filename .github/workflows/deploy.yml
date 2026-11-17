@@ -63,6 +63,31 @@ jobs:
         run: npm test
 
   # =========================================================================
+  # 2b. Calculation Service (payroll, tax, leave) Testing Suite
+  # =========================================================================
+  test-calculation:
+    name: Calculation Service (Python) Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: humanitas_backend/tenant-backend/calculation_service/requirements.txt
+
+      - name: Install Calculation Service Dependencies
+        working-directory: humanitas_backend/tenant-backend/calculation_service
+        run: pip install -r requirements.txt
+
+      - name: Run Calculation Service Unit Tests
+        working-directory: humanitas_backend/tenant-backend/calculation_service
+        run: python -m unittest discover -s tests -v
+
+  # =========================================================================
   # 3. Mobile Testing Suite (non-blocking)
   # =========================================================================
   test-mobile:
@@ -92,7 +117,7 @@ jobs:
   # =========================================================================
   deploy:
     name: Deploy to Production VPS
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, test-calculation]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
