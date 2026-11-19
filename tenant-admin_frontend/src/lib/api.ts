@@ -2,7 +2,10 @@
 // This does NOT include tenant headers as admin panel manages all tenants
 // Uses HttpOnly cookies for authentication (secure - not accessible by JavaScript)
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-admin.humanitas-erp.ziontech.tech/api/v1';
+import { API_BASE_URL } from './config';
+
+/** Fired when the API answers 401; AuthContext listens and signs the user out. */
+export const SESSION_EXPIRED_EVENT = 'admin:session-expired';
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
@@ -36,6 +39,11 @@ export async function apiRequest<T = unknown>(
     headers: requestHeaders,
     credentials: 'include', // Send HttpOnly cookies with every request
   });
+
+  if (response.status === 401 && !endpoint.includes('/auth/admin/login')) {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    throw new Error('Your session has expired. Please sign in again.');
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));

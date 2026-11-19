@@ -20,6 +20,8 @@ import {
   Copy,
   Check,
   Clock,
+  RotateCcw,
+  Archive,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +61,7 @@ import { api } from '@/lib/api';
 import type { Tenant } from '@/types/tenant';
 import { CreateTenantModal } from '@/components/tenants/CreateTenantModal';
 import { DeleteTenantModal } from '@/components/tenants/DeleteTenantModal';
+import { useAdminAccess } from '@/context/AuthContext';
 import { SuspendTenantModal, ReactivateTenantModal } from '@/components/tenants/SuspendTenantModal';
 
 const statusColors = {
@@ -86,6 +89,8 @@ function formatStorageDisplay(usedGb: number, limitGb: number): string {
 
 export default function Tenants() {
   const navigate = useNavigate();
+  const { canManage, isSuperAdmin } = useAdminAccess();
+  const [showDeleted, setShowDeleted] = useState(false);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +124,7 @@ export default function Tenants() {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (planFilter !== 'all') params.plan = planFilter;
       if (searchQuery) params.search = searchQuery;
+      if (showDeleted) params.deleted = 'true';
 
       const response = await api.get<{ data: Tenant[]; total: number }>('/tenants', { params });
       setTenants(response.data);
@@ -131,7 +137,7 @@ export default function Tenants() {
 
   useEffect(() => {
     fetchTenants();
-  }, [statusFilter, planFilter]);
+  }, [statusFilter, planFilter, showDeleted]);
 
   // Debounced search
   useEffect(() => {
@@ -174,6 +180,34 @@ export default function Tenants() {
       toast.error('Failed to delete tenant', {
         description: errorMessage,
       });
+    }
+  };
+
+  const handleRestoreTenant = async (tenant: Tenant) => {
+    try {
+      await api.post(`/tenants/${tenant.id}/restore`);
+      toast.success('Tenant restored', { description: `${tenant.company_name} is active again` });
+      fetchTenants();
+    } catch (err: unknown) {
+      toast.error('Failed to restore tenant', { description: err instanceof Error ? err.message : undefined });
+    }
+  };
+
+  const handlePurgeTenant = async (tenant: Tenant) => {
+    const typed = window.prompt(
+      `This permanently deletes ${tenant.company_name} and its database. It cannot be undone.\n\nType ${tenant.slug} to confirm:`,
+    );
+    if (typed === null) return;
+    if (typed.trim() !== tenant.slug) {
+      toast.error('The slug did not match; nothing was deleted');
+      return;
+    }
+    try {
+      await api.delete(`/tenants/${tenant.id}/purge?confirm=${encodeURIComponent(tenant.slug)}`);
+      toast.success('Tenant permanently deleted', { description: tenant.company_name });
+      fetchTenants();
+    } catch (err: unknown) {
+      toast.error('Failed to purge tenant', { description: err instanceof Error ? err.message : undefined });
     }
   };
 
@@ -275,14 +309,26 @@ export default function Tenants() {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button
-              className="gap-2"
-              style={{ backgroundColor: '#2563eb', color: 'white' }}
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Add Tenant
-            </Button>
+            {canManage && (
+              <Button
+                variant={showDeleted ? 'default' : 'outline'}
+                className="gap-2"
+                onClick={() => setShowDeleted((v) => !v)}
+              >
+                <Archive className="h-4 w-4" />
+                {showDeleted ? 'Show active tenants' : 'Recently deleted'}
+              </Button>
+            )}
+            {canManage && !showDeleted && (
+              <Button
+                className="gap-2"
+                style={{ backgroundColor: '#2563eb', color: 'white' }}
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add Tenant
+              </Button>
+            )}
           </div>
         </div>
 
@@ -426,14 +472,42 @@ export default function Tenants() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {showDeleted ? (
+                                <>
+                                  <DropdownMenuItem disabled>
+                                    Deleted {tenant.deleted_at ? new Date(tenant.deleted_at).toLocaleDateString() : ''}
+                                  </DropdownMenuItem>
+                                  {isSuperAdmin && (
+                                    <DropdownMenuItem className="text-green-600" onClick={() => handleRestoreTenant(tenant)}>
+                                      <RotateCcw className="h-4 w-4 mr-2" />
+                                      Restore
+                                    </DropdownMenuItem>
+                                  )}
+                                  {isSuperAdmin && (
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      disabled={!!tenant.purge_after && new Date(tenant.purge_after).getTime() > Date.now()}
+                                      onClick={() => handlePurgeTenant(tenant)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      {tenant.purge_after && new Date(tenant.purge_after).getTime() > Date.now()
+                                        ? `Purge available ${new Date(tenant.purge_after).toLocaleDateString()}`
+                                        : 'Purge permanently'}
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
+                              ) : (
+                                <>
                               <DropdownMenuItem onClick={() => navigate(`/tenants/${tenant.id}`)}>
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/tenants/${tenant.id}/edit`)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
+                              {canManage && (
+                                <DropdownMenuItem onClick={() => navigate(`/tenants/${tenant.id}/edit`)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                              )}
                               {!tenant.is_setup_complete && (
                                 <DropdownMenuItem
                                   onClick={() => handleResendSetupEmail(tenant)}
@@ -448,7 +522,7 @@ export default function Tenants() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              {tenant.subscription_status === 'suspended' ? (
+                              {canManage && (tenant.subscription_status === 'suspended' ? (
                                 <DropdownMenuItem
                                   className="text-green-600"
                                   onClick={() => setReactivateModalTenant(tenant)}
@@ -464,14 +538,18 @@ export default function Tenants() {
                                   <Ban className="h-4 w-4 mr-2" />
                                   Suspend
                                 </DropdownMenuItem>
+                              ))}
+                              {isSuperAdmin && (
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => setDeleteModalTenant(tenant)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => setDeleteModalTenant(tenant)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -483,7 +561,7 @@ export default function Tenants() {
             )}
             {!isLoading && tenants.length === 0 && (
               <div className="p-8 text-center text-gray-500">
-                No tenants found. Create your first tenant to get started.
+                {showDeleted ? 'No recently deleted tenants.' : 'No tenants found. Create your first tenant to get started.'}
               </div>
             )}
           </CardContent>

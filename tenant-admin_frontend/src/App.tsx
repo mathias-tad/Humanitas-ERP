@@ -17,7 +17,7 @@ import TenantUsage from '@/pages/TenantUsage';
 import Migrations from '@/pages/Migrations';
 import PlatformKnowledge from '@/pages/PlatformKnowledge';
 import SupportTickets from '@/pages/SupportTickets';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, useAdminAccess } from '@/context/AuthContext';
 import './index.css';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -35,6 +35,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
+  return <>{children}</>;
+}
+
+/** Pages the API refuses to support accounts; show a clear message instead of errors. */
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { canConfigure } = useAdminAccess();
+  if (!canConfigure) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        This page is not available for support accounts.
+      </div>
+    );
+  }
   return <>{children}</>;
 }
 
@@ -59,12 +72,12 @@ function App() {
             <Route path="/subscriptions" element={<Subscriptions />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/admins" element={<Admins />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/logs" element={<Logs />} />
-            <Route path="/ai-configuration" element={<AiConfiguration />} />
+            <Route path="/settings" element={<AdminOnly><Settings /></AdminOnly>} />
+            <Route path="/logs" element={<AdminOnly><Logs /></AdminOnly>} />
+            <Route path="/ai-configuration" element={<AdminOnly><AiConfiguration /></AdminOnly>} />
             <Route path="/billing-packages" element={<BillingPackages />} />
             <Route path="/tenant-usage" element={<TenantUsage />} />
-            <Route path="/migrations" element={<Migrations />} />
+            <Route path="/migrations" element={<AdminOnly><Migrations /></AdminOnly>} />
             <Route path="/platform-knowledge" element={<PlatformKnowledge />} />
             <Route path="/support-tickets" element={<SupportTickets />} />
           </Route>
