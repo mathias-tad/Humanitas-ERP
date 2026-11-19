@@ -11,13 +11,20 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
-import { SelectTenantDto } from './dto/select-tenant.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
+/** Access-token lifetime for admin sessions; the cookie expires at the same time. */
+export const ADMIN_ACCESS_TOKEN_TTL_SECONDS = 6 * 60 * 60;
+
+/**
+ * Authentication for platform administrators.
+ *
+ * Tenant users sign in through the tenant API, not here. The earlier tenant-user
+ * routes on this service (login, select-tenant, register) were unused and let
+ * anyone create accounts in any tenant, so they have been removed.
+ */
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -43,37 +50,6 @@ export class AuthController {
     };
   }
 
-  // ==================== USER AUTH ====================
-
-  @Post('login')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login - returns tokens or tenant selection' })
-  @ApiResponse({ status: 200, description: 'Login successful or tenant selection required' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
-  }
-
-  @Post('select-tenant')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Select tenant after login (for multi-tenant users)' })
-  @ApiResponse({ status: 200, description: 'Tenant selected, tokens returned' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials or tenant' })
-  selectTenant(@Body() selectTenantDto: SelectTenantDto) {
-    return this.authService.selectTenant(selectTenantDto);
-  }
-
-  @Post('register')
-  @ApiOperation({ summary: 'Register new user in a tenant' })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
-  @ApiResponse({ status: 409, description: 'User already exists in this tenant' })
-  @ApiResponse({ status: 404, description: 'Tenant not found' })
-  register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
-
-  // ==================== ADMIN AUTH ====================
-
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Admin login' })
@@ -83,7 +59,7 @@ export class AuthController {
     const result = await this.authService.adminLogin(adminLoginDto);
 
     // Set HttpOnly cookies
-    res.cookie('access_token', result.access_token, this.getCookieOptions(6 * 60 * 60)); // 6 hours
+    res.cookie('access_token', result.access_token, this.getCookieOptions(ADMIN_ACCESS_TOKEN_TTL_SECONDS));
     res.cookie('refresh_token', result.refresh_token, this.getCookieOptions(7 * 24 * 60 * 60)); // 7 days
 
     // Return user data only (no tokens in response body)
@@ -92,11 +68,9 @@ export class AuthController {
     };
   }
 
-  // ==================== TOKEN MANAGEMENT ====================
-
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiOperation({ summary: 'Refresh an admin access token' })
   @ApiResponse({ status: 200, description: 'New tokens generated' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
@@ -110,7 +84,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout - invalidate refresh token' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(@Request() req: any, @Res({ passthrough: true }) res: any) {
-    await this.authService.logout(req.user.sub, req.user.type);
+    await this.authService.logout(req.user.sub);
 
     // Clear cookies with same options (required for cross-origin)
     const clearOptions = this.getCookieOptions(0);

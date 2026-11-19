@@ -63,7 +63,13 @@ async function bootstrap() {
       ) {
         return callback(null, true);
       }
-      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) return callback(null, true);
+      // Local dev origins only outside production (credentials are allowed for listed origins).
+      if (
+        configService.get<string>('NODE_ENV') !== 'production' &&
+        (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))
+      ) {
+        return callback(null, true);
+      }
       return callback(null, false);
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],

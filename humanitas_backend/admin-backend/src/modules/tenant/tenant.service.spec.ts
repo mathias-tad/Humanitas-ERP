@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 import { Tenant, SubscriptionStatus, SubscriptionPlan } from './entities/tenant.entity';
 import { EmailService } from '../email/email.service';
@@ -183,6 +183,24 @@ describe('TenantService', () => {
       const reactivated = await service.reactivate('t-1');
       expect(reactivated.subscription_status).toBe(SubscriptionStatus.ACTIVE);
       expect(reactivated.is_active).toBe(true);
+    });
+  });
+
+  describe('create', () => {
+    it('refuses to reuse a database left behind by an earlier tenant', async () => {
+      mockTenantRepo.findOne.mockResolvedValue(null); // slug and email are free
+      mockTenantRepo.create.mockImplementation((t: any) => t);
+      mockDataSource.query.mockImplementation(async (sql: string) =>
+        String(sql).includes('pg_database') ? [{ '?column?': 1 }] : [],
+      );
+
+      await expect(
+        service.create({ company_name: 'Acme', slug: 'acme', contact_email: 'a@acme.test' } as any),
+      ).rejects.toThrow(ConflictException);
+      expect(mockTenantRepo.save).not.toHaveBeenCalled();
+      expect(
+        mockDataSource.query.mock.calls.some(([sql]: [string]) => /DROP\s+DATABASE/i.test(String(sql))),
+      ).toBe(false);
     });
   });
 });

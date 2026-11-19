@@ -6,22 +6,23 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { UserTenantMap } from '../user/entities/user-tenant-map.entity';
 import { AdminUser } from '../user/entities/admin-user.entity';
-import { Tenant } from '../tenant/entities/tenant.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserTenantMap, AdminUser, Tenant]),
+    TypeOrmModule.forFeature([AdminUser]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'default-secret',
-        signOptions: {
-          expiresIn: '7d' as const,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) throw new Error('JWT_SECRET is not defined');
+        return {
+          secret,
+          // Matches the access_token cookie lifetime (see AuthController).
+          signOptions: { expiresIn: '6h' as const },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

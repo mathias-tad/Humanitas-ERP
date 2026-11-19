@@ -90,22 +90,8 @@ export class TenantService implements OnModuleInit {
       );
 
       if (dbExists.length > 0) {
-        console.warn(`⚠️ Database ${databaseName} already exists. Dropping it to ensure fresh state.`);
-        // [FIX] Forcefully drop existing database to clear "Zombie" data
-        try {
-          await adminDataSource.query(
-            `SELECT pg_terminate_backend(pg_stat_activity.pid)
-             FROM pg_stat_activity
-             WHERE pg_stat_activity.datname = $1
-             AND pid <> pg_backend_pid()`,
-            [databaseName]
-          );
-          await adminDataSource.query(`DROP DATABASE "${databaseName}"`);
-          console.log(`✅ Dropped stale database: ${databaseName}`);
-        } catch (dropError) {
-          console.error(`❌ Failed to drop stale database ${databaseName}:`, dropError.message);
-          // Proceeding to create might fail, but we try anyway
-        }
+        // Refuse rather than drop: an existing database may hold another tenant's data.
+        throw new ConflictException(`Database ${databaseName} already exists; refusing to overwrite it`);
       }
 
       // Create the database
@@ -293,6 +279,15 @@ export class TenantService implements OnModuleInit {
       setup_token,
       setup_token_expires_at,
     });
+
+    // Never reuse a database left behind by an earlier tenant: it may still hold that
+    // tenant's data, and the new tenant would be connected to it.
+    const leftover = await this.dataSource.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [database_name]);
+    if (Array.isArray(leftover) && leftover.length > 0) {
+      throw new ConflictException(
+        `A database named "${database_name}" already exists from an earlier tenant. Back it up or remove it, then try again.`,
+      );
+    }
 
     const savedTenant = await this.tenantRepository.save(tenant);
     console.log(`✅ Tenant record created: ${savedTenant.company_name} (${savedTenant.slug})`);
