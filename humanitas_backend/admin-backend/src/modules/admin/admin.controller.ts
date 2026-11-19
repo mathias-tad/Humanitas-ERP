@@ -17,13 +17,14 @@ import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 import { AdminRole } from '../user/entities/admin-user.entity';
 
 @ApiTags('Admin Management')
 @ApiBearerAuth()
 @Controller('admins')
 @UseGuards(JwtAuthGuard, AdminGuard)
+@SupportAccess('write')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 

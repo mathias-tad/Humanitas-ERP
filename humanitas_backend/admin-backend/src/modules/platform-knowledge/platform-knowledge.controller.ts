@@ -13,12 +13,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PlatformKnowledgeService } from './platform-knowledge.service';
 import { CreatePlatformKnowledgeDto, UpdatePlatformKnowledgeDto } from './dto/platform-knowledge.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 
 @ApiTags('Platform Knowledge & SaaS Provider Info')
 @ApiBearerAuth()
 @Controller('admin/platform-knowledge')
 @UseGuards(JwtAuthGuard, AdminGuard)
+@SupportAccess('write')
 export class PlatformKnowledgeController {
   constructor(private readonly knowledgeService: PlatformKnowledgeService) {}
 

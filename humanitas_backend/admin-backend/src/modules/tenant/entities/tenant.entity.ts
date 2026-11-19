@@ -136,6 +136,14 @@ export class Tenant {
   @Column({ type: 'timestamp', nullable: true })
   setup_token_expires_at: Date;
 
+  /** Set when the tenant is soft-deleted; null for live tenants. */
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date | null;
+
+  /** Earliest time the soft-deleted tenant may be purged (data is kept until then). */
+  @Column({ type: 'timestamp', nullable: true })
+  purge_after: Date | null;
+
   @OneToMany(() => UserTenantMap, (userTenant) => userTenant.tenant)
   user_mappings: UserTenantMap[];
 

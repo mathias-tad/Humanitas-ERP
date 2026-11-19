@@ -22,7 +22,7 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { SubscriptionStatus, SubscriptionPlan } from './entities/tenant.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SuperAdminOnly, SupportAccess } from '../auth/guards/admin.guard';
 
 @ApiTags('Tenants')
 @Controller('tenants')
@@ -48,14 +48,16 @@ export class TenantController {
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'deleted', required: false, description: "'true' lists soft-deleted tenants (restorable)" })
   findAll(
     @Query('status') status?: SubscriptionStatus,
     @Query('plan') plan?: SubscriptionPlan,
     @Query('search') search?: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('deleted') deleted?: string,
   ) {
-    return this.tenantService.findAll({ status, plan, search, page, limit });
+    return this.tenantService.findAll({ status, plan, search, page, limit, deleted: deleted === 'true' });
   }
 
   @Get('stats')
@@ -114,6 +116,7 @@ export class TenantController {
 
   @Post(':id/resend-setup-email')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @SupportAccess('write')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resend tenant setup / welcome email' })
   @ApiResponse({ status: 200, description: 'Setup email sent' })
@@ -124,10 +127,31 @@ export class TenantController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @SuperAdminOnly()
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete tenant' })
+  @ApiOperation({ summary: 'Delete tenant (soft): deactivates it and keeps its data for 30 days' })
+  @ApiQuery({ name: 'confirm', required: true, description: 'The tenant slug, typed to confirm' })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.tenantService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @Query('confirm') confirm: string) {
+    return this.tenantService.softDelete(id, confirm);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @SuperAdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a soft-deleted tenant' })
+  restore(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tenantService.restore(id);
+  }
+
+  @Delete(':id/purge')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @SuperAdminOnly()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Permanently delete a soft-deleted tenant and its database (after the retention period)' })
+  @ApiQuery({ name: 'confirm', required: true, description: 'The tenant slug, typed to confirm' })
+  purge(@Param('id', ParseUUIDPipe) id: string, @Query('confirm') confirm: string) {
+    return this.tenantService.purge(id, confirm);
   }
 }

@@ -161,9 +161,9 @@ export default function Tenants() {
 
   const handleDeleteTenant = async (tenant: Tenant) => {
     try {
-      await api.delete(`/tenants/${tenant.id}`);
+      await api.delete(`/tenants/${tenant.id}?confirm=${encodeURIComponent(tenant.slug)}`);
       toast.success('Tenant deleted', {
-        description: `${tenant.company_name} has been removed`,
+        description: `${tenant.company_name} was deleted and can be restored for 30 days`,
       });
       fetchTenants();
       setDeleteModalTenant(null);

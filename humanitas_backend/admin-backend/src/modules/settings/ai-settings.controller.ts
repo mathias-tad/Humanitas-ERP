@@ -3,10 +3,11 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { AiSettingsService } from './ai-settings.service';
 import { UpdateAiSettingsDto } from './dto/ai-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 import { InternalServiceGuard } from '../auth/guards/internal-service.guard';
 
 @Controller('admin/ai-settings')
+@SupportAccess('none')
 export class AiSettingsController {
   constructor(private readonly aiSettingsService: AiSettingsService) {}
 
