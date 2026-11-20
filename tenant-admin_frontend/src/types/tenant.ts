@@ -1,5 +1,8 @@
 export interface Tenant {
   id: string;
+  /** Set when soft-deleted; the tenant can be restored until purge_after. */
+  deleted_at?: string | null;
+  purge_after?: string | null;
   company_name: string;
   slug: string;
   database_name: string;

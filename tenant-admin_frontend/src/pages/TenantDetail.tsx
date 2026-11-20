@@ -42,6 +42,8 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type { Tenant } from '@/types/tenant';
+import { DeleteTenantModal } from '@/components/tenants/DeleteTenantModal';
+import { useAdminAccess } from '@/context/AuthContext';
 
 const statusColors = {
   active: 'success',
@@ -75,6 +77,8 @@ const featureLabels: Record<string, string> = {
 export default function TenantDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canManage, isSuperAdmin } = useAdminAccess();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,6 +205,17 @@ export default function TenantDetail() {
     storage: (Number(tenant.storage_used_gb) / Number(tenant.storage_limit_gb)) * 100,
   };
 
+  const handleDelete = async (t: Tenant) => {
+    try {
+      await api.delete(`/tenants/${t.id}?confirm=${encodeURIComponent(t.slug)}`);
+      toast.success('Tenant deleted', { description: `${t.company_name} can be restored for 30 days` });
+      setIsDeleteOpen(false);
+      navigate('/tenants');
+    } catch (err: unknown) {
+      toast.error('Failed to delete tenant', { description: err instanceof Error ? err.message : undefined });
+    }
+  };
+
   const handleSuspend = async () => {
     try {
       await api.patch(`/tenants/${tenant.id}/suspend`);
@@ -320,7 +335,7 @@ export default function TenantDetail() {
           <Badge variant={statusColors[tenant.subscription_status]} className="capitalize text-sm px-3 py-1">
             {tenant.subscription_status}
           </Badge>
-          {tenant.subscription_status === 'suspended' ? (
+          {canManage && (tenant.subscription_status === 'suspended' ? (
             <Button
               className="gap-2 bg-green-600 hover:bg-green-700 text-white"
               onClick={handleReactivate}
@@ -337,7 +352,7 @@ export default function TenantDetail() {
               <Ban className="h-4 w-4" />
               Suspend
             </Button>
-          )}
+          ))}
         </div>
       </div>
 
@@ -560,7 +575,11 @@ export default function TenantDetail() {
                     {tenant.per_user_fee && ` + $${tenant.per_user_fee}/user`}
                   </p>
                 </div>
-                <Button variant="outline">Change Plan</Button>
+                {canManage && (
+                  <Button variant="outline" onClick={() => navigate(`/tenants/${tenant.id}/edit`)}>
+                    Change Plan
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -789,6 +808,7 @@ export default function TenantDetail() {
           </Card>
 
           {/* Danger Zone */}
+          {isSuperAdmin && (
           <Card className="border-red-200">
             <CardHeader>
               <CardTitle className="text-base text-red-600">Danger Zone</CardTitle>
@@ -798,15 +818,22 @@ export default function TenantDetail() {
                 <div>
                   <h4 className="font-medium text-red-800">Delete Tenant</h4>
                   <p className="text-sm text-red-600">
-                    This action cannot be undone. All data will be permanently deleted.
+                    Deactivates the tenant immediately. Its data is kept for 30 days and can be restored.
                   </p>
                 </div>
-                <Button variant="destructive">Delete Tenant</Button>
+                <Button variant="destructive" onClick={() => setIsDeleteOpen(true)}>Delete Tenant</Button>
               </div>
             </CardContent>
           </Card>
+          )}
         </TabsContent>
       </Tabs>
+
+      <DeleteTenantModal
+        tenant={isDeleteOpen ? tenant : null}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDelete}
+      />
 
       {/* Setup Link Modal */}
       <Dialog

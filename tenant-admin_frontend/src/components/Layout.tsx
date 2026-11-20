@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, useAdminAccess } from '@/context/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -30,13 +30,13 @@ const navigation = [
   { name: 'Billing Packages', href: '/billing-packages', icon: Package },
   { name: 'Invoices', href: '/invoices', icon: FileText },
   { name: 'Admins', href: '/admins', icon: Users },
-  { name: 'AI Configuration', href: '/ai-configuration', icon: Zap },
+  { name: 'AI Configuration', href: '/ai-configuration', icon: Zap, adminOnly: true },
   { name: 'AI Usage', href: '/tenant-usage', icon: BarChart3 },
   { name: 'Platform Knowledge', href: '/platform-knowledge', icon: BookOpen },
   { name: 'Support Tickets', href: '/support-tickets', icon: LifeBuoy },
-  { name: 'System Logs', href: '/logs', icon: ScrollText },
-  { name: 'Migrations & Seeds', href: '/migrations', icon: GitBranch },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'System Logs', href: '/logs', icon: ScrollText, adminOnly: true },
+  { name: 'Migrations & Seeds', href: '/migrations', icon: GitBranch, adminOnly: true },
+  { name: 'Settings', href: '/settings', icon: Settings, adminOnly: true },
 ];
 
 export default function Layout() {
@@ -44,6 +44,7 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { canConfigure } = useAdminAccess();
 
   const handleLogout = () => {
     logout();
@@ -87,7 +88,7 @@ export default function Layout() {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
+            {navigation.filter((item) => !('adminOnly' in item) || canConfigure).map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <NavLink

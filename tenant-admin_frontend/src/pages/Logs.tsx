@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 // import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Search, FileText, AlertCircle, Clock, Download } from "lucide-react";
 // Use admin-backend API (reads logs from tenant-backend directory)
-const LOGS_API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
+import { API_BASE_URL as LOGS_API_URL } from "@/lib/config";
 
 interface LogFile {
   name: string;
@@ -61,7 +61,7 @@ export default function Logs() {
     if (!filename) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`${LOGS_API_URL}/logs/read/${filename}?lines=500`, {
+      const response = await fetch(`${LOGS_API_URL}/logs/read/${encodeURIComponent(filename)}?lines=500`, {
         headers: getAuthHeaders(),
         credentials: 'include',
       });
@@ -82,7 +82,7 @@ export default function Logs() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${LOGS_API_URL}/logs/search/${selectedFile}?query=${encodeURIComponent(searchQuery)}&limit=200`,
+        `${LOGS_API_URL}/logs/search/${encodeURIComponent(selectedFile)}?query=${encodeURIComponent(searchQuery)}&limit=200`,
         { headers: getAuthHeaders(), credentials: 'include' }
       );
       if (response.ok) {
