@@ -30,7 +30,7 @@ export class AdminController {
   @Post()
   @ApiOperation({ summary: 'Create a new admin user' })
   create(@Body() createAdminDto: CreateAdminDto, @Request() req: any) {
-    return this.adminService.create(createAdminDto, { role: req.user.role });
+    return this.adminService.create(createAdminDto, { id: req.user.sub, role: req.user.role });
   }
 
   @Get()
@@ -61,8 +61,8 @@ export class AdminController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update admin user' })
-  update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
-    return this.adminService.update(id, updateAdminDto);
+  update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto, @Request() req: any) {
+    return this.adminService.update(id, updateAdminDto, { id: req.user.sub, role: req.user.role });
   }
 
   @Delete(':id')
@@ -82,7 +82,7 @@ export class AdminController {
   @Patch(':id/activate')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Activate admin user' })
-  activate(@Param('id') id: string) {
-    return this.adminService.activate(id);
+  activate(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.activate(id, { id: req.user.sub, role: req.user.role });
   }
 }
