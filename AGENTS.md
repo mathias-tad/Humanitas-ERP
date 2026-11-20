@@ -1,19 +1,21 @@
 # Humanitas Global Engineering & Architecture Directives
 
-## ðŸ“ Repository Structure & Dual-Folder Separation
+> **Single source of truth for every AI assistant (Claude, Gemini, GPT, Cursor, Antigravity) and developer.** `CLAUDE.md`, `.cursorrules` and `GEMINI.md` are generated from this file — edit only `AGENTS.md` (rule 25). The product scope lives in `featureslist.md`.
+
+## 📁 Repository Structure & Dual-Folder Separation
 
 The workspace contains two distinct, purposefully separated folder trees:
 
-1. **`Humanitas`** â€” **HR & PMS Management System ONLY**
+1. **`Humanitas`** — **HR & PMS Management System ONLY**
    - Contains exclusively the Human Resource Management System (HRMS), Performance Management System (PMS), Attendance, Leave Management, Shifts & Scheduling, Payroll, Biometric Devices, Announcements, Events, Universal Chat/Messaging, and the **HR & PMS AI Intelligence Engine** (AI Assistant copilot, document generation, employee lifecycle analysis, and HR knowledge base).
    - Does **NOT** contain full ERP business modules (no Products, Inventory, Sales, Purchasing, POS, or Accounting).
 
-2. **`Humanitas-ERP`** â€” **The Comprehensive ERP Platform**
+2. **`Humanitas-ERP`** — **The Comprehensive ERP Platform**
    - Contains the complete enterprise ERP ecosystem: HRMS, PMS, Products & Catalog, Multi-Warehouse Inventory, Purchasing, Sales & CRM, Point of Sale (POS), Double-Entry Accounting & Financials, the **Full Enterprise AI Intelligence Suite** (cross-module business intelligence, forecasting, and ERP copilots), and Subscription Package Billing.
 
 ---
 
-## âš™ï¸ Core Engineering Directives
+## ⚙️ Core Engineering Directives
 
 ### 1. PRIMARY WORKSPACE & DUAL-REPO SYNC DISCIPLINE
 - **All primary development work is performed in `Humanitas-ERP`**.
@@ -28,7 +30,7 @@ The workspace contains two distinct, purposefully separated folder trees:
 - **NEVER leave any controller, route, mutation, query, or UI action button unprotected.**
 - Every single backend endpoint MUST be guarded from day one with `@UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)` and `@RequirePermissions('permission.name')`.
 - Every UI view and action button MUST check `hasPermission('permission.name')` and `isModuleSubscribed('module_name')`.
-- Never implement features with "temporary bypasses" or plan to add permissions later â€” always add permissions to the seeder immediately.
+- Never implement features with "temporary bypasses" or plan to add permissions later — always add permissions to the seeder immediately.
 
 ### 4. MANDATORY PACKAGE & SUBSCRIPTION MODULE GATING
 - All modules (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, AI) are bound to tenant package subscriptions and tenant admin module selections.
@@ -96,38 +98,12 @@ The workspace contains two distinct, purposefully separated folder trees:
 - Any module, system, or feature displayed on the UI that is not yet fully implemented **MUST display a "Coming Soon" badge with a backdrop blur overlay**.
 
 ### 14. FEATURE COMPLETION TRACKING (featureslist.md MUST ALWAYS BE UP TO DATE)
-- **Every time a feature, page, endpoint, or capability is fully implemented and working**, the corresponding checkbox in `featureslist.md` MUST be marked from `- [ ]` to `- [x]` immediately.
-- After marking any items, the **Progress Summary table at the top of `featureslist.md` MUST be recalculated and updated** to reflect the latest counts:
-  - Total features defined
-  - Total features completed (`[x]`)
-  - Total features remaining (`[ ]`)
-  - Completion percentage per module and overall
-- The progress table uses the following format at the top of `featureslist.md`:
-
-```
-## ðŸ“Š Overall Progress
-
-| Module | Total | âœ… Done | â³ Remaining | % Complete |
-|--------|-------|---------|-------------|-----------|
-| System Architecture & Core | N | N | N | N% |
-| Products & Catalog | N | N | N | N% |
-| Inventory & Warehouse | N | N | N | N% |
-| Purchasing & Vendors | N | N | N | N% |
-| Sales, CRM & E-Invoicing | N | N | N | N% |
-| Point of Sale (POS) | N | N | N | N% |
-| Accounting & Fixed Assets | N | N | N | N% |
-| HRMS & Recruitment | N | N | N | N% |
-| Project Management (PMS) | N | N | N | N% |
-| Dynamic Approval Engine | N | N | N | N% |
-| Webhooks & Developer API | N | N | N | N% |
-| Enterprise UI/UX | N | N | N | N% |
-| Billing & Subscriptions | N | N | N | N% |
-| AI Intelligence Module | N | N | N | N% |
-| **TOTAL** | **N** | **N** | **N** | **N%** |
-```
-
+- `featureslist.md` is the source of truth for product scope and progress.
+- **Before building:** if the feature is not listed yet, add it as `- [ ]` items in the right section first, in the same commit as the work.
+- **When it is implemented and its tests pass:** mark it `- [x]` in the same commit as the code. An untested feature is never marked `[x]` (rule 15).
+- **Never edit the progress table by hand.** Run `python scripts/update_features_progress.py`; it rebuilds the table from the checkboxes. CI runs it with `--check` and blocks deployment when the table is out of date.
+- Shared modules (HRMS, PMS, Chat & Calls, common platform services, AI/MCP) are updated in **both** `Humanitas-ERP/featureslist.md` and `Humanitas/featureslist.md`.
 - **Never skip this step.** A completed feature that is not marked in `featureslist.md` is considered incomplete.
-- Both `Humanitas-ERP/featureslist.md` and `Humanitas/featureslist.md` must be updated simultaneously when a shared module feature is completed.
 
 ### 15. MANDATORY INDUSTRY-STANDARD TESTING & ZERO-REGRESSION POLICY (CI/CD GATED)
 - **Universal Testing Mandate for ALL AI Assistants (Gemini, Claude, GPT, Antigravity) & Developers**:
@@ -151,6 +127,94 @@ The workspace contains two distinct, purposefully separated folder trees:
 - **Zero-Regression Rule**:
   - Existing tests must never be commented out, skipped (`it.skip`), or deleted without an explicit replacement.
 
+### 16. MANDATORY MULTI-COMPANY & MULTI-BRANCH DATA SCOPING DIRECTIVE
+- **Universal Multi-Entity Mandate for ALL AI Assistants (Gemini, Claude, GPT, Antigravity) & Developers**:
+  - Every single business entity, module, query, form, and report MUST strictly enforce the enterprise multi-company and multi-branch data isolation hierarchy.
+- **Strict 4-Tier Organizational Hierarchy**:
+  - `Tenant` (Isolated Database/Schema level) -> `Company` (Legal entity / corporate subsidiary) -> `Branch` (Operational location / site / office) -> `Department` (Functional unit).
+- **Mandatory Entity Columns & Foreign Keys**:
+  - Operational tables across all modules (Users, Employees, Attendance, Rosters, Shifts, Leave, Payroll, Inventory Warehouses, Sales Orders, Purchases, Accounts, POS Terminals, Projects) MUST support and store `company_id` and `branch_id`.
+- **Zero-Bypass Scoping & RBAC Gating**:
+  - Backend endpoints and database queries MUST filter data based on the requesting user's active company/branch context and RBAC permissions:
+    - `view_all_companies` (Enterprise org-wide scope vs. locked to user's assigned primary company)
+    - `view_all_branches` (Company-wide all-branch scope vs. locked to user's assigned branch)
+    - `view_all_departments` (Branch-wide all-department scope vs. locked to user's assigned department)
+  - Users lacking `view_all_companies` or `view_all_branches` can NEVER query, mutate, or export records belonging to another company or branch.
+- **Synchronized UI Context Switcher**:
+  - Web and mobile navigation headers MUST provide a synchronized Company & Branch context selector for users with multi-entity permissions.
+  - For single-company or single-branch users, the selector is automatically locked to their assigned scope with a lock indicator.
+- **Reporting & Calculations Scoping**:
+  - Every module reporting dashboard, export (CSV/Excel/PDF), and Python calculation service task MUST allow filtering by Company, Branch, or Consolidated Enterprise.
+- **Universal Dual-Repo Sync**:
+  - Company and Branch entities, schemas, controllers, frontend components, and mobile implementations must always be synced simultaneously between `Humanitas-ERP` and `Humanitas` (for HRMS/PMS core).
+
+### 17. MANDATORY ACTIVE SCOPE SWITCHING — IMMEDIATE GLOBAL DATA INVALIDATION
+- **Every AI assistant and developer MUST implement the following scope-switch flow without exception**:
+  1. Active company/branch is stored in `localStorage` under keys `active_company_id` and `active_branch_id`.
+  2. Switching company or branch MUST immediately call `queryClient.invalidateQueries()` (global, no filter) so **all** TanStack Query caches are discarded and refetched with the new scope.
+  3. A `CustomEvent('company-branch-changed')` MUST be dispatched on `window` so non-query-based page components (like OrganizationSettings) can react without needing a full page reload.
+  4. `getAuthHeaders()` (exported from `AuthContext`) MUST inject `x-company-id` and `x-branch-id` headers from `localStorage` into **every** API request — both via TanStack hooks and direct `apiRequest()` calls.
+  5. Every `fetcher<T>` function inside every hook (`usePayroll`, `usePMS`, `useSettings`, `useCommunication`, `useAttendance`, `useLeave`, `useOvertime`, `useScheduling`, `useUsers`, etc.) MUST spread `getAuthHeaders()` into its fetch headers.
+  6. Backend controllers MUST read `x-company-id`/`x-branch-id` from request headers (plus optional query params as fallback) and pass to the service layer for parameterized WHERE filtering.
+- **Scope query keys**: Query keys for scoped data MUST include the active company/branch IDs (e.g., `['users', companyId, branchId]`) so different scopes never share cache entries.
+- **UI feedback**: A `toast.info(...)` notification MUST be shown to the user immediately when scope is switched.
+- **Scope banner**: Pages that display scoped data MUST show an "Active Scope" banner when a company/branch filter is active, with a "Clear Scope / Show All" button.
+
+### 18. TANSTACK QUERY GLOBAL 1-MINUTE REFRESH POLICY
+- **Single source of truth**: A centralized `src/lib/queryClient.ts` MUST export the singleton `QueryClient` instance with these global defaults:
+  ```ts
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,        // 1 minute
+      refetchInterval: 60 * 1000,  // 1 minute
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      retry: 1,
+    }
+  }
+  ```
+- **`App.tsx` MUST import `queryClient` from `@/lib/queryClient`** — never instantiate `new QueryClient()` inline in `App.tsx`.
+- **No per-query overrides below 60 seconds** are permitted unless there is an explicit real-time polling reason (e.g., payroll job status polling at 1–3 s intervals during active processing).
+- **All hooks** (`useGlobalPrefetch`, `useUsers`, `useScheduling`, `useAttendance`, `useLeave`, `useOvertime`, `usePayroll`, `usePMS`, `useSettings`, `useCommunication`) MUST NOT set `staleTime` or `refetchInterval` values that override the global to be LESS frequent than 60 seconds.
+- **Dashboard and Home pages** MUST NOT hardcode `refetchInterval: 30000` — the global 60-second interval applies there too.
+- **Both repos** (`Humanitas-ERP` and `Humanitas`) MUST have identical `src/lib/queryClient.ts` configuration.
+
+### 19. MANDATORY NOTIFICATION PREFERENCE CATEGORIES PER FEATURE
+- **Every new feature that generates or triggers notifications MUST register its notification categories** in `NOTIFICATION_CATEGORY_PERMISSION_MAP` inside `notifications/dto/notification-preferences.dto.ts` (both repos).
+- **Category registration requirements**:
+  - Define a descriptive snake_case category key (e.g., `recruitment_application_received`, `approval_request_created`).
+  - Set the minimum permission required to see/configure this category (or `null` for all users).
+  - Add the category label to `NOTIFICATION_CATEGORY_LABELS` in `useNotifications.ts` (both frontend repos).
+  - Add the category description to `NOTIFICATION_CATEGORY_DESCRIPTIONS` in `useNotifications.ts`.
+  - Add the category to the appropriate group in `CATEGORY_GROUPS` (`Personal & Self-Service`, `Approvals & Management`, or `Admin & System`).
+  - Add the same label/group constants to `kNotificationCategoryLabels` and `kNotificationCategoryGroups` in `notification_preference_model.dart` (both mobile repos).
+- **Notification dispatch MUST respect user preferences**: Before sending any in-app, email, or push notification, call `notificationsService.getEffectiveChannel(tenantId, userId, category)` to determine if the user wants to receive it and via which channel. Never send a notification to a user who has set their preference to `none` for that category.
+- **Both repos must be updated simultaneously** — notification category additions are always a dual-repo change.
+
+### 20. MANDATORY AI KNOWLEDGE BASE SYNCHRONIZATION (WEB + MOBILE)
+- **Every time a new page, route, button, action, API endpoint, or mobile screen is created or modified**, the AI Knowledge Base MUST be updated with complete information covering BOTH the web and mobile surfaces:
+  - **Web**: Route path, page purpose, available actions, button locations, required permissions, and step-by-step how-to instructions.
+  - **Mobile**: Flutter screen name, navigation path (e.g., bottom nav tab → feature screen), available gestures/actions, required permissions, and step-by-step mobile how-to.
+- **Mobile app AI awareness**: The AI assistant MUST know about every mobile screen, its purpose, navigation path, available actions, and the permissions required. Mobile knowledge entries must be tagged with `platform: 'mobile'` or `platform: 'both'` in the knowledge base.
+- **The AI must never say "I don't know about the mobile app"** — if a user asks how to do something on the mobile app, the AI responds with accurate mobile-specific instructions.
+- **AI knowledge update checklist** (apply after every feature build):
+  1. Register new web routes in `ai_knowledge_entries` with full action/button/permission context.
+  2. Register corresponding mobile screens in `ai_knowledge_entries` with Flutter screen name and mobile navigation path.
+  3. If a feature has both web and mobile surfaces, create separate knowledge entries for each (or a combined entry with platform-specific sections).
+  4. Update the AI system prompt's module summary if new top-level modules are added.
+  5. Verify the AI can correctly answer: "How do I [do X] on the web?" AND "How do I [do X] on the mobile app?"
+
+### 21. MANDATORY AI STRICT DATA INTEGRITY & PERMISSION ENFORCEMENT
+- **ZERO GUESSING ON DATA**: The AI MUST NEVER fabricate, estimate, or assume any factual data values. Every factual answer (employee counts, payroll figures, leave balances, attendance records, etc.) requires calling the `query_tenant_database` tool. If the query fails, the response is: *"I could not retrieve this data from the database. Please check directly in the system."*
+- **ZERO FAKE ACTION CONFIRMATION**: AI success messages ("Done", "Completed", "Created") are only permitted after an action tool returns a confirmed successful result. If no tool was called, no action was performed.
+- **TWO-LAYER PERMISSION CHECK** (enforced in system prompt and action service):
+  - Layer 1 — AI Capability: `use_ai` / `ai_help` / `ai_documents` / `ai_actions` / `ai_full` RBAC permission required.
+  - Layer 2 — Business RBAC: Even with AI capability, the user's underlying business permissions are checked before revealing data, executing actions, or generating documents.
+  - Deny message (capability): *"You do not have permission to use this AI capability."*
+  - Deny message (business): *"You do not have permission for this."*
+  - Deny message (document scope): *"You do not have permission to generate a document containing this information."*
+- **Tenant-level AI gating**: `AccessControl.tsx` MUST include AI capability permissions (`use_ai`, `ai_help`, `ai_documents`, `ai_actions`, `ai_full`) so tenant admins can grant or revoke AI features per role.
+
 ### 22. MANDATORY MODULAR INDEPENDENCE & COMPLETE ZERO-COUPLING SEPARABILITY
 - **Universal Zero-Coupling Architecture Mandate for ALL AI Assistants (Gemini, Claude, GPT, Antigravity) & Developers**:
   - Every operational module (HRMS, PMS/Tasks, Products, Inventory, Purchasing, Sales, POS, Accounting) MUST be 100% architecturally decoupled and fully operable in complete isolation.
@@ -167,3 +231,51 @@ The workspace contains two distinct, purposefully separated folder trees:
   - **Role-Based & Module-Adaptive Dashboards**:
     - Central dashboards (`/dashboard` / `Home.tsx`) and Module Reporting dashboards (`/hrms/reports`, `/pms/reports`) MUST adapt dynamically to both the user's role (Executive, Manager, Employee) and the tenant's subscribed modules.
     - Every module MUST include a dedicated Reporting Dashboard featuring multi-format exports (CSV, Excel XML, Printable PDF Summary, and structured JSON via `ReportExportMenu`).
+
+### 23. NEW MODULE STARTING BRIEF (READ BEFORE BUILDING ANY MODULE)
+Use this brief, together with `featureslist.md` Part A/B and §28–§38, every time a module or major feature is started:
+
+```text
+Build the <MODULE> module for Humanitas-ERP as an independent, separately sellable module.
+- Manifest: declare hard dependencies only; put every integration with other modules in auto-activated bridge modules (featureslist §28).
+- In-context UX: register quick-create and drawer forms so any module can create/open these records without leaving its page, gated by subscription + permission (§29).
+- Timeline: emit time-stamped events for every create, change, stage move and interaction (§30).
+- Communications: expose call/video/SMS/WhatsApp/email actions on records through the shared communications services (§31, §32).
+- AI: register tools once in the shared registry so they appear in the built-in AI, the MCP server and the REST API, within the user's permissions (§33).
+- Deliver the full vertical slice: migrations, services, RBAC, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (rules 1–22, §37 Definition of Done).
+- Must work standalone, together with other modules, in SaaS and on-prem.
+```
+
+- ERP-only modules (Products, Inventory, Purchasing, Sales, CRM, POS, Accounting, Manufacturing, VoIP & Contact Center, Online Store, Delivery, Fleet) live only in `Humanitas-ERP`.
+- Shared platform services (In-Context Action Framework, Activity Timeline, Chat & Calls, AI/MCP) are built once and mirrored to `Humanitas` (rule 1).
+
+### 24. QUALITY GUARDRAILS — NEVER REINTRODUCE A FIXED ISSUE
+Every item below is a past production issue. New code MUST respect all of them (details and checks in `featureslist.md` §37):
+1. **Secrets** never go into git or chat; new environment variables appear in `.env*.example` files only as placeholders.
+2. **Auth fails closed:** guards verify tokens cryptographically (never decode-only), reject refresh tokens as access tokens, and ship with unit tests.
+3. **Admin safety:** least-privilege defaults, the last active super admin can never be removed or demoted, sessions are revoked on role/status/password change.
+4. **No destructive surprises:** deletes are soft with typed confirmation and a retention window; no code path drops a database or tenant data on error.
+5. **Schema:** every entity change ships with a tenant migration; startup repair may only add.
+6. **Time:** containers run with `TZ=UTC`; tests run in a non-UTC zone (`test/jest-global-setup.js`); never rely on the server's local time.
+7. **Money and tax:** brackets are continuous (no gaps), round half-up once per component, totals come from rounded parts, and boundary values are tested.
+8. **Encryption keys** are versioned (current + previous) with re-encryption tooling; never rotate a key without it.
+9. **Deploys** never run in parallel (`concurrency` group), are gated by CI, and recover from stale containers.
+10. **Refactors** start with characterization (golden-master) tests.
+11. **Types:** no new `any`; use the typed request (`AuthenticatedRequest`) and `errorMessage()` helpers.
+12. **Mobile:** release builds never point at localhost or allow cleartext; no `BuildContext` use across async gaps; analyzer warnings may only go down.
+13. **Dependencies:** Node LTS only (currently 24); fix high/critical `npm audit` findings before merging.
+14. **Network:** new compose services never publish databases or admin tools on `0.0.0.0`.
+15. **Tests** are never deleted, skipped or commented out without a replacement.
+
+### 25. KEEPING THESE RULES AND THE FEATURE LIST CURRENT
+- `AGENTS.md` is the only file where rules are edited. After any change run `python scripts/sync_agent_rules.py` to regenerate `CLAUDE.md` and `.cursorrules` (and `GEMINI.md` where present). CI runs it with `--check` and blocks deployment if a copy differs.
+- `AGENTS.md` is identical in `Humanitas` and `Humanitas-ERP`; change both in the same session. The workspace folder that holds both repos keeps its own copies: run `python scripts/sync_agent_rules.py --dir ..` from either repo after copying `AGENTS.md` there.
+- **Every new lesson becomes a rule:** when a bug, incident or review finding reveals a new failure mode, add it to rule 24 and `featureslist.md` §37 in the same commit as the fix.
+- **Every new owner decision becomes a rule:** when the owner changes how work is done (branches, deploys, tools, conventions), update `AGENTS.md` immediately.
+- Progress numbers are never typed by hand (rule 14).
+
+### 26. GIT, COMMITS & DEPLOYMENTS
+- Work is pushed directly to the default branch (`Humanitas`: `master`, `Humanitas-ERP`: `main`). Every push deploys automatically after CI passes, one deploy at a time.
+- Push only after the local build and the relevant tests pass. Never force-push the default branch.
+- Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `ci:`, `docs:`) and explain why. They contain **no AI-assistant names or attribution/co-author trailers**.
+- Changes to shared modules are mirrored to the other repo in the same session (rule 1).

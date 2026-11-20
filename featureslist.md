@@ -1,46 +1,119 @@
-﻿# ðŸŒŸ Humanitas Enterprise ERP â€” Master Feature & Capability Specification
+﻿# 🌟 Humanitas Enterprise ERP — Master Feature & Capability Specification
 
 This document provides a comprehensive, enterprise-grade feature checklist for the **Humanitas Modular Cloud ERP Platform**, designed to rival top-tier global enterprise systems like **Microsoft Dynamics 365, SAP S/4HANA, NetSuite, and Odoo**.
 
 ---
 
+> Last updated: 2026-11-20 · Progress counts below are generated from the checkboxes in this file.
+
+
 ## 📊 Overall Progress
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| System Architecture & Core | 55 | 55 | 0 | 100% |
-| Products & Catalog | 25 | 0 | 25 | 0% |
-| Inventory & Warehouse | 32 | 0 | 32 | 0% |
-| Purchasing & Vendors | 32 | 0 | 32 | 0% |
-| Sales & E-Invoicing | 37 | 0 | 37 | 0% |
-| Enterprise CRM Suite | 56 | 0 | 56 | 0% |
-| Point of Sale (POS) | 37 | 0 | 37 | 0% |
-| Accounting & Fixed Assets | 54 | 1 | 53 | 2% |
-| HRMS & Recruitment | 63 | 63 | 0 | 100% |
-| Project Management (PMS) | 28 | 28 | 0 | 100% |
-| Dynamic Approval Engine | 12 | 12 | 0 | 100% |
-| Webhooks & Developer API | 16 | 16 | 0 | 100% |
-| Enterprise UI/UX | 30 | 30 | 0 | 100% |
-| Billing & Subscriptions | 21 | 0 | 21 | 0% |
-| AI Intelligence Module | 51 | 51 | 0 | 100% |
-| Employee Self-Service Portal | 21 | 21 | 0 | 100% |
-| Document Vault & Letters | 19 | 19 | 0 | 100% |
-| Onboarding & Offboarding | 22 | 22 | 0 | 100% |
-| Grievance & Complaints | 17 | 17 | 0 | 100% |
-| Benefits & Insurance | 17 | 17 | 0 | 100% |
-| Training & LMS | 22 | 22 | 0 | 100% |
-| 360 Performance Reviews | 27 | 27 | 0 | 100% |
-| Expense Management | 19 | 19 | 0 | 100% |
-| Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
-| Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
-| Bulk Import/Export | 13 | 13 | 0 | 100% |
-| Notification Engine | 39 | 39 | 0 | 100% |
-| Multi-Language (i18n) | 12 | 0 | 12 | 0% |
-| **TOTAL** | **833** | **528** | **305** | **63%** |
+| 0. System Architecture & Core | 73 | 73 | 0 | 100% |
+| 1. Products & Catalog Management | 35 | 0 | 35 | 0% |
+| 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
+| 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
+| 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 65 | 0 | 65 | 0% |
+| 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
+| 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
+| 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
+| 8. Decoupled Project Management System (PMS) | 28 | 28 | 0 | 100% |
+| 9. Dynamic Approval Workflow Engine | 12 | 12 | 0 | 100% |
+| 10. Webhooks & Developer API Portal | 16 | 16 | 0 | 100% |
+| 11. Modern Enterprise UI / UX Architecture | 30 | 30 | 0 | 100% |
+| 12. Self-Service Subscription, Billing & Landing Page | 21 | 0 | 21 | 0% |
+| 13. AI Intelligence Module | 51 | 51 | 0 | 100% |
+| 14. Employee Self-Service Portal | 21 | 21 | 0 | 100% |
+| 15. Employee Document Vault & Letter Templates | 19 | 19 | 0 | 100% |
+| 16. Onboarding & Offboarding Workflows | 22 | 22 | 0 | 100% |
+| 17. Employee Grievance & Complaint System | 17 | 17 | 0 | 100% |
+| 18. Benefits & Insurance Management | 17 | 17 | 0 | 100% |
+| 19. Training & Learning Management (LMS) | 22 | 22 | 0 | 100% |
+| 20. 360 Performance Reviews & Feedback | 27 | 27 | 0 | 100% |
+| 21. Expense Management | 19 | 19 | 0 | 100% |
+| 22. Employee Asset & Equipment Tracking | 19 | 19 | 0 | 100% |
+| 23. Employee Pulse Surveys & Engagement | 19 | 19 | 0 | 100% |
+| 24. Bulk Import/Export Engine | 13 | 13 | 0 | 100% |
+| 25. Notification Engine — Email, In-App & Push | 39 | 39 | 0 | 100% |
+| 26. Multi-Language (i18n) & Localization Support | 16 | 0 | 16 | 0% |
+| 28. Modular Packaging, Licensing & Deployment | 23 | 0 | 23 | 0% |
+| 29. In-Context Action Framework | 14 | 0 | 14 | 0% |
+| 30. Universal Activity Timeline & Interaction Log | 10 | 0 | 10 | 0% |
+| 31. Unified Communications — Voice & Video Calls in Chat | 13 | 0 | 13 | 0% |
+| 32. VoIP, Cloud PBX & AI Contact Center | 21 | 0 | 21 | 0% |
+| 33. MCP & Open AI Connectivity | 10 | 0 | 10 | 0% |
+| 34. Online Store & Omnichannel Ordering | 7 | 0 | 7 | 0% |
+| 35. Delivery & Last-Mile Logistics | 6 | 0 | 6 | 0% |
+| 36. Fleet Management & GPS Telematics | 10 | 0 | 10 | 0% |
+| 37. Quality Guardrails & Regression Prevention | 17 | 0 | 17 | 0% |
+| 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
+| **TOTAL** | **1078** | **529** | **549** | **49%** |
 
 ---
 
-## 0. ðŸ—ï¸ System Architecture & Core
+## 🧭 Part A — Product Vision (Enhanced Brief)
+
+**Mission.** Build the most usable modular business platform for growing companies in Ethiopia, East Africa and beyond:
+- every module can be bought on its own or together, as SaaS or installed on the customer's own server;
+- it is AI-native, and any AI can connect to it through MCP;
+- communications are built in — chat, voice and video calls, VoIP, an AI contact center — and every module can use them;
+- users finish any related task without leaving the page they are on.
+
+**Who it is for.** SMEs to enterprises, manufacturers and industrial-park plants, retail and restaurants (POS), distributors and wholesalers, phone- and call-center-driven sellers, field sales teams, logistics and fleet operators, multi-company groups.
+
+**Product principles (apply to every module):**
+1. **Sell à la carte, run anywhere** — one, two or many modules; multi-tenant SaaS, dedicated cloud or customer-owned on-prem from one codebase (§28).
+2. **Never leave the page** — permission-aware quick-create, side drawers, smart buttons and inline actions everywhere (§29).
+3. **Everything is logged** — a time-stamped timeline on every record with each interaction, recording, transcript and status change (§30).
+4. **Communications are a platform service** — chat, calls, meetings, VoIP, SMS, WhatsApp and email, usable from any module (§31, §32).
+5. **AI everywhere, safely** — built-in AI plus any external AI through MCP, always within the user's permissions and fully audited (§13, §33).
+6. **Local first** — Ethio Telecom, Safaricom, telebirr, M-Pesa, ETB, Ethiopian tax rules, local languages and calendar, low-bandwidth and offline operation.
+7. **Web + mobile parity**, and per-module reports (Directives 11–12).
+8. **Quality bar** — every past issue is now an automated guardrail (§37).
+
+**Benchmark.** The `tewosERP` folder is Odoo 19.0 Community, reviewed from source.
+- **Adopted from Odoo:**
+  - auto-installing bridge modules between apps;
+  - quick-create, "create and edit" and "search more" inside every relation field, gated by create rights;
+  - a chatter with tracked changes, activities and activity plans;
+  - calls in Discuss with SFU, guests, screen share and camera toggling.
+- **Where we go further:**
+  - VoIP and AI as standard modules (Enterprise-only in Odoo);
+  - GPS telematics (Odoo Fleet has none);
+  - an MCP server, so customers can use any AI;
+  - interaction timelines with recordings and AI transcripts;
+  - local telecom and payment integrations;
+  - signed on-prem module licensing.
+
+**Use this brief when starting any new module:**
+
+```text
+Build the <MODULE> module for Humanitas-ERP as an independent, separately sellable module.
+- Manifest: declare hard dependencies only; put every integration with other modules in auto-activated bridge modules (§28).
+- In-context UX: register quick-create and drawer forms so any module can create/open these records without leaving its page, gated by subscription + permission (§29).
+- Timeline: emit time-stamped events for every create, change, stage move and interaction (§30).
+- Communications: expose call/video/SMS/WhatsApp/email actions on records through the shared communications services (§31, §32).
+- AI: register tools once in the shared registry so they appear in the built-in AI, the MCP server and the REST API, within the user's permissions (§33).
+- Deliver the full vertical slice: migrations, services, RBAC, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (Directives 1–12, §37 Definition of Done).
+- Must work standalone, together with other modules, in SaaS and on-prem.
+```
+
+---
+
+## 🧱 Part B — How the Modules Fit Together
+
+- **Base modules** (Products, Inventory, Sales, POS, CRM, VoIP, Fleet, …) never import each other's code or tables.
+- **Bridge modules** hold the cross-module logic and switch on automatically when every module they connect is active. For example, `pos_sales` turns on with POS + Sales, and `crm_voip` with CRM + VoIP.
+- **Shared platform services** are available to every module: the timeline (§30), communications (§31–32), the quick-create/drawer framework (§29), approvals, notifications, and the AI/MCP tool registry (§33).
+- **Events and contracts** connect modules asynchronously, so a module can be removed, sold alone or deployed on-prem without breaking the others (§28).
+
+---
+
+
+## 0. 🏗️ System Architecture & Core
 
 - [x] **Role-Restricted Direct Chat & AI Triage Access Grants**:
   - [x] Admin role restrictions configured per role (`hr_manager`, `admin`, `general_manager`, `ceo`, `legal_counsel`) with custom AI triage guidance prompts.
@@ -53,7 +126,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [x] **Multi-Tenancy Foundation**:
   - [x] Isolated per-tenant PostgreSQL database provisioning via `TenantMigrationService`.
   - [x] Tenant-scoped query routing through `DatabaseService.getTenantConnection(databaseName)`.
-- [x] **Multi-Company & Multi-Branch Organization Hierarchy** (`Tenant â†’ Company â†’ Branch â†’ Department`):
+- [x] **Multi-Company & Multi-Branch Organization Hierarchy** (`Tenant → Company → Branch → Department`):
   - [x] `companies` and `branches` master tables with idempotent schema creation and default seeding.
   - [x] 10 CRUD REST endpoints for Companies and Branches (`GET`, `POST`, `PUT`, `DELETE`) with full RBAC guards (`view_companies`, `manage_companies`, `view_all_companies`, `view_branches`, `manage_branches`, `view_all_branches`).
   - [x] `company_id` and `branch_id` columns added to **all 40+ operational tables** (users, departments, positions, attendance, leave, payroll, PMS, shifts, schedules, devices, announcements, events, and all ERP tables).
@@ -62,11 +135,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [x] **Tenant Migration**: `20261022000001_add_company_branch_to_all_operational_tables.sql` registered and auto-applied on startup.
 - [x] **Company & Branch Context Switcher (Web)**:
   - [x] `CompanyBranchSwitcher` header component with dropdown switcher for users with `view_all_companies` / `view_all_branches` permissions.
-  - [x] Locked badge (`Assigned Unit ðŸ”’`) for single-entity users automatically scoped to their assigned company/branch.
+  - [x] Locked badge (`Assigned Unit 🔒`) for single-entity users automatically scoped to their assigned company/branch.
   - [x] Integrated into `EnterpriseTopHeader.tsx` (Humanitas-ERP) and inline top-bar (Humanitas).
   - [x] Multi-select dropdown switcher supporting simultaneous selection of multiple companies and branches.
   - [x] Multi-scope summaries & metric aggregation across selected companies/branches on dashboards and listings.
-- [x] **Company & Branch Context Switcher (Mobile â€” Flutter)**:
+- [x] **Company & Branch Context Switcher (Mobile — Flutter)**:
   - [x] `CompanyBranchSwitcher` widget with bottom sheets integrated into HomeScreen AppBar.
   - [x] `OrganizationRepository`, `CompanyModel`, `BranchModel`, and `organization_provider` (Riverpod).
 - [x] **Organization Settings UI**:
@@ -121,7 +194,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 1. ðŸ“¦ Products & Catalog Management (`/products`)
+## 1. 📦 Products & Catalog Management (`/products`)
 
 - [ ] **Product Master Data**:
   - [ ] Standard goods, services, digital items, and composite/bundled kit items.
@@ -148,10 +221,20 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Price list comparison report across tiers.
   - [ ] Low-stock products report (linked to Inventory module when subscribed).
   - [ ] QR/Barcode generation audit log.
+- [ ] **Odoo-Parity & In-Context Additions**:
+  - [ ] Quick-create a product from POS, Sales, Purchasing, Inventory and Online Store lines (name, price, tax, UOM, barcode scan) when the user has `products.create` (§29).
+  - [ ] Product types: storable, consumable, service, combo (POS menus), kit/bundle (BoM-ready for future manufacturing).
+  - [ ] Packaging levels with their own barcodes (unit, box, pallet) and GS1 barcode nomenclature support.
+  - [ ] Attribute values created on the fly; per-variant price extras; archive unused variants.
+  - [ ] Vendor price list per product (vendor, price, MOQ, lead time) used by Purchasing replenishment.
+  - [ ] Variant grid entry on sales/purchase lines (enter quantities per size × color in one matrix).
+  - [ ] Default shelf life and expiry rules feeding Inventory lots.
+  - [ ] AI helpers: description and SEO text generation, auto-categorization, image background cleanup.
+  - [ ] Product timeline (§30): price changes, cost changes and who made them.
 
 ---
 
-## 2. ðŸ­ Inventory & Warehouse Management (`/inventory`)
+## 2. 🏭 Inventory & Warehouse Management (`/inventory`)
 
 - [ ] **Multi-Warehouse & Location Hierarchy**:
   - [ ] Unlimited warehouses with hierarchical internal storage locations (Warehouse -> Zone -> Aisle -> Rack -> Bin).
@@ -185,10 +268,19 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Batch/Lot expiration forecast report.
   - [ ] Slow-moving and dead-stock analysis.
   - [ ] Stocktake variance and adjustment audit report.
+- [ ] **Odoo-Parity & In-Context Additions**:
+  - [ ] Routes and rules: 1/2/3-step receipts and deliveries, make-to-order, min/max replenishment, dropship, consignment stock.
+  - [ ] Putaway rules and removal strategies (FIFO, FEFO, LIFO, closest location); packages and pallets; batch and wave picking.
+  - [ ] Forecast view per product: on hand, reserved, incoming, outgoing, forecast date.
+  - [ ] Mobile barcode app for receiving, picking, packing, counting and transfers (camera or rugged scanner).
+  - [ ] In-context stock popover on Sales/POS/Online Store lines (per warehouse, forecast, alternatives).
+  - [ ] Quick stock adjustment from the product drawer, permission-gated and logged on the timeline.
+  - [ ] Replenishment report with one-click RFQ creation.
+  - [ ] Scales and RFID readers through a local device bridge (IoT).
 
 ---
 
-## 3. ðŸ›’ Purchasing & Vendor Management (`/purchasing`)
+## 3. 🛒 Purchasing & Vendor Management (`/purchasing`)
 
 - [ ] **Vendor Directory & Portal**:
   - [ ] Vendor profiles, tax registration numbers, payment terms, contact directories, and bank accounts.
@@ -222,10 +314,17 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] 3-Way matching discrepancy report.
   - [ ] Vendor performance scorecard report (on-time delivery, price accuracy, quality).
   - [ ] Outstanding PO and back-order tracking report.
+- [ ] **Odoo-Parity & In-Context Additions**:
+  - [ ] Automatic RFQs from replenishment rules and make-to-order sales.
+  - [ ] Purchase agreements: blanket orders and calls for tender; alternative RFQ comparison.
+  - [ ] Vendor portal: vendors confirm POs, update delivery dates and upload invoices.
+  - [ ] AI bill capture: OCR of vendor bills into draft bills matched to PO and receipt.
+  - [ ] Quick-create vendor and product from a PO line (§29); vendor call/email from the PO (§32).
+  - [ ] Automatic reminders to vendors before expected receipt dates; late-delivery alerts.
 
 ---
 
-## 4. ðŸ’¼ Enterprise Sales, Quotations & E-Invoicing (`/sales`)
+## 4. 💼 Enterprise Sales, Quotations & E-Invoicing (`/sales`)
 
 - [ ] **Sales Quotations & Interactive CPQ**:
   - [ ] Professional quotation generator with multi-tier pricing, discount matrix, and expiry countdown.
@@ -264,10 +363,17 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Quotation-to-Order conversion funnel with stage drop-off analysis.
   - [ ] Customer Aged Receivables report (Current, 30, 60, 90+ days overdue).
   - [ ] Top customers, top revenue-generating products, and regional sales distribution heatmaps.
+- [ ] **Odoo-Parity & In-Context Additions**:
+  - [ ] Quotation templates with optional products and online signature + payment on the quote (telebirr, M-Pesa, card).
+  - [ ] Down payments, invoicing policy (ordered vs. delivered quantities), recurring/subscription orders.
+  - [ ] One-click quote from a CRM opportunity; deal value updated from the quote.
+  - [ ] Per-line stock and margin indicators; quick-create customer with credit-limit check (§29).
+  - [ ] Smart buttons for deliveries, invoices, payments and calls (§29).
+  - [ ] Phone-order capture through the softphone panel; AI drafts quotes from an email or call transcript (§32).
 
 ---
 
-## 4.1 ðŸ¤ World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
+## 4.1 🤝 World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
 
 - [ ] **Handwriting-to-Text & Digital Ink Recognition (Zoho / Apple Pencil Rival)**:
   - [ ] **Interactive Digital Ink Canvas**: Smooth handwriting input area on tablets, touchscreens, mobile, and desktop stylus for sales reps in the field.
@@ -275,7 +381,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] **"Handwrite-to-Register" Quick Customer Onboarding**: Sales rep can write customer name, phone number, email, company, and meeting notes with a stylus or finger; 1-click "Convert & Save" parses handwritten notes directly into validated database fields (`name`, `phone`, `email`, `tax_id`, `address`, `notes`).
   - [ ] **Stylus Pressure & Stroke Smoothing**: Bezier stroke smoothing, undo/redo, eraser, and pressure-sensitive digital ink rendering.
   - [ ] **Business Card Camera Scanner (OCR)**: Snap a photo of a paper business card to automatically extract and populate lead/contact fields with AI validation.
-- [ ] **360Â° Customer & Account Master Intelligence**:
+- [ ] **360° Customer & Account Master Intelligence**:
   - [ ] Multi-tier corporate account hierarchy (Parent Holding -> Regional Subsidiaries -> Branch Offices -> Individual Contacts).
   - [ ] Unified 360-degree timeline feed: all emails, phone calls, WhatsApp chats, meetings, quotes, orders, invoices, and support tickets in one single chronological view.
   - [ ] AI-driven Customer Health Score & Churn Risk indicator based on communication frequency, order frequency, and payment punctuality.
@@ -322,13 +428,22 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Dedicated branded customer portal where clients can view pending proposals, approve quotes with digital signatures, track orders, view invoice history, and submit support tickets.
 - [ ] **CRM Executive Analytics & Cohort Reports**:
   - [ ] Full-funnel conversion analysis: `Visitor` -> `Lead` -> `Marketing Qualified (MQL)` -> `Sales Qualified (SQL)` -> `Opportunity` -> `Won`.
-  - [ ] Sales Velocity Formula report: `Velocity = (Deals in Pipeline Ã— Win Rate Ã— Average Deal Size) / Sales Cycle Length`.
+  - [ ] Sales Velocity Formula report: `Velocity = (Deals in Pipeline × Win Rate × Average Deal Size) / Sales Cycle Length`.
   - [ ] Rep Activity Scorecard: Calls made, emails sent, meetings conducted, and proposals submitted per rep.
   - [ ] Revenue Forecast Matrix (Committed, Best Case, Pipeline, Closed) with historical forecast accuracy tracking.
+- [ ] **Interaction Timeline & AI Auto-Fill (see §30, §32)**:
+  - [ ] Every touchpoint numbered and time-stamped: 1st call, 2nd call, email, WhatsApp, meeting, visit — channel, direction, duration, outcome, user.
+  - [ ] Call recordings, video recordings, transcripts and AI summaries attached to the touchpoint.
+  - [ ] Scripted calls: script version and the answer to each step stored with the call.
+  - [ ] AI fills and updates lead fields from calls and meetings (need, budget, timeline, decision maker, next step), with a review-before-save option.
+  - [ ] Every stage and status change stored with timestamp and time-in-stage.
+  - [ ] Leads created automatically from the AI voice agent, website chat, WhatsApp and email (§32, §33).
+  - [ ] Activity plans (multi-step cadences assigned in one click) with overdue tracking.
+  - [ ] Video meetings with external guest links straight from the deal (§31).
 
 ---
 
-## 5. âš¡ Point of Sale (POS) (`/pos`)
+## 5. ⚡ Point of Sale (POS) (`/pos`)
 
 - [ ] **Multi-Terminal & Register Architecture**:
   - [ ] Support for multiple cash registers across different stores/branches.
@@ -367,10 +482,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
   - [ ] Top-selling items and product category performance.
   - [ ] Discount and void audit report (who, when, how much).
   - [ ] Hourly sales heatmap for staffing optimization.
+- [ ] **Odoo-Parity & In-Context Additions**:
+  - [ ] Product not found → create it inside POS when the cashier has `products.create`, otherwise "request product" to a manager (§29).
+  - [ ] Quick-create customer at checkout; settle a customer's open invoices at the register.
+  - [ ] Order presets (dine-in, takeaway, delivery) and combo products.
+  - [ ] Self-ordering kiosk and table QR menu; kitchen display system (KDS) alongside printed tickets.
+  - [ ] Loyalty, gift cards and e-wallet shared with the Online Store.
+  - [ ] Phone and online orders arrive in the POS order queue; dispatch to Delivery from the register.
+  - [ ] Mobile POS on Android/iOS with the same offline queue.
 
 ---
 
-## 6. ðŸ“Š Double-Entry Accounting, Financials & Fixed Assets (`/accounting`)
+## 6. 📊 Double-Entry Accounting, Financials & Fixed Assets (`/accounting`)
 
 - [ ] **Chart of Accounts (COA)**:
   - [ ] Standard hierarchical multi-tier Chart of Accounts (Assets, Liabilities, Equity, Revenue, Expenses).
@@ -426,12 +549,19 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 - [ ] **Fiscal Year & Multi-Currency Controls**:
   - [ ] Fiscal year definition, accounting period locks (closing past months to prevent unauthorized edits).
   - [ ] Multi-currency revaluation with automatic Realized and Unrealized Foreign Exchange Gain/Loss journals.
+- [ ] **Odoo-Parity Additions**:
+  - [ ] Bank feeds/statement sync with reconciliation models and AI-suggested matches.
+  - [ ] AI OCR for vendor bills and receipts into draft entries.
+  - [ ] Analytic accounting (multiple plans: project, department, vehicle, branch) and budgets vs. actuals.
+  - [ ] Payment terms with early-payment discounts; batch payments; cash-basis taxes.
+  - [ ] Follow-up levels for overdue customers combining email, SMS and a VoIP call step (§32).
+  - [ ] Lock dates and audit reports; Ethiopian VAT, withholding and TOT reporting; IFRS-ready statements.
 
 ---
 
-## 7. ðŸ‘¥ Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
+## 7. 👥 Decoupled Human Resource Management & Recruitment (HRMS) (`/hrms`)
 
-- [x] **Organization Settings â€” Companies & Branches (`/settings/organization`)**:
+- [x] **Organization Settings — Companies & Branches (`/settings/organization`)**:
   - [x] Companies CRUD: create, view, edit, and delete companies with name, code, address, and status fields.
   - [x] Branches CRUD: create, view, edit, and delete branches tied to their parent company.
   - [x] Active company/branch scope banner displayed at the top of the OrganizationSettings page; list filtered to the current scope context.
@@ -498,7 +628,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 8. ðŸš€ Decoupled Project Management System (PMS) (`/pms`)
+## 8. 🚀 Decoupled Project Management System (PMS) (`/pms`)
 
 - [x] **Multi-Project Workspace**:
   - [x] Portfolio dashboard with project progress, health status, deadlines, and budget burn rates.
@@ -531,7 +661,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 9. ðŸ”€ Dynamic Approval Workflow Engine (`/settings/approvals`)
+## 9. 🔀 Dynamic Approval Workflow Engine (`/settings/approvals`)
 
 - [x] **Configurable Multi-Tier Approval Rules**:
   - [x] User-defined approval hierarchies across all operational workflows:
@@ -548,7 +678,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 10. ðŸ”Œ Webhooks & Developer API Portal (`/settings/developer-api`)
+## 10. 🔌 Webhooks & Developer API Portal (`/settings/developer-api`)
 
 - [x] **Tenant API Key Management**:
   - [x] Generation of scoped, revocable REST API keys for external ERP integrations.
@@ -605,7 +735,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 ---
 
 
-## 12. ðŸ’³ Self-Service Subscription, Billing & Landing Page
+## 12. 💳 Self-Service Subscription, Billing & Landing Page
 
 - [ ] **Interactive SaaS Landing Page**:
   - [ ] Hero showcase displaying Humanitas ERP modules with live animated workflow previews.
@@ -631,11 +761,11 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 13. ðŸ¤– AI Intelligence Module (`/ai`)
+## 13. 🤖 AI Intelligence Module (`/ai`)
 
 ### Subscribable AI Capability Tiers
 - [x] **AI Help (`ai.help`)**: Conversational assistant that answers questions about how to use Humanitas. Knows every page, route, button, and action in the system via the AI Knowledge Base.
-- [x] **AI Document Creation (`ai.documents`)**: Generates formatted PDF and DOCX documents from database data. Supports user-uploaded sample/template documents â€” AI extracts the format structure and produces output in that exact layout.
+- [x] **AI Document Creation (`ai.documents`)**: Generates formatted PDF and DOCX documents from database data. Supports user-uploaded sample/template documents — AI extracts the format structure and produces output in that exact layout.
 - [x] **AI Actions (`ai.actions`)**: Executes system actions on behalf of the user if the user has the required permissions. Examples: "Approve all pending leave requests", "Create a purchase order for 500 units of Product X", "Run payroll for July 2026".
 - [x] **Full AI Module (`ai.full`)**: All AI capabilities unlocked (Help + Documents + Actions).
 
@@ -702,7 +832,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 14. ðŸ  Employee Self-Service Portal (`/self-service`)
+## 14. 🏠 Employee Self-Service Portal (`/self-service`)
 
 - [x] **Unified "My HR" Dashboard**:
   - [x] Personal summary cards: leave balance, next payslip date, attendance streak, pending requests count.
@@ -752,7 +882,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 16. ðŸš€ Onboarding & Offboarding Workflows (`/hrms/onboarding`)
+## 16. 🚀 Onboarding & Offboarding Workflows (`/hrms/onboarding`)
 
 - [x] **Onboarding Checklist Engine**:
   - [x] Configurable onboarding checklist templates per department, role, and employment type.
@@ -779,14 +909,14 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 17. âš–ï¸ Employee Grievance & Complaint System (`/hrms/grievances`)
+## 17. ⚖️ Employee Grievance & Complaint System (`/hrms/grievances`)
 
 - [x] **Grievance Submission Portal**:
   - [x] Formal grievance filing with category classification (harassment, discrimination, safety, policy violation, workplace conflict, compensation dispute).
-  - [x] Anonymous complaint option with masked identity â€” only designated HR officers can view.
+  - [x] Anonymous complaint option with masked identity — only designated HR officers can view.
   - [x] Supporting evidence upload (documents, photos, screenshots).
 - [x] **Investigation & Resolution Workflow**:
-  - [x] Multi-stage lifecycle: `Filed` â†’ `Acknowledged` â†’ `Investigating` â†’ `Resolution Proposed` â†’ `Closed`.
+  - [x] Multi-stage lifecycle: `Filed` → `Acknowledged` → `Investigating` → `Resolution Proposed` → `Closed`.
   - [x] Assigned investigator and committee management with conflict-of-interest checks.
   - [x] Resolution tracking with escalation rules and SLA timers (e.g., acknowledge within 48 hours, resolve within 14 days).
   - [x] Confidential case file with restricted-access notes and attachments.
@@ -801,7 +931,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 18. ðŸ¥ Benefits & Insurance Management (`/hrms/benefits`)
+## 18. 🏥 Benefits & Insurance Management (`/hrms/benefits`)
 
 - [x] **Benefits Plan Catalog**:
   - [x] Plan types: medical insurance, dental, vision, life insurance, pension/retirement, housing allowance, transport allowance, education assistance.
@@ -823,7 +953,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 19. ðŸŽ“ Training & Learning Management (LMS) (`/hrms/training`)
+## 19. 🎓 Training & Learning Management (LMS) (`/hrms/training`)
 
 - [x] **Training Course Catalog**:
   - [x] Course creation with categories, description, prerequisites, capacity limits, and delivery method (in-person, online, blended).
@@ -850,7 +980,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 20. ðŸ”„ 360 Performance Reviews & Feedback (`/pms/reviews`)
+## 20. 🔄 360 Performance Reviews & Feedback (`/pms/reviews`)
 
 - [x] **Review Cycle Management**:
   - [x] Configurable review cycles: quarterly, semi-annual, annual, or custom periods.
@@ -882,7 +1012,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 21. ðŸ’° Expense Management (`/hrms/expenses`)
+## 21. 💰 Expense Management (`/hrms/expenses`)
 
 - [x] **Expense Claim Submission**:
   - [x] Employee expense claim form with category selection, amount, date, description, and receipt photo upload.
@@ -906,7 +1036,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 22. ðŸ–¥ï¸ Employee Asset & Equipment Tracking (`/hrms/assets`)
+## 22. 🖥️ Employee Asset & Equipment Tracking (`/hrms/assets`)
 
 - [x] **Asset Registry**:
   - [x] Asset catalog: laptops, monitors, phones, tablets, vehicles, access cards, keys, uniforms, tools.
@@ -972,7 +1102,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 25. ðŸ”” Notification Engine â€” Email, In-App & Push (`/notifications`)
+## 25. 🔔 Notification Engine — Email, In-App & Push (`/notifications`)
 
 - [x] **Email Notification Service**:
   - [x] Centralized transactional email engine for: leave approvals/rejections, payroll ready, password resets, task assignments, review cycle launches, document expiry alerts, and grievance status updates.
@@ -1016,24 +1146,28 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 ---
 
-## 26. ðŸŒ Multi-Language (i18n) & Localization Support
+## 26. 🌍 Multi-Language (i18n) & Localization Support
 
 - [ ] **Frontend Internationalization**:
   - [ ] i18n framework integration with language switcher accessible from user profile/settings.
   - [ ] All UI labels, messages, error texts, and placeholders stored in translation files.
   - [ ] Right-to-Left (RTL) layout support for Arabic, Hebrew, and Farsi.
 - [ ] **Language Packs**:
-  - [ ] Pre-packaged language packs: English, Amharic (áŠ áˆ›áˆ­áŠ›), Arabic (Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©), French (FranÃ§ais), Spanish (EspaÃ±ol).
+  - [ ] Pre-packaged language packs: English, Amharic (አማርኛ), Arabic (العربية), French (Français), Spanish (Español).
   - [ ] Tenant-configurable default language with per-user override.
   - [ ] Community translation contribution portal for additional languages.
 - [ ] **Localization & Formatting**:
   - [ ] Date format localization per locale (DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD).
   - [ ] Number and currency format localization (decimal separators, thousands grouping, currency symbol placement).
   - [ ] Multi-currency payroll support: configurable country-specific tax brackets, pension rules, and statutory deductions beyond Ethiopian defaults.
+- [ ] **Local Languages & Calendars**:
+  - [ ] Amharic, Afaan Oromo, Tigrinya, Somali and Swahili UI translations, plus Arabic with right-to-left layout.
+  - [ ] Ethiopian (Ge'ez) calendar display and date entry alongside Gregorian, per user.
+  - [ ] AI features (voice agent, captions, transcripts) in the same languages (§31, §32).
 
 ---
 
-## 27. âš™ï¸ Humanitas Global Engineering & Architecture Directives
+## 27. ⚙️ Humanitas Global Engineering & Architecture Directives
 
 To maintain unwavering code quality, security, and zero-rework consistency during development, the following principles are strictly enforced across every prompt and file edit:
 
@@ -1063,8 +1197,8 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 
 4. DESIGN-FIRST DEVELOPMENT:
    - The Enterprise UI/UX Design System, layout shell, and navigation architecture are built FIRST (Phase 1) before any module work begins.
-   - Every module built afterward MUST use the established design tokens, layout components, data grid system, form components, and navigation dock â€” no ad-hoc or one-off styling.
-   - Every new page, table, form, and modal MUST use the shared design system components â€” never raw HTML or inline styles.
+   - Every module built afterward MUST use the established design tokens, layout components, data grid system, form components, and navigation dock — no ad-hoc or one-off styling.
+   - Every new page, table, form, and modal MUST use the shared design system components — never raw HTML or inline styles.
 
 5. AI KNOWLEDGE SYNCHRONIZATION:
    - Every time a new page, route, button, action, or feature is created or modified, the AI Knowledge Base MUST be updated with: route path, page purpose, available actions, button locations, required permissions, and step-by-step how-to instructions.
@@ -1092,13 +1226,263 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 10. ENTERPRISE UI/UX FIDELITY:
     - Always follow the Dynamics 365 App Launcher & Contextual Dock navigation paradigm established in Phase 1.
     - Keep forms clean with consistent input validation, numeric formatting, and currency symbols.
-    - Every new page, table, form, and modal MUST use the shared design system components â€” never raw HTML or ad-hoc styles.
+    - Every new page, table, form, and modal MUST use the shared design system components — never raw HTML or ad-hoc styles.
 
 11. FULL MOBILE PARITY:
     - Every feature, page, report, and action built on the web frontend MUST have a corresponding mobile implementation in `humanitas_mobile` / `humanitas-ERP_mobile`.
-    - Mobile builds happen alongside web builds â€” not as a separate phase.
+    - Mobile builds happen alongside web builds — not as a separate phase.
 
 12. PER-MODULE REPORTING:
     - Every module MUST include a dedicated Reports sub-section with relevant charts, KPIs, and exportable data summaries.
     - Never ship a module without its reporting dashboard.
 ```
+
+---
+
+## 28. 🧩 Modular Packaging, Licensing & Deployment (`/platform/modules`)
+
+> Goal: any customer can buy **one, two or any combination** of modules — as SaaS, as a dedicated cloud, or installed on **their own server that they own** — from the same codebase.
+
+- [ ] **Module Manifest Standard** (every module ships one `module.json`):
+  - [ ] Key, version, hard dependencies (`depends`), optional integrations, permissions, tenant migrations, menus/routes, settings schema, reports, timeline event types, quick-create forms, AI tools and MCP tools.
+  - [ ] Hard dependencies resolved automatically at subscription time (e.g. Inventory pulls in Products); dependency graph validated in CI (no cycles, no undeclared imports between modules).
+  - [ ] Semantic versioning per module with a compatibility range against the platform core.
+- [ ] **Bridge (Integration) Modules — auto-activated** (the Odoo `auto_install` pattern, e.g. `sale_stock`, `pos_sale`):
+  - [ ] All cross-module logic lives in bridge modules (`sales_inventory`, `pos_sales`, `purchase_inventory`, `inventory_accounting`, `crm_voip`, `sales_delivery`, `delivery_fleet`, `ecommerce_inventory`, `hr_fleet`, …), never inside a base module.
+  - [ ] A bridge switches on automatically when all of its parent modules are active and switches off cleanly when one is removed — data is kept, features are hidden.
+  - [ ] Every base module works fully standalone; CI tests each module alone and with each of its bridges.
+- [ ] **Event & Contract Layer between modules**:
+  - [ ] Domain events (`sales.order.confirmed`, `inventory.stock.moved`, `voip.call.ended`, `fleet.geofence.exited`, …) on an internal event bus with an outbox table (no lost events).
+  - [ ] Versioned event and API contracts; a module only talks to another through its public service interface or events — never its tables.
+- [ ] **Commercial Packaging**:
+  - [ ] Sell any module alone or in suites: Retail (Products + Inventory + POS + Accounting), Trade (Products + Inventory + Purchasing + Sales + Accounting), Contact Center (VoIP + CRM + AI), Logistics (Delivery + Fleet), Manufacturing (Products + Inventory + Manufacturing + Purchasing + Accounting), People (HRMS + PMS).
+  - [ ] Pricing meters per module, per seat and per usage (call minutes, AI tokens, GPS devices, SMS, storage).
+  - [ ] Per-module trials, upgrade/downgrade with proration, usage dashboard for the tenant.
+- [ ] **Deployment Targets (same codebase)**:
+  - [ ] Multi-tenant SaaS (current).
+  - [ ] Dedicated single-tenant cloud.
+  - [ ] Customer-owned on-premise: Docker Compose or Kubernetes (Helm) bundle containing only the licensed modules; one-command installer; air-gapped install option.
+  - [ ] Signed offline license file (modules, seats, expiry) verified without internet, with grace period and renewal by file or online.
+  - [ ] On-prem update channel: signed releases, automatic migrations with pre-update backup and one-click rollback.
+  - [ ] Tenant move SaaS ⇄ on-prem (full export/import with integrity check).
+- [ ] **Extension SDK & Marketplace**: third-party modules use the same manifest, sandboxed permissions and a review process.
+
+---
+
+## 29. 🔗 In-Context Action Framework — "Finish the Task Without Leaving the Page"
+
+> Example: a cashier in **POS** (or a rep in **Sales**) searches for a product that does not exist. If the tenant has the Products module and the user has `products.create`, they create it right there — name, price, tax, barcode scan — and it lands in the cart. No page change, no lost work.
+
+- [ ] **Quick-Create Anywhere (permission-aware)**:
+  - [ ] Every relation picker (product, customer, vendor, employee, vehicle, driver, warehouse, location, account, tax, UOM, category, project, …) offers type-to-search, **"Create '…'"** in one step, **"Create & edit…"** (full form in a side drawer) and **"Search more…"** (advanced search dialog).
+  - [ ] Shown only when the target module is subscribed **and** the user has its create permission; otherwise **"Request creation"** sends a pre-filled request through the Approval Engine to someone who can.
+  - [ ] The new record is selected in the original field automatically; the original form keeps all unsaved input.
+  - [ ] Built-in flows: POS/Sales → new product → added to cart/line · Sales → new customer with credit-limit check · Purchase → new vendor/product · Expense → new category · Delivery → new address with map pin · Fleet → new driver · CRM → new company/contact.
+  - [ ] Duplicate guard during quick-create (similar names, phones, emails, barcodes shown before saving).
+- [ ] **Side Peek & Stacked Drawers**: open any linked record (customer, invoice, product, stock, call, vehicle) in a right-side drawer; drawers stack with a breadcrumb; `Esc` returns to where the user was with state intact.
+- [ ] **Smart Buttons (related counters)** on every record across subscribed modules (Orders 12 · Invoices 8 · Calls 5 · Deliveries 3 · Tickets 1); each opens in a drawer.
+- [ ] **Inline actions on any record**: call (VoIP or app), video call, chat, email, SMS, WhatsApp, schedule activity, create task, create quote/order, register payment, print/send — each gated by module subscription and permission.
+- [ ] **Embedded cross-module widgets**: stock availability and margin on Sales/POS lines, customer balance and credit on POS/Sales, live vehicle position on deliveries, softphone panel on CRM/Sales/POS/Support.
+- [ ] **Command palette actions in context** (`Ctrl/Cmd + K`): "create invoice for this order", "call this customer", "assign this delivery to Abebe".
+- [ ] **Inline grid editing** with validation and undo; bulk actions without leaving the list.
+- [ ] **Draft safety**: auto-saved drafts on every form, leave-page warning, draft recovery after a crash or lost connection.
+- [ ] **Developer contract**: one shared `EntityPicker` + `QuickCreateRegistry` + `RecordDrawer` (web and Flutter). A module registers its quick-create form once and every other module gets it automatically — no copy-paste.
+
+---
+
+## 30. 🕒 Universal Activity Timeline & Interaction Log
+
+> Every action and status change is time-stamped. For a lead: 1st call (scripted, recorded, transcript, AI summary), 2nd call, email, WhatsApp, meeting, quote sent — all on one timeline with date, channel, direction, who, and what was said.
+
+- [ ] Every business record (lead, contact, account, deal, order, invoice, PO, product, delivery, vehicle, employee, candidate, ticket, project, task) has a timeline panel.
+- [ ] **Automatic, immutable, time-stamped entries**: creation, every tracked field change (old → new, who, when, through UI/API/AI/MCP), stage changes with time-in-stage, approvals, generated documents.
+- [ ] **Interaction log (touchpoints)**: channel (VoIP call, app voice call, video call, email, SMS, WhatsApp, chat, meeting, visit), direction, sequence number (1st, 2nd … contact), start/end time, duration, outcome/disposition, participants, user, description.
+- [ ] **Attachments on interactions**: call or video recording, transcript, AI summary, call script used (with version and answers per step), files, screenshots.
+- [ ] Manual entries for past interactions (backdated, flagged in the audit trail).
+- [ ] **Scheduled activities**: call, meeting, email, to-do with due dates, reminders, overdue badges and **activity plans** (multi-step sequences assigned in one click).
+- [ ] Internal notes vs. customer-visible messages, @mentions, followers with per-event notification preferences.
+- [ ] Filters (channel, user, type, date), search, export; roll-up view on parent records (an account shows its contacts' interactions).
+- [ ] Privacy: recording consent flags, per-tenant retention policies, PII redaction in transcripts, legal hold.
+- [ ] One shared `activity_events` service used by all modules; modules only emit events (works standalone and on-prem).
+
+---
+
+## 31. 📹 Unified Communications — Voice & Video Calls in Chat (`/chat`)
+
+- [ ] 1-to-1 and group **voice calls**; 1-to-1 and group **video calls**.
+- [ ] Switch freely during a call: turning the camera on makes it a video call, turning it off makes it voice-only — per participant, without reconnecting.
+- [ ] **Screen sharing** (screen, window or tab) alongside the camera, with presenter control.
+- [ ] Media architecture: peer-to-peer for small calls, self-hostable SFU (LiveKit or mediasoup) for groups, TURN relay for restrictive networks, adaptive bitrate and a low-bandwidth audio-only mode.
+- [ ] **External guest links**: secure invite link (expiry, optional PIN, lobby/waiting room, host admits) for people outside the platform, in the browser, no account needed.
+- [ ] Scheduled meetings from Calendar, Chat, CRM, Recruitment (interviews), Projects — link generated automatically.
+- [ ] In-call: mute, raise hand, reactions, chat, participant list, host controls (mute all, remove, lock), background blur, noise suppression, picture-in-picture, device switching, network-quality indicator.
+- [ ] Recording with consent notice; AI transcript, summary and action items posted to the linked record's timeline (deal, ticket, project, candidate).
+- [ ] Call history, missed-call notifications, native incoming-call screen on mobile (CallKit / ConnectionService).
+- [ ] Live captions and translation (Amharic, Afaan Oromo, Tigrinya, Swahili, English, Arabic …) — AI tier.
+- [ ] "Start a call about this record" from any record — logged to that record's timeline.
+- [ ] End-to-end encryption option for 1-to-1 calls; recordings encrypted at rest.
+- [ ] Full mobile parity (Flutter).
+
+---
+
+## 32. ☎️ VoIP, Cloud PBX & AI Contact Center (`/voip`)
+
+- [ ] **Provider-agnostic telephony layer**:
+  - [ ] SIP trunk connectors: **Ethio Telecom** (SIP / hosted PBX), **Safaricom** (Kenya and Ethiopia), **Twilio** (Programmable Voice / Elastic SIP), Telnyx, Vonage, Africa's Talking, Plivo, and generic SIP for any carrier.
+  - [ ] Connect an existing PBX (Asterisk/FreePBX, 3CX, Yeastar, Grandstream) over SIP or AMI/ARI.
+  - [ ] One adapter interface (dial, answer, transfer, record, DTMF, events) — modules never depend on a specific carrier.
+  - [ ] Self-hostable media/PBX core (FreeSWITCH or Asterisk) for on-prem; managed mode for SaaS.
+  - [ ] Number management: DIDs, toll-free and short codes per company/branch/team; caller ID rules; least-cost routing and automatic failover between providers.
+- [ ] **Softphone everywhere**: WebRTC softphone on web and mobile, SIP desk-phone registration, click-to-call on every phone number in every module, **screen pop** on incoming calls showing the matching customer/lead/order/delivery with quick actions.
+- [ ] **PBX features**: extensions, ring groups, drag-and-drop IVR (multi-language, business hours, holidays), queues with skills-based routing, voicemail with transcription, blind/attended transfer, hold music, conference/merge, park/pickup, DND, follow-me to mobile.
+- [ ] **Recording & compliance**: rules per queue/user, consent announcement, pause during card payments, encrypted storage, retention policies.
+- [ ] **Contact center**: agent states (available/busy/wrap-up), wallboards, live monitoring, supervisor whisper/barge, scheduled callbacks, outbound campaigns (preview, progressive, predictive) with do-not-call lists, after-call forms, dispositions and SLAs.
+- [ ] **AI Voice Agent** (AI tier):
+  - [ ] Answers calls 24/7 or on overflow, in Amharic, Afaan Oromo, Tigrinya, Swahili, English, Arabic …; handles interruptions; hands over to a human with a summary.
+  - [ ] **Takes orders by phone**: identifies the caller, checks products, stock and prices, creates the Sales/POS/online order, sends a payment link (telebirr, M-Pesa, card), and books a delivery slot when Delivery is subscribed.
+  - [ ] Answers order status, delivery ETA (from Delivery/Fleet), invoice balance, appointment booking and FAQs from the Knowledge Vault.
+  - [ ] **Creates/updates CRM leads automatically** from the conversation: name, company, need, budget, timeline, sentiment, next step.
+  - [ ] Guardrails: reads the order back for confirmation before committing, per-tenant limits, permissioned tools only, full audio + transcript on the timeline, `executed_by: ai_on_behalf` audit.
+- [ ] **AI Copilot for human agents**: live transcription, suggested answers, script guidance, auto-filled after-call form, automatic summary to the timeline.
+- [ ] **Bridges into modules**: CRM (sales calls, lead auto-fill, cadences), Sales & POS (phone orders), Online Store, Delivery (masked driver ↔ customer calls), Support tickets, Recruitment (phone screens), Accounting (collection calls in dunning), Fleet (driver hotline, alert calls).
+- [ ] SMS and WhatsApp from the same numbers where the provider supports it.
+- [ ] Analytics: volumes, average handle time, first-call resolution, abandonment, wait time, agent performance, cost per provider, AI containment rate.
+- [ ] Usage metering for billing: minutes per provider, recording storage, AI minutes.
+
+---
+
+## 33. 🔌 MCP & Open AI Connectivity (`/settings/ai-connections`)
+
+> Customers can connect **any AI they want** (Claude, ChatGPT, Gemini, Copilot, or their own local model) to their Humanitas data — safely, with the same permissions as the user.
+
+- [ ] **Humanitas MCP Server** (remote, Streamable HTTP, MCP spec `2026-07-28`, stateless and horizontally scalable; SaaS and on-prem):
+  - [ ] OAuth 2.1 authorization with per-user consent and tenant-admin approval of client apps; scopes mapped to RBAC permissions and module subscriptions — an AI can never do more than its user.
+  - [ ] Tools generated from module manifests (one registry shared with the built-in AI Action Executor): search/read records, create/update with validation, run reports, approvals, start a call, send SMS — only for subscribed modules.
+  - [ ] Resources (records, reports, documents, Knowledge Vault) and prompts (module playbooks).
+  - [ ] Destructive actions require explicit human confirmation; optional read-only mode; rate limits; per-client token revocation.
+  - [ ] Full audit of every MCP call (client, user, tool, arguments, result) for admins, with anomaly alerts.
+- [ ] **MCP client for the built-in AI**: tenant admins connect external MCP servers (Google Drive, Slack, GitHub, banks, e-commerce, …) to an allow-list the Humanitas AI may use.
+- [ ] **Bring your own model**: provider per capability (OpenAI, Anthropic, Google, Azure, or local Ollama/vLLM for on-prem), keys stored encrypted, cost tracking per tenant.
+- [ ] **One tool registry → three surfaces**: MCP tools, public REST API (OpenAPI docs) and webhooks stay in sync automatically.
+- [ ] **AI Agent Builder**: tenants create agents (sales assistant, collections agent, HR helpdesk, delivery dispatcher) with chosen tools, knowledge and channels (chat, voice, WhatsApp, website).
+
+---
+
+## 34. 🛍️ Online Store & Omnichannel Ordering (`/ecommerce`)
+
+- [ ] Storefront with themes, product pages from Products, live stock from Inventory, cart and checkout.
+- [ ] Payments: telebirr, M-Pesa, Chapa, cards, bank transfer, cash on delivery.
+- [ ] **One order queue for every channel**: web store, phone (agent or AI voice agent), WhatsApp, POS, sales reps, marketplaces.
+- [ ] Customer accounts, order tracking page, reorder, wishlists, reviews.
+- [ ] Promotions, coupons, gift cards and loyalty shared with POS.
+- [ ] Delivery options and slot booking from Delivery; click-and-collect from a store.
+- [ ] SEO, multi-language, multi-currency.
+
+---
+
+## 35. 🚚 Delivery & Last-Mile Logistics (`/delivery`)
+
+- [ ] Delivery orders created from Sales, POS, Online Store and phone orders.
+- [ ] Delivery zones, rates, time slots and capacity; in-house fleet or third-party couriers.
+- [ ] Dispatch board: assign driver and vehicle, AI route optimization (multi-stop, time windows, vehicle capacity), live map from Fleet GPS.
+- [ ] Driver mobile app: route and navigation, masked call/SMS to the customer through VoIP, package scanning, proof of delivery (signature, photo, OTP), cash-on-delivery collection reconciled into Accounting.
+- [ ] Customer live-tracking link and ETA by SMS/WhatsApp; failed-delivery reasons and rescheduling; return pickups.
+- [ ] KPIs: on-time rate, cost per drop, failed deliveries, COD variance.
+
+---
+
+## 36. 🚗 Fleet Management & GPS Telematics (`/fleet`)
+
+- [ ] **Fleet core** (Odoo Fleet parity): vehicle registry (models, brands, categories, plate, VIN), documents (insurance, registration, inspection) with expiry alerts, driver/department assignment history, contracts (lease, insurance, service) with costs, odometer log, fuel log (cards and receipts), preventive maintenance by km/time/engine hours, tires, accidents/incidents, traffic fines.
+- [ ] **GPS device management**: tracker registry (IMEI, SIM, model, install date) and an ingestion gateway supporting 200+ tracker protocols through Traccar (open source, Apache 2.0) or direct decoders (Teltonika, Concox/GT06, Queclink, Coban, SinoTrack, phone apps via OsmAnd).
+- [ ] **Live tracking**: live map, trip history and playback, stops, geofences with enter/exit alerts, speeding, harsh braking/acceleration, idling, after-hours use, ignition status.
+- [ ] **Sensors and commands**: fuel level, temperature (cold chain), panic button, driver ID (RFID/iButton); remote immobilizer command — permissioned, confirmed and audited.
+- [ ] Driver behaviour scores and working hours.
+- [ ] Alerts in app, by SMS, email or automated VoIP call, with escalation rules.
+- [ ] Odometer updated from GPS automatically; maintenance scheduled automatically from mileage or engine hours.
+- [ ] Cost analytics: total cost of ownership per vehicle, fuel efficiency, utilization, cost per km, fuel-theft detection.
+- [ ] Bridges: Delivery (live position, ETA), HRMS (drivers, licences), Fixed Assets/Accounting (costs, depreciation), Inventory (spare parts), Purchasing (service vendors).
+- [ ] Scale: time-series storage (TimescaleDB or partitioned tables) with retention policies; map provider choice (self-hosted OpenStreetMap for on-prem, Google/Mapbox for cloud).
+
+---
+
+## 37. 🛡️ Quality Guardrails & Regression Prevention
+
+> Every issue fixed in the November 2026 audit becomes a rule with an automated check, so it cannot come back in new modules.
+
+- [ ] **Secrets**: secret scanning (gitleaks) in CI and pre-commit; example env files hold placeholders for new variables; documented rotation runbook. *(Lesson: real secrets in example files and chat.)*
+- [ ] **Auth fails closed**: every guard verifies tokens cryptographically, refresh tokens are rejected as access tokens, and every guard has unit tests. *(Lesson: a guard decoded tokens without verifying them.)*
+- [ ] **Admin safety**: least-privilege role defaults, last-super-admin protection, sessions revoked on role, status or password change.
+- [ ] **No destructive surprises**: deletes are soft, confirmed by typing the name, with a retention window before purge; nothing drops a database on an error path. *(Lesson: tenant creation could drop an existing database.)*
+- [ ] **Schema drift check**: every entity change ships with a tenant migration; CI compares entities against migrations.
+- [ ] **Time zones**: containers pinned to `TZ=UTC`; the test suite runs in a non-UTC zone to catch wall-clock bugs. *(Lesson: clock-in times depended on the server zone.)*
+- [ ] **Money and tax math**: continuous tax brackets (no gaps), half-up rounding once per component, totals from rounded parts, boundary tests (e.g. 600.50, 1650.50). *(Lesson: bracket gaps taxed some incomes at 0.)*
+- [ ] **Encryption keys are versioned** (current + previous) with re-encryption tooling before any rotation.
+- [ ] **Deploy safety**: deploys never run in parallel, tests gate every deploy, stale-container recovery, health checks and rollback. *(Lesson: overlapping deploys collided on container names.)*
+- [ ] **Refactors start with characterization (golden-master) tests**, as done for the attendance split.
+- [ ] **Types**: `no-explicit-any` is an error for new code and the existing count may only go down; typed request objects everywhere.
+- [ ] **Mobile**: release builds never point at localhost, no cleartext traffic in release, no `BuildContext` across async gaps, analyzer warnings may only go down.
+- [ ] **Dependencies**: Node LTS only; high/critical `npm audit` findings fail CI; weekly automated dependency PRs.
+- [ ] **Network exposure**: databases and admin tools are never published on `0.0.0.0` in new compose files; a compose lint check enforces it.
+- [ ] **Tests are never deleted without a replacement**: CI fails if the test count drops.
+- [ ] **Shared code stays mirrored**: CI diffs shared modules between `Humanitas` and `Humanitas-ERP`.
+- [ ] **Per-module Definition of Done**: manifest, migrations, RBAC, subscription gate, timeline events, quick-create form, AI/MCP tools, reports, mobile screens, unit + end-to-end tests, Knowledge Base entries.
+
+---
+
+## 38. 🏭 Manufacturing (MRP), Quality & Plant Maintenance (`/manufacturing`)
+
+> World-class discrete, process and batch manufacturing (Odoo MRP/Quality/Maintenance/PLM parity and beyond), built for Ethiopian plants: agro-processing, food and beverage, pharmaceuticals, textile and garment, leather, cement and construction materials, plastics and packaging, metal works and assembly.
+
+- [ ] **Bills of Materials (BoM) & Engineering**:
+  - [ ] Multi-level BoMs with components, by-products, co-products, scrap factors and yield; phantom/kit BoMs; variant-specific lines (one BoM for all sizes/colors).
+  - [ ] Process recipes/formulas with percentages and batch sizes (food, beverage, pharma, chemicals, paint).
+  - [ ] Routings: operations, work centers, setup/run/cleanup times, operator instructions with images/videos, quality checkpoints per step.
+  - [ ] PLM: engineering change orders (ECO) with approval, BoM/routing versioning and effective dates, document control (drawings, specs, SOPs).
+  - [ ] BoM cost roll-up (materials + labor + machine + overhead) through the Python calculation engine; what-if costing.
+- [ ] **Production Planning (MPS / MRP)**:
+  - [ ] Master production schedule from sales forecasts, confirmed orders and safety stock.
+  - [ ] MRP run: net requirements, planned manufacturing orders, planned purchases with lead times; make-to-order and make-to-stock.
+  - [ ] Finite-capacity scheduling with drag-and-drop Gantt per work center, shift calendars (from HRMS shifts) and holidays (Ethiopian calendar).
+  - [ ] Material availability check before release; shortage list with one-click RFQ or transfer.
+- [ ] **Manufacturing Orders & Shop Floor**:
+  - [ ] MO lifecycle (Draft → Confirmed → In progress → Done → Closed) with partial production, split/merge and backorders.
+  - [ ] Work orders per operation; tablet/kiosk shop-floor app (offline-capable) with start/pause/finish, barcode/QR scanning and Amharic/Afaan Oromo/Tigrinya UI.
+  - [ ] Real-time material consumption (backflush or manual), lot/serial capture, scrap and rework recording with reasons.
+  - [ ] Labor time tracking per operator feeding payroll (piece-rate and overtime according to the Labour Proclamation via HRMS).
+  - [ ] Subcontracting (send components, receive finished goods, pay service fee) and toll/contract manufacturing for customers.
+  - [ ] Disassembly/unbuild orders and repairs.
+  - [ ] Quick-create from the shop floor when permitted (missing component, new lot, scrap reason) — §29.
+- [ ] **Quality Management (QMS)**:
+  - [ ] Quality control points (incoming, in-process, final) with pass/fail, measurement (with tolerances) and photo checks.
+  - [ ] Sampling plans (AQL), statistical process control charts, certificates of analysis (CoA).
+  - [ ] Non-conformance reports, quarantine, deviations and CAPA workflows with root-cause analysis.
+  - [ ] Lab information: test methods, specifications, stability studies, retained samples.
+  - [ ] Full batch genealogy (raw lot → batch → finished lot → customer), with mock-recall and recall execution.
+- [ ] **Plant Maintenance (CMMS)**:
+  - [ ] Equipment registry linked to Fixed Assets; preventive maintenance by calendar, run-hours or cycles; corrective requests from the shop floor.
+  - [ ] Spare parts from Inventory, maintenance costs to Accounting, technician scheduling.
+  - [ ] OEE (availability × performance × quality), downtime capture with reasons — including **power outage** and **generator** events with fuel consumption tracking.
+  - [ ] IoT/PLC data (counters, temperatures, energy meters) through a local device bridge (MQTT/OPC UA).
+- [ ] **Costing & Accounting Integration**:
+  - [ ] Standard, average and actual costing per MO; variances (material, labor, overhead, yield) posted automatically.
+  - [ ] Work-in-progress valuation, overhead absorption rates per work center, by-product cost allocation.
+  - [ ] Energy and utility cost allocation (electricity, water, steam, generator fuel) per work center.
+- [ ] **Ethiopia-Specific Compliance & Localization**:
+  - [ ] **EFDA** regulated plants (food, medicines, cosmetics): GMP, GDP and GSP-ready records — electronic batch records, cleaning/line clearance logs, environmental monitoring, equipment calibration, deviation/CAPA, product registration and marketing-authorization tracking.
+  - [ ] **Institute of Ethiopian Standards (IES)**: product standard references (ES numbers) per product, Ethiopian Standards mark authorization and renewal tracking; conformity certificates from **ECAE**; calibration records traceable to the **Ethiopian Metrology Institute**; accredited lab results (EAS).
+  - [ ] **Excise tax** (Proclamation 1186/2020) computed at production/removal for excisable goods (beverages, edible oil, sugar products, tobacco, vehicles …), plus VAT and withholding; excise stamps/marking where required.
+  - [ ] Imported raw materials: letter-of-credit (LC) and forex allocation tracking, customs declarations and duty, landed cost into material cost (with Purchasing).
+  - [ ] Export production: duty-drawback/voucher scheme records, export permits, buyer compliance documents; coffee traceability (ECX grades, washing station, farm geolocation for EU deforestation-regulation due diligence).
+  - [ ] Industrial-park operations (e.g. Hawassa, Bole Lemi, Kilinto, Dire Dawa): park-specific reporting, environmental and effluent monitoring logs.
+  - [ ] Sector templates: flour/feed mills, edible oil, beverages and water bottling, dairy, coffee and tea processing, pharmaceuticals, textile/garment (cut-make-trim with size-color bundles), tannery and leather goods, cement/blocks, plastics, furniture.
+  - [ ] Production planning in the Ethiopian (Ge'ez) calendar, ETB costing with multi-currency imported inputs.
+- [ ] **AI & Communications**:
+  - [ ] AI production planner (suggests schedule from demand, capacity, power-outage history and material ETAs).
+  - [ ] AI quality assistant: anomaly detection on measurements, CAPA drafting, SOP Q&A from the Knowledge Vault.
+  - [ ] Machine-down alerts by app/SMS/VoIP call to maintenance on duty; video call from the shop floor to a remote technician with screen/camera share (§31, §32).
+  - [ ] MCP tools for production status, material shortages and quality results (§33).
+- [ ] **Manufacturing Reports**:
+  - [ ] Production vs. plan, OEE and downtime Pareto, yield and scrap, cost variance per product, WIP valuation.
+  - [ ] Quality KPIs (first-pass yield, NCR/CAPA ageing), batch genealogy report, maintenance compliance.
+  - [ ] Energy cost per unit, generator hours and fuel per period.
