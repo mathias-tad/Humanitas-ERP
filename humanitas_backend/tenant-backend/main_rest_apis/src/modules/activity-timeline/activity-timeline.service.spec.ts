@@ -72,7 +72,7 @@ describe('ActivityTimelineService', () => {
       expect(res).toEqual({ id: 'e1' });
       const [sql, params] = conn.query.mock.calls[0];
       expect(sql).toContain('INSERT INTO activity_events');
-      expect(params).toEqual(['product', 'p1', 'created', 'products', null, '[]', '{}', 'ui', 'internal', 'u1', null, null]);
+      expect(params).toEqual(['product', 'p1', 'created', 'products', null, '[]', '{}', 'ui', 'internal', 'u1', null, null, 'unknown', null, '{}']);
     });
 
     it('passes an explicit occurredAt as ISO for backdated entries', async () => {
@@ -84,6 +84,31 @@ describe('ActivityTimelineService', () => {
       const params = conn.query.mock.calls[0][1];
       expect(params[6]).toBe('{"channel":"voip_call","direction":"out"}');
       expect(params[11]).toBe('2026-11-01T08:30:00.000Z');
+    });
+
+    it('stores the client that made the request', async () => {
+      conn.query.mockResolvedValueOnce([{ id: 'e4' }]);
+      await service.record('t1', {
+        entityType: 'product', entityId: 'p1', eventType: 'updated',
+        client: { platform: 'mobile_app', device: 'phone', info: { os: 'Android', appVersion: '1.4.0' } },
+      });
+      const params = conn.query.mock.calls[0][1];
+      expect(params.slice(12)).toEqual(['mobile_app', 'phone', '{"os":"Android","appVersion":"1.4.0"}']);
+    });
+
+    it('derives the client from system/mcp/api sources when none is given', () => {
+      expect(ActivityTimelineService.resolveClient({ source: 'system' }).platform).toBe('system');
+      expect(ActivityTimelineService.resolveClient({ source: 'mcp' }).platform).toBe('mcp');
+      expect(ActivityTimelineService.resolveClient({ source: 'ui' }).platform).toBe('unknown');
+    });
+
+    it('rejects an unknown client platform or device', async () => {
+      await expect(service.record('t1', {
+        entityType: 'product', entityId: 'p1', eventType: 'created', client: { platform: 'fax' as never },
+      })).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.record('t1', {
+        entityType: 'product', entityId: 'p1', eventType: 'created', client: { platform: 'web', device: 'tv' as never },
+      })).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it.each([
@@ -113,12 +138,15 @@ describe('ActivityTimelineService', () => {
         entityType: 'product', entityId: 'p1',
         before: { name: 'Tea', price: '5.00' }, after: { name: 'Black tea', price: 6 },
         fields: { name: 'Name', price: 'Sales price' }, actorId: 'u1', source: 'ai',
+        client: { platform: 'web', device: 'desktop', info: { browser: 'Chrome', os: 'Windows' } },
       });
       const params = conn.query.mock.calls[0][1];
       expect(params[2]).toBe('updated');
       expect(params[4]).toBe('Name, Sales price changed');
       expect(JSON.parse(params[5])).toHaveLength(2);
       expect(params[7]).toBe('ai');
+      expect(params[12]).toBe('web');
+      expect(params[13]).toBe('desktop');
     });
   });
 

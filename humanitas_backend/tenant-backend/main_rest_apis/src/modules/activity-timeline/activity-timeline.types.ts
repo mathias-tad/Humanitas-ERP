@@ -1,6 +1,7 @@
 /**
  * Universal Activity Timeline — shared types (featureslist §30).
  */
+import type { ActivityClient } from './activity-client';
 export const ACTIVITY_EVENT_TYPES = [
   'created',
   'updated',
@@ -40,6 +41,8 @@ export interface RecordActivityInput {
   actorId?: string | null;
   onBehalfOf?: string | null;
   occurredAt?: Date;
+  /** Browser / mobile app / integration that made the request — use clientFromRequest(req). */
+  client?: ActivityClient;
 }
 
 /** Map of field name → human label. Only these fields are tracked. */
@@ -56,6 +59,7 @@ export interface RecordChangesInput {
   source?: ActivitySource;
   actorId?: string | null;
   onBehalfOf?: string | null;
+  client?: ActivityClient;
 }
 
 export interface ActivityEvent {
@@ -74,6 +78,9 @@ export interface ActivityEvent {
   on_behalf_of: string | null;
   company_id: string | null;
   branch_id: string | null;
+  client_platform: ActivityClient['platform'];
+  client_device: ActivityClient['device'];
+  client_info: NonNullable<ActivityClient['info']>;
   occurred_at: string;
   created_at: string;
 }

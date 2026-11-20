@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'api_constants.dart';
 import 'auth_interceptor.dart';
+import 'client_headers.dart';
 import '../services/secure_storage_service.dart';
 
 class ApiClient {
@@ -16,6 +17,7 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...clientHeaders(),
         },
       ),
     );

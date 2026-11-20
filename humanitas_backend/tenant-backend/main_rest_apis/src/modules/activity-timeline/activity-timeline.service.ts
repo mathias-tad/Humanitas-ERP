@@ -10,6 +10,7 @@ import {
   type RecordChangesInput,
   type TrackedFields,
 } from './activity-timeline.types';
+import { CLIENT_PLATFORMS, type ActivityClient } from './activity-client';
 
 const ENTITY_TYPE = /^[a-z][a-z0-9_]{1,79}$/;
 const MAX_LIMIT = 200;
@@ -60,12 +61,15 @@ export class ActivityTimelineService {
 
   async record(tenantId: string, input: RecordActivityInput): Promise<ActivityEvent> {
     this.validate(input);
+    const client = ActivityTimelineService.resolveClient(input);
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
     const rows: ActivityEvent[] = await conn.query(
       `INSERT INTO activity_events
          (entity_type, entity_id, event_type, module_key, summary, changes, payload,
-          source, visibility, created_by, on_behalf_of, occurred_at)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11, COALESCE($12::timestamptz, now()))
+          source, visibility, created_by, on_behalf_of, occurred_at,
+          client_platform, client_device, client_info)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11, COALESCE($12::timestamptz, now()),
+               $13, $14, $15::jsonb)
        RETURNING *`,
       [
         input.entityType,
@@ -80,6 +84,9 @@ export class ActivityTimelineService {
         input.actorId ?? null,
         input.onBehalfOf ?? null,
         input.occurredAt ? input.occurredAt.toISOString() : null,
+        client.platform,
+        client.device ?? null,
+        JSON.stringify(client.info ?? {}),
       ],
     );
     return rows[0];
@@ -99,6 +106,7 @@ export class ActivityTimelineService {
       source: input.source,
       actorId: input.actorId,
       onBehalfOf: input.onBehalfOf,
+      client: input.client,
     });
   }
 
@@ -147,11 +155,26 @@ export class ActivityTimelineService {
     return { events, nextCursor: hasMore ? events[events.length - 1].id : null };
   }
 
+  /** Client recorded on the event: the given one, or implied by the source for non-UI actors. */
+  static resolveClient(input: Pick<RecordActivityInput, 'client' | 'source'>): ActivityClient {
+    if (input.client) return input.client;
+    if (input.source === 'system' || input.source === 'mcp' || input.source === 'api') {
+      return { platform: input.source, device: null, info: {} };
+    }
+    return { platform: 'unknown', device: null, info: {} };
+  }
+
   private validate(input: RecordActivityInput): void {
     if (!ENTITY_TYPE.test(input.entityType ?? '')) throw new BadRequestException('Invalid entity type');
     if (!input.entityId) throw new BadRequestException('entityId is required');
     if (!ACTIVITY_EVENT_TYPES.includes(input.eventType)) throw new BadRequestException('Invalid event type');
     if (input.source && !ACTIVITY_SOURCES.includes(input.source)) throw new BadRequestException('Invalid source');
+    if (input.client && !CLIENT_PLATFORMS.includes(input.client.platform)) {
+      throw new BadRequestException('Invalid client platform');
+    }
+    if (input.client?.device && !['desktop', 'phone', 'tablet'].includes(input.client.device)) {
+      throw new BadRequestException('Invalid client device');
+    }
     if (input.visibility && !['internal', 'customer'].includes(input.visibility)) {
       throw new BadRequestException('Invalid visibility');
     }
