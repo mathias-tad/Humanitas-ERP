@@ -17,12 +17,13 @@ import {
   SupportTicketFilterDto,
 } from './dto/support-ticket.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 
 @ApiTags('Support Tickets & Help Center (Admin)')
 @ApiBearerAuth()
 @Controller('admin/support-tickets')
 @UseGuards(JwtAuthGuard, AdminGuard)
+@SupportAccess('write')
 export class SupportTicketsController {
   constructor(private readonly ticketsService: SupportTicketsService) {}
 

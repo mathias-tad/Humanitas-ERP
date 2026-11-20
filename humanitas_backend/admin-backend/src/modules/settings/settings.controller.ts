@@ -18,12 +18,13 @@ import {
   TestEmailDto,
 } from './dto/update-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 
 @ApiTags('Settings')
 @ApiBearerAuth()
 @Controller('settings')
 @UseGuards(JwtAuthGuard, AdminGuard)
+@SupportAccess('none')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 

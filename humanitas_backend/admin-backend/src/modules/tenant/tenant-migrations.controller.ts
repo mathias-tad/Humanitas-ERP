@@ -7,13 +7,14 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { AdminGuard, SupportAccess } from '../auth/guards/admin.guard';
 import { TenantMigrationsService } from './tenant-migrations.service';
 
 @ApiTags('Tenant Migrations')
 @Controller('tenants/migrations')
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth()
+@SupportAccess('none')
 export class TenantMigrationsController {
   constructor(private readonly tenantMigrationsService: TenantMigrationsService) {}
 

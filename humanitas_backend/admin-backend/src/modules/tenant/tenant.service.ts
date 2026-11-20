@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, IsNull } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { Tenant, SubscriptionStatus, SubscriptionPlan } from './entities/tenant.entity';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -202,7 +202,9 @@ export class TenantService implements OnModuleInit {
             ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
             ADD COLUMN IF NOT EXISTS is_setup_complete BOOLEAN DEFAULT false,
             ADD COLUMN IF NOT EXISTS setup_token VARCHAR(255),
-            ADD COLUMN IF NOT EXISTS setup_token_expires_at TIMESTAMP;
+            ADD COLUMN IF NOT EXISTS setup_token_expires_at TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP,
+            ADD COLUMN IF NOT EXISTS purge_after TIMESTAMP;
           `);
       console.log('✅ Tenant schema repaired successfully.');
     } catch (e) {
@@ -460,10 +462,13 @@ export class TenantService implements OnModuleInit {
     search?: string;
     page?: number;
     limit?: number;
+    deleted?: boolean;
   }): Promise<{ data: Tenant[]; total: number; page: number; limit: number }> {
-    const { status, plan, search, page = 1, limit = 10 } = params || {};
+    const { status, plan, search, page = 1, limit = 10, deleted = false } = params || {};
 
     const queryBuilder = this.tenantRepository.createQueryBuilder('tenant');
+    // Live tenants by default; `deleted` lists soft-deleted (restorable) ones instead.
+    queryBuilder.andWhere(deleted ? 'tenant.deleted_at IS NOT NULL' : 'tenant.deleted_at IS NULL');
 
     if (status) {
       queryBuilder.andWhere('tenant.subscription_status = :status', { status });
@@ -585,7 +590,56 @@ export class TenantService implements OnModuleInit {
     return this.tenantRepository.save(tenant);
   }
 
-  async remove(id: string): Promise<void> {
+  /** Days a soft-deleted tenant's data is kept before it may be purged. */
+  static readonly RETENTION_DAYS = 30;
+
+  /** Soft delete: deactivate the tenant and keep its data for RETENTION_DAYS. */
+  async softDelete(id: string, confirm: string): Promise<{ message: string; purge_after: Date }> {
+    const tenant = await this.tenantRepository.findOne({ where: { id } });
+    if (!tenant) throw new NotFoundException(`Tenant with ID ${id} not found`);
+    if (tenant.deleted_at) throw new BadRequestException('Tenant is already deleted');
+    if (!confirm || confirm !== tenant.slug) {
+      throw new BadRequestException(`Type the tenant slug (${tenant.slug}) to confirm deletion`);
+    }
+    const now = new Date();
+    const purgeAfter = new Date(now.getTime() + TenantService.RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    tenant.is_active = false;
+    tenant.deleted_at = now;
+    tenant.purge_after = purgeAfter;
+    await this.tenantRepository.save(tenant);
+    return {
+      message: `${tenant.company_name} was deleted. Its data is kept until ${purgeAfter.toISOString()} and can be restored until then.`,
+      purge_after: purgeAfter,
+    };
+  }
+
+  /** Undo a soft delete. */
+  async restore(id: string): Promise<Tenant> {
+    const tenant = await this.tenantRepository.findOne({ where: { id } });
+    if (!tenant) throw new NotFoundException(`Tenant with ID ${id} not found`);
+    if (!tenant.deleted_at) throw new BadRequestException('Tenant is not deleted');
+    tenant.deleted_at = null;
+    tenant.purge_after = null;
+    tenant.is_active = true;
+    return this.tenantRepository.save(tenant);
+  }
+
+  /** Permanently delete a soft-deleted tenant and its database, once the retention period is over. */
+  async purge(id: string, confirm: string): Promise<{ message: string }> {
+    const tenant = await this.tenantRepository.findOne({ where: { id } });
+    if (!tenant) throw new NotFoundException(`Tenant with ID ${id} not found`);
+    if (!tenant.deleted_at) throw new BadRequestException('Delete the tenant first; purging is only for deleted tenants');
+    if (!confirm || confirm !== tenant.slug) {
+      throw new BadRequestException(`Type the tenant slug (${tenant.slug}) to confirm permanent deletion`);
+    }
+    if (tenant.purge_after && tenant.purge_after.getTime() > Date.now()) {
+      throw new BadRequestException(`This tenant can be purged after ${tenant.purge_after.toISOString()}`);
+    }
+    await this.dropTenantAndDatabase(id);
+    return { message: `${tenant.company_name} and its database were permanently deleted` };
+  }
+
+  private async dropTenantAndDatabase(id: string): Promise<void> {
     // [FIX] Use Raw SQL to fetch tenant details to bypass "Missing Column" errors
     const result = await this.dataSource.query(
       `SELECT database_name, company_name FROM tenants WHERE id = $1`,
@@ -634,20 +688,21 @@ export class TenantService implements OnModuleInit {
     suspended: number;
     by_plan: { plan: string; count: number }[];
   }> {
-    const total = await this.tenantRepository.count();
+    const total = await this.tenantRepository.count({ where: { deleted_at: IsNull() } });
     const active = await this.tenantRepository.count({
-      where: { subscription_status: SubscriptionStatus.ACTIVE },
+      where: { subscription_status: SubscriptionStatus.ACTIVE, deleted_at: IsNull() },
     });
     const trial = await this.tenantRepository.count({
-      where: { subscription_status: SubscriptionStatus.TRIAL },
+      where: { subscription_status: SubscriptionStatus.TRIAL, deleted_at: IsNull() },
     });
     const suspended = await this.tenantRepository.count({
-      where: { subscription_status: SubscriptionStatus.SUSPENDED },
+      where: { subscription_status: SubscriptionStatus.SUSPENDED, deleted_at: IsNull() },
     });
 
     const by_plan = await this.tenantRepository
       .createQueryBuilder('tenant')
       .select('tenant.subscription_plan', 'plan')
+      .where('tenant.deleted_at IS NULL')
       .addSelect('COUNT(*)', 'count')
       .groupBy('tenant.subscription_plan')
       .getRawMany();
