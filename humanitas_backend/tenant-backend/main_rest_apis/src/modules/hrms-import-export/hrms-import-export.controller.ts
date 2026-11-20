@@ -11,7 +11,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ModuleSubscriptionGuard } from '../auth/guards/module-subscription.guard';
+import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { HrmsImportExportService } from './hrms-import-export.service';
@@ -25,6 +25,7 @@ import {
 } from './dto/hrms-import-export.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
+@RequireModule('hrms')
 @Controller('hrms/import-export')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class HrmsImportExportController {
