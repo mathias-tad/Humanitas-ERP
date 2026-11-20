@@ -120,6 +120,12 @@ jobs:
     needs: [test-backend, test-frontend, test-calculation]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # Merging several PRs in a row starts several runs. Two deploys recreating the same
+    # containers at once fail with 'No such container' / 'name already in use', so
+    # deploys wait for each other (a newer pending run replaces an older pending one).
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
