@@ -19,7 +19,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
-import { AttendanceService } from './attendance.service';
+import { AttendanceSchedulingService } from './attendance-scheduling.service';
+import { AttendanceDevicesService } from './attendance-devices.service';
+import { AttendanceClockService } from './attendance-clock.service';
+import { AttendanceCorrectionsService } from './attendance-corrections.service';
+import { AttendanceAbsenceService } from './attendance-absence.service';
+import { AttendanceBiometricService } from './attendance-biometric.service';
+import { AttendanceRemindersService } from './attendance-reminders.service';
 import { AttendanceGateway } from './attendance.gateway';
 import { AbsenceThresholdsDto } from './dto/absence-thresholds.dto';
 import { BatchAttendanceStatusDto } from './dto/batch-attendance-status.dto';
@@ -38,7 +44,13 @@ import { AssignScheduleDto } from '../scheduling/dto/assign-schedule.dto';
 @RequireModule('attendance')
 export class AttendanceController {
   constructor(
-    private readonly attendanceService: AttendanceService,
+    private readonly attendanceSchedulingService: AttendanceSchedulingService,
+    private readonly attendanceDevicesService: AttendanceDevicesService,
+    private readonly attendanceClockService: AttendanceClockService,
+    private readonly attendanceCorrectionsService: AttendanceCorrectionsService,
+    private readonly attendanceAbsenceService: AttendanceAbsenceService,
+    private readonly attendanceBiometricService: AttendanceBiometricService,
+    private readonly attendanceRemindersService: AttendanceRemindersService,
     private readonly attendanceGateway: AttendanceGateway,
     private readonly schedulingService: SchedulingService,
   ) { }
@@ -195,7 +207,7 @@ export class AttendanceController {
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign/Override specific day schedule' })
   async assignSchedule(@Request() req: AuthenticatedRequest, @Body() data: AssignScheduleDto) {
-    return this.attendanceService.assignSchedule(
+    return this.attendanceSchedulingService.assignSchedule(
       req.user.tenantId,
       data,
       req.user.sub,
@@ -210,7 +222,7 @@ export class AttendanceController {
     @Query('limit') limit?: number,
     @Query('search') search?: string,
   ) {
-    return this.attendanceService.getSchedulingAuditLogs(req.user.tenantId, {
+    return this.attendanceSchedulingService.getSchedulingAuditLogs(req.user.tenantId, {
       page: page ? parseInt(page as any) : 1,
       limit: limit ? parseInt(limit as any) : 50,
       search,
@@ -227,7 +239,7 @@ export class AttendanceController {
     @Param('id') id: string,
     @Body() dto: CorrectAttendanceDto,
   ) {
-    return this.attendanceService.correctAttendance(
+    return this.attendanceCorrectionsService.correctAttendance(
       req.user.tenantId,
       id,
       dto,
@@ -243,7 +255,7 @@ export class AttendanceController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.attendanceService.getAttendanceCorrectionLogs(req.user.tenantId, {
+    return this.attendanceCorrectionsService.getAttendanceCorrectionLogs(req.user.tenantId, {
       userId,
       page: page ? parseInt(page as any) : 1,
       limit: limit ? parseInt(limit as any) : 20,
@@ -255,7 +267,7 @@ export class AttendanceController {
   @RequirePermissions('view_overtime_workers')
   @ApiOperation({ summary: 'Get currently working overtime employees' })
   async getOvertimeWorkers(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getOvertimeWorkers(req.user.tenantId);
+    return this.attendanceClockService.getOvertimeWorkers(req.user.tenantId);
   }
 
   @Get('records/my')
@@ -265,7 +277,7 @@ export class AttendanceController {
     @Query('month') month: number,
     @Query('year') year: number,
   ) {
-    return this.attendanceService.getUserAttendanceRecords(req.user.tenantId, req.user.sub, { month, year });
+    return this.attendanceClockService.getUserAttendanceRecords(req.user.tenantId, req.user.sub, { month, year });
   }
 
   @Get('late-summary')
@@ -277,7 +289,7 @@ export class AttendanceController {
     @Query('date') date?: string,
     @Query('userId') userId?: string,
   ) {
-    return this.attendanceService.getLatenessSummary(req.user.tenantId, date, userId);
+    return this.attendanceClockService.getLatenessSummary(req.user.tenantId, date, userId);
   }
 
   @Post('force-clockout')
@@ -288,7 +300,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { userId: string; reason?: string },
   ) {
-    return this.attendanceService.forceClockOut(
+    return this.attendanceClockService.forceClockOut(
       req.user.tenantId,
       req.user.sub,
       body.userId,
@@ -304,7 +316,7 @@ export class AttendanceController {
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
-    return this.attendanceService.getUserAttendanceRecords(
+    return this.attendanceClockService.getUserAttendanceRecords(
       req.user.tenantId,
       req.user.sub,
       {
@@ -321,7 +333,7 @@ export class AttendanceController {
     @Query('month') month?: string,
     @Query('year') year?: string,
   ) {
-    return this.attendanceService.getUserAttendanceRecords(
+    return this.attendanceClockService.getUserAttendanceRecords(
       req.user.tenantId,
       req.user.sub,
       {
@@ -348,7 +360,7 @@ export class AttendanceController {
     @Headers('x-branch-id') headerBranchId?: string,
   ) {
     const tenantId = req.user.tenantId;
-    return this.attendanceService.getAttendanceRecords(tenantId, {
+    return this.attendanceClockService.getAttendanceRecords(tenantId, {
       date,
       startDate,
       endDate,
@@ -369,7 +381,7 @@ export class AttendanceController {
   ) {
     const tenantId = req.user.tenantId;
     const updatedBy = req.user?.sub;
-    return this.attendanceService.batchUpdateAttendanceStatus(
+    return this.attendanceAbsenceService.batchUpdateAttendanceStatus(
       tenantId,
       dto.record_ids,
       dto.status,
@@ -383,7 +395,7 @@ export class AttendanceController {
   @ApiOperation({ summary: 'Get absence alert thresholds' })
   async getAbsenceThresholds(@Request() req: AuthenticatedRequest) {
     const tenantId = req.user.tenantId;
-    return this.attendanceService.getAbsenceThresholds(tenantId);
+    return this.attendanceAbsenceService.getAbsenceThresholds(tenantId);
   }
 
   @Put('absence-thresholds')
@@ -394,23 +406,23 @@ export class AttendanceController {
     @Body() dto: AbsenceThresholdsDto,
   ) {
     const tenantId = req.user.tenantId;
-    return this.attendanceService.updateAbsenceThresholds(tenantId, dto);
+    return this.attendanceAbsenceService.updateAbsenceThresholds(tenantId, dto);
   }
 
   @Post('records')
   @ApiOperation({ summary: 'Create/update attendance record' })
   async recordAttendance(@Request() req: AuthenticatedRequest, @Body() data: RecordAttendanceDto) {
-    return this.attendanceService.recordAttendance(req.user.tenantId, data);
+    return this.attendanceClockService.recordAttendance(req.user.tenantId, data);
   }
 
   @Post('clock-in')
   @ApiOperation({ summary: 'Clock in for current user' })
   async clockIn(@Request() req: AuthenticatedRequest) {
-    const result = await this.attendanceService.clockIn(
+    const result = await this.attendanceClockService.clockIn(
       req.user.tenantId,
       req.user.sub,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -421,11 +433,11 @@ export class AttendanceController {
   @Post('clock-out')
   @ApiOperation({ summary: 'Clock out for current user' })
   async clockOut(@Request() req: AuthenticatedRequest) {
-    const result = await this.attendanceService.clockOut(
+    const result = await this.attendanceClockService.clockOut(
       req.user.tenantId,
       req.user.sub,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -436,11 +448,11 @@ export class AttendanceController {
   @Post('clock-in/:userId')
   @ApiOperation({ summary: 'Clock in for specific user (admin)' })
   async clockInUser(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
-    const result = await this.attendanceService.clockIn(
+    const result = await this.attendanceClockService.clockIn(
       req.user.tenantId,
       userId,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -451,11 +463,11 @@ export class AttendanceController {
   @Post('clock-out/:userId')
   @ApiOperation({ summary: 'Clock out for specific user (admin)' })
   async clockOutUser(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
-    const result = await this.attendanceService.clockOut(
+    const result = await this.attendanceClockService.clockOut(
       req.user.tenantId,
       userId,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -471,7 +483,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Query('type') type?: 'clock_in' | 'clock_out',
   ) {
-    return this.attendanceService.getCurrentQRCode(
+    return this.attendanceDevicesService.getCurrentQRCode(
       req.user.tenantId,
       type || 'clock_in',
     );
@@ -483,7 +495,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { type?: 'clock_in' | 'clock_out' },
   ) {
-    return this.attendanceService.generateQRCode(
+    return this.attendanceDevicesService.generateQRCode(
       req.user.tenantId,
       body.type || 'clock_in',
     );
@@ -496,7 +508,7 @@ export class AttendanceController {
     @Body()
     body: { device_id: string; device_name?: string; device_type?: string },
   ) {
-    return this.attendanceService.registerDevice(
+    return this.attendanceDevicesService.registerDevice(
       req.user.tenantId,
       req.user.sub,
       body,
@@ -506,7 +518,7 @@ export class AttendanceController {
   @Get('device/my-devices')
   @ApiOperation({ summary: 'Get current user registered devices' })
   async getMyDevices(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getUserDevices(
+    return this.attendanceDevicesService.getUserDevices(
       req.user.tenantId,
       req.user.sub,
     );
@@ -515,7 +527,7 @@ export class AttendanceController {
   @Delete('device/:deviceId')
   @ApiOperation({ summary: 'Remove device' })
   async removeDevice(@Request() req: AuthenticatedRequest, @Param('deviceId') deviceId: string) {
-    return this.attendanceService.removeDevice(
+    return this.attendanceDevicesService.removeDevice(
       req.user.tenantId,
       req.user.sub,
       deviceId,
@@ -527,11 +539,11 @@ export class AttendanceController {
     summary: 'Get current user today schedule and clock in eligibility',
   })
   async getMySchedule(@Request() req: AuthenticatedRequest) {
-    const schedule = await this.attendanceService.getUserTodaySchedule(
+    const schedule = await this.attendanceSchedulingService.getUserTodaySchedule(
       req.user.tenantId,
       req.user.sub,
     );
-    const validation = await this.attendanceService.validateClockInTiming(
+    const validation = await this.attendanceClockService.validateClockInTiming(
       req.user.tenantId,
       req.user.sub,
     );
@@ -550,14 +562,14 @@ export class AttendanceController {
     @Ip() clientIp: string,
     @Body() body: { qr_code: string; device_id: string },
   ) {
-    const result = await this.attendanceService.secureClockIn(
+    const result = await this.attendanceClockService.secureClockIn(
       req.user.tenantId,
       req.user.sub,
       body.qr_code,
       body.device_id,
       clientIp,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -574,14 +586,14 @@ export class AttendanceController {
     @Ip() clientIp: string,
     @Body() body: { qr_code: string; device_id: string },
   ) {
-    const result = await this.attendanceService.secureClockOut(
+    const result = await this.attendanceClockService.secureClockOut(
       req.user.tenantId,
       req.user.sub,
       body.qr_code,
       body.device_id,
       clientIp,
     );
-    const fullRecord = await this.attendanceService.getAttendanceRecordById(
+    const fullRecord = await this.attendanceClockService.getAttendanceRecordById(
       req.user.tenantId,
       result.id,
     );
@@ -593,19 +605,19 @@ export class AttendanceController {
   @Get('devices/all')
   @ApiOperation({ summary: 'Get all registered devices (admin)' })
   async getAllDevices(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getAllDevices(req.user.tenantId);
+    return this.attendanceDevicesService.getAllDevices(req.user.tenantId);
   }
 
   @Get('devices/pending')
   @ApiOperation({ summary: 'Get pending device registrations (admin)' })
   async getPendingDevices(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getPendingDevices(req.user.tenantId);
+    return this.attendanceDevicesService.getPendingDevices(req.user.tenantId);
   }
 
   @Post('devices/:id/approve')
   @ApiOperation({ summary: 'Approve device registration (admin)' })
   async approveDevice(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.attendanceService.approveDevice(
+    return this.attendanceDevicesService.approveDevice(
       req.user.tenantId,
       id,
       req.user.sub,
@@ -615,7 +627,7 @@ export class AttendanceController {
   @Post('devices/:id/reject')
   @ApiOperation({ summary: 'Reject device registration (admin)' })
   async rejectDevice(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.attendanceService.rejectDevice(req.user.tenantId, id);
+    return this.attendanceDevicesService.rejectDevice(req.user.tenantId, id);
   }
 
   // ============ NETWORK MANAGEMENT ============
@@ -623,7 +635,7 @@ export class AttendanceController {
   @Get('networks')
   @ApiOperation({ summary: 'Get all allowed networks' })
   async getAllowedNetworks(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getAllowedNetworks(req.user.tenantId);
+    return this.attendanceDevicesService.getAllowedNetworks(req.user.tenantId);
   }
 
   @Post('networks')
@@ -638,7 +650,7 @@ export class AttendanceController {
       description?: string;
     },
   ) {
-    return this.attendanceService.addAllowedNetwork(
+    return this.attendanceDevicesService.addAllowedNetwork(
       req.user.tenantId,
       body,
       req.user.sub,
@@ -648,13 +660,13 @@ export class AttendanceController {
   @Delete('networks/:id')
   @ApiOperation({ summary: 'Remove allowed network (admin)' })
   async removeAllowedNetwork(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    return this.attendanceService.removeAllowedNetwork(req.user.tenantId, id);
+    return this.attendanceDevicesService.removeAllowedNetwork(req.user.tenantId, id);
   }
 
   @Get('network-check')
   @ApiOperation({ summary: 'Check if current network is allowed' })
   async checkNetwork(@Request() req: AuthenticatedRequest, @Ip() clientIp: string) {
-    return this.attendanceService.isNetworkAllowed(req.user.tenantId, clientIp);
+    return this.attendanceDevicesService.isNetworkAllowed(req.user.tenantId, clientIp);
   }
 
   // ============ ATTENDANCE REGULARIZATION & CORRECTION REQUESTS ============
@@ -666,14 +678,14 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { attendance_record_id?: string; work_date: string; requested_in?: string; requested_out?: string; reason: string },
   ) {
-    return this.attendanceService.requestAttendanceCorrection(req.user.tenantId, req.user.sub, body.attendance_record_id || "", body);
+    return this.attendanceCorrectionsService.requestAttendanceCorrection(req.user.tenantId, req.user.sub, body.attendance_record_id || "", body);
   }
 
   @Get('correction-requests/my')
   @RequirePermissions('mark_attendance')
   @ApiOperation({ summary: 'List current user attendance correction requests' })
   async getMyCorrectionRequests(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getMyAttendanceCorrectionRequests(req.user.tenantId, req.user.sub);
+    return this.attendanceCorrectionsService.getMyAttendanceCorrectionRequests(req.user.tenantId, req.user.sub);
   }
 
   @Get('correction-requests')
@@ -683,7 +695,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
-    return this.attendanceService.getAttendanceCorrectionRequests(req.user.tenantId, status ? { status } : undefined);
+    return this.attendanceCorrectionsService.getAttendanceCorrectionRequests(req.user.tenantId, status ? { status } : undefined);
   }
 
   @Patch('correction-requests/:id/review')
@@ -694,7 +706,7 @@ export class AttendanceController {
     @Param('id') id: string,
     @Body() body: { status: 'approved' | 'rejected'; reviewer_notes?: string },
   ) {
-    return this.attendanceService.reviewAttendanceCorrectionRequest(
+    return this.attendanceCorrectionsService.reviewAttendanceCorrectionRequest(
       req.user.tenantId,
       id,
       req.user.sub,
@@ -708,7 +720,7 @@ export class AttendanceController {
   @RequirePermissions('mark_attendance')
   @ApiOperation({ summary: 'Dismiss morning missed clock-in ringing alarm' })
   async dismissAlarm(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.dismissMissedClockInAlarm(req.user.tenantId, req.user.sub);
+    return this.attendanceRemindersService.dismissMissedClockInAlarm(req.user.tenantId, req.user.sub);
   }
 
   // ============ BIOMETRIC OFFLINE PUNCH IMPORT & RECONCILIATION ============
@@ -720,7 +732,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { device_serial_number: string; content: string },
   ) {
-    return this.attendanceService.importOfflinePunchLogs(
+    return this.attendanceBiometricService.importOfflinePunchLogs(
       req.user.tenantId,
       body.device_serial_number,
       body.content,
@@ -731,7 +743,7 @@ export class AttendanceController {
   @RequirePermissions('view_overtime_workers')
   @ApiOperation({ summary: 'Get records with pending overtime approval from offline sync reconciliation' })
   async getPendingReconciliationOvertime(@Request() req: AuthenticatedRequest) {
-    return this.attendanceService.getPendingReconciliationOvertime(req.user.tenantId);
+    return this.attendanceBiometricService.getPendingReconciliationOvertime(req.user.tenantId);
   }
 
   @Post('overtime/decide-reconciliation')
@@ -741,7 +753,7 @@ export class AttendanceController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { record_id: string; grant_overtime: boolean },
   ) {
-    return this.attendanceService.decideReconciliationOvertime(
+    return this.attendanceBiometricService.decideReconciliationOvertime(
       req.user.tenantId,
       body.record_id,
       body.grant_overtime,
