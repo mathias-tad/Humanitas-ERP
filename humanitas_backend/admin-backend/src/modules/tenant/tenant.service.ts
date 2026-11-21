@@ -16,6 +16,7 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { EmailService } from '../email/email.service';
 import { TenantMigrationService } from './tenant-migration.service';
+import { resolveTenantFeatures } from '../module-catalog/module-catalog';
 import { buildAdminSslConfig } from '../../database/ssl-config.helper';
 
 @Injectable()
@@ -263,7 +264,7 @@ export class TenantService implements OnModuleInit {
 
     // Use user-provided enabled_features if available, otherwise use plan defaults, ensuring common modules are injected
     const requestedFeatures = createTenantDto.enabled_features || planLimits.enabled_features || [];
-    const enabled_features = Array.from(new Set([...requestedFeatures, ...COMMON_PLATFORM_MODULES]));
+    const enabled_features = resolveTenantFeatures([...requestedFeatures, ...COMMON_PLATFORM_MODULES]);
 
     // Generate setup token (expires in 7 days)
     const setup_token = uuidv4();
@@ -549,6 +550,14 @@ export class TenantService implements OnModuleInit {
 
   async update(id: string, updateTenantDto: UpdateTenantDto): Promise<Tenant> {
     const tenant = await this.findOne(id);
+
+    // Keep modules consistent: add required modules, derive bridges, refuse breaking removals (§28).
+    if (updateTenantDto.enabled_features) {
+      updateTenantDto.enabled_features = resolveTenantFeatures(
+        updateTenantDto.enabled_features,
+        tenant.enabled_features ?? [],
+      );
+    }
 
     // If updating slug, check uniqueness
     if (updateTenantDto.slug && updateTenantDto.slug !== tenant.slug) {

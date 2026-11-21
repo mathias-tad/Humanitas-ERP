@@ -32,6 +32,12 @@ jobs:
       - name: Run Backend Unit & Integration Tests
         working-directory: humanitas_backend/tenant-backend/main_rest_apis
         run: npm test -- --ci --coverage=false
+      - name: Install Admin Backend Dependencies
+        working-directory: humanitas_backend/admin-backend
+        run: npm ci --legacy-peer-deps
+      - name: Run Admin Backend Tests
+        working-directory: humanitas_backend/admin-backend
+        run: npm test -- --ci
 
   # =========================================================================
   # 2. Frontend Build & Typecheck Suite
@@ -60,6 +66,15 @@ jobs:
 
       - name: Frontend Unit Tests
         working-directory: humanitas_frontend
+        run: npm test
+      - name: Install Admin Frontend Dependencies
+        working-directory: tenant-admin_frontend
+        run: npm ci
+      - name: Build & Typecheck Admin Frontend
+        working-directory: tenant-admin_frontend
+        run: npm run build
+      - name: Admin Frontend Unit Tests
+        working-directory: tenant-admin_frontend
         run: npm test
 
   # =========================================================================

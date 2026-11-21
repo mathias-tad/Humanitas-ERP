@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { api } from '@/lib/api';
+import { requiredBy, toggleModule, useModuleCatalog } from '@/lib/moduleCatalog';
 import type { Tenant } from '@/types/tenant';
 
 interface ServiceItem {
@@ -131,6 +132,8 @@ export default function TenantEdit() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { catalog: moduleCatalog } = useModuleCatalog();
+  const [moduleError, setModuleError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     company_name: '',
     contact_email: '',
@@ -187,24 +190,10 @@ export default function TenantEdit() {
   };
 
   const handleServiceChange = (serviceId: string, checked: boolean) => {
-    setFormData((prev) => {
-      const current = prev.enabled_features;
-      let nextFeatures: string[];
-      if (serviceId === 'hrms') {
-        if (checked) {
-          nextFeatures = Array.from(new Set([...current, 'hrms', 'hr']));
-        } else {
-          nextFeatures = current.filter(
-            (id) => !['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id),
-          );
-        }
-      } else {
-        nextFeatures = checked
-          ? Array.from(new Set([...current, serviceId]))
-          : current.filter((id) => id !== serviceId);
-      }
-      return { ...prev, enabled_features: nextFeatures };
-    });
+    // Dependency rules come from the admin API's module catalog (§28).
+    const result = toggleModule(formData.enabled_features, serviceId, checked, moduleCatalog);
+    setModuleError(result.error ?? null);
+    if (!result.error) setFormData((prev) => ({ ...prev, enabled_features: result.features }));
   };
 
   const handleAiTierChange = (tierId: string, checked: boolean) => {
@@ -397,6 +386,7 @@ export default function TenantEdit() {
               <CardTitle>Enabled Services & Modules</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {moduleError && (<p role="alert" className="text-sm text-red-600">{moduleError}</p>)}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
@@ -440,6 +430,7 @@ export default function TenantEdit() {
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">{service.description}</p>
+{requiredBy(formData.enabled_features, service.id, moduleCatalog).length > 0 && (<p className="text-xs text-amber-600">Required by {requiredBy(formData.enabled_features, service.id, moduleCatalog).join(', ')}</p>)}
                       </div>
                     </div>
                   );

@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm'; // Import DataSource
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantModule } from './modules/tenant/tenant.module';
+import { ModuleCatalogModule } from './modules/module-catalog/module-catalog.module';
 import { UserModule } from './modules/user/user.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -112,6 +113,7 @@ dns.setDefaultResultOrder('ipv4first');
     EmailModule,
     AuthModule,
     TenantModule,
+    ModuleCatalogModule,
     UserModule,
     AdminModule,
     SettingsModule,

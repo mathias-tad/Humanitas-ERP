@@ -33,6 +33,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
+import { requiredBy, toggleModule, useModuleCatalog } from '@/lib/moduleCatalog';
 
 interface ServiceItem {
   id: string;
@@ -141,6 +142,8 @@ interface CreateTenantModalProps {
 }
 
 export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModalProps) {
+  const { catalog: moduleCatalog } = useModuleCatalog();
+  const [moduleError, setModuleError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     company_name: '',
     slug: '',
@@ -191,24 +194,10 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
   };
 
   const handleServiceChange = (serviceId: string, checked: boolean) => {
-    setFormData((prev) => {
-      const current = prev.enabled_features;
-      let nextFeatures: string[];
-      if (serviceId === 'hrms') {
-        if (checked) {
-          nextFeatures = Array.from(new Set([...current, 'hrms', 'hr']));
-        } else {
-          nextFeatures = current.filter(
-            (id) => !['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id),
-          );
-        }
-      } else {
-        nextFeatures = checked
-          ? Array.from(new Set([...current, serviceId]))
-          : current.filter((id) => id !== serviceId);
-      }
-      return { ...prev, enabled_features: nextFeatures };
-    });
+    // Dependency rules come from the admin API's module catalog (§28).
+    const result = toggleModule(formData.enabled_features, serviceId, checked, moduleCatalog);
+    setModuleError(result.error ?? null);
+    if (!result.error) setFormData((prev) => ({ ...prev, enabled_features: result.features }));
   };
 
   // AI tier toggle — handles mutual exclusivity with ai.full
@@ -400,6 +389,7 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
               <p className="text-sm text-muted-foreground">
                 Select the modules/services this tenant will have access to.
               </p>
+              {moduleError && (<p role="alert" className="text-sm text-red-600">{moduleError}</p>)}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 {AVAILABLE_SERVICES.map((service) => {
                   const Icon = service.icon;
@@ -465,6 +455,7 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
                         <p className="text-xs text-muted-foreground">
                           {service.description}
                         </p>
+{requiredBy(formData.enabled_features, service.id, moduleCatalog).length > 0 && (<p className="text-xs text-amber-600">Required by {requiredBy(formData.enabled_features, service.id, moduleCatalog).join(', ')}</p>)}
                       </div>
                     </div>
                   );
