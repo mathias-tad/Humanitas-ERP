@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Archive, BadgeCheck, Loader2, Plus, ReceiptText, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import { Archive, BadgeCheck, Camera, Loader2, Plus, ReceiptText, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useAuth } from '@/context/AuthContext';
 import { errorMessage } from '@/lib/errors';
 import { EntityPicker } from '@/components/platform/EntityPicker';
+import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
 import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import {
@@ -57,8 +58,20 @@ export function emptyProductForm(initial?: Record<string, unknown>): FormState {
     name: String(initial?.name ?? ''), sku: '', product_type: 'consumable', category_id: null, category_name: null,
     uom_id: '', purchase_uom_id: '', sales_price: '', cost_price: '', tax_code: 'VAT15', item_code: '',
     harmonization_code: '', excise_rate: '', invoice_description: '', can_be_sold: true,
-    can_be_purchased: true, description: '', barcodes: [],
+    can_be_purchased: true, description: '',
+    // A barcode scanned on the Products page that matched nothing starts the new product.
+    barcodes: initial?.barcode ? [{ barcode: String(initial.barcode).trim(), quantity: 1, is_primary: true }] : [],
   };
+}
+
+/** Add a scanned code: fills an empty barcode row first; the first barcode becomes primary. */
+export function addScannedBarcode(list: ProductBarcode[], code: string): { barcodes: ProductBarcode[]; duplicate: boolean } {
+  const c = code.trim();
+  if (!c) return { barcodes: list, duplicate: false };
+  if (list.some((b) => b.barcode.trim() === c)) return { barcodes: list, duplicate: true };
+  const empty = list.findIndex((b) => !b.barcode.trim());
+  if (empty >= 0) return { barcodes: list.map((b, i) => (i === empty ? { ...b, barcode: c } : b)), duplicate: false };
+  return { barcodes: [...list, { barcode: c, quantity: 1, is_primary: list.length === 0 }], duplicate: false };
 }
 
 export function productToForm(p: Product): FormState {
@@ -157,6 +170,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const restore = useRestoreProduct();
   const [f, setF] = useState<FormState>(() => emptyProductForm(initial));
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
     if (mode === 'edit' && product.data) setF(productToForm(product.data));
@@ -202,6 +216,15 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     } catch (err) {
       toast.error(errorMessage(err));
     }
+  };
+
+  const onScanned = (code: string) => {
+    if (addScannedBarcode(f.barcodes, code).duplicate) {
+      toast.info(`${code} is already on this product`);
+      return;
+    }
+    setF((s) => ({ ...s, barcodes: addScannedBarcode(s.barcodes, code).barcodes }));
+    toast.success(`Barcode ${code} added`);
   };
 
   const fieldError = (k: string) => errors[k] && <p className="text-xs text-destructive" role="alert">{errors[k]}</p>;
@@ -322,10 +345,16 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>Barcodes</Label>
-            <Button type="button" variant="ghost" size="sm" onClick={() => set('barcodes', [...f.barcodes, { barcode: '', quantity: 1, is_primary: f.barcodes.length === 0 }])}>
-              <Plus className="mr-1 h-3 w-3" /> Add barcode
-            </Button>
+            <div className="flex gap-1">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setScanOpen(true)}>
+                <Camera className="mr-1 h-3 w-3" /> Scan with camera
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => set('barcodes', [...f.barcodes, { barcode: '', quantity: 1, is_primary: f.barcodes.length === 0 }])}>
+                <Plus className="mr-1 h-3 w-3" /> Add barcode
+              </Button>
+            </div>
           </div>
+          <BarcodeScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} title="Scan the product's barcode" />
           {f.barcodes.map((b, i) => (
             <div key={i} className="grid grid-cols-[1fr_7rem_4.5rem_auto_auto] items-center gap-2">
               <Input aria-label={`Barcode ${i + 1}`} value={b.barcode} placeholder="Scan or type"

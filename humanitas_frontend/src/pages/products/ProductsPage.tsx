@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BadgeCheck, Download, Package, Plus, Search, TriangleAlert } from 'lucide-react';
+import { BadgeCheck, Camera, Download, Package, Plus, Search, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/context/AuthContext';
 import { errorMessage } from '@/lib/errors';
 import { useRecordDrawer } from '@/components/platform/RecordDrawer';
+import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
 import '@/components/products/registerProductEntities';
 import {
-  EIMS_ISSUE_TEXT, downloadProductsCsv, useProductCategories, useProducts, type ProductFilters, type ProductType,
+  EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useProductCategories, useProducts, type ProductFilters, type ProductType,
 } from '@/hooks/useProducts';
 
 const TYPE_LABEL: Record<ProductType, string> = { storable: 'Stock item', consumable: 'Consumable', service: 'Service' };
@@ -22,6 +23,7 @@ const ALL = '__all__';
 export default function ProductsPage() {
   const { hasPermission } = useAuth();
   const drawer = useRecordDrawer();
+  const [scanOpen, setScanOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ProductFilters>({ status: 'active', page: 1, limit: 25, sort: 'name', order: 'asc' });
   useEffect(() => {
@@ -35,6 +37,22 @@ export default function ProductsPage() {
   const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
   const openProduct = (id: string) => drawer.open({ type: 'product', mode: 'edit', id, title: 'Product' });
+
+  /** Scan → open the matching product, or offer to create one with that barcode. */
+  const onScanned = async (code: string) => {
+    try {
+      const found = await lookupProduct(code);
+      if (found) return openProduct(found.id);
+      if (hasPermission('create_products')) {
+        toast.info(`No product has ${code} yet. Fill in the details to create it.`);
+        drawer.open({ type: 'product', mode: 'create', initial: { barcode: code } });
+      } else {
+        toast.error(`No product has the barcode ${code}.`);
+      }
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -62,6 +80,10 @@ export default function ProductsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search name, item code, SKU or barcode" aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        <Button variant="outline" onClick={() => setScanOpen(true)} aria-label="Scan a barcode">
+          <Camera className="mr-2 h-4 w-4" /> Scan
+        </Button>
+        <BarcodeScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} title="Find a product by barcode" />
         <Select value={filters.category_id ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, category_id: v === ALL ? undefined : v, page: 1 }))}>
           <SelectTrigger className="w-56" aria-label="Category"><SelectValue placeholder="All categories" /></SelectTrigger>
           <SelectContent>

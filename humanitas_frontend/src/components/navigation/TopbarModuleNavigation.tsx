@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, Search, X } from "lucide-react";
+import { isNavItemActive, navUrlsOf } from "@/lib/navActive";
 
 export const TopbarModuleNavigation: React.FC = () => {
   const { activeModule, setIsAppLauncherOpen } = useERPModules();
@@ -79,7 +80,7 @@ export const TopbarModuleNavigation: React.FC = () => {
     return section.items.some((item) =>
       item.url === "/dashboard"
         ? location.pathname === "/dashboard"
-        : location.pathname.startsWith(item.url)
+        : isNavItemActive(location.pathname, item.url, navUrlsOf(MODULE_NAV_CONFIGS))
     );
   };
 
@@ -135,7 +136,7 @@ export const TopbarModuleNavigation: React.FC = () => {
                 const isItemActive =
                   singleItem.url === "/dashboard"
                     ? location.pathname === "/dashboard"
-                    : location.pathname.startsWith(singleItem.url);
+                    : isNavItemActive(location.pathname, singleItem.url, navUrlsOf(MODULE_NAV_CONFIGS));
 
                 return (
                   <NavLink
@@ -180,7 +181,7 @@ export const TopbarModuleNavigation: React.FC = () => {
                       const isItemActive =
                         item.url === "/dashboard"
                           ? location.pathname === "/dashboard"
-                          : location.pathname.startsWith(item.url);
+                          : isNavItemActive(location.pathname, item.url, navUrlsOf(MODULE_NAV_CONFIGS));
 
                       return (
                         <DropdownMenuItem key={iIdx} asChild>
@@ -301,7 +302,7 @@ export const TopbarModuleNavigation: React.FC = () => {
                       const isItemActive =
                         item.url === "/dashboard"
                           ? location.pathname === "/dashboard"
-                          : location.pathname.startsWith(item.url);
+                          : isNavItemActive(location.pathname, item.url, navUrlsOf(MODULE_NAV_CONFIGS));
 
                       return (
                         <button

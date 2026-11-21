@@ -4,6 +4,7 @@ import { useERPModules, ALL_ERP_MODULES, type ERPModuleKey } from "@/context/Mod
 import { useAuth } from "@/context/AuthContext";
 import { useNavigationLayout } from "@/hooks/useNavigationLayout";
 import { CompanyBranchSwitcher } from "./CompanyBranchSwitcher";
+import { isNavItemActive, navUrlsOf } from "@/lib/navActive";
 import {
   Users,
   Package,
@@ -432,7 +433,7 @@ export const ContextualModuleDock: React.FC = () => {
                   const isActive =
                     item.url === "/dashboard"
                       ? location.pathname === "/dashboard"
-                      : location.pathname.startsWith(item.url);
+                      : isNavItemActive(location.pathname, item.url, navUrlsOf(MODULE_NAV_CONFIGS));
 
                   return (
                     <NavLink

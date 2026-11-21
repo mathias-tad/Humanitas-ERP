@@ -324,3 +324,16 @@ export function useMorUnitCodes(enabled = true) {
     enabled,
   });
 }
+
+/** The API's message when no active product has the code (GET /products/lookup → 404). */
+export const LOOKUP_NOT_FOUND = 'No product with this barcode or SKU';
+
+/** Find an active product by barcode, item code or SKU; null when nothing matches. Other errors are thrown. */
+export async function lookupProduct(code: string): Promise<Product | null> {
+  try {
+    return await api.get<Product>(`/products/lookup${toQueryString({ code: code.trim() })}`);
+  } catch (e) {
+    if (e instanceof Error && e.message === LOOKUP_NOT_FOUND) return null;
+    throw e;
+  }
+}
