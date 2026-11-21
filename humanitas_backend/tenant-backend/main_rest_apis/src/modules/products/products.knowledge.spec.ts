@@ -25,6 +25,18 @@ describe('Products AI knowledge entries', () => {
     expect(sql).toMatch(/ON CONFLICT \(module_key, feature_name\) DO UPDATE SET/);
   });
 
+  it('gives every Products entry its mobile screen and navigation path (rule 20)', () => {
+    const mobile = readFileSync(join(__dirname, '../../migrations/tenant/20261121000004_ai_knowledge_products_mobile.sql'), 'utf8');
+    for (const screen of ['ProductsScreen', 'ProductCategoriesScreen', 'UnitsScreen', 'ProductDetailScreen', 'ProductFormScreen']) {
+      expect(mobile).toContain(`'${screen}'`);
+    }
+    for (const feature of ['All Products', 'Product Categories', 'Units of Measure', 'E-invoicing (MoR) fields on products']) {
+      expect(mobile).toContain(`feature_name = '${feature}'`);
+    }
+    expect(mobile).toContain('Home -> Quick Actions -> Products');
+    expect(mobile).not.toMatch(/not in the mobile app yet/i);
+  });
+
   it('covers the MoR e-invoicing fields (rule 28)', () => {
     for (const term of ['item code', 'VAT15', 'VATEX', 'TOT2', 'HS code', 'excise', 'MoR unit code']) expect(sql).toContain(term);
   });

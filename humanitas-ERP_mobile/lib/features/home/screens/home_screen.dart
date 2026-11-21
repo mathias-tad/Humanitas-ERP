@@ -27,6 +27,7 @@ import '../../devices/screens/devices_screen.dart';
 import '../../leave/screens/admin_leave_screen.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../organization/widgets/company_branch_switcher.dart';
+import '../../products/screens/products_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -38,6 +39,7 @@ class HomeScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasHR = authState.isModuleSubscribed('hrms') || authState.isModuleSubscribed('hr');
     final hasPMS = authState.isModuleSubscribed('pms');
+    final hasProducts = authState.isModuleSubscribed('products') && authState.hasPermission('view_products');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -271,6 +273,10 @@ class HomeScreen extends ConsumerWidget {
                 if (hasPMS)
                   _QuickActionItem(icon: Icons.task_alt_rounded, color: AppColors.info, label: 'Tasks', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyTasksScreen()));
+                  }),
+                if (hasProducts)
+                  _QuickActionItem(icon: Icons.inventory_2_outlined, color: AppColors.success, label: 'Products', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProductsScreen()));
                   }),
                 _QuickActionItem(icon: Icons.chat_bubble_outline, color: AppColors.teal, label: 'Messages', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConversationsScreen()));
