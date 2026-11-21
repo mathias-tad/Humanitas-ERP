@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 const Setup = lazy(() => import("./pages/Setup"));
 const SetupAccount = lazy(() => import("./pages/SetupAccount"));
+const Signup = lazy(() => import("./pages/Signup"));
 const Home = lazy(() => import("./pages/Home"));
 const Accounts = lazy(() => import("./pages/Accounts"));
 const AccessControl = lazy(() => import("./pages/AccessControl"));
@@ -174,6 +175,7 @@ function AppRoutes() {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/apply/:token" element={<Apply />} />
 
       {/* Protected routes */}

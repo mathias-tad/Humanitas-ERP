@@ -37,6 +37,11 @@ export class UpdateGeneralSettingsDto {
   @IsNumber()
   @Min(1)
   max_tenants?: number;
+
+  @ApiPropertyOptional({ example: true, description: 'Companies can start a free trial from the website' })
+  @IsOptional()
+  @IsBoolean()
+  self_signup_enabled?: boolean;
 }
 
 export class UpdateEmailSettingsDto {

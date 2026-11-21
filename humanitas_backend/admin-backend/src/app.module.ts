@@ -14,6 +14,7 @@ import { LoggerModule } from './modules/logger/logger.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { PlatformKnowledgeModule } from './modules/platform-knowledge/platform-knowledge.module';
 import { SupportTicketsModule } from './modules/support-tickets/support-tickets.module';
+import { PublicSignupModule } from './modules/public-signup/public-signup.module';
 import * as dns from 'dns';
 
 import { buildAdminSslConfig } from './database/ssl-config.helper';
@@ -121,6 +122,7 @@ dns.setDefaultResultOrder('ipv4first');
     BillingModule,
     PlatformKnowledgeModule,
     SupportTicketsModule,
+    PublicSignupModule,
   ],
 })
 export class AppModule { }

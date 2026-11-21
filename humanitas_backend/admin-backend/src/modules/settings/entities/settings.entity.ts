@@ -24,6 +24,10 @@ export class PlatformSettings {
   @Column({ default: 14 })
   default_trial_days: number;
 
+  /** Lets companies start a free trial themselves from the website (public/signup). */
+  @Column({ default: false })
+  self_signup_enabled: boolean;
+
   @Column({ default: 1000 })
   max_tenants: number;
 

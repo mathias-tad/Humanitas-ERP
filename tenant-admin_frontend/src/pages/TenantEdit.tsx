@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { requiredBy, toggleModule, useModuleCatalog } from '@/lib/moduleCatalog';
+import { moduleCards } from '@/lib/moduleCards';
 import type { Tenant } from '@/types/tenant';
 
 interface ServiceItem {
@@ -76,7 +77,7 @@ const AVAILABLE_SERVICES: ServiceItem[] = [
   {
     id: 'sales',
     name: 'Sales, CRM & Invoicing',
-    description: 'CRM leads, sales quotations, orders, delivery notes & ZATCA/e-invoicing',
+    description: 'CRM leads, sales quotations, orders, delivery notes & MoR (EIMS) e-invoicing',
     icon: BarChart3,
   },
   {
@@ -194,6 +195,18 @@ export default function TenantEdit() {
     const result = toggleModule(formData.enabled_features, serviceId, checked, moduleCatalog);
     setModuleError(result.error ?? null);
     if (!result.error) setFormData((prev) => ({ ...prev, enabled_features: result.features }));
+  };
+
+  // One click for every module that is ready today; dependencies come along (catalog rules).
+  const selectAllAvailable = () => {
+    setModuleError(null);
+    setFormData((prev) => {
+      let features = prev.enabled_features;
+      for (const m of moduleCatalog?.modules ?? []) {
+        if (m.status === 'available') features = toggleModule(features, m.key, true, moduleCatalog).features;
+      }
+      return { ...prev, enabled_features: features };
+    });
   };
 
   const handleAiTierChange = (tierId: string, checked: boolean) => {
@@ -387,8 +400,12 @@ export default function TenantEdit() {
             </CardHeader>
             <CardContent className="space-y-4">
               {moduleError && (<p role="alert" className="text-sm text-red-600">{moduleError}</p>)}
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">Coming-soon modules can be switched on now; they appear for the tenant when released.</p>
+                <Button type="button" variant="outline" size="sm" onClick={selectAllAvailable}>Select all available modules</Button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {AVAILABLE_SERVICES.map((service) => {
+                {moduleCards(moduleCatalog, AVAILABLE_SERVICES).map((service) => {
                   const Icon = service.icon;
                   const isChecked = service.id === 'hrms'
                     ? formData.enabled_features.some((id) => ['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id))
@@ -428,6 +445,7 @@ export default function TenantEdit() {
                           <span className={`text-sm font-semibold ${isChecked ? 'text-foreground' : 'text-foreground/80'}`}>
                             {service.name}
                           </span>
+                          {service.status === 'coming_soon' && (<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Coming soon</span>)}
                         </div>
                         <p className="text-xs text-muted-foreground">{service.description}</p>
 {requiredBy(formData.enabled_features, service.id, moduleCatalog).length > 0 && (<p className="text-xs text-amber-600">Required by {requiredBy(formData.enabled_features, service.id, moduleCatalog).join(', ')}</p>)}

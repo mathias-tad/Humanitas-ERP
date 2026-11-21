@@ -24,7 +24,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 9. Dynamic Approval Workflow Engine | 12 | 12 | 0 | 100% |
 | 10. Webhooks & Developer API Portal | 16 | 16 | 0 | 100% |
 | 11. Modern Enterprise UI / UX Architecture | 35 | 33 | 2 | 94% |
-| 12. Self-Service Subscription, Billing & Landing Page | 21 | 0 | 21 | 0% |
+| 12. Self-Service Subscription, Billing & Landing Page | 23 | 2 | 21 | 9% |
 | 13. AI Intelligence Module | 51 | 51 | 0 | 100% |
 | 14. Employee Self-Service Portal | 21 | 21 | 0 | 100% |
 | 15. Employee Document Vault & Letter Templates | 19 | 19 | 0 | 100% |
@@ -51,7 +51,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 37. Quality Guardrails & Regression Prevention | 19 | 1 | 18 | 5% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
-| **TOTAL** | **1148** | **547** | **601** | **48%** |
+| **TOTAL** | **1150** | **549** | **601** | **48%** |
 
 ---
 
@@ -747,6 +747,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 
 - [ ] **Interactive SaaS Landing Page**:
   - [ ] Hero showcase displaying Humanitas ERP modules with live animated workflow previews.
+  - [x] **Start free trial sign-up (`/signup`)**: company details, organization ID check as you type, module picker (dependencies included, coming-soon modules shown but not selectable), set-up email; tenant admin Settings turns online sign-up on/off and sets the trial length (Default Trial Days); per-visitor and hourly limits, hidden bot field.
   - [ ] **Interactive Modular Pricing Calculator**:
     - [ ] Real-time toggles for each module (HRMS, PMS, Inventory, Sales, Purchasing, POS, Accounting, Recruitment, Fixed Assets, AI).
     - [ ] AI capability tier add-ons (AI Help, AI Documents, AI Actions, Full AI) with per-tier pricing.
@@ -763,6 +764,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
     - [ ] Direct H5 / QR Code checkout for Ethiopian Birr transactions.
     - [ ] Instant callback validation and auto-provisioning of tenant module licenses.
 - [ ] **Redesigned Tenant Admin Workspace (`tenant-admin_frontend`)**:
+  - [x] Every catalog module listed on Create Tenant and Edit Tenant, with Select all available and Coming soon badges.
   - [ ] Visual module subscription manager: 1-click upgrade, add new modules, or add user seat licenses.
   - [ ] Invoices and payment receipts download center.
   - [ ] Platform usage metrics (storage, active users, API requests).

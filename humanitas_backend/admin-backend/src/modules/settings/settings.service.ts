@@ -25,6 +25,7 @@ export class SettingsService implements OnModuleInit {
       await this.settingsRepository.query(`
         ALTER TABLE platform_settings ADD COLUMN IF NOT EXISTS from_name VARCHAR;
         ALTER TABLE platform_settings ADD COLUMN IF NOT EXISTS smtp_secure BOOLEAN DEFAULT true;
+        ALTER TABLE platform_settings ADD COLUMN IF NOT EXISTS self_signup_enabled BOOLEAN NOT NULL DEFAULT false;
       `);
     } catch (err) {
       // Table might not exist yet or columns already exist
@@ -57,6 +58,7 @@ export class SettingsService implements OnModuleInit {
       support_email: settings.support_email,
       default_trial_days: settings.default_trial_days,
       max_tenants: settings.max_tenants,
+      self_signup_enabled: settings.self_signup_enabled ?? false,
     };
   }
 

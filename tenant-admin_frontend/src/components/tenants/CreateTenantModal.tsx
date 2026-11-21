@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 import { requiredBy, toggleModule, useModuleCatalog } from '@/lib/moduleCatalog';
+import { moduleCards } from '@/lib/moduleCards';
 
 interface ServiceItem {
   id: string;
@@ -78,7 +79,7 @@ const AVAILABLE_SERVICES: ServiceItem[] = [
   {
     id: 'sales',
     name: 'Sales, CRM & Invoicing',
-    description: 'CRM leads, sales quotations, orders, delivery notes & ZATCA/e-invoicing',
+    description: 'CRM leads, sales quotations, orders, delivery notes & MoR (EIMS) e-invoicing',
     icon: BarChart3,
   },
   {
@@ -198,6 +199,18 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
     const result = toggleModule(formData.enabled_features, serviceId, checked, moduleCatalog);
     setModuleError(result.error ?? null);
     if (!result.error) setFormData((prev) => ({ ...prev, enabled_features: result.features }));
+  };
+
+  // One click for every module that is ready today; dependencies come along (catalog rules).
+  const selectAllAvailable = () => {
+    setModuleError(null);
+    setFormData((prev) => {
+      let features = prev.enabled_features;
+      for (const m of moduleCatalog?.modules ?? []) {
+        if (m.status === 'available') features = toggleModule(features, m.key, true, moduleCatalog).features;
+      }
+      return { ...prev, enabled_features: features };
+    });
   };
 
   // AI tier toggle — handles mutual exclusivity with ai.full
@@ -390,8 +403,12 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
                 Select the modules/services this tenant will have access to.
               </p>
               {moduleError && (<p role="alert" className="text-sm text-red-600">{moduleError}</p>)}
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">Coming-soon modules can be switched on now; they appear for the tenant when released.</p>
+                <Button type="button" variant="outline" size="sm" onClick={selectAllAvailable}>Select all available modules</Button>
+              </div>
               <div className="grid grid-cols-2 gap-3 pt-2">
-                {AVAILABLE_SERVICES.map((service) => {
+                {moduleCards(moduleCatalog, AVAILABLE_SERVICES).map((service) => {
                   const Icon = service.icon;
                   const isChecked = service.id === 'hrms'
                     ? formData.enabled_features.some((id) => ['hrms', 'hr', 'attendance', 'leave', 'payroll', 'recruitment'].includes(id))
@@ -446,9 +463,9 @@ export function CreateTenantModal({ isOpen, onClose, onSave }: CreateTenantModal
                           >
                             {service.name}
                           </span>
-                          {service.comingSoon && (
+                          {service.status === 'coming_soon' && (
                             <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
-                              Soon
+                              Coming soon
                             </span>
                           )}
                         </div>

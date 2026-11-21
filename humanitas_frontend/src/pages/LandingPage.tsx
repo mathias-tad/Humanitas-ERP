@@ -132,10 +132,10 @@ export default function LandingPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Button
                             size="lg"
-                            onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
+                            onClick={() => navigate(isAuthenticated ? "/dashboard" : "/signup")}
                             className="w-full sm:w-auto text-lg h-14 px-8 rounded-full shadow-lg shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                         >
-                            {isAuthenticated ? "Open ERP Hub" : "Deploy Enterprise ERP"}
+                            {isAuthenticated ? "Open ERP Hub" : "Start free trial"}
                         </Button>
                         <Button
                             variant="outline"
@@ -351,10 +351,10 @@ export default function LandingPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Button
                             size="lg"
-                            onClick={() => navigate("/setup-account")}
+                            onClick={() => navigate("/signup")}
                             className="bg-background text-foreground hover:bg-background/90 h-14 px-10 rounded-full text-lg font-bold shadow-xl"
                         >
-                            Provision ERP Tenant
+                            Start free trial
                         </Button>
                         <Button
                             size="lg"

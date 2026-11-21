@@ -187,6 +187,30 @@ describe('TenantService', () => {
   });
 
   describe('create', () => {
+    it('uses the trial length set in platform settings', async () => {
+      mockTenantRepo.findOne.mockResolvedValue(null);
+      mockTenantRepo.create.mockImplementation((t: any) => t);
+      mockTenantRepo.save.mockImplementation(async (t: any) => t);
+      mockDataSource.query.mockImplementation(async (sql: string) =>
+        String(sql).includes('platform_settings') ? [{ default_trial_days: 30 }] : [],
+      );
+      jest.spyOn(service as any, 'createTenantDatabase').mockResolvedValue(undefined);
+      mockEmailService.sendTenantWelcomeEmail.mockResolvedValue(true);
+
+      const before = Date.now();
+      const tenant = await service.create({ company_name: 'Acme', slug: 'acme', contact_email: 'a@acme.test' } as any);
+      const days = (new Date(tenant.trial_ends_at).getTime() - before) / 86_400_000;
+      expect(days).toBeGreaterThan(29.9);
+      expect(days).toBeLessThan(30.1);
+    });
+
+    it('falls back to a 14-day trial when the setting cannot be read', async () => {
+      mockDataSource.query.mockRejectedValue(new Error('no table'));
+      await expect(service.defaultTrialDays()).resolves.toBe(14);
+      mockDataSource.query.mockResolvedValue([{ default_trial_days: 500 }]);
+      await expect(service.defaultTrialDays()).resolves.toBe(90);
+    });
+
     it('refuses to reuse a database left behind by an earlier tenant', async () => {
       mockTenantRepo.findOne.mockResolvedValue(null); // slug and email are free
       mockTenantRepo.create.mockImplementation((t: any) => t);

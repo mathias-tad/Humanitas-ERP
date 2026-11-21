@@ -14,6 +14,7 @@ interface GeneralSettings {
   support_email: string;
   default_trial_days: number;
   max_tenants: number;
+  self_signup_enabled: boolean;
 }
 
 interface EmailSettings {
@@ -62,6 +63,7 @@ export default function Settings() {
     support_email: '',
     default_trial_days: 14,
     max_tenants: 1000,
+    self_signup_enabled: false,
   });
 
   const [email, setEmail] = useState<EmailSettings>({
@@ -109,6 +111,7 @@ export default function Settings() {
         support_email: data.support_email || '',
         default_trial_days: data.default_trial_days || 14,
         max_tenants: data.max_tenants || 1000,
+        self_signup_enabled: data.self_signup_enabled ?? false,
       });
       setEmail({
         smtp_host: data.smtp_host || '',
@@ -319,9 +322,30 @@ export default function Settings() {
                   <Input
                     type="number"
                     value={general.default_trial_days}
+                    min={1}
+                    max={90}
                     onChange={(e) => setGeneral({ ...general, default_trial_days: parseInt(e.target.value) || 14 })}
                   />
+                  <p className="text-xs text-gray-500">Length of the free trial for every new tenant, including online sign-ups (1-90 days)</p>
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <Label>Online sign-up (free trial)</Label>
+                  <p className="text-sm text-gray-500">
+                    Companies can start a {general.default_trial_days}-day free trial themselves from the website's
+                    Start free trial page and choose their modules. Turn off to create tenants only here.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={general.self_signup_enabled ? 'default' : 'outline'}
+                  aria-pressed={general.self_signup_enabled}
+                  onClick={() => setGeneral({ ...general, self_signup_enabled: !general.self_signup_enabled })}
+                  style={general.self_signup_enabled ? { backgroundColor: '#2563eb', color: 'white' } : {}}
+                >
+                  {general.self_signup_enabled ? 'On' : 'Off'}
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label>Maximum Tenants</Label>

@@ -213,6 +213,17 @@ export class TenantService implements OnModuleInit {
     }
   }
 
+  /** Default Trial Days from platform settings, kept between 1 and 90; 14 when unset or unreadable. */
+  async defaultTrialDays(): Promise<number> {
+    try {
+      const rows = await this.dataSource.query(`SELECT default_trial_days FROM platform_settings LIMIT 1`);
+      const days = Number(Array.isArray(rows) && rows[0] ? rows[0].default_trial_days : NaN);
+      return Number.isFinite(days) && days >= 1 ? Math.min(Math.round(days), 90) : 14;
+    } catch {
+      return 14;
+    }
+  }
+
   async create(createTenantDto: CreateTenantDto): Promise<Tenant> {
     // Ensure schema is up to date before querying
     await this.repairTenantSchema();
@@ -236,9 +247,9 @@ export class TenantService implements OnModuleInit {
     // Generate database name from slug
     const database_name = `tenant_${createTenantDto.slug.replace(/-/g, '_')}`;
 
-    // Set trial end date (14 days)
+    // Trial length: Default Trial Days in the admin Settings (14 if not set).
     const trial_ends_at = new Date();
-    trial_ends_at.setDate(trial_ends_at.getDate() + 14);
+    trial_ends_at.setDate(trial_ends_at.getDate() + (await this.defaultTrialDays()));
 
     // Set limits based on plan
     const planLimits = this.getPlanLimits(createTenantDto.subscription_plan || SubscriptionPlan.BASIC);
