@@ -242,7 +242,8 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - Timeline: emit time-stamped events for every create, change, stage move and interaction (§30).
 - Communications: expose call/video/SMS/WhatsApp/email actions on records through the shared communications services (§31, §32).
 - AI: register tools once in the shared registry so they appear in the built-in AI, the MCP server and the REST API, within the user's permissions (§33).
-- Deliver the full vertical slice: migrations, services, RBAC, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (rules 1–22, §37 Definition of Done).
+- Permissions: one per action per resource — view_, create_, edit_, delete_ (+ export_, import_, approve_ … where needed), never a bundled manage_ permission (AGENTS.md rule 27).
+- Deliver the full vertical slice: migrations, services, permissions, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (rules 1–22, §37 Definition of Done).
 - Must work standalone, together with other modules, in SaaS and on-prem.
 ```
 
@@ -266,6 +267,7 @@ Every item below is a past production issue. New code MUST respect all of them (
 13. **Dependencies:** Node LTS only (currently 24); fix high/critical `npm audit` findings before merging.
 14. **Network:** new compose services never publish databases or admin tools on `0.0.0.0`.
 15. **Tests** are never deleted, skipped or commented out without a replacement.
+16. **Permissions** are granular — one per action per resource, never bundled (rule 27).
 
 ### 25. KEEPING THESE RULES AND THE FEATURE LIST CURRENT
 - `AGENTS.md` is the only file where rules are edited. After any change run `python scripts/sync_agent_rules.py` to regenerate `CLAUDE.md` and `.cursorrules` (and `GEMINI.md` where present). CI runs it with `--check` and blocks deployment if a copy differs.
@@ -279,3 +281,12 @@ Every item below is a past production issue. New code MUST respect all of them (
 - Push only after the local build and the relevant tests pass. Never force-push the default branch.
 - Commit messages follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `ci:`, `docs:`) and explain why. They contain **no AI-assistant names or attribution/co-author trailers**.
 - Changes to shared modules are mirrored to the other repo in the same session (rule 1).
+
+### 27. GRANULAR PERMISSIONS — ONE PERMISSION PER ACTION
+- Every resource of every module gets a separate permission for each action, named `<action>_<resource>` like the existing ones:
+  - **Always four CRUD permissions:** `view_<resource>`, `create_<resource>`, `edit_<resource>`, `delete_<resource>` (e.g. `view_products`, `create_products`, `edit_products`, `delete_products`).
+  - **Extra actions only where the feature exists, each separate:** `export_`, `import_`, `approve_`, `assign_`, `archive_` / `restore_`, `print_`, `view_<resource>_reports`, `view_<module>_settings` / `edit_<module>_settings`.
+  - **Scope variants stay separate:** `view_my_<resource>` (own records) vs `view_<resource>` (everything in the user's company/branch scope, rule 16).
+- **Never introduce bundled permissions** such as `manage_<resource>` in new code. Existing `manage_*` permissions are split over time with a migration that grants the new granular permissions to every role that had the bundled one, so nobody loses access.
+- **One endpoint, one permission:** each endpoint requires exactly the permission for its action (`@RequirePermissions('create_products')`). The UI shows or enables each action with the same permission, and quick-create (featureslist §29), AI actions and MCP tools (§33) check the same permission.
+- **Every permission is registered everywhere it is used:** role defaults (`roles.service.ts`), the Access Control matrix (grouped module → resource → action), the AI Knowledge Base, and a deny test (403) for each action.

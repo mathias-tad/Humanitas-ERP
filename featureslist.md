@@ -39,18 +39,18 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 24. Bulk Import/Export Engine | 13 | 13 | 0 | 100% |
 | 25. Notification Engine — Email, In-App & Push | 39 | 39 | 0 | 100% |
 | 26. Multi-Language (i18n) & Localization Support | 16 | 0 | 16 | 0% |
-| 28. Modular Packaging, Licensing & Deployment | 23 | 0 | 23 | 0% |
+| 28. Modular Packaging, Licensing & Deployment | 23 | 1 | 22 | 4% |
 | 29. In-Context Action Framework | 14 | 0 | 14 | 0% |
 | 30. Universal Activity Timeline & Interaction Log | 10 | 0 | 10 | 0% |
 | 31. Unified Communications — Voice & Video Calls in Chat | 13 | 0 | 13 | 0% |
-| 32. VoIP, Cloud PBX & AI Contact Center | 21 | 0 | 21 | 0% |
+| 32. VoIP, Cloud PBX & AI Contact Center | 33 | 0 | 33 | 0% |
 | 33. MCP & Open AI Connectivity | 10 | 0 | 10 | 0% |
 | 34. Online Store & Omnichannel Ordering | 7 | 0 | 7 | 0% |
 | 35. Delivery & Last-Mile Logistics | 6 | 0 | 6 | 0% |
 | 36. Fleet Management & GPS Telematics | 10 | 0 | 10 | 0% |
-| 37. Quality Guardrails & Regression Prevention | 17 | 0 | 17 | 0% |
+| 37. Quality Guardrails & Regression Prevention | 18 | 0 | 18 | 0% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
-| **TOTAL** | **1078** | **529** | **549** | **49%** |
+| **TOTAL** | **1091** | **530** | **561** | **49%** |
 
 ---
 
@@ -97,7 +97,8 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - Timeline: emit time-stamped events for every create, change, stage move and interaction (§30).
 - Communications: expose call/video/SMS/WhatsApp/email actions on records through the shared communications services (§31, §32).
 - AI: register tools once in the shared registry so they appear in the built-in AI, the MCP server and the REST API, within the user's permissions (§33).
-- Deliver the full vertical slice: migrations, services, RBAC, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (Directives 1–12, §37 Definition of Done).
+- Permissions: one per action per resource — view_, create_, edit_, delete_ (+ export_, import_, approve_ … where needed), never a bundled manage_ permission (AGENTS.md rule 27).
+- Deliver the full vertical slice: migrations, services, permissions, subscription gate, web + mobile UI, reports, tests, Knowledge Base entries (Directives 1–12, §37 Definition of Done).
 - Must work standalone, together with other modules, in SaaS and on-prem.
 ```
 
@@ -1249,7 +1250,7 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
   - [ ] Semantic versioning per module with a compatibility range against the platform core.
 - [ ] **Bridge (Integration) Modules — auto-activated** (the Odoo `auto_install` pattern, e.g. `sale_stock`, `pos_sale`):
   - [ ] All cross-module logic lives in bridge modules (`sales_inventory`, `pos_sales`, `purchase_inventory`, `inventory_accounting`, `crm_voip`, `sales_delivery`, `delivery_fleet`, `ecommerce_inventory`, `hr_fleet`, …), never inside a base module.
-  - [ ] A bridge switches on automatically when all of its parent modules are active and switches off cleanly when one is removed — data is kept, features are hidden.
+  - [x] A bridge switches on automatically when all of its parent modules are active and switches off cleanly when one is removed — data is kept, features are hidden.
   - [ ] Every base module works fully standalone; CI tests each module alone and with each of its bridges.
 - [ ] **Event & Contract Layer between modules**:
   - [ ] Domain events (`sales.order.confirmed`, `inventory.stock.moved`, `voip.call.ended`, `fleet.geofence.exited`, …) on an internal event bus with an outbox table (no lost events).
@@ -1334,6 +1335,18 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
   - [ ] Self-hostable media/PBX core (FreeSWITCH or Asterisk) for on-prem; managed mode for SaaS.
   - [ ] Number management: DIDs, toll-free and short codes per company/branch/team; caller ID rules; least-cost routing and automatic failover between providers.
 - [ ] **Softphone everywhere**: WebRTC softphone on web and mobile, SIP desk-phone registration, click-to-call on every phone number in every module, **screen pop** on incoming calls showing the matching customer/lead/order/delivery with quick actions.
+- [ ] **Mobile Phone Calling — no VoIP needed (Phone Companion mode)**:
+  - [ ] Companies without VoIP use dedicated company phones (normal SIM lines) with the Humanitas mobile app; every call still lands on the customer, lead, case or order timeline.
+  - [ ] Phone ↔ PC pairing: the phone and the employee's web session are linked; on every incoming or outgoing call the PC shows a screen pop with the matching customer, lead, case or order, so the employee works the case on the PC while talking on the phone.
+  - [ ] Click-to-call from the PC: calling from a record on screen rings out through the paired phone (push to the app → native dialer).
+  - [ ] Android (recommended for dedicated phones): the app can be the default phone app, the Google Play-compliant way to read call activity (numbers, direction, duration, missed calls, live call state); or it is distributed privately to company devices (Managed Google Play / MDM) under Play's business-CRM exception, subject to Play review.
+  - [ ] Android call audio: automatic import of the phone's built-in call-recorder files (Samsung, Xiaomi, Google Phone where available), matched to the call by number and time; speakerphone + microphone recording as fallback; never through the Accessibility API (prohibited by Google Play for call recording).
+  - [ ] iPhone: iOS gives apps no access to cellular call audio or call history, so the app offers a one-tap post-call "Log this call" sheet, a voice note dictated right after the call, and import of the iPhone's own call recording/transcript through the Share Sheet.
+  - [ ] AI after every call: transcript (Amharic, Afaan Oromo, Tigrinya, English …), summary, sentiment and action items; creates or updates the case, lead, ticket or order with the right fields; attaches audio and transcript to the timeline interaction (channel `cellular_call`, client `mobile_app`); schedules follow-ups — with a review-before-save option.
+  - [ ] Recording consent per tenant policy: consent prompt or announcement, per-call consent flag, recording off where not allowed.
+  - [ ] Offline-safe upload: recordings and call records queue on the phone and upload when online (Wi-Fi-only and battery-saver options).
+  - [ ] Available to every module through bridges: CRM (sales calls), Sales/POS/Online Store (phone orders), Support (cases), Delivery (driver ↔ customer), Recruitment (phone screens), Accounting (collection calls).
+- [ ] **GSM gateway option (SIM lines → VoIP without a telecom SIP contract)**: connect a GSM/4G VoIP gateway (Yeastar TG, GoIP, Dinstar …) holding ordinary Ethio Telecom or Safaricom SIM cards; calls then get every VoIP feature — server-side recording, IVR, queues, AI voice agent — at mobile tariffs.
 - [ ] **PBX features**: extensions, ring groups, drag-and-drop IVR (multi-language, business hours, holidays), queues with skills-based routing, voicemail with transcription, blind/attended transfer, hold music, conference/merge, park/pickup, DND, follow-me to mobile.
 - [ ] **Recording & compliance**: rules per queue/user, consent announcement, pause during card payments, encrypted storage, retention policies.
 - [ ] **Contact center**: agent states (available/busy/wrap-up), wallboards, live monitoring, supervisor whisper/barge, scheduled callbacks, outbound campaigns (preview, progressive, predictive) with do-not-call lists, after-call forms, dispositions and SLAs.
@@ -1425,8 +1438,9 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 - [ ] **Dependencies**: Node LTS only; high/critical `npm audit` findings fail CI; weekly automated dependency PRs.
 - [ ] **Network exposure**: databases and admin tools are never published on `0.0.0.0` in new compose files; a compose lint check enforces it.
 - [ ] **Tests are never deleted without a replacement**: CI fails if the test count drops.
+- [ ] **Granular permissions**: one permission per action per resource (`view_`, `create_`, `edit_`, `delete_`, plus `export_`, `import_`, `approve_`, `assign_` … where the feature exists); no bundled `manage_*` permissions in new modules; existing `manage_*` permissions are split with a migration that keeps everyone's current access. *(Lesson: `manage_assets` mixed create, edit and delete.)*
 - [ ] **Shared code stays mirrored**: CI diffs shared modules between `Humanitas` and `Humanitas-ERP`.
-- [ ] **Per-module Definition of Done**: manifest, migrations, RBAC, subscription gate, timeline events, quick-create form, AI/MCP tools, reports, mobile screens, unit + end-to-end tests, Knowledge Base entries.
+- [ ] **Per-module Definition of Done**: manifest, migrations, granular permissions (one per action), subscription gate, timeline events, quick-create form, AI/MCP tools, reports, mobile screens, unit + end-to-end tests, Knowledge Base entries.
 
 ---
 
