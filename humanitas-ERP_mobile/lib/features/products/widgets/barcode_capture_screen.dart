@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/scanner/scanner_settings.dart';
 
 /// Opens the camera and pops with the first barcode or QR code it reads (null if the user goes back).
-class BarcodeCaptureScreen extends StatefulWidget {
+class BarcodeCaptureScreen extends ConsumerStatefulWidget {
   final String title;
 
   const BarcodeCaptureScreen({super.key, this.title = 'Scan a barcode'});
 
   @override
-  State<BarcodeCaptureScreen> createState() => _BarcodeCaptureScreenState();
+  ConsumerState<BarcodeCaptureScreen> createState() => _BarcodeCaptureScreenState();
 }
 
-class _BarcodeCaptureScreenState extends State<BarcodeCaptureScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+class _BarcodeCaptureScreenState extends ConsumerState<BarcodeCaptureScreen> {
+  // Camera chosen in Scanner settings.
+  late final MobileScannerController _controller = MobileScannerController(
+    facing: ref.read(scannerSettingsProvider).useFrontCamera ? CameraFacing.front : CameraFacing.back,
+  );
   bool _done = false;
 
   @override

@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/scanner/scanner_settings.dart';
 import '../models/product_models.dart';
 import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
@@ -21,7 +22,10 @@ class ProductScanScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductScanScreenState extends ConsumerState<ProductScanScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  // Camera chosen in Scanner settings.
+  late final MobileScannerController _controller = MobileScannerController(
+    facing: ref.read(scannerSettingsProvider).useFrontCamera ? CameraFacing.front : CameraFacing.back,
+  );
   final _manualController = TextEditingController();
   bool _busy = false;
 

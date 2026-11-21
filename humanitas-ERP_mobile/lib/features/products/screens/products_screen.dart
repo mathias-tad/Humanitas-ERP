@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/scanner/scanner_settings.dart';
 import '../models/product_models.dart';
 import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
@@ -14,6 +15,7 @@ import 'product_categories_screen.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 import 'product_scan_screen.dart';
+import 'scanner_settings_screen.dart';
 import 'units_screen.dart';
 
 /// Products catalog on mobile: search, filter, scan, open and create products.
@@ -28,10 +30,14 @@ class ProductsScreen extends ConsumerStatefulWidget {
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   ProductQuery _query = const ProductQuery();
   Timer? _debounce;
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -53,6 +59,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => ProductDetailScreen(productId: product.id)),
       );
+      // Scanner mode: clear the search and wait for the next scan.
+      if (mounted && ref.read(scannerSettingsProvider).hardwareScannerMode) {
+        _searchController.clear();
+        setState(() => _query = _query.copyWith(q: '', limit: 25));
+        _searchFocus.requestFocus();
+      }
     } on ProductsApiException {
       // Not reachable right now: the typed text still filters the list.
     }
@@ -93,13 +105,18 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (v) {
-              final Widget screen = v == 'categories' ? const ProductCategoriesScreen() : const UnitsScreen();
+              final Widget screen = switch (v) {
+                'categories' => const ProductCategoriesScreen(),
+                'units' => const UnitsScreen(),
+                _ => const ScannerSettingsScreen(),
+              };
               Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
             },
             itemBuilder: (_) => [
               if (auth.hasPermission('view_product_categories'))
                 const PopupMenuItem(value: 'categories', child: Text('Categories')),
               if (auth.hasPermission('view_uoms')) const PopupMenuItem(value: 'units', child: Text('Units of measure')),
+              const PopupMenuItem(value: 'scanner', child: Text('Scanner settings')),
             ],
           ),
         ],
@@ -116,6 +133,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocus,
+              autofocus: ref.watch(scannerSettingsProvider).hardwareScannerMode,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
                 hintText: 'Search or scan: name, item code, SKU or barcode',
