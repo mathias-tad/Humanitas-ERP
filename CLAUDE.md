@@ -271,6 +271,7 @@ Every item below is a past production issue. New code MUST respect all of them (
 15. **Tests** are never deleted, skipped or commented out without a replacement.
 16. **Permissions** are granular — one per action per resource, never bundled (rule 27).
 17. **UI resilience:** the app renders inside an app-level error boundary and every routed page inside a page boundary, so one failing component never blanks the screen. A provider that a hook needs is mounted in `main.tsx`, `App.tsx` or the layout that wraps the route — never in a file the app does not render; `src/test/providers-mounted.test.ts` fails the build otherwise. Context hooks fall back safely instead of throwing.
+18. **Barcode scanning:** every screen that takes barcodes (Products, Sales, POS, Inventory, Purchasing) uses the shared `useBarcodeScanner` hook on the web and the camera scanner on mobile, so USB/Bluetooth scanners work without clicking a field and phones can scan with the camera. Barcode fields are marked `data-barcode-input`, and the scanner's Enter never submits a form.
 
 ### 25. KEEPING THESE RULES AND THE FEATURE LIST CURRENT
 - `AGENTS.md` is the only file where rules are edited. After any change run `python scripts/sync_agent_rules.py` to regenerate `CLAUDE.md` and `.cursorrules` (and `GEMINI.md` where present). CI runs it with `--check` and blocks deployment if a copy differs.

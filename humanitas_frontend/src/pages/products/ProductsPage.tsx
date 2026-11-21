@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { errorMessage } from '@/lib/errors';
 import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import '@/components/products/registerProductEntities';
 import {
   EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useProductCategories, useProducts, type ProductFilters, type ProductType,
@@ -53,6 +54,8 @@ export default function ProductsPage() {
       toast.error(errorMessage(e));
     }
   };
+  // USB/Bluetooth scanners work anywhere on this page, no need to click into a field.
+  useBarcodeScanner(onScanned);
 
   return (
     <div className="space-y-6 p-6">
@@ -80,7 +83,7 @@ export default function ProductsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search name, item code, SKU or barcode" aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => setScanOpen(true)} aria-label="Scan a barcode">
+        <Button variant="outline" onClick={() => setScanOpen(true)} aria-label="Scan a barcode" title="Scan with the camera. A USB or Bluetooth barcode scanner works anywhere on this page without clicking.">
           <Camera className="mr-2 h-4 w-4" /> Scan
         </Button>
         <BarcodeScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} title="Find a product by barcode" />

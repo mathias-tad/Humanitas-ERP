@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Archive, BadgeCheck, Camera, Loader2, Plus, ReceiptText, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { errorMessage } from '@/lib/errors';
 import { EntityPicker } from '@/components/platform/EntityPicker';
 import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import {
@@ -186,6 +187,9 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   }, [uoms, f.uom_id]);
   const categoryExcise = mode === 'edit' && product.data?.category_id === f.category_id && product.data?.category_excise_rate != null
     ? Number(product.data.category_excise_rate) : null;
+  // A USB/Bluetooth scanner adds barcodes while this form is open, wherever the cursor is.
+  const scanRef = useRef<(code: string) => void>(() => {});
+  useBarcodeScanner((code) => scanRef.current(code), { enabled: canEdit });
 
   if (mode === 'edit' && product.isLoading) {
     return <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
@@ -226,6 +230,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     setF((s) => ({ ...s, barcodes: addScannedBarcode(s.barcodes, code).barcodes }));
     toast.success(`Barcode ${code} added`);
   };
+  scanRef.current = onScanned;
 
   const fieldError = (k: string) => errors[k] && <p className="text-xs text-destructive" role="alert">{errors[k]}</p>;
 
@@ -357,7 +362,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
           <BarcodeScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} title="Scan the product's barcode" />
           {f.barcodes.map((b, i) => (
             <div key={i} className="grid grid-cols-[1fr_7rem_4.5rem_auto_auto] items-center gap-2">
-              <Input aria-label={`Barcode ${i + 1}`} value={b.barcode} placeholder="Scan or type"
+              <Input aria-label={`Barcode ${i + 1}`} data-barcode-input value={b.barcode} placeholder="Scan or type" onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                 onChange={(e) => set('barcodes', f.barcodes.map((x, j) => (j === i ? { ...x, barcode: e.target.value } : x)))} />
               <Input aria-label={`Packaging ${i + 1}`} value={b.packaging ?? ''} placeholder="Unit / Box"
                 onChange={(e) => set('barcodes', f.barcodes.map((x, j) => (j === i ? { ...x, packaging: e.target.value } : x)))} />
