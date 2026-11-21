@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { updateScannerSettings, useScannerSettings } from '@/lib/scannerSettings';
+import { isPlausibleRead, ReadConfirmer } from '@/lib/barcodeCheck';
 import { Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -53,7 +54,7 @@ export function BarcodeScanDialog({
   onOpenChange,
   onDetected,
   title = 'Scan a barcode',
-  description = 'Point the camera at the barcode. It is read automatically.',
+  description = 'Hold the barcode flat and steady, filling the box. It is read automatically.',
 }: Props) {
   const elementId = `barcode-reader-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [error, setError] = useState<string | null>(null);
@@ -85,9 +86,14 @@ export function BarcodeScanDialog({
       }
       try {
         scanner = new Html5Qrcode(elementId, { verbose: false, formatsToSupport: FORMATS, useBarCodeDetectorIfSupported: true });
-        const onRead = (text: string) => {
+        // Blurry or partial frames can decode to a wrong code: accept a code only when its
+        // check digit is right and two frames in a row read it the same way.
+        const confirmer = new ReadConfirmer(2, 1500);
+        const onRead = (text: string, result?: { result?: { format?: { formatName?: string } } }) => {
           const code = text.trim();
           if (doneRef.current || !code) return;
+          if (!isPlausibleRead(code, result?.result?.format?.formatName)) return;
+          if (confirmer.push(code) === null) return;
           doneRef.current = true;
           onDetectedRef.current(code);
           onOpenChange(false);
@@ -95,10 +101,20 @@ export function BarcodeScanDialog({
         const keepScanning = () => {
           // No barcode in this frame yet.
         };
-        const config = { fps: 10, qrbox: { width: 260, height: 150 } };
+        const camera: MediaTrackConstraints = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: 'environment' };
+        const config = {
+          fps: 15,
+          // A wide, short box suits 1-D barcodes and keeps the decoder on the code, not the background.
+          qrbox: (w: number, h: number) => ({
+            width: Math.max(160, Math.floor(Math.min(w * 0.9, 420))),
+            height: Math.max(100, Math.floor(Math.min(h * 0.5, 200))),
+          }),
+          // HD video: thin bars are lost at the default low resolution.
+          videoConstraints: { ...camera, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        };
         try {
           // The device's chosen camera (Scanner settings); otherwise the back camera.
-          await scanner.start(cameraId ? { deviceId: { exact: cameraId } } : { facingMode: 'environment' }, config, onRead, keepScanning);
+          await scanner.start(camera, config, onRead, keepScanning);
         } catch (e) {
           if (!cameraId) throw e;
           // The saved camera is unplugged or gone: forget it; the dialog restarts with the back camera.

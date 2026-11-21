@@ -79,6 +79,22 @@ describe('BarcodeScanDialog', () => {
     expect(onDetected).toHaveBeenCalledWith('6291041500213');
   });
 
+  it('ignores misreads: a wrong check digit, and a code read only once', async () => {
+    mocks.start.mockResolvedValue(null);
+    const onDetected = vi.fn();
+    render(<Harness onDetected={onDetected} />);
+    await waitFor(() => expect(mocks.start).toHaveBeenCalled());
+    const onSuccess = mocks.start.mock.calls[0][2];
+    const ean = { result: { format: { formatName: 'EAN_13' } } };
+    onSuccess('6291041500214', ean);
+    onSuccess('6291041500214', ean);
+    onSuccess('6291041500213', ean);
+    expect(onDetected).not.toHaveBeenCalled();
+    onSuccess('6291041500213', ean);
+    await waitFor(() => expect(onDetected).toHaveBeenCalledWith('6291041500213'));
+    expect(onDetected).toHaveBeenCalledTimes(1);
+  });
+
   it('explains a blocked camera instead of failing silently', async () => {
     mocks.start.mockRejectedValue(Object.assign(new Error('Permission denied'), { name: 'NotAllowedError' }));
     render(<Harness onDetected={vi.fn()} />);
