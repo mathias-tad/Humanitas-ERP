@@ -10,7 +10,8 @@ import { GlobalCommandPalette } from "@/components/navigation/GlobalCommandPalet
 import { ChatWidget } from "@/components/messaging/ChatWidget";
 import { AiAssistantWidget, type AiAssistantWidgetHandle } from "@/components/ai/AiAssistantWidget";
 import { useGlobalPrefetch } from "@/hooks/useGlobalPrefetch";
-import { useNavigationLayout } from "@/hooks/useNavigationLayout";
+import { useNavigationLayout } from "@/hooks/useNavigationLayout";
+import { PageErrorBoundary } from "@/components/platform/ErrorBoundary";
 
 function EnterpriseLayoutContent() {
   const prefetchAll = useGlobalPrefetch();
@@ -48,7 +49,9 @@ function EnterpriseLayoutContent() {
 
         {/* Dynamic Page Workspace Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 bg-background/50">
-          <Outlet />
+          <PageErrorBoundary>
+            <Outlet />
+          </PageErrorBoundary>
         </main>
       </div>
 

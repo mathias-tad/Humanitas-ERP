@@ -48,10 +48,10 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 34. Online Store & Omnichannel Ordering | 7 | 0 | 7 | 0% |
 | 35. Delivery & Last-Mile Logistics | 6 | 0 | 6 | 0% |
 | 36. Fleet Management & GPS Telematics | 10 | 0 | 10 | 0% |
-| 37. Quality Guardrails & Regression Prevention | 18 | 0 | 18 | 0% |
+| 37. Quality Guardrails & Regression Prevention | 19 | 1 | 18 | 5% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
-| **TOTAL** | **1141** | **541** | **600** | **47%** |
+| **TOTAL** | **1142** | **542** | **600** | **47%** |
 
 ---
 
@@ -1442,6 +1442,7 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 - [ ] **Granular permissions**: one permission per action per resource (`view_`, `create_`, `edit_`, `delete_`, plus `export_`, `import_`, `approve_`, `assign_` … where the feature exists); no bundled `manage_*` permissions in new modules; existing `manage_*` permissions are split with a migration that keeps everyone's current access. *(Lesson: `manage_assets` mixed create, edit and delete.)*
 - [ ] **Shared code stays mirrored**: CI diffs shared modules between `Humanitas` and `Humanitas-ERP`.
 - [ ] **Per-module Definition of Done**: manifest, migrations, granular permissions (one per action), subscription gate, timeline events, quick-create form, AI/MCP tools, reports, mobile screens, unit + end-to-end tests, Knowledge Base entries.
+- [x] **No blank screens**: app and page error boundaries in both web apps; a build test fails when a page uses a hook whose provider is not mounted where pages render.
 
 ---
 

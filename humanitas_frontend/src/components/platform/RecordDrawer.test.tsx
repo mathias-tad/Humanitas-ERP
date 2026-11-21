@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RecordDrawerProvider, useRecordDrawer } from './RecordDrawer';
 import { registerEntity, type EntityFormProps } from './entityRegistry';
@@ -46,5 +46,16 @@ describe('RecordDrawer', () => {
     fireEvent.click(screen.getByText('open outer'));
     fireEvent.click(await screen.findByText('save outer'));
     await waitFor(() => expect(screen.queryByTestId('record-drawer-0')).not.toBeInTheDocument());
+  });
+});
+
+describe('useRecordDrawer outside the provider', () => {
+  it('does not crash the page', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<Opener />);
+    fireEvent.click(screen.getByText('open outer'));
+    expect(screen.getByText('open outer')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { getEntity } from './entityRegistry';
+import { toast } from 'sonner';
 
 /**
  * Stacked side drawers (featureslist §29): open any record — or a create form — on top of the
@@ -96,8 +97,18 @@ export function RecordDrawerProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const FALLBACK_DRAWER: RecordDrawerApi = {
+  open: () => toast.error('This form could not open here. Please reload the page.'),
+  close: () => {},
+  depth: 0,
+};
+
 export function useRecordDrawer(): RecordDrawerApi {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useRecordDrawer must be used inside <RecordDrawerProvider>');
+  // Never crash a page: a missing provider is a wiring bug caught by src/test/providers-mounted.test.ts.
+  if (!ctx) {
+    console.error('useRecordDrawer must be used inside <RecordDrawerProvider>');
+    return FALLBACK_DRAWER;
+  }
   return ctx;
 }
