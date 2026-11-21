@@ -12,7 +12,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 73 | 73 | 0 | 100% |
-| 1. Products & Catalog Management | 35 | 0 | 35 | 0% |
+| 1. Products & Catalog Management | 35 | 4 | 31 | 11% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
@@ -40,7 +40,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 25. Notification Engine — Email, In-App & Push | 39 | 39 | 0 | 100% |
 | 26. Multi-Language (i18n) & Localization Support | 16 | 0 | 16 | 0% |
 | 28. Modular Packaging, Licensing & Deployment | 23 | 1 | 22 | 4% |
-| 29. In-Context Action Framework | 14 | 0 | 14 | 0% |
+| 29. In-Context Action Framework | 14 | 2 | 12 | 14% |
 | 30. Universal Activity Timeline & Interaction Log | 10 | 0 | 10 | 0% |
 | 31. Unified Communications — Voice & Video Calls in Chat | 13 | 0 | 13 | 0% |
 | 32. VoIP, Cloud PBX & AI Contact Center | 33 | 0 | 33 | 0% |
@@ -50,7 +50,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 36. Fleet Management & GPS Telematics | 10 | 0 | 10 | 0% |
 | 37. Quality Guardrails & Regression Prevention | 18 | 0 | 18 | 0% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
-| **TOTAL** | **1091** | **530** | **561** | **49%** |
+| 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
+| **TOTAL** | **1141** | **541** | **600** | **47%** |
 
 ---
 
@@ -199,16 +200,16 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 
 - [ ] **Product Master Data**:
   - [ ] Standard goods, services, digital items, and composite/bundled kit items.
-  - [ ] Multi-level Product Categories with nested tree structures.
+  - [x] Multi-level Product Categories with nested tree structures.
   - [ ] Product Attributes & Dynamic Variant Matrix generator (e.g., Size, Color, Style, Material).
-  - [ ] SKU & Barcode management with unique constraint validation.
+  - [x] SKU & Barcode management with unique constraint validation.
 - [ ] **QR & Barcode Automation Engine**:
   - [ ] Automated cryptographic QR code generation with tamper-proof validation.
   - [ ] Standard Barcode generation (Code-128, EAN-13, UPC).
   - [ ] Printable QR/Barcode label templates (customizable label size, price tag, SKU, and barcode sticker printing).
   - [ ] Mobile & Web camera scanner integration for rapid product lookups.
 - [ ] **Units of Measure (UOM) Engine**:
-  - [ ] Multi-UOM support with defined conversion factors (e.g., 1 Box = 24 Pieces, 1 Pallet = 50 Boxes).
+  - [x] Multi-UOM support with defined conversion factors (e.g., 1 Box = 24 Pieces, 1 Pallet = 50 Boxes).
   - [ ] Separate UOM assignment for Purchasing, Sales, and Inventory stocking.
 - [ ] **Multi-Tier Price Lists**:
   - [ ] Retail, Wholesale, Distributor, and VIP pricing tiers.
@@ -231,7 +232,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Variant grid entry on sales/purchase lines (enter quantities per size × color in one matrix).
   - [ ] Default shelf life and expiry rules feeding Inventory lots.
   - [ ] AI helpers: description and SEO text generation, auto-categorization, image background cleanup.
-  - [ ] Product timeline (§30): price changes, cost changes and who made them.
+  - [x] Product timeline (§30): price changes, cost changes and who made them.
 
 ---
 
@@ -1277,10 +1278,10 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 - [ ] **Quick-Create Anywhere (permission-aware)**:
   - [ ] Every relation picker (product, customer, vendor, employee, vehicle, driver, warehouse, location, account, tax, UOM, category, project, …) offers type-to-search, **"Create '…'"** in one step, **"Create & edit…"** (full form in a side drawer) and **"Search more…"** (advanced search dialog).
   - [ ] Shown only when the target module is subscribed **and** the user has its create permission; otherwise **"Request creation"** sends a pre-filled request through the Approval Engine to someone who can.
-  - [ ] The new record is selected in the original field automatically; the original form keeps all unsaved input.
+  - [x] The new record is selected in the original field automatically; the original form keeps all unsaved input.
   - [ ] Built-in flows: POS/Sales → new product → added to cart/line · Sales → new customer with credit-limit check · Purchase → new vendor/product · Expense → new category · Delivery → new address with map pin · Fleet → new driver · CRM → new company/contact.
   - [ ] Duplicate guard during quick-create (similar names, phones, emails, barcodes shown before saving).
-- [ ] **Side Peek & Stacked Drawers**: open any linked record (customer, invoice, product, stock, call, vehicle) in a right-side drawer; drawers stack with a breadcrumb; `Esc` returns to where the user was with state intact.
+- [x] **Side Peek & Stacked Drawers**: open any linked record (customer, invoice, product, stock, call, vehicle) in a right-side drawer; drawers stack with a breadcrumb; `Esc` returns to where the user was with state intact.
 - [ ] **Smart Buttons (related counters)** on every record across subscribed modules (Orders 12 · Invoices 8 · Calls 5 · Deliveries 3 · Tickets 1); each opens in a drawer.
 - [ ] **Inline actions on any record**: call (VoIP or app), video call, chat, email, SMS, WhatsApp, schedule activity, create task, create quote/order, register payment, print/send — each gated by module subscription and permission.
 - [ ] **Embedded cross-module widgets**: stock availability and margin on Sales/POS lines, customer balance and credit on POS/Sales, live vehicle position on deliveries, softphone panel on CRM/Sales/POS/Support.
@@ -1500,3 +1501,60 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
   - [ ] Production vs. plan, OEE and downtime Pareto, yield and scrap, cost variance per product, WIP valuation.
   - [ ] Quality KPIs (first-pass yield, NCR/CAPA ageing), batch genealogy report, maintenance compliance.
   - [ ] Energy cost per unit, generator hours and fuel per period.
+
+---
+
+## 39. 🧾 Ethiopian MoR E-Invoicing (EIMS) Compliance (`/settings/e-invoicing`)
+
+> Real-time registration of every invoice, memo and receipt with the Ministry of Revenues, built to pass MoR accreditation (Directive No. 1142) and the INSA cybersecurity audit. Shared by Sales, POS, Invoicing, Online Store and Accounting. Design reference: `docs/eims/EIMS_REFERENCE.md` (AGENTS.md rule 28).
+
+- [ ] **Master Data & Catalog Fields**:
+  - [x] MoR master data code lists (units, tax codes, withholding codes, transaction and document types, cancellation reasons, currencies, regions, source types, payment modes, business sizes) stored as data so MoR additions need no code change.
+  - [x] Product MoR fields: item code (≤15, unique, generated when empty), line tax code (VAT15/VAT0/VATEX/TOT2/TOT10) with the rate derived from it, nature of supply derived from the product type, HS code, invoice description (≤100).
+  - [x] Excise rate per category with per-product override (excise is calculated before discount).
+  - [x] MoR unit code on every unit of measure (PCS, KLG, LTR, MTR, ROL), validated against the code list.
+  - [x] E-invoicing readiness on every product (ready / what to fix) with a "Needs fixing" filter.
+  - [ ] Bulk update of MoR fields from the product list and CSV import.
+  - [ ] Admin screen to add codes MoR publishes later.
+- [ ] **Onboarding & Credentials**:
+  - [ ] Guided onboarding: seller TIN, VAT number, sub-TIN, trade name, address codes, registered tax accounts (VAT or TOT); seller identity locked after onboarding.
+  - [ ] Source systems per branch, POS terminal or device (type, system number, sandbox or production) with their own invoice and receipt counters.
+  - [ ] Encrypted MoR credentials (client id/secret, API key) editable only with a dedicated permission and MFA; token login and automatic refresh.
+  - [ ] Certificate workflow: CSR generation (CN = TIN, RSA 2048, SHA-256), certificate upload with chain check, expiry alerts 30 days ahead, key rotation; private keys encrypted and never exported.
+- [ ] **Invoice Registration**:
+  - [ ] Register B2C, B2B, B2G, G2B, G2C and G2G invoices, including exports (VAT0) and mixed tax codes on one invoice.
+  - [ ] Document types INV, CRE (credit memo), DEB (debit memo), PRF, FIN, MIX, INC, OVD, INT and RTN, with related-document and reason rules for memos.
+  - [ ] Invoice counter and previous-IRN chain per source system, allocated with a row lock.
+  - [ ] Local pre-validation of every MoR rule before sending (TIN, units, tax codes, totals, dates, counters).
+  - [ ] Bulk registration with status polling; verification of any IRN.
+  - [ ] Enveloped signed requests (request + signature + certificate) and verification of MoR's signature on responses.
+- [ ] **Tax Calculation Engine**:
+  - [ ] Shared calculator following the MoR order: line total → excise (pre-discount) → per-line discount → taxable and non-taxable totals → VAT 15% → turnover tax (TOT2/TOT10) → grand total, with the cross-check formula.
+  - [ ] B2G VAT withholding (real deduction) and 3% income withholding (display only, never deducted).
+  - [ ] Foreign-currency invoices with the exchange rate within MoR's allowed deviation.
+  - [ ] MoR worked examples as unit tests; rounding rule confirmed against the MoR sandbox.
+- [ ] **Receipts & Withholding**:
+  - [ ] Sales receipts (CRV) for full and partial payments, several per invoice, rejecting overpayment; every CRV references the IRN.
+  - [ ] Withholding receipts and withholding certificates.
+  - [ ] Receipts raised automatically when POS or Sales records a payment.
+- [ ] **Cancellation & Corrections**:
+  - [ ] Single and bulk cancellation with MoR reason codes and remarks, within MoR's limits, with an approval step.
+  - [ ] Registered documents are immutable (database triggers); corrections only by credit/debit memo or cancellation.
+- [ ] **Offline Resilience**:
+  - [ ] Append-only outbox with an integrity hash, automatic retry with backoff, status history and a queue dashboard.
+  - [ ] POS keeps selling while MoR is unreachable, shows pending documents clearly, and prints the final receipt only after the IRN arrives.
+- [ ] **Printing & Delivery to Buyers**:
+  - [ ] IRN, RRN and QR code printed legibly on thermal and A4 layouts, with the statutory seller and buyer details.
+  - [ ] Registered documents sent to the buyer by email, SMS or WhatsApp, and printed on request.
+- [ ] **Error Handling**:
+  - [ ] Every MoR error code (authentication 44xx–46xx, certificate 670xx, validation 70xx) shown as a plain message with the fix from MoR's list.
+- [ ] **Audit, Reporting & Data Access**:
+  - [ ] Audit log of every exchange with MoR (user, time, request, response), exportable for MoR auditors and kept for the legal retention period.
+  - [ ] E-invoice register (IRN, status, QR), daily summary, and X/Z-style reports per source system.
+  - [ ] Full taxpayer data export and migration (SaaS requirement 5.2.3).
+- [ ] **Accreditation & Security Readiness**:
+  - [ ] TLS everywhere (1.3 where MoR supports it), mutual TLS where required, AES-256 encryption at rest for TIN, invoice and payment data.
+  - [ ] MFA for administrators, session timeouts and lockouts, RBAC for every e-invoicing action (rule 27).
+  - [ ] Hosting evidence: data centre in Ethiopia (Tier III), replication across two data centres, registered public IPs.
+  - [ ] Support centre evidence: help website with knowledge base, ticketing and status page, plus phone support (uses §32 VoIP).
+  - [ ] Accreditation pack: SRS, completed MoR checklist with the inspected system number, INSA security clearance.

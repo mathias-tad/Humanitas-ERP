@@ -3,6 +3,7 @@ import { ConflictException } from '@nestjs/common';
 /** Map PostgreSQL unique violations on catalog tables to clear 409 messages. */
 const MESSAGES: Record<string, string> = {
   uq_products_sku: 'A product with this SKU already exists',
+  uq_products_item_code: 'A product with this item code already exists',
   uq_product_barcodes_barcode: 'This barcode is already used by another product',
   uq_product_barcodes_one_primary: 'A product can have only one primary barcode',
   uq_product_categories_sibling_name: 'A category with this name already exists at this level',

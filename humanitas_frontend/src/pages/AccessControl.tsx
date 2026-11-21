@@ -22,6 +22,9 @@ const MODULE_SUBSCRIPTION_MAP: Record<string, ERPModuleKey | 'common'> = {
   "PMS": 'pms',
   "KPI": 'pms',
   "AI Intelligence": 'ai',
+  "Products": 'products',
+  "Product Categories": 'products',
+  "Units of Measure": 'products',
 };
 import { RoleList, type Role } from "@/components/roleAndPermisions/RoleList";
 import { CreateEditRoleModal } from "@/components/roleAndPermisions/CreateEditRoleModal";
@@ -233,6 +236,21 @@ const permissions: Permission[] = [
   { id: "manage_approval_rules", name: "manage_approval_rules", label: "Manage Approval Rules & Workflows", module: "Dynamic Approvals" },
   { id: "approve_requests", name: "approve_requests", label: "Approve or Reject Approval Requests", module: "Dynamic Approvals" },
   { id: "view_approval_requests", name: "view_approval_requests", label: "View Approval Requests & History", module: "Dynamic Approvals" },
+  // Products & Catalog (AGENTS.md rule 27: one permission per action)
+  { id: "view_products", name: "view", label: "View Products", module: "Products" },
+  { id: "create_products", name: "create", label: "Create Products", module: "Products" },
+  { id: "edit_products", name: "edit", label: "Edit Products", module: "Products" },
+  { id: "delete_products", name: "delete", label: "Archive Products", module: "Products" },
+  { id: "restore_products", name: "restore", label: "Restore Products", module: "Products" },
+  { id: "export_products", name: "export", label: "Export Products", module: "Products" },
+  { id: "view_product_categories", name: "view", label: "View Categories", module: "Product Categories" },
+  { id: "create_product_categories", name: "create", label: "Create Categories", module: "Product Categories" },
+  { id: "edit_product_categories", name: "edit", label: "Edit Categories", module: "Product Categories" },
+  { id: "delete_product_categories", name: "delete", label: "Archive Categories", module: "Product Categories" },
+  { id: "view_uoms", name: "view", label: "View Units", module: "Units of Measure" },
+  { id: "create_uoms", name: "create", label: "Create Units", module: "Units of Measure" },
+  { id: "edit_uoms", name: "edit", label: "Edit Units", module: "Units of Measure" },
+  { id: "delete_uoms", name: "delete", label: "Archive Units", module: "Units of Measure" },
 ];
 
 function AccessControl() {

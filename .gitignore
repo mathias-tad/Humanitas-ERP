@@ -6,3 +6,10 @@
 .env.*.local
 # Keep the example template committed for reference
 !.env.production.example
+
+# MoR e-invoicing certificates and keys (AGENTS.md rule 28)
+*.pem
+*.key
+*.csr
+*.p12
+*.pfx

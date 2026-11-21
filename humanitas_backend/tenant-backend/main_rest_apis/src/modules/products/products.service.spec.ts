@@ -197,6 +197,75 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('MoR e-invoicing fields (rule 28)', () => {
+    const createRoutes: Route[] = [
+      userCompany(CO_A),
+      [/WHERE lower\(c.name\) = 'unit' AND u.is_reference/, () => [{ id: UNITS }]],
+      uomRows,
+      [/INSERT INTO products/, () => [{ id: P1 }]],
+      [/WHERE p.id = \$1/, () => [product({ item_code: 'P0000001', tax_code: 'VAT15', uom_mor_code: 'PCS' })]],
+    ];
+
+    it('quick-create defaults to VAT15 and leaves the item code to the database generator', async () => {
+      const conn = fakeConn(createRoutes);
+      const res = await build(conn).create(ctx(), { name: 'Buna' });
+      const insert = conn.calls.find((c) => /INSERT INTO products/.test(c.sql))!;
+      expect(insert.params[9]).toBe('VAT15');
+      expect(insert.params.slice(15)).toEqual([null, null, null, null]);
+      expect(res).toMatchObject({ eims_ready: true, eims_issues: [] });
+    });
+
+    it('stores the given item code, HS code, excise rate and invoice description', async () => {
+      const conn = fakeConn(createRoutes);
+      await build(conn).create(ctx(), {
+        name: 'Beer 330ml', tax_code: 'VAT15', item_code: ' BR-330 ', harmonization_code: '22030000', excise_rate: 25,
+        invoice_description: ' Beer 330 ml bottle ',
+      });
+      const insert = conn.calls.find((c) => /INSERT INTO products/.test(c.sql))!;
+      expect(insert.params.slice(15)).toEqual(['BR-330', '22030000', 25, 'Beer 330 ml bottle']);
+    });
+
+    it('reports products that MoR would reject', async () => {
+      const conn = fakeConn([userCompany(null),
+        [/WHERE p.id = \$1/, () => [product({ item_code: 'X1', tax_code: 'VAT15', uom_mor_code: null, name: 'n'.repeat(120) })]]]);
+      const res = await build(conn).get(ctx('admin'), P1);
+      expect(res.eims_ready).toBe(false);
+      expect(res.eims_issues).toEqual(['description', 'unit']);
+    });
+
+    it('updates the tax code and clears an empty HS code', async () => {
+      const conn = fakeConn([userCompany(CO_A), [/WHERE p.id = \$1/, () => [product()]]]);
+      await build(conn).update(ctx(), P1, { tax_code: 'VATEX', harmonization_code: '  ' as string });
+      const upd = conn.calls.find((c) => /^\s*UPDATE products SET/.test(c.sql))!;
+      expect(upd.sql).toContain('tax_code = $1');
+      expect(upd.sql).toContain('harmonization_code = $2');
+      expect(upd.params.slice(0, 2)).toEqual(['VATEX', null]);
+    });
+
+    it('filters by readiness, searches and looks up by item code', async () => {
+      const conn = fakeConn([userCompany(null), [/count\(\*\)/, () => [{ total: 0 }]], [/lower\(p.item_code\) = lower\(\$1\)/, () => [product()]]]);
+      await build(conn).list(ctx('admin'), { eims: 'not_ready', q: 'br-3' });
+      const count = conn.calls.find((c) => /count/.test(c.sql))!;
+      expect(count.sql).toContain('JOIN uoms u ON u.id = p.uom_id');
+      expect(count.sql).toContain('NOT (u.mor_code IS NOT NULL');
+      expect(count.sql).toContain('lower(p.item_code) LIKE');
+      await expect(build(conn).lookup(ctx('admin'), 'BR-330')).resolves.toMatchObject({ id: P1 });
+    });
+
+    it('lists MoR codes and rejects a malformed list name', async () => {
+      const conn = fakeConn([[/FROM eims_codes/, () => [{ list_name: 'tax_code', code: 'VAT15' }]]]);
+      await expect(build(conn).eimsCodes(ctx(), 'tax_code')).resolves.toHaveLength(1);
+      expect(conn.calls.at(-1)!.params).toEqual(['tax_code']);
+      await expect(build(conn).eimsCodes(ctx(), "x'; drop")).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('maps a duplicate item code to 409', async () => {
+      const conn = fakeConn(createRoutes);
+      conn.transaction.mockRejectedValueOnce(Object.assign(new Error('dup'), { code: '23505', constraint: 'uq_products_item_code' }));
+      await expect(build(conn).create(ctx(), { name: 'x', item_code: 'A1' })).rejects.toThrow('A product with this item code already exists');
+    });
+  });
+
   describe('exportCsv() / timelineFor()', () => {
     it('exports a header row and one escaped row per product', async () => {
       const conn = fakeConn([userCompany(null), [/LIMIT 50000/, () => [product({ name: 'Sugar, white' })]]]);

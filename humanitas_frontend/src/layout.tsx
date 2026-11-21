@@ -20,6 +20,9 @@ import { useEffect, useRef } from "react";
 import { AiAssistantWidget, type AiAssistantWidgetHandle } from "@/components/ai/AiAssistantWidget";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RecordDrawerProvider } from "@/components/platform/RecordDrawer";
+// Record types other modules can create/open in place (featureslist §29)
+import "@/components/products/registerProductEntities";
 
 export default function Layout() {
   const prefetchAll = useGlobalPrefetch();
@@ -31,6 +34,7 @@ export default function Layout() {
   }, [prefetchAll]);
 
   return (
+    <RecordDrawerProvider>
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
@@ -63,5 +67,6 @@ export default function Layout() {
         <AiAssistantWidget ref={aiWidgetRef} />
       </SidebarInset>
     </SidebarProvider>
+    </RecordDrawerProvider>
   );
 }

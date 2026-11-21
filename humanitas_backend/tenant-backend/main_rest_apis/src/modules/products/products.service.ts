@@ -13,6 +13,7 @@ import {
   type Queryable,
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
+import { EIMS_READY_SQL, withEimsStatus } from './products.eims';
 
 /** Request context every Products call needs. */
 export interface CatalogContext {
@@ -33,7 +34,11 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
   purchase_uom_id: 'Purchase unit',
   sales_price: 'Sales price',
   cost_price: 'Cost',
-  tax_rate: 'Tax rate',
+  item_code: 'Item code',
+  tax_code: 'Tax code',
+  harmonization_code: 'HS code',
+  excise_rate: 'Excise rate',
+  invoice_description: 'Invoice description',
   can_be_sold: 'Can be sold',
   can_be_purchased: 'Can be purchased',
   image_url: 'Image',
@@ -43,15 +48,17 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
 
 const UPDATABLE = [
   'name', 'sku', 'description', 'product_type', 'category_id', 'uom_id', 'purchase_uom_id',
-  'sales_price', 'cost_price', 'tax_rate', 'can_be_sold', 'can_be_purchased', 'image_url', 'company_id',
+  'sales_price', 'cost_price', 'tax_code', 'item_code', 'harmonization_code', 'excise_rate', 'invoice_description',
+  'can_be_sold', 'can_be_purchased', 'image_url', 'company_id',
 ] as const;
 
 const SORTS: Record<string, string> = {
-  name: 'lower(p.name)', sku: 'lower(p.sku)', sales_price: 'p.sales_price', created_at: 'p.created_at', updated_at: 'p.updated_at',
+  name: 'lower(p.name)', sku: 'lower(p.sku)', item_code: 'lower(p.item_code)', sales_price: 'p.sales_price', created_at: 'p.created_at', updated_at: 'p.updated_at',
 };
 
 const SELECT_PRODUCT = `
-  SELECT p.*, c.name AS category_name, u.name AS uom_name, u.symbol AS uom_symbol,
+  SELECT p.*, c.name AS category_name, u.name AS uom_name, u.symbol AS uom_symbol, u.mor_code AS uom_mor_code,
+         c.excise_rate AS category_excise_rate, COALESCE(p.excise_rate, c.excise_rate, 0) AS effective_excise_rate,
          pu.name AS purchase_uom_name,
          COALESCE((SELECT json_agg(json_build_object(
              'id', b.id, 'barcode', b.barcode, 'barcode_type', b.barcode_type, 'packaging', b.packaging,
@@ -106,12 +113,14 @@ export class ProductsService {
     const order = query.order === 'desc' ? 'DESC' : 'ASC';
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-    const [{ total }] = await conn.query(`SELECT count(*)::int AS total FROM products p ${whereSql}`, params);
-    const data = await conn.query(
+    const [{ total }] = await conn.query(
+      `SELECT count(*)::int AS total FROM products p JOIN uoms u ON u.id = p.uom_id ${whereSql}`, params,
+    );
+    const rows = await conn.query(
       `${SELECT_PRODUCT} ${whereSql} ORDER BY ${sort} ${order}, p.id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, (page - 1) * limit],
     );
-    return { data, meta: { page, limit, total } };
+    return { data: rows.map(withEimsStatus), meta: { page, limit, total } };
   }
 
   async get(ctx: CatalogContext, id: string) {
@@ -131,13 +140,13 @@ export class ProductsService {
       `${SELECT_PRODUCT}
         WHERE p.is_active
           AND (EXISTS (SELECT 1 FROM product_barcodes b2 WHERE b2.product_id = p.id AND b2.barcode = $1)
-               OR lower(p.sku) = lower($1))
+               OR lower(p.sku) = lower($1) OR lower(p.item_code) = lower($1))
           ${f ? `AND ${f.sql}` : ''}
         LIMIT 1`,
       params,
     );
     if (!rows.length) throw new NotFoundException('No product with this barcode or SKU');
-    return rows[0];
+    return withEimsStatus(rows[0]);
   }
 
   async create(ctx: CatalogContext, dto: CreateProductDto) {
@@ -152,15 +161,17 @@ export class ProductsService {
     const id = await conn.transaction(async (m: Queryable) => {
         const [row] = await m.query(
           `INSERT INTO products (sku, name, description, product_type, category_id, uom_id, purchase_uom_id,
-                                 sales_price, cost_price, tax_rate, can_be_sold, can_be_purchased, image_url,
-                                 company_id, created_by, updated_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)
+                                 sales_price, cost_price, tax_code, can_be_sold, can_be_purchased, image_url,
+                                 company_id, created_by, updated_by, item_code, harmonization_code, excise_rate,
+                                 invoice_description)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15,$16,$17,$18,$19)
            RETURNING id`,
           [
             dto.sku?.trim() || null, dto.name.trim(), dto.description ?? null, dto.product_type ?? 'consumable',
             dto.category_id ?? null, uomId, purchaseUomId, dto.sales_price ?? 0, dto.cost_price ?? 0,
-            dto.tax_rate ?? null, dto.can_be_sold ?? true, dto.can_be_purchased ?? true, dto.image_url ?? null,
-            dto.company_id ?? null, ctx.user?.sub ?? null,
+            dto.tax_code ?? 'VAT15', dto.can_be_sold ?? true, dto.can_be_purchased ?? true, dto.image_url ?? null,
+            dto.company_id ?? null, ctx.user?.sub ?? null, dto.item_code?.trim() || null,
+            dto.harmonization_code?.trim() || null, dto.excise_rate ?? null, dto.invoice_description?.trim() || null,
           ],
         );
         await this.insertBarcodes(m, row.id, barcodes, ctx.user?.sub);
@@ -193,7 +204,10 @@ export class ProductsService {
       if (dto[key] === undefined) continue;
       let value: unknown = dto[key];
       if (key === 'name' && typeof value === 'string') value = value.trim();
-      if (key === 'sku') value = typeof value === 'string' && value.trim() ? value.trim() : null;
+      if (key === 'sku' || key === 'harmonization_code' || key === 'invoice_description') {
+        value = typeof value === 'string' && value.trim() ? value.trim() : null;
+      }
+      if (key === 'item_code' && typeof value === 'string') value = value.trim();
       params.push(value);
       sets.push(`${key} = $${params.length}`);
     }
@@ -239,7 +253,8 @@ export class ProductsService {
       `${SELECT_PRODUCT} ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY lower(p.name), p.id LIMIT 50000`,
       params,
     );
-    const cols = ['sku', 'name', 'product_type', 'category_name', 'uom_name', 'sales_price', 'cost_price', 'tax_rate',
+    const cols = ['item_code', 'sku', 'name', 'product_type', 'nature_of_supply', 'category_name', 'uom_name', 'uom_mor_code',
+      'sales_price', 'cost_price', 'tax_code', 'tax_rate', 'effective_excise_rate', 'harmonization_code', 'invoice_description',
       'can_be_sold', 'can_be_purchased', 'is_active'];
     const lines = [[...cols, 'barcodes'].join(',')];
     for (const r of rows) {
@@ -247,6 +262,19 @@ export class ProductsService {
       lines.push([...cols.map((c) => csvCell(r[c])), csvCell(codes)].join(','));
     }
     return lines.join('\r\n') + '\r\n';
+  }
+
+  /** MoR master-data codes (tax codes, units, transaction types…) for forms; one list or all. */
+  async eimsCodes(ctx: CatalogContext, list?: string) {
+    const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
+    const name = list?.trim();
+    if (name && !/^[a-z_]{1,40}$/.test(name)) throw new BadRequestException('Unknown code list');
+    return conn.query(
+      `SELECT list_name, code, name, rate FROM eims_codes
+        WHERE is_active ${name ? 'AND list_name = $1' : ''}
+        ORDER BY list_name, sort_order, code`,
+      name ? [name] : [],
+    );
   }
 
   async timelineFor(ctx: CatalogContext, id: string, opts: { limit?: number; before?: string }) {
@@ -265,9 +293,11 @@ export class ProductsService {
     if (query.q?.trim()) {
       params.push(`%${query.q.trim().toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
       const p = `$${params.length}`;
-      where.push(`(lower(p.name) LIKE ${p} OR lower(p.sku) LIKE ${p}
+      where.push(`(lower(p.name) LIKE ${p} OR lower(p.sku) LIKE ${p} OR lower(p.item_code) LIKE ${p}
                OR EXISTS (SELECT 1 FROM product_barcodes b3 WHERE b3.product_id = p.id AND lower(b3.barcode) LIKE ${p}))`);
     }
+    if (query.eims === 'ready') where.push(EIMS_READY_SQL);
+    if (query.eims === 'not_ready') where.push(`NOT ${EIMS_READY_SQL}`);
     if (query.category_id) {
       params.push(query.category_id);
       where.push(`p.category_id = $${params.length}`);
@@ -288,7 +318,7 @@ export class ProductsService {
     const rows = await conn.query(`${SELECT_PRODUCT} WHERE p.id = $1`, [id]);
     const product = rows[0];
     if (!product || !isVisible(scope, product.company_id)) throw new NotFoundException('Product not found');
-    return product;
+    return withEimsStatus(product);
   }
 
   private async setActive(ctx: CatalogContext, id: string, active: boolean) {

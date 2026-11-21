@@ -42,7 +42,7 @@ export const MODULES: ModuleDefinition[] = [
     description: 'Employees, attendance, biometric sync, shifts, leave, payroll and recruitment.' },
   { key: 'pms', name: 'Projects & Tasks (PMS)', category: 'people', status: 'available', depends: [],
     description: 'Projects, Kanban boards, time tracking and KPI scorecards.' },
-  { key: 'products', name: 'Products & Catalog', category: 'operations', status: 'coming_soon', depends: [],
+  { key: 'products', name: 'Products & Catalog', category: 'operations', status: 'available', depends: [],
     description: 'Products, variants, units of measure, price lists, barcodes and QR labels.' },
   { key: 'inventory', name: 'Inventory & Warehouses', category: 'operations', status: 'coming_soon', depends: ['products'],
     description: 'Multi-warehouse stock, lots/serials, transfers, counts and FIFO/AVCO valuation.' },

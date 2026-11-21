@@ -1,0 +1,166 @@
+import { useEffect, useState } from 'react';
+import { BadgeCheck, Download, Package, Plus, Search, TriangleAlert } from 'lucide-react';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/design-system/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useAuth } from '@/context/AuthContext';
+import { errorMessage } from '@/lib/errors';
+import { useRecordDrawer } from '@/components/platform/RecordDrawer';
+import '@/components/products/registerProductEntities';
+import {
+  EIMS_ISSUE_TEXT, downloadProductsCsv, useProductCategories, useProducts, type ProductFilters, type ProductType,
+} from '@/hooks/useProducts';
+
+const TYPE_LABEL: Record<ProductType, string> = { storable: 'Stock item', consumable: 'Consumable', service: 'Service' };
+const ALL = '__all__';
+
+export default function ProductsPage() {
+  const { hasPermission } = useAuth();
+  const drawer = useRecordDrawer();
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<ProductFilters>({ status: 'active', page: 1, limit: 25, sort: 'name', order: 'asc' });
+  useEffect(() => {
+    const t = setTimeout(() => setFilters((f) => ({ ...f, q: search.trim() || undefined, page: 1 })), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  const products = useProducts(filters);
+  const categories = useProductCategories();
+  const rows = products.data?.data ?? [];
+  const meta = products.data?.meta;
+  const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
+
+  const openProduct = (id: string) => drawer.open({ type: 'product', mode: 'edit', id, title: 'Product' });
+
+  return (
+    <div className="space-y-6 p-6">
+      <PageHeader
+        title="Products"
+        description="Your product catalog: goods, consumables and services with units, prices and barcodes."
+        actions={
+          <div className="flex gap-2">
+            {hasPermission('export_products') && (
+              <Button variant="outline" onClick={() => downloadProductsCsv(filters).catch((e) => toast.error(errorMessage(e)))}>
+                <Download className="mr-2 h-4 w-4" /> Export CSV
+              </Button>
+            )}
+            {hasPermission('create_products') && (
+              <Button onClick={() => drawer.open({ type: 'product', mode: 'create' })}>
+                <Plus className="mr-2 h-4 w-4" /> New product
+              </Button>
+            )}
+          </div>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Search name, item code, SKU or barcode" aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={filters.category_id ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, category_id: v === ALL ? undefined : v, page: 1 }))}>
+          <SelectTrigger className="w-56" aria-label="Category"><SelectValue placeholder="All categories" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All categories</SelectItem>
+            {(categories.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.full_path}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filters.product_type ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, product_type: v === ALL ? undefined : (v as ProductType), page: 1 }))}>
+          <SelectTrigger className="w-40" aria-label="Type"><SelectValue placeholder="All types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All types</SelectItem>
+            {(Object.keys(TYPE_LABEL) as ProductType[]).map((t) => <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filters.eims ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, eims: v === ALL ? undefined : (v as ProductFilters['eims']), page: 1 }))}>
+          <SelectTrigger className="w-48" aria-label="E-invoicing"><SelectValue placeholder="E-invoicing: any" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>E-invoicing: any</SelectItem>
+            <SelectItem value="ready">Ready for e-invoicing</SelectItem>
+            <SelectItem value="not_ready">Needs fixing</SelectItem>
+          </SelectContent>
+        </Select>
+        <Tabs value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v as ProductFilters['status'], page: 1 }))}>
+          <TabsList>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="archived">Archived</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Sales price</TableHead>
+              <TableHead>Tax</TableHead>
+              <TableHead>Barcode</TableHead>
+              <TableHead>E-invoice</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((p) => (
+              <TableRow key={p.id} className="cursor-pointer" onClick={() => openProduct(p.id)} tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && openProduct(p.id)}>
+                <TableCell>
+                  <div className="font-medium">{p.name} {!p.is_active && <Badge variant="outline" className="ml-1">Archived</Badge>}</div>
+                  <div className="text-xs text-muted-foreground">{p.item_code}{p.sku && p.sku !== p.item_code ? ` · ${p.sku}` : ''}</div>
+                </TableCell>
+                <TableCell>{p.category_name ?? <span className="text-muted-foreground">—</span>}</TableCell>
+                <TableCell>{TYPE_LABEL[p.product_type]}</TableCell>
+                <TableCell>{p.uom_symbol ?? p.uom_name}</TableCell>
+                <TableCell className="text-right tabular-nums">{Number(p.sales_price).toFixed(2)}</TableCell>
+                <TableCell className="text-xs">{p.tax_code}</TableCell>
+                <TableCell className="font-mono text-xs">{p.barcodes?.find((b) => b.is_primary)?.barcode ?? '—'}</TableCell>
+                <TableCell>
+                  {p.eims_ready ? (
+                    <BadgeCheck className="h-4 w-4 text-emerald-600" aria-label="Ready for e-invoicing" />
+                  ) : (
+                    <span title={(p.eims_issues ?? []).map((i) => EIMS_ISSUE_TEXT[i] ?? i).join('\n')}>
+                      <TriangleAlert className="h-4 w-4 text-amber-600" aria-label="Not ready for e-invoicing" />
+                    </span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {!rows.length && (
+              <TableRow>
+                <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                  {products.isLoading ? 'Loading products…' : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="h-8 w-8 opacity-40" />
+                      {filters.q ? `No products match “${filters.q}”.` : 'No products yet.'}
+                      {hasPermission('create_products') && (
+                        <Button size="sm" variant="outline"
+                          onClick={() => drawer.open({ type: 'product', mode: 'create', initial: filters.q ? { name: filters.q } : undefined })}>
+                          <Plus className="mr-1 h-3 w-3" /> {filters.q ? `Create “${filters.q}”` : 'Create the first product'}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {meta && meta.total > meta.limit && (
+        <div className="flex items-center justify-end gap-2 text-sm">
+          <span className="text-muted-foreground">Page {meta.page} of {pages} · {meta.total} products</span>
+          <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={meta.page >= pages} onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}>Next</Button>
+        </div>
+      )}
+    </div>
+  );
+}

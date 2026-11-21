@@ -94,4 +94,32 @@ describe('UomsService', () => {
   it('rejects a unit in an unknown category', async () => {
     await expect(svc(fakeConn([])).create(ctx, { category_id: U, name: 'x', ratio: 1 })).rejects.toThrow('Unit category not found');
   });
+
+  describe('MoR unit codes (rule 28)', () => {
+    const codes: Route = [/FROM eims_codes WHERE list_name = 'unit' AND code = \$1/, (p) => (['PCS', 'KLG', 'ROL'].includes(p[0] as string) ? [{ '?column?': 1 }] : [])];
+
+    it('stores an upper-cased MoR code on a new unit and refuses unknown codes', async () => {
+      const conn = fakeConn([[/FROM uom_categories WHERE id/, () => [{ id: 'cat' }]], codes,
+        [/INSERT INTO uoms/, (p) => [{ id: U, name: p[1], mor_code: p[6] }]]]);
+      await expect(svc(conn).create(ctx, { category_id: 'cat', name: 'Roll', ratio: 1, mor_code: ' rol ' })).resolves.toMatchObject({ mor_code: 'ROL' });
+      await expect(svc(conn).create(ctx, { category_id: 'cat', name: 'Box', ratio: 1, mor_code: 'BOX' })).rejects.toThrow('BOX is not a MoR unit code');
+    });
+
+    it('sets and clears the MoR code on update', async () => {
+      const conn = fakeConn([[/SELECT \* FROM uoms WHERE id/, () => [{ id: U, is_reference: false, ratio: '1' }]], codes,
+        [/^UPDATE uoms SET/, (p) => [{ id: U, sql: p }]]]);
+      await svc(conn).update(ctx, U, { mor_code: 'pcs' });
+      expect(conn.calls.at(-1)!.sql).toContain('mor_code = $1');
+      expect(conn.calls.at(-1)!.params).toEqual(['PCS', U]);
+      await svc(conn).update(ctx, U, { mor_code: null });
+      expect(conn.calls.at(-1)!.params).toEqual([null, U]);
+    });
+
+    it('gives the reference unit of a new category its MoR code', async () => {
+      const conn = fakeConn([codes, [/INSERT INTO uom_categories/, () => [{ id: 'cat', name: 'Weight 2' }]],
+        [/INSERT INTO uoms/, (p) => [{ id: 'ref', name: p[1], mor_code: p[4] }]]]);
+      const res = await svc(conn).createCategory(ctx, { name: 'Weight 2', reference_unit: 'kilo', reference_mor_code: 'KLG' });
+      expect(res.units[0].mor_code).toBe('KLG');
+    });
+  });
 });

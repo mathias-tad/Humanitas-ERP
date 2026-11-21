@@ -144,6 +144,9 @@ function PermissionRoute({
   );
 }
 
+const ProductsPage = lazy(() => import("./pages/products/ProductsPage"));
+const ProductCategoriesPage = lazy(() => import("./pages/products/CategoriesPage"));
+const ProductUnitsPage = lazy(() => import("./pages/products/UnitsPage"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const FormBuilder = lazy(() => import("./pages/FormBuilder"));
 const Recruitment = lazy(() => import("./pages/Recruitment"));
@@ -607,7 +610,9 @@ function AppRoutes() {
         } />
 
         {/* ERP Modules (Rule 13: Coming Soon with Backdrop Blur Overlay) */}
-        <Route path="/products" element={<ComingSoonModulePage moduleKey="products" />} />
+        <Route path="/products" element={<PermissionRoute module="products" permission="view_products"><ProductsPage /></PermissionRoute>} />
+        <Route path="/products/categories" element={<PermissionRoute module="products" permission="view_product_categories"><ProductCategoriesPage /></PermissionRoute>} />
+        <Route path="/products/uoms" element={<PermissionRoute module="products" permission="view_uoms"><ProductUnitsPage /></PermissionRoute>} />
         <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
 
         <Route path="/inventory" element={<ComingSoonModulePage moduleKey="inventory" />} />

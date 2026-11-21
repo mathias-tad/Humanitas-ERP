@@ -28,6 +28,13 @@ export class ProductsController {
     return this.products.lookup(catalogContext(req), code);
   }
 
+  /** MoR e-invoicing code lists (rule 28): GET /products/eims-codes?list=tax_code */
+  @Get('eims-codes')
+  @RequirePermissions(P.view)
+  eimsCodes(@Request() req: AuthenticatedRequest, @Query('list') list?: string) {
+    return this.products.eimsCodes(catalogContext(req), list);
+  }
+
   @Get('export.csv')
   @RequirePermissions(P.export)
   @Header('Content-Type', 'text/csv; charset=utf-8')

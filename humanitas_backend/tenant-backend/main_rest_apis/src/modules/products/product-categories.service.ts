@@ -7,7 +7,7 @@ import { rethrowCatalogConflict } from './products.errors';
 import type { CatalogContext } from './products.service';
 
 export const CATEGORY_TRACKED_FIELDS: Record<string, string> = {
-  name: 'Name', parent_id: 'Parent category', code: 'Code', description: 'Description', is_active: 'Active', company_id: 'Company',
+  name: 'Name', parent_id: 'Parent category', code: 'Code', description: 'Description', excise_rate: 'Excise rate', is_active: 'Active', company_id: 'Company',
 };
 
 @Injectable()
@@ -60,9 +60,10 @@ export class ProductCategoriesService {
     assertCompanyAssignable(scope, dto.company_id);
     if (dto.parent_id) await this.findVisible(conn, scope, dto.parent_id, 'Parent category not found');
     const [row] = await conn.query(
-        `INSERT INTO product_categories (name, parent_id, code, description, company_id, created_by, updated_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$6) RETURNING *`,
-        [dto.name.trim(), dto.parent_id ?? null, dto.code?.trim() || null, dto.description ?? null, dto.company_id ?? null, ctx.user?.sub ?? null],
+        `INSERT INTO product_categories (name, parent_id, code, description, company_id, created_by, updated_by, excise_rate)
+         VALUES ($1,$2,$3,$4,$5,$6,$6,$7) RETURNING *`,
+        [dto.name.trim(), dto.parent_id ?? null, dto.code?.trim() || null, dto.description ?? null, dto.company_id ?? null,
+         ctx.user?.sub ?? null, dto.excise_rate ?? 0],
       ).catch(rethrowCatalogConflict);
     await this.timeline.record(ctx.tenantId, {
       entityType: 'product_category', entityId: String(row.id), eventType: 'created', moduleKey: 'products',
@@ -84,7 +85,7 @@ export class ProductCategoriesService {
     if (dto.is_active === false) await this.assertNoActiveChildren(conn, id);
     const sets: string[] = [];
     const params: unknown[] = [];
-    for (const key of ['name', 'parent_id', 'code', 'description', 'is_active', 'company_id'] as const) {
+    for (const key of ['name', 'parent_id', 'code', 'description', 'excise_rate', 'is_active', 'company_id'] as const) {
       if (dto[key] === undefined) continue;
       let v: unknown = dto[key];
       if (typeof v === 'string' && (key === 'name' || key === 'code')) v = v.trim() || null;

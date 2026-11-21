@@ -21,6 +21,13 @@ export class UomsController {
     return this.uoms.list(catalogContext(req), includeInactive === 'true');
   }
 
+  /** MoR unit codes for the unit form (PCS, KLG, LTR, MTR, ROL…). */
+  @Get('mor-codes')
+  @RequirePermissions(P.view)
+  morCodes(@Request() req: AuthenticatedRequest) {
+    return this.uoms.morCodes(catalogContext(req));
+  }
+
   @Post('categories')
   @RequirePermissions(P.create)
   createCategory(@Request() req: AuthenticatedRequest, @Body() dto: CreateUomCategoryDto) {
