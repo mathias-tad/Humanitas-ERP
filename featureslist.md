@@ -23,7 +23,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 8. Decoupled Project Management System (PMS) | 28 | 28 | 0 | 100% |
 | 9. Dynamic Approval Workflow Engine | 12 | 12 | 0 | 100% |
 | 10. Webhooks & Developer API Portal | 16 | 16 | 0 | 100% |
-| 11. Modern Enterprise UI / UX Architecture | 30 | 30 | 0 | 100% |
+| 11. Modern Enterprise UI / UX Architecture | 35 | 33 | 2 | 94% |
 | 12. Self-Service Subscription, Billing & Landing Page | 21 | 0 | 21 | 0% |
 | 13. AI Intelligence Module | 51 | 51 | 0 | 100% |
 | 14. Employee Self-Service Portal | 21 | 21 | 0 | 100% |
@@ -51,7 +51,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 37. Quality Guardrails & Regression Prevention | 19 | 1 | 18 | 5% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
-| **TOTAL** | **1143** | **544** | **599** | **48%** |
+| **TOTAL** | **1148** | **547** | **601** | **48%** |
 
 ---
 
@@ -711,6 +711,11 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [x] **Header & Workspace Command Center**:
   - [x] **Global App Launcher (9-Dot)**: Instant modal switch between enabled modules.
   - [x] **Universal Search & Command Palette (`Ctrl/Cmd + K`)**: Instant search for tasks, products, invoices, customers, and navigation shortcuts.
+  - [x] **Keyboard shortcuts framework**: press ? for every shortcut on the screen; buttons show their shortcut on hover; Ctrl/⌘+S saves forms; G then H/P to jump; single keys never fire while typing or during a barcode scan; the screen opened last wins.
+  - [x] **Products shortcuts**: N new product, / search, S scan with camera, E export, Ctrl/⌘+S save.
+  - [x] **Barcode scanner settings per device**: USB/Bluetooth scanner on/off, a test that measures the scanner and tunes detection, suffix (Enter/Tab), shortest code, beep, default camera.
+  - [ ] **Shortcut sets for every module**: POS F-keys (search, quantity, discount, payment, hold/recall, customer), Sales (new quote, add line, confirm), Inventory (scan, count), Purchasing, HR approvals, Projects.
+  - [ ] **Personal shortcut customisation** and a printable cheat sheet per module.
   - [x] **Quick Action "+ Create" Button**: Contextual instant creation of PO, Invoice, Employee, Task, or Product from anywhere in the app.
   - [x] **AI Assistant Button**: Opens the AI conversational panel (if tenant has AI module enabled) for help, document generation, and action execution.
   - [x] **Real-Time Communication Drawer**: Slide-out drawer for instant access to Chat channels and DMs without leaving the current workspace.

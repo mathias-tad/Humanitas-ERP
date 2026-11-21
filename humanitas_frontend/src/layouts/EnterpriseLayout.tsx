@@ -11,7 +11,8 @@ import { ChatWidget } from "@/components/messaging/ChatWidget";
 import { AiAssistantWidget, type AiAssistantWidgetHandle } from "@/components/ai/AiAssistantWidget";
 import { useGlobalPrefetch } from "@/hooks/useGlobalPrefetch";
 import { useNavigationLayout } from "@/hooks/useNavigationLayout";
-import { PageErrorBoundary } from "@/components/platform/ErrorBoundary";
+import { PageErrorBoundary } from "@/components/platform/ErrorBoundary";
+import { GlobalShortcuts } from "@/components/platform/KeyboardShortcuts";
 
 function EnterpriseLayoutContent() {
   const prefetchAll = useGlobalPrefetch();
@@ -59,7 +60,8 @@ function EnterpriseLayoutContent() {
       <AppLauncherModal />
 
       {/* Global Command Palette (Ctrl/Cmd + K) */}
-      <GlobalCommandPalette />
+      <GlobalCommandPalette />
+      <GlobalShortcuts />
 
       {/* Universal Floating Foundation Drawers */}
       <ChatWidget />

@@ -13,6 +13,7 @@ import { errorMessage } from '@/lib/errors';
 import { EntityPicker } from '@/components/platform/EntityPicker';
 import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import {
@@ -190,6 +191,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   // A USB/Bluetooth scanner adds barcodes while this form is open, wherever the cursor is.
   const scanRef = useRef<(code: string) => void>(() => {});
   useBarcodeScanner((code) => scanRef.current(code), { enabled: canEdit });
+  const formRef = useRef<HTMLFormElement>(null);
+  useShortcuts(
+    [{ keys: 'mod+s', description: 'Save the product', group: 'Product form', allowInInputs: true, run: () => formRef.current?.requestSubmit() }],
+    { enabled: canEdit },
+  );
 
   if (mode === 'edit' && product.isLoading) {
     return <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
@@ -235,7 +241,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const fieldError = (k: string) => errors[k] && <p className="text-xs text-destructive" role="alert">{errors[k]}</p>;
 
   const details = (
-    <form onSubmit={submit} className="space-y-4" aria-label="Product form">
+    <form ref={formRef} onSubmit={submit} className="space-y-4" aria-label="Product form">
       <fieldset disabled={!canEdit || saving} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="p-name">Name *</Label>
@@ -396,7 +402,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         <div className="flex gap-2">
           <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
           {canEdit && (
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} title={shortcutHint(mode === 'create' ? 'Create product' : 'Save', 'mod+s')}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {mode === 'create' ? 'Create product' : 'Save'}
             </Button>
           )}

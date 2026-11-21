@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { updateScannerSettings, useScannerSettings } from '@/lib/scannerSettings';
 import { Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 /** Barcode formats used on retail goods and labels in Ethiopia (EAN/UPC, Code 128/39, ITF) plus QR. */
 const FORMATS = [
@@ -58,6 +60,8 @@ export function BarcodeScanDialog({
   const [starting, setStarting] = useState(false);
   const onDetectedRef = useRef(onDetected);
   const doneRef = useRef(false);
+  const { cameraId } = useScannerSettings();
+  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
 
   useEffect(() => {
     onDetectedRef.current = onDetected;
@@ -81,20 +85,29 @@ export function BarcodeScanDialog({
       }
       try {
         scanner = new Html5Qrcode(elementId, { verbose: false, formatsToSupport: FORMATS, useBarCodeDetectorIfSupported: true });
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 260, height: 150 } },
-          (text) => {
-            const code = text.trim();
-            if (doneRef.current || !code) return;
-            doneRef.current = true;
-            onDetectedRef.current(code);
-            onOpenChange(false);
-          },
-          () => {
-            // No barcode in this frame yet: keep scanning.
-          },
-        );
+        const onRead = (text: string) => {
+          const code = text.trim();
+          if (doneRef.current || !code) return;
+          doneRef.current = true;
+          onDetectedRef.current(code);
+          onOpenChange(false);
+        };
+        const keepScanning = () => {
+          // No barcode in this frame yet.
+        };
+        const config = { fps: 10, qrbox: { width: 260, height: 150 } };
+        try {
+          // The device's chosen camera (Scanner settings); otherwise the back camera.
+          await scanner.start(cameraId ? { deviceId: { exact: cameraId } } : { facingMode: 'environment' }, config, onRead, keepScanning);
+        } catch (e) {
+          if (!cameraId) throw e;
+          // The saved camera is unplugged or gone: forget it; the dialog restarts with the back camera.
+          updateScannerSettings({ cameraId: null, cameraLabel: null });
+          return;
+        }
+        Html5Qrcode.getCameras()
+          .then((list) => !cancelled && setCameras(list.map((c, i) => ({ id: c.id, label: c.label || `Camera ${i + 1}` }))))
+          .catch(() => {});
         if (cancelled && scanner.isScanning) await scanner.stop();
       } catch (e) {
         if (!cancelled) setError(cameraErrorMessage(e));
@@ -111,7 +124,7 @@ export function BarcodeScanDialog({
         s.stop().then(() => s.clear()).catch(() => {});
       }
     };
-  }, [open, elementId, onOpenChange]);
+  }, [open, elementId, onOpenChange, cameraId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,7 +146,22 @@ export function BarcodeScanDialog({
             </div>
           )}
         </div>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          {cameras.length > 1 ? (
+            <Select
+              value={cameraId ?? 'auto'}
+              onValueChange={(v) => {
+                const cam = cameras.find((c) => c.id === v);
+                updateScannerSettings(v === 'auto' ? { cameraId: null, cameraLabel: null } : { cameraId: v, cameraLabel: cam?.label ?? null });
+              }}
+            >
+              <SelectTrigger className="h-8 w-56 text-xs" aria-label="Camera"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Back camera (automatic)</SelectItem>
+                {cameras.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          ) : <span />}
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
         </div>
       </DialogContent>

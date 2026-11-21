@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { BarcodeScanDialog, cameraErrorMessage } from './BarcodeScanDialog';
+import { getScannerSettings, resetScannerSettings, updateScannerSettings } from '@/lib/scannerSettings';
 
 const mocks = vi.hoisted(() => ({
+  getCameras: vi.fn(async () => [] as { id: string; label: string }[]),
   created: vi.fn(),
   start: vi.fn(),
   stop: vi.fn(async () => {}),
@@ -13,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('html5-qrcode', () => ({
   Html5QrcodeSupportedFormats: { QR_CODE: 0, CODE_39: 3, CODE_128: 5, ITF: 8, EAN_13: 9, EAN_8: 10, UPC_A: 14, UPC_E: 15 },
   Html5Qrcode: class {
+    static getCameras = mocks.getCameras;
     isScanning = true;
     start = mocks.start;
     stop = mocks.stop;
@@ -39,7 +42,28 @@ describe('BarcodeScanDialog', () => {
     Object.defineProperty(navigator, 'mediaDevices', { value: { getUserMedia: vi.fn() }, configurable: true });
     mocks.start.mockReset();
   });
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    resetScannerSettings();
+  });
+
+  it('uses the camera chosen in Scanner settings', async () => {
+    updateScannerSettings({ cameraId: 'usb-cam-1', cameraLabel: 'USB camera' });
+    mocks.start.mockResolvedValue(null);
+    render(<Harness onDetected={vi.fn()} />);
+    await waitFor(() => expect(mocks.start).toHaveBeenCalled());
+    expect(mocks.start.mock.calls[0][0]).toEqual({ deviceId: { exact: 'usb-cam-1' } });
+  });
+
+  it('forgets a saved camera that is gone and goes back to the back camera', async () => {
+    updateScannerSettings({ cameraId: 'unplugged', cameraLabel: 'Old camera' });
+    mocks.start.mockRejectedValueOnce(Object.assign(new Error('Requested device not found'), { name: 'NotFoundError' }));
+    mocks.start.mockResolvedValue(null);
+    render(<Harness onDetected={vi.fn()} />);
+    await waitFor(() => expect(mocks.start).toHaveBeenCalledTimes(2));
+    expect(getScannerSettings().cameraId).toBeNull();
+    expect(mocks.start.mock.calls[1][0]).toEqual({ facingMode: 'environment' });
+  });
 
   it('starts the back camera, returns the scanned code once and closes', async () => {
     mocks.start.mockResolvedValue(null);

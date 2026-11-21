@@ -79,7 +79,7 @@ export const GlobalCommandPalette: React.FC = () => {
             {/* Quick Actions Group */}
             <Command.Group heading="Quick Create" className="text-xs font-semibold uppercase text-muted-foreground px-2 py-1 mt-2">
               <Command.Item
-                onSelect={() => handleSelect(() => navigate("/products/new"))}
+                onSelect={() => handleSelect(() => navigate("/products?new=1"))}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-foreground hover:bg-primary/10 hover:text-primary transition-colors"
               >
                 <PlusCircle className="h-4 w-4 text-emerald-500" />

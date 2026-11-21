@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ScanDetector, isBarcodeField, isTextEntry, removeScannedText } from '@/lib/scanDetector';
+import { getScannerSettings, scanBeep } from '@/lib/scannerSettings';
 
 /**
  * Hardware barcode scanners on any page (USB or Bluetooth in keyboard mode).
@@ -16,9 +17,13 @@ let installed = false;
 
 function onKeyDown(e: KeyboardEvent) {
   if (!handlers.length || e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+  const settings = getScannerSettings();
+  if (!settings.hardwareEnabled) return;
+  detector.configure(settings);
   const target = document.activeElement;
   const code = detector.push(e.key, e.timeStamp || performance.now());
   if (!code) return;
+  if (settings.beep) scanBeep();
   e.preventDefault(); // the scanner's Enter must never submit a form or press a focused button
   if (isBarcodeField(target)) return; // the field keeps the text; its own Enter handling (if any) still runs
   e.stopPropagation();
@@ -48,6 +53,11 @@ export function useBarcodeScanner(onScan: (code: string) => void, { enabled = tr
       if (i >= 0) handlers.splice(i, 1);
     };
   }, [enabled]);
+}
+
+/** True while a scanner is typing a code (keyboard shortcuts wait until it finishes). */
+export function isScanInProgress(time = performance.now()): boolean {
+  return detector.isBursting(time);
 }
 
 /** For tests: forget registered handlers and any scan in progress. */

@@ -8,22 +8,37 @@ export interface ScanDetectorOptions {
   minLength?: number;
   /** Longest pause between two characters of one scan. */
   maxGapMs?: number;
+  /** What ends a scan: Enter, Tab, or either (default). */
+  suffix?: 'enter' | 'tab' | 'any';
 }
 
 export class ScanDetector {
   private buffer = '';
   private last = 0;
-  private readonly minLength: number;
-  private readonly maxGapMs: number;
+  private minLength = 4;
+  private maxGapMs = 50;
+  private suffix: 'enter' | 'tab' | 'any' = 'any';
 
   constructor(opts: ScanDetectorOptions = {}) {
-    this.minLength = opts.minLength ?? 4;
-    this.maxGapMs = opts.maxGapMs ?? 50;
+    this.configure(opts);
+  }
+
+  /** Apply the device's scanner settings (see scannerSettings.ts). */
+  configure(opts: ScanDetectorOptions) {
+    if (opts.minLength !== undefined) this.minLength = opts.minLength;
+    if (opts.maxGapMs !== undefined) this.maxGapMs = opts.maxGapMs;
+    if (opts.suffix !== undefined) this.suffix = opts.suffix;
+  }
+
+  /** True while characters of a possible scan are arriving (shortcuts wait for this to settle). */
+  isBursting(time: number): boolean {
+    return this.buffer.length > 1 && time - this.last <= this.maxGapMs;
   }
 
   /** Feed one key; returns the scanned code when this key completes a scan, otherwise null. */
   push(key: string, time: number): string | null {
-    if (key === 'Enter' || key === 'Tab') {
+    const ends = (key === 'Enter' && this.suffix !== 'tab') || (key === 'Tab' && this.suffix !== 'enter');
+    if (ends) {
       const code = this.buffer;
       const fresh = time - this.last <= this.maxGapMs * 4;
       this.reset();

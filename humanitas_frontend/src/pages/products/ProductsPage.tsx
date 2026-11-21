@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { BadgeCheck, Camera, Download, Package, Plus, Search, TriangleAlert } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { BadgeCheck, Camera, Download, Package, Plus, Search, Settings2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,8 @@ import { errorMessage } from '@/lib/errors';
 import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { BarcodeScanDialog } from '@/components/platform/BarcodeScanDialog';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { ScannerSettingsDialog } from '@/components/platform/ScannerSettingsDialog';
+import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import '@/components/products/registerProductEntities';
 import {
   EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useProductCategories, useProducts, type ProductFilters, type ProductType,
@@ -25,6 +28,9 @@ export default function ProductsPage() {
   const { hasPermission } = useAuth();
   const drawer = useRecordDrawer();
   const [scanOpen, setScanOpen] = useState(false);
+  const [scannerSettingsOpen, setScannerSettingsOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<ProductFilters>({ status: 'active', page: 1, limit: 25, sort: 'name', order: 'asc' });
   useEffect(() => {
@@ -57,6 +63,25 @@ export default function ProductsPage() {
   // USB/Bluetooth scanners work anywhere on this page, no need to click into a field.
   useBarcodeScanner(onScanned);
 
+  // Keyboard shortcuts (press ? for the list).
+  useShortcuts([
+    ...(hasPermission('create_products')
+      ? [{ keys: 'n', description: 'New product', group: 'Products', run: () => drawer.open({ type: 'product', mode: 'create' }) }]
+      : []),
+    { keys: '/', description: 'Search products', group: 'Products', run: () => searchRef.current?.focus() },
+    { keys: 's', description: 'Scan a barcode with the camera', group: 'Products', run: () => setScanOpen(true) },
+    ...(hasPermission('export_products')
+      ? [{ keys: 'e', description: 'Export to CSV', group: 'Products', run: () => { downloadProductsCsv(filters).catch((err) => toast.error(errorMessage(err))); } }]
+      : []),
+  ]);
+
+  // The command palette's "New product" opens /products?new=1.
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return;
+    setSearchParams((p) => { p.delete('new'); return p; }, { replace: true });
+    if (hasPermission('create_products')) drawer.open({ type: 'product', mode: 'create' });
+  }, [searchParams, setSearchParams, hasPermission, drawer]);
+
   return (
     <div className="space-y-6 p-6">
       <PageHeader
@@ -65,12 +90,12 @@ export default function ProductsPage() {
         actions={
           <div className="flex gap-2">
             {hasPermission('export_products') && (
-              <Button variant="outline" onClick={() => downloadProductsCsv(filters).catch((e) => toast.error(errorMessage(e)))}>
+              <Button variant="outline" onClick={() => downloadProductsCsv(filters).catch((e) => toast.error(errorMessage(e)))} title={shortcutHint('Export to CSV', 'e')}>
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             )}
             {hasPermission('create_products') && (
-              <Button onClick={() => drawer.open({ type: 'product', mode: 'create' })}>
+              <Button onClick={() => drawer.open({ type: 'product', mode: 'create' })} title={shortcutHint('New product', 'n')}>
                 <Plus className="mr-2 h-4 w-4" /> New product
               </Button>
             )}
@@ -81,12 +106,16 @@ export default function ProductsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-8" placeholder="Search name, item code, SKU or barcode" aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input ref={searchRef} className="pl-8" placeholder="Search name, item code, SKU or barcode" title={shortcutHint('Search products', '/')} aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => setScanOpen(true)} aria-label="Scan a barcode" title="Scan with the camera. A USB or Bluetooth barcode scanner works anywhere on this page without clicking.">
+        <Button variant="outline" onClick={() => setScanOpen(true)} aria-label="Scan a barcode" title={`${shortcutHint('Scan with the camera', 's')}. A USB or Bluetooth barcode scanner works anywhere on this page without clicking.`}>
           <Camera className="mr-2 h-4 w-4" /> Scan
         </Button>
         <BarcodeScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} title="Find a product by barcode" />
+        <Button variant="ghost" size="icon" onClick={() => setScannerSettingsOpen(true)} aria-label="Scanner settings" title="Barcode scanner settings">
+          <Settings2 className="h-4 w-4" />
+        </Button>
+        <ScannerSettingsDialog open={scannerSettingsOpen} onOpenChange={setScannerSettingsOpen} />
         <Select value={filters.category_id ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, category_id: v === ALL ? undefined : v, page: 1 }))}>
           <SelectTrigger className="w-56" aria-label="Category"><SelectValue placeholder="All categories" /></SelectTrigger>
           <SelectContent>
