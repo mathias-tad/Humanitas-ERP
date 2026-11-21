@@ -4,7 +4,13 @@ import { Repository, DataSource } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
 import { Tenant } from '../auth/entities/tenant.entity';
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
-import { HolidaysService } from '../holidays/holidays.service';
+import { HolidaysService } from '../holidays/holidays.service';
+import {
+  ALL_PRODUCTS_PERMISSIONS,
+  PRODUCTS_ADMIN_ONLY_PERMISSIONS,
+  PRODUCTS_EMPLOYEE_PERMISSIONS,
+  PRODUCTS_MANAGER_PERMISSIONS,
+} from '../products/products.permissions';
 
 @Injectable()
 export class RolesService {
@@ -49,7 +55,9 @@ export class RolesService {
   public async migrateNewPermissions(connection: DataSource): Promise<void> {
     // Create migration tracking table if not exists
 
-    const newPermissions = [
+    const newPermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...ALL_PRODUCTS_PERMISSIONS,
       'correct_attendance', 'view_holidays', 'manage_holidays',
       'view_announcements', 'create_announcements', 'edit_announcements', 'delete_announcements',
       'view_events', 'create_events', 'edit_events', 'delete_events',
@@ -230,7 +238,9 @@ export class RolesService {
     ];
 
     // Permissions restricted to Administrator only (exclude from Manager)
-    const adminOnlyPermissions = [
+    const adminOnlyPermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...PRODUCTS_ADMIN_ONLY_PERMISSIONS,
       'delete_any_message', 'bypass_privacy_mode', 'export_chat_history',
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
       'authorize_devices', 'view_all_departments',
@@ -272,7 +282,9 @@ export class RolesService {
     ];
 
     // Permissions allowed for Employee role
-    const employeeSafePermissions = [
+    const employeeSafePermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...PRODUCTS_EMPLOYEE_PERMISSIONS,
       'view_my_tasks', 'view_pms_dashboard', 'log_time', 'view_own_kpis',
       'view_my_attendance', 'view_my_leave', 'view_my_payslip', 'edit_own_tasks',
       'use_messaging', 'create_groups', 'manage_own_groups', 'view_chat_settings',
@@ -424,7 +436,9 @@ export class RolesService {
   }
 
   private async seedDefaultRoles(connection: DataSource): Promise<void> {
-    const allPermissions = [
+    const allPermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...ALL_PRODUCTS_PERMISSIONS,
       // Dashboard
       'view_dashboard',
 
@@ -642,7 +656,9 @@ export class RolesService {
       'manage_wfm_settings',
     ];
 
-    const managerPermissions = [
+    const managerPermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...PRODUCTS_MANAGER_PERMISSIONS,
       'view_dashboard',
       'view_hrms_reports',
       'view_users',
@@ -722,7 +738,9 @@ export class RolesService {
       'manage_delegations',
     ];
 
-    const employeePermissions = [
+    const employeePermissions = [
+      // Products & Catalog (rule 27: one permission per action)
+      ...PRODUCTS_EMPLOYEE_PERMISSIONS,
       'view_dashboard',
       'view_my_attendance',
       'view_my_leave',
