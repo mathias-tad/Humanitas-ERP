@@ -137,12 +137,14 @@ export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 export const ATTACHMENT_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.pptx,.txt,.csv,image/jpeg,image/png,image/webp';
 
 /**
- * Where a stored picture or file is served from: the API's own address (https://api…/uploads/…).
- * The web app's server has no /uploads or /api/uploads route, so a relative path shows a broken image.
+ * Where a stored picture or file is shown: under the web app's own address (/uploads/…), which its
+ * server passes on to the API, so a picture opened in a new tab shows our domain. Pass apiBase to get
+ * the API's address instead (links that leave the web app).
  */
-export function mediaUrl(path: string | null | undefined, apiBase: string = API_BASE_URL): string {
+export function mediaUrl(path: string | null | undefined, apiBase?: string): string {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
+  if (!apiBase) return path.startsWith('/') ? path : `/${path}`;
   let origin = '';
   try {
     origin = new URL(apiBase, typeof window !== 'undefined' ? window.location.origin : 'http://localhost').origin;

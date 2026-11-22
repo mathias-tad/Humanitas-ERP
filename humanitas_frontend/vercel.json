@@ -9,7 +9,11 @@
       "destination": "/api/proxy?path=uploads/:path*"
     },
     {
-      "source": "/((?!api).*)",
+      "source": "/uploads/:path*",
+      "destination": "/api/proxy?path=uploads/:path*"
+    },
+    {
+      "source": "/((?!api|uploads).*)",
       "destination": "/"
     }
   ],
