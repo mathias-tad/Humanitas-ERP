@@ -16,6 +16,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { EIMS_TAX_CODE_LIST, HS_CODE_PATTERN, ITEM_CODE_PATTERN, type EimsTaxCode } from '../products.eims';
+import { CATALOG_ISSUES, type CatalogIssue } from '../product-structure';
+
+/** A web address, or a picture uploaded to the product's gallery (/uploads/...). */
+export const IMAGE_URL_PATTERN = /^(https?:\/\/\S+|\/uploads\/[A-Za-z0-9._\/-]+)$/;
 
 export const PRODUCT_TYPES = ['storable', 'consumable', 'service'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
@@ -82,6 +86,25 @@ export class CreateProductDto {
   @IsUUID()
   purchase_uom_id?: string;
 
+  /** The unit it is sold in (defaults to the base unit); same unit category as the base unit. */
+  @IsOptional()
+  @IsUUID()
+  sales_uom_id?: string;
+
+  /** Minimum order quantity in the sales unit (0 = none). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  min_sale_qty?: number;
+
+  /** Sold in multiples of this quantity (0 or empty = any quantity). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  sale_qty_step?: number | null;
+
   @IsOptional()
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 4 })
@@ -134,7 +157,8 @@ export class CreateProductDto {
   can_be_purchased?: boolean;
 
   @IsOptional()
-  @IsUrl({ require_tld: false })
+  @IsString()
+  @Matches(IMAGE_URL_PATTERN, { message: 'image_url must be a web address or an uploaded picture' })
   @MaxLength(2000)
   image_url?: string;
 
@@ -160,6 +184,9 @@ export class UpdateProductDto {
   @IsOptional() @IsUUID() category_id?: string | null;
   @IsOptional() @IsUUID() uom_id?: string;
   @IsOptional() @IsUUID() purchase_uom_id?: string;
+  @IsOptional() @IsUUID() sales_uom_id?: string;
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) min_sale_qty?: number;
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) sale_qty_step?: number | null;
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) sales_price?: number;
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) cost_price?: number;
   @IsOptional() @IsIn(EIMS_TAX_CODE_LIST) tax_code?: EimsTaxCode;
@@ -172,7 +199,8 @@ export class UpdateProductDto {
   @IsOptional() @IsString() @MaxLength(100) invoice_description?: string | null;
   @IsOptional() @IsBoolean() can_be_sold?: boolean;
   @IsOptional() @IsBoolean() can_be_purchased?: boolean;
-  @IsOptional() @IsUrl({ require_tld: false }) @MaxLength(2000) image_url?: string | null;
+  @IsOptional() @IsString() @Matches(IMAGE_URL_PATTERN, { message: 'image_url must be a web address or an uploaded picture' }) @MaxLength(2000)
+  image_url?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
   /** Variants only: added to the parent's sales price. */
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(-1000000000) @Max(1000000000) price_extra?: number;
@@ -193,6 +221,10 @@ export class ListProductsQueryDto {
   @IsOptional() @IsUUID() parent_id?: string;
   /** ready | not_ready: filter by e-invoicing readiness (rule 28). */
   @IsOptional() @IsIn(['ready', 'not_ready']) eims?: 'ready' | 'not_ready';
+  /** A catalog gap from Product Reports: no_barcode, no_price, no_cost, below_cost, no_category, no_image, not_eims_ready. */
+  @IsOptional() @IsIn(CATALOG_ISSUES) issue?: CatalogIssue;
+  /** single | kit | combo */
+  @IsOptional() @IsIn(['single', 'kit', 'combo']) composition?: 'single' | 'kit' | 'combo';
   @IsOptional() @IsIn(['name', 'sku', 'item_code', 'sales_price', 'created_at', 'updated_at']) sort?: string;
   @IsOptional() @IsIn(['asc', 'desc']) order?: 'asc' | 'desc';
   @IsOptional() @Type(() => Number) @IsNumber() @Min(1) page?: number;

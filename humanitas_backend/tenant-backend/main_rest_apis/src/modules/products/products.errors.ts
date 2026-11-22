@@ -17,6 +17,9 @@ const MESSAGES: Record<string, string> = {
   uq_price_lists_name: 'A price list with this name already exists',
   uq_price_lists_one_default: 'Only one price list can be the default',
   uq_label_templates_name: 'A label template with this name already exists',
+  uq_product_packagings_gtin: 'This GTIN is already used by another packaging',
+  uq_product_packagings_name: 'This product already has a packaging with this name',
+  uq_product_media_one_primary: 'A product can have only one main picture',
 };
 
 export function rethrowCatalogConflict(err: unknown): never {

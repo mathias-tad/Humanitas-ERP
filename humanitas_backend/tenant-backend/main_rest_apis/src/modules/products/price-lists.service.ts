@@ -13,6 +13,8 @@ import {
   type Queryable,
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
+import { customerListId } from './price-list-customers.service';
+import { quantityProblem } from './product-structure';
 import { priceFor, ruleProblem, type PriceRule, type PricedProduct, type PriceResult } from './price-lists.pricing';
 import type { BulkPriceRulesDto, CompareQueryDto, CreatePriceListDto, PriceQueryDto, PriceRuleDto, UpdatePriceListDto, UpdatePriceRuleDto } from './dto/price-lists.dto';
 
@@ -33,7 +35,7 @@ const ITEMS_SQL = `
    ORDER BY CASE i.applies_to WHEN 'product' THEN 0 WHEN 'category' THEN 1 ELSE 2 END,
             lower(COALESCE(p.name, c.name, '')), i.min_quantity, i.sort_order, i.created_at`;
 
-type ProductRow = { id: string; name: string; sku: string | null; item_code: string | null; parent_id: string | null; category_id: string | null; sales_price: string; cost_price: string; company_id: string | null; has_variants: boolean };
+type ProductRow = { id: string; name: string; sku: string | null; item_code: string | null; parent_id: string | null; category_id: string | null; sales_price: string; cost_price: string; company_id: string | null; has_variants: boolean; min_sale_qty?: string; sale_qty_step?: string | null };
 
 /** Category id -> its path to the root (itself first). */
 export function categoryPaths(rows: { id: string; parent_id: string | null }[]): Map<string, string[]> {
@@ -244,9 +246,9 @@ export class PriceListsService {
   }
 
   /** The price of one product on a list (the default list when none is given). */
-  async price(ctx: CatalogContext, q: PriceQueryDto): Promise<PriceResult & { price_list_id: string; currency: string; quantity: number }> {
+  async price(ctx: CatalogContext, q: PriceQueryDto): Promise<PriceResult & { price_list_id: string; currency: string; quantity: number; quantity_problem: string | null }> {
     const { conn, scope } = await this.open(ctx);
-    const listId = q.price_list_id ?? (await this.getDefault(ctx)).id;
+    const listId = q.price_list_id ?? (q.customer_id ? await customerListId(conn, q.customer_id) : null) ?? (await this.getDefault(ctx)).id;
     const list = await this.findVisible(conn, scope, listId);
     if (!list.is_active) throw new BadRequestException('This price list is archived');
     const [product] = await this.products(conn, scope, { ids: [q.product_id] });
@@ -256,7 +258,8 @@ export class PriceListsService {
     const rules = await this.rulesFor(conn, [listId]);
     const quantity = q.quantity ?? 1;
     const res = priceFor(rules.get(listId) ?? [], this.priced(product, paths), quantity, q.date?.slice(0, 10) ?? today());
-    return { ...res, price_list_id: listId, currency: list.currency, quantity };
+    // Minimum order and "sold in multiples of" (Sales and POS show this and stop the line).
+    return { ...res, price_list_id: listId, currency: list.currency, quantity, quantity_problem: quantityProblem(quantity, product.min_sale_qty, product.sale_qty_step) };
   }
 
   /** Prices of many products on one list (labels and price tags). Products with variants are left out: their variants carry the prices. */
@@ -419,7 +422,8 @@ export class PriceListsService {
     }
     params.push(Math.min(opts.limit ?? 500, 500));
     return conn.query(
-      `SELECT p.id, p.name, p.sku, p.item_code, p.parent_id, p.category_id, p.sales_price, p.cost_price, p.company_id, p.has_variants
+      `SELECT p.id, p.name, p.sku, p.item_code, p.parent_id, p.category_id, p.sales_price, p.cost_price, p.company_id, p.has_variants,
+              p.min_sale_qty, p.sale_qty_step
          FROM products p WHERE ${where.join(' AND ')} ORDER BY lower(p.name), p.id LIMIT $${params.length}`,
       params,
     );

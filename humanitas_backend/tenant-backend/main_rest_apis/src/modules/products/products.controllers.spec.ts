@@ -8,9 +8,11 @@ import { ProductAttributesController } from './product-attributes.controller';
 import { PriceListsController } from './price-lists.controller';
 import { LabelTemplatesController } from './label-templates.controller';
 import { ALL_PRODUCTS_PERMISSIONS } from './products.permissions';
+import { PriceListCustomersController, ProductReportsController, ProductSettingsController, ProductStructureController } from './product-extras.controller';
 
 /** AGENTS.md rules 4 and 27: module gate on every controller, exactly one permission per endpoint. */
-const controllers = [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController, PriceListsController, LabelTemplatesController];
+const controllers = [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController, PriceListsController, LabelTemplatesController,
+  ProductSettingsController, ProductReportsController, ProductStructureController, PriceListCustomersController];
 
 function handlers(cls: new (...args: never[]) => object) {
   return Object.getOwnPropertyNames(cls.prototype)

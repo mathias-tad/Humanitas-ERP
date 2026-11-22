@@ -334,6 +334,10 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "create_label_templates", label: "Create Label Templates", group: "Labels", module: "products" },
   { id: "edit_label_templates", label: "Edit Label Templates", group: "Labels", module: "products" },
   { id: "delete_label_templates", label: "Archive Label Templates", group: "Labels", module: "products" },
+  { id: "view_product_reports", label: "View Product Reports", group: "Product Reports", module: "products" },
+  { id: "export_product_reports", label: "Export Catalog Gaps", group: "Product Reports", module: "products" },
+  { id: "view_product_settings", label: "View Product Settings", group: "Product Settings", module: "products" },
+  { id: "edit_product_settings", label: "Edit Product Settings (numbering, defaults)", group: "Product Settings", module: "products" },
   // Contacts (open with any module that has customers or vendors)
   { id: "view_contacts", label: "View Contacts and Customers", group: "Contacts", module: "contacts" },
   { id: "create_contacts", label: "Create Contacts and Customers", group: "Contacts", module: "contacts" },

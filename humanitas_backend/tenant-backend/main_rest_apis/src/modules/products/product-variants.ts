@@ -114,7 +114,7 @@ export function planVariants(lines: AttributeLine[], existing: ExistingVariant[]
 /** Fields that live on the parent and are copied to every variant. */
 export const SHARED_WITH_VARIANTS = [
   'description', 'product_type', 'category_id', 'uom_id', 'purchase_uom_id', 'tax_code', 'harmonization_code',
-  'excise_rate', 'can_be_sold', 'can_be_purchased', 'company_id',
+  'excise_rate', 'can_be_sold', 'can_be_purchased', 'company_id', 'sales_uom_id', 'min_sale_qty', 'sale_qty_step',
 ] as const;
 
 /** Fields a variant sets for itself. */

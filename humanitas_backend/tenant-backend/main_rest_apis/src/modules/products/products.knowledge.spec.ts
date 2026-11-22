@@ -11,7 +11,8 @@ describe('Products AI knowledge entries', () => {
   const variantsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000002_ai_knowledge_product_variants.sql'), 'utf8');
   const priceListsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000006_ai_knowledge_price_lists.sql'), 'utf8');
   const labelsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000009_ai_knowledge_labels.sql'), 'utf8');
-  const allSql = sql + variantsSql + priceListsSql + labelsSql;
+  const completionSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000017_ai_knowledge_products_completion.sql'), 'utf8');
+  const allSql = sql + variantsSql + priceListsSql + labelsSql + completionSql;
 
   it.each(['/products', '/products/categories', '/products/uoms'])('describes the %s page', (route) => {
     expect(sql).toContain(`'${route}'`);

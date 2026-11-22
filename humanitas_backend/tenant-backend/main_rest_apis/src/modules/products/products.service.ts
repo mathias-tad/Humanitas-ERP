@@ -16,6 +16,8 @@ import {
 import { rethrowCatalogConflict } from './products.errors';
 import { EIMS_READY_SQL, withEimsStatus } from './products.eims';
 import { SHARED_WITH_VARIANTS, VARIANT_OWN_FIELDS } from './product-variants';
+import { ProductSettingsService } from './product-settings.service';
+import { ISSUE_SQL } from './product-structure';
 
 /** Request context every Products call needs. */
 export interface CatalogContext {
@@ -34,6 +36,9 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
   category_id: 'Category',
   uom_id: 'Unit',
   purchase_uom_id: 'Purchase unit',
+  sales_uom_id: 'Sales unit',
+  min_sale_qty: 'Minimum order',
+  sale_qty_step: 'Sold in multiples of',
   sales_price: 'Sales price',
   cost_price: 'Cost',
   item_code: 'Item code',
@@ -50,7 +55,7 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
 };
 
 const UPDATABLE = [
-  'name', 'sku', 'description', 'product_type', 'category_id', 'uom_id', 'purchase_uom_id',
+  'name', 'sku', 'description', 'product_type', 'category_id', 'uom_id', 'purchase_uom_id', 'sales_uom_id', 'min_sale_qty', 'sale_qty_step',
   'sales_price', 'cost_price', 'tax_code', 'item_code', 'harmonization_code', 'excise_rate', 'invoice_description',
   'can_be_sold', 'can_be_purchased', 'image_url', 'company_id', 'price_extra',
 ] as const;
@@ -59,7 +64,8 @@ const UPDATABLE = [
 export const SYNC_VARIANTS_SQL = `
   UPDATE products v
      SET description = par.description, product_type = par.product_type, category_id = par.category_id,
-         uom_id = par.uom_id, purchase_uom_id = par.purchase_uom_id, tax_code = par.tax_code,
+         uom_id = par.uom_id, purchase_uom_id = par.purchase_uom_id, sales_uom_id = par.sales_uom_id,
+         min_sale_qty = par.min_sale_qty, sale_qty_step = par.sale_qty_step, tax_code = par.tax_code,
          harmonization_code = par.harmonization_code, excise_rate = par.excise_rate, can_be_sold = par.can_be_sold,
          can_be_purchased = par.can_be_purchased, company_id = par.company_id,
          sales_price = GREATEST(0, par.sales_price + v.price_extra),
@@ -77,7 +83,13 @@ const SORTS: Record<string, string> = {
 const SELECT_PRODUCT = `
   SELECT p.*, c.name AS category_name, u.name AS uom_name, u.symbol AS uom_symbol, u.mor_code AS uom_mor_code,
          c.excise_rate AS category_excise_rate, COALESCE(p.excise_rate, c.excise_rate, 0) AS effective_excise_rate,
-         pu.name AS purchase_uom_name,
+         pu.name AS purchase_uom_name, su.name AS sales_uom_name, su.symbol AS sales_uom_symbol,
+         (p.sales_price > 0 AND p.cost_price > p.sales_price) AS is_below_cost,
+         (SELECT count(pm.id)::int FROM product_media pm WHERE pm.product_id = p.id AND pm.is_active) AS media_count,
+         COALESCE((SELECT json_agg(json_build_object(
+             'id', k.id, 'name', k.name, 'level', k.level, 'quantity', k.quantity, 'gtin', k.gtin, 'can_sell', k.can_sell, 'can_buy', k.can_buy)
+             ORDER BY k.sort_order, k.quantity)
+           FROM product_packagings k WHERE k.product_id = p.id AND k.is_active), '[]'::json) AS packagings,
          par.name AS parent_name, par.sales_price AS parent_sales_price, par.is_active AS parent_is_active,
          par.has_variants AS parent_has_variants,
          (SELECT count(vc.id)::int FROM products vc WHERE vc.parent_id = p.id AND vc.is_active) AS variant_count,
@@ -91,12 +103,13 @@ const SELECT_PRODUCT = `
           WHERE pvv.product_id = p.id), '[]'::json) AS variant_values,
          COALESCE((SELECT json_agg(json_build_object(
              'id', b.id, 'barcode', b.barcode, 'barcode_type', b.barcode_type, 'packaging', b.packaging,
-             'quantity', b.quantity, 'is_primary', b.is_primary) ORDER BY b.is_primary DESC, b.created_at)
+             'quantity', b.quantity, 'is_primary', b.is_primary, 'is_generated', b.is_generated) ORDER BY b.is_primary DESC, b.created_at)
            FROM product_barcodes b WHERE b.product_id = p.id), '[]'::json) AS barcodes
     FROM products p
     LEFT JOIN product_categories c ON c.id = p.category_id
     JOIN uoms u ON u.id = p.uom_id
     JOIN uoms pu ON pu.id = p.purchase_uom_id
+    JOIN uoms su ON su.id = p.sales_uom_id
     LEFT JOIN products par ON par.id = p.parent_id`;
 
 /** Escape a CSV cell, and neutralise spreadsheet formulas (CSV injection). */
@@ -126,6 +139,8 @@ export class ProductsService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly timeline: ActivityTimelineService,
+    /** Product Settings: defaults, generated SKUs and barcodes. Optional so older tests can build the service. */
+    private readonly settings?: ProductSettingsService,
   ) {}
 
   private async open(ctx: CatalogContext) {
@@ -170,24 +185,33 @@ export class ProductsService {
       `${SELECT_PRODUCT}
         WHERE p.is_active AND NOT p.has_variants
           AND (EXISTS (SELECT 1 FROM product_barcodes b2 WHERE b2.product_id = p.id AND b2.barcode = $1)
+               OR EXISTS (SELECT 1 FROM product_packagings pk2 WHERE pk2.product_id = p.id AND pk2.gtin = $1 AND pk2.is_active)
                OR lower(p.sku) = lower($1) OR lower(p.item_code) = lower($1))
           ${f ? `AND ${f.sql}` : ''}
         LIMIT 1`,
       params,
     );
     if (!rows.length) throw new NotFoundException('No product with this barcode or SKU');
-    return withEimsStatus(rows[0]);
+    // A case or box barcode scans as its quantity (12 for "Box of 12").
+    const [scan] = await conn.query(
+      `SELECT name AS packaging, quantity FROM product_packagings WHERE gtin = $1 AND product_id = $2 AND is_active
+       UNION ALL SELECT packaging, quantity FROM product_barcodes WHERE barcode = $1 AND product_id = $2 LIMIT 1`,
+      [value, rows[0].id],
+    );
+    return { ...withEimsStatus(rows[0]), scanned_packaging: scan?.packaging ?? null, scanned_quantity: Number(scan?.quantity ?? 1) };
   }
 
   async create(ctx: CatalogContext, dto: CreateProductDto) {
     const { conn, scope } = await this.open(ctx);
+    if (this.settings) dto = await this.settings.applyDefaults(conn, dto);
     // New products go to the current company; org-wide users may share them with all (company null).
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
     const barcodes = normalizeBarcodes(dto.barcodes);
     const uomId = dto.uom_id ?? (await this.defaultUomId(conn));
     const purchaseUomId = dto.purchase_uom_id ?? uomId;
-    await this.checkUoms(conn, uomId, purchaseUomId);
+    const salesUomId = dto.sales_uom_id ?? uomId;
+    await this.checkUoms(conn, uomId, purchaseUomId, salesUomId);
     if (dto.category_id) await this.checkCategory(conn, scope, dto.category_id);
 
     const id = await conn.transaction(async (m: Queryable) => {
@@ -195,8 +219,8 @@ export class ProductsService {
           `INSERT INTO products (sku, name, description, product_type, category_id, uom_id, purchase_uom_id,
                                  sales_price, cost_price, tax_code, can_be_sold, can_be_purchased, image_url,
                                  company_id, created_by, updated_by, item_code, harmonization_code, excise_rate,
-                                 invoice_description)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15,$16,$17,$18,$19)
+                                 invoice_description, sales_uom_id, min_sale_qty, sale_qty_step)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15,$16,$17,$18,$19,$20,$21,$22)
            RETURNING id`,
           [
             dto.sku?.trim() || null, dto.name.trim(), dto.description ?? null, dto.product_type ?? 'consumable',
@@ -204,9 +228,15 @@ export class ProductsService {
             dto.tax_code ?? 'VAT15', dto.can_be_sold ?? true, dto.can_be_purchased ?? true, dto.image_url ?? null,
             companyId ?? null, ctx.user?.sub ?? null, dto.item_code?.trim() || null,
             dto.harmonization_code?.trim() || null, dto.excise_rate ?? null, dto.invoice_description?.trim() || null,
+            salesUomId, dto.min_sale_qty ?? 0, Number(dto.sale_qty_step) > 0 ? dto.sale_qty_step : null,
           ],
         );
         await this.insertBarcodes(m, row.id, barcodes, ctx.user?.sub);
+        if (this.settings) {
+          await this.settings.fillCodes(m, row.id, {
+            hasSku: !!dto.sku?.trim(), hasBarcode: barcodes.length > 0, productType: dto.product_type ?? 'consumable',
+          }, ctx.user?.sub);
+        }
         return row.id as string;
       }).catch(rethrowCatalogConflict);
 
@@ -225,9 +255,15 @@ export class ProductsService {
     const before = await this.findVisible(conn, scope, id);
     dto = this.variantRules(before, dto);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    if (this.settings) await this.settings.checkUpdate(conn, before, dto);
     const uomId = dto.uom_id ?? before.uom_id;
     const purchaseUomId = dto.purchase_uom_id ?? before.purchase_uom_id;
-    if (dto.uom_id !== undefined || dto.purchase_uom_id !== undefined) await this.checkUoms(conn, uomId, purchaseUomId);
+    // A product sold in its base unit keeps doing so when the base unit changes.
+    if (dto.uom_id !== undefined && dto.sales_uom_id === undefined && before.sales_uom_id === before.uom_id) dto = { ...dto, sales_uom_id: dto.uom_id };
+    const salesUomId = dto.sales_uom_id ?? before.sales_uom_id ?? uomId;
+    if (dto.uom_id !== undefined || dto.purchase_uom_id !== undefined || dto.sales_uom_id !== undefined) {
+      await this.checkUoms(conn, uomId, purchaseUomId, salesUomId);
+    }
     if (dto.category_id) await this.checkCategory(conn, scope, dto.category_id);
     const barcodes = dto.barcodes ? normalizeBarcodes(dto.barcodes) : undefined;
 
@@ -241,6 +277,7 @@ export class ProductsService {
         value = typeof value === 'string' && value.trim() ? value.trim() : null;
       }
       if (key === 'item_code' && typeof value === 'string') value = value.trim();
+      if (key === 'sale_qty_step') value = Number(value) > 0 ? value : null;
       params.push(value);
       sets.push(`${key} = $${params.length}`);
     }
@@ -356,6 +393,11 @@ export class ProductsService {
     if (query.product_type) {
       params.push(query.product_type);
       where.push(`p.product_type = $${params.length}`);
+    }
+    if (query.issue && ISSUE_SQL[query.issue]) where.push(`NOT p.has_variants AND ${ISSUE_SQL[query.issue]}`);
+    if (query.composition) {
+      params.push(query.composition);
+      where.push(`p.composition = $${params.length}`);
     }
     const f = companyFilter(scope, 'p', params.length + 1);
     if (f) {
@@ -494,11 +536,19 @@ export class ProductsService {
     return rows[0].id;
   }
 
-  private async checkUoms(conn: Queryable, uomId: string, purchaseUomId: string) {
+  private async checkUoms(conn: Queryable, uomId: string, purchaseUomId: string, salesUomId?: string) {
     const rows: { id: string; category_id: string; is_active: boolean }[] = await conn.query(
       `SELECT id, category_id, is_active FROM uoms WHERE id = ANY($1::uuid[])`,
-      [[uomId, purchaseUomId]],
+      [salesUomId && salesUomId !== uomId ? [uomId, purchaseUomId, salesUomId] : [uomId, purchaseUomId]],
     );
+    if (salesUomId && salesUomId !== uomId) {
+      const su = rows.find((r) => r.id === salesUomId);
+      const base = rows.find((r) => r.id === uomId);
+      if (!su || !su.is_active) throw new BadRequestException('Sales unit of measure not found');
+      if (base && su.category_id !== base.category_id) {
+        throw new BadRequestException('Sales unit must be in the same unit category as the base unit (e.g. both weights)');
+      }
+    }
     const uom = rows.find((r) => r.id === uomId);
     const pu = rows.find((r) => r.id === purchaseUomId);
     if (!uom || !uom.is_active) throw new BadRequestException('Unit of measure not found');

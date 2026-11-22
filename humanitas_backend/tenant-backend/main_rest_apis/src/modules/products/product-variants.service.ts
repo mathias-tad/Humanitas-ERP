@@ -6,6 +6,7 @@ import type { Queryable } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import { REFRESH_VARIANT_NAMES_SQL } from './product-attributes.service';
 import type { SaveVariantConfigDto } from './dto/product-variants.dto';
+import { ProductSettingsService } from './product-settings.service';
 import {
   MAX_VARIANTS,
   combinationCount,
@@ -36,6 +37,8 @@ export class ProductVariantsService {
     private readonly databaseService: DatabaseService,
     private readonly products: ProductsService,
     private readonly timeline: ActivityTimelineService,
+    /** Generated in-store barcodes for new variants (Product Settings). */
+    private readonly settings?: ProductSettingsService,
   ) {}
 
   async get(ctx: CatalogContext, productId: string): Promise<VariantConfig> {
@@ -62,6 +65,9 @@ export class ProductVariantsService {
       throw new BadRequestException(`This is a variant of "${product.parent_name}". Set up variants on that product.`);
     }
     if (!product.is_active) throw new BadRequestException('Restore the product before changing its variants');
+    if (product.composition && product.composition !== 'single' && dto.attributes.length) {
+      throw new BadRequestException('A kit or combo cannot have variants; make it a single product first');
+    }
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
     const lines = await this.loadLines(conn, dto);
     const count = combinationCount(lines);
@@ -72,7 +78,9 @@ export class ProductVariantsService {
       `SELECT id, variant_key, is_active, auto_archived FROM products WHERE parent_id = $1`,
       [product.id],
     );
-    if (lines.length && !existing.length && (product.barcodes ?? []).length) {
+    // Barcodes made by the in-store numbering go away; each variant gets its own.
+    const ownBarcodes = (product.barcodes ?? []).filter((b: { is_generated?: boolean }) => !b.is_generated);
+    if (lines.length && !existing.length && ownBarcodes.length) {
       throw new BadRequestException(
         'Each variant gets its own barcode. Remove the barcodes from this product, create the variants, then add a barcode to each variant.',
       );
@@ -92,6 +100,7 @@ export class ProductVariantsService {
     await conn
       .transaction(async (m: Queryable) => {
         await m.query(`DELETE FROM product_template_attributes WHERE product_id = $1`, [product.id]);
+        if (lines.length && !existing.length) await m.query(`DELETE FROM product_barcodes WHERE product_id = $1 AND is_generated`, [product.id]);
         for (const l of lines) {
           await m.query(
             `INSERT INTO product_template_attributes (product_id, attribute_id, value_ids, sort_order) VALUES ($1, $2, $3::uuid[], $4)`,
@@ -111,14 +120,24 @@ export class ProductVariantsService {
           const [row] = await m.query(
             `INSERT INTO products (sku, name, description, product_type, category_id, uom_id, purchase_uom_id, sales_price, cost_price,
                                    tax_code, can_be_sold, can_be_purchased, image_url, company_id, created_by, updated_by,
-                                   harmonization_code, excise_rate, parent_id, variant_key, variant_label, price_extra)
+                                   harmonization_code, excise_rate, parent_id, variant_key, variant_label, price_extra,
+                                   sales_uom_id, min_sale_qty, sale_qty_step)
              SELECT $2, $3, p.description, p.product_type, p.category_id, p.uom_id, p.purchase_uom_id, p.sales_price, p.cost_price,
                     p.tax_code, p.can_be_sold, p.can_be_purchased, p.image_url, p.company_id, $4, $4,
-                    p.harmonization_code, p.excise_rate, p.id, $5, $6, 0
+                    p.harmonization_code, p.excise_rate, p.id, $5, $6, 0,
+                    p.sales_uom_id, p.min_sale_qty, p.sale_qty_step
                FROM products p WHERE p.id = $1
              RETURNING id`,
             [product.id, sku, name, actor, c.key, c.label],
           );
+          const code = this.settings && product.product_type !== 'service' ? await this.settings.generatedBarcode(m) : null;
+          if (code) {
+            await m.query(
+              `INSERT INTO product_barcodes (product_id, barcode, barcode_type, quantity, is_primary, is_generated, created_by)
+               VALUES ($1, $2, 'ean13', 1, true, true, $3)`,
+              [row.id, code, actor],
+            );
+          }
           for (const v of c.values) {
             await m.query(`INSERT INTO product_variant_values (product_id, attribute_id, value_id) VALUES ($1, $2, $3)`, [
               row.id,

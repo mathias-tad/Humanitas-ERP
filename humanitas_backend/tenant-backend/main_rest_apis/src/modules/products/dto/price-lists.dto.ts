@@ -62,6 +62,8 @@ export class UpdatePriceRuleDto {
 export class PriceQueryDto {
   @IsUUID() product_id: string;
   @IsOptional() @IsUUID() price_list_id?: string;
+  /** The customer's own list when no price_list_id is given (then the default list). */
+  @IsOptional() @IsUUID() customer_id?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) quantity?: number;
   @IsOptional() @IsDateString() date?: string;
 }

@@ -47,6 +47,16 @@ export const LABEL_TEMPLATE_PERMISSIONS = {
   delete: 'delete_label_templates',
 } as const;
 
+export const PRODUCT_REPORT_PERMISSIONS = {
+  view: 'view_product_reports',
+  export: 'export_product_reports',
+} as const;
+
+export const PRODUCT_SETTINGS_PERMISSIONS = {
+  view: 'view_product_settings',
+  edit: 'edit_product_settings',
+} as const;
+
 const values = <T extends Record<string, string>>(o: T) => Object.values(o) as T[keyof T][];
 
 /** Every Products permission. */
@@ -57,6 +67,8 @@ export const ALL_PRODUCTS_PERMISSIONS: string[] = [
   ...values(PRODUCT_ATTRIBUTE_PERMISSIONS),
   ...values(PRICE_LIST_PERMISSIONS),
   ...values(LABEL_TEMPLATE_PERMISSIONS),
+  ...values(PRODUCT_REPORT_PERMISSIONS),
+  ...values(PRODUCT_SETTINGS_PERMISSIONS),
 ];
 
 /** Destructive or configuration actions kept for Administrators by default. */
@@ -70,6 +82,7 @@ export const PRODUCTS_ADMIN_ONLY_PERMISSIONS: string[] = [
   PRODUCT_ATTRIBUTE_PERMISSIONS.delete,
   PRICE_LIST_PERMISSIONS.delete,
   LABEL_TEMPLATE_PERMISSIONS.delete,
+  PRODUCT_SETTINGS_PERMISSIONS.edit,
 ];
 
 /** Managers: everything except the admin-only list. */

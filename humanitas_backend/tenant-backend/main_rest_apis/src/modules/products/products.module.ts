@@ -15,12 +15,20 @@ import { PriceListsController } from './price-lists.controller';
 import { PriceListsService } from './price-lists.service';
 import { LabelTemplatesController } from './label-templates.controller';
 import { LabelTemplatesService } from './label-templates.service';
+import { PriceListCustomersController, ProductReportsController, ProductSettingsController, ProductStructureController } from './product-extras.controller';
+import { ProductSettingsService } from './product-settings.service';
+import { ProductReportsService } from './product-reports.service';
+import { ProductStructureService } from './product-structure.service';
+import { ProductMediaService } from './product-media.service';
+import { PriceListCustomersService } from './price-list-customers.service';
 
 /** Products & Catalog (featureslist §1). ActivityTimelineService comes from the global platform module. */
 @Module({
   imports: [DatabaseModule, TypeOrmModule.forFeature([Tenant])],
-  controllers: [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController, PriceListsController, LabelTemplatesController],
-  providers: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService, LabelTemplatesService],
-  exports: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService],
+  controllers: [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController, PriceListsController, LabelTemplatesController,
+    ProductSettingsController, ProductReportsController, ProductStructureController, PriceListCustomersController],
+  providers: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService, LabelTemplatesService,
+    ProductSettingsService, ProductReportsService, ProductStructureService, ProductMediaService, PriceListCustomersService],
+  exports: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService, ProductSettingsService, PriceListCustomersService],
 })
 export class ProductsModule {}

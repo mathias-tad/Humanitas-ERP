@@ -212,7 +212,9 @@ describe('ProductsService', () => {
       const res = await build(conn).create(ctx(), { name: 'Buna' });
       const insert = conn.calls.find((c) => /INSERT INTO products/.test(c.sql))!;
       expect(insert.params[9]).toBe('VAT15');
-      expect(insert.params.slice(15)).toEqual([null, null, null, null]);
+      expect(insert.params.slice(15, 19)).toEqual([null, null, null, null]);
+      // Sold in the base unit, no minimum order, any quantity.
+      expect(insert.params.slice(19)).toEqual([UNITS, 0, null]);
       expect(res).toMatchObject({ eims_ready: true, eims_issues: [] });
     });
 
@@ -223,7 +225,7 @@ describe('ProductsService', () => {
         invoice_description: ' Beer 330 ml bottle ',
       });
       const insert = conn.calls.find((c) => /INSERT INTO products/.test(c.sql))!;
-      expect(insert.params.slice(15)).toEqual(['BR-330', '22030000', 25, 'Beer 330 ml bottle']);
+      expect(insert.params.slice(15, 19)).toEqual(['BR-330', '22030000', 25, 'Beer 330 ml bottle']);
     });
 
     it('reports products that MoR would reject', async () => {
