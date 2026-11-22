@@ -156,6 +156,8 @@ const ProductUnitsPage = lazy(() => import("./pages/products/UnitsPage"));
 const ProductAttributesPage = lazy(() => import("./pages/products/AttributesPage"));
 const ProductPriceListsPage = lazy(() => import("./pages/products/PriceListsPage"));
 const ProductLabelsPage = lazy(() => import("./pages/products/LabelsPage"));
+const ProductReportsPage = lazy(() => import("./pages/products/ProductReportsPage"));
+const ProductSettingsPage = lazy(() => import("./pages/products/ProductSettingsPage"));
 const ContactsPage = lazy(() => import("./pages/contacts/ContactsPage"));
 const CustomersPage = lazy(() => import("./pages/contacts/ContactsPage").then((m) => ({ default: m.CustomersPage })));
 const ContactCategoriesPage = lazy(() => import("./pages/contacts/ContactCategoriesPage"));
@@ -629,6 +631,8 @@ function AppRoutes() {
         <Route path="/products/attributes" element={<PermissionRoute module="products" permission="view_product_attributes"><ProductAttributesPage /></PermissionRoute>} />
         <Route path="/products/pricelists" element={<PermissionRoute module="products" permission="view_price_lists"><ProductPriceListsPage /></PermissionRoute>} />
         <Route path="/products/labels" element={<PermissionRoute module="products" permission="view_label_templates"><ProductLabelsPage /></PermissionRoute>} />
+        <Route path="/products/reports" element={<PermissionRoute module="products" permission="view_product_reports"><ProductReportsPage /></PermissionRoute>} />
+        <Route path="/products/settings" element={<PermissionRoute module="products" permission="view_product_settings"><ProductSettingsPage /></PermissionRoute>} />
         <Route path="/contacts" element={<PermissionRoute module="contacts" permission="view_contacts"><ContactsPage /></PermissionRoute>} />
         <Route path="/customers" element={<PermissionRoute module="contacts" permission="view_contacts"><CustomersPage /></PermissionRoute>} />
         <Route path="/contacts/categories" element={<PermissionRoute module="contacts" permission="view_contact_categories"><ContactCategoriesPage /></PermissionRoute>} />

@@ -104,6 +104,8 @@ export const APP_ROUTES: string[] = [
   '/products/categories',
   '/products/labels',
   '/products/pricelists',
+  '/products/reports',
+  '/products/settings',
   '/products/uoms',
   '/profile',
   '/purchasing',

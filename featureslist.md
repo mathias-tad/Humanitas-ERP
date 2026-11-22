@@ -12,7 +12,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 73 | 73 | 0 | 100% |
-| 1. Products & Catalog Management | 36 | 11 | 25 | 31% |
+| 1. Products & Catalog Management | 38 | 20 | 18 | 53% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1242** | **558** | **684** | **45%** |
+| **TOTAL** | **1244** | **567** | **677** | **46%** |
 
 ---
 
@@ -212,23 +212,25 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [x] USB and Bluetooth barcode scanners work on any Products screen without clicking a field (scan to open a product, scan to add a barcode, scan an unknown code to create the product); Sales and POS use the same hook.
 - [ ] **Units of Measure (UOM) Engine**:
   - [x] Multi-UOM support with defined conversion factors (e.g., 1 Box = 24 Pieces, 1 Pallet = 50 Boxes).
-  - [ ] Separate UOM assignment for Purchasing, Sales, and Inventory stocking.
+  - [x] Separate UOM assignment for Purchasing, Sales, and Inventory stocking.
 - [ ] **Multi-Tier Price Lists**:
   - [x] Retail, Wholesale, Distributor, and VIP pricing tiers.
-  - [ ] Customer-specific pricing rules and minimum order quantity (MOQ) breaks.
+  - [x] Customer-specific pricing rules and minimum order quantity (MOQ) breaks.
   - [ ] Multi-currency price list bindings with automated exchange rate conversion.
 - [ ] **Media & Specifications**:
-  - [ ] Multi-image gallery with primary thumbnail selection.
-  - [ ] Downloadable technical datasheets, user manuals, and warranty documentation attachments.
+  - [x] Multi-image gallery with primary thumbnail selection.
+  - [x] Downloadable technical datasheets, user manuals, and warranty documentation attachments.
 - [ ] **Product Reports**:
-  - [ ] Product catalog summary (total products, variants, categories, active vs. archived).
+  - [x] Product catalog summary (total products, variants, categories, active vs. archived).
+  - [x] Catalog gaps and margins report (no barcode, price, cost, category or picture; below cost; not e-invoice ready) with a matching product filter and CSV.
+  - [x] Product Settings: automatic SKUs and in-store EAN-13 barcodes, defaults for new products, required fields.
   - [x] Price list comparison report across tiers.
   - [ ] Low-stock products report (linked to Inventory module when subscribed).
   - [ ] QR/Barcode generation audit log.
 - [ ] **Odoo-Parity & In-Context Additions**:
   - [ ] Quick-create a product from POS, Sales, Purchasing, Inventory and Online Store lines (name, price, tax, UOM, barcode scan) when the user has `products.create` (§29).
-  - [ ] Product types: storable, consumable, service, combo (POS menus), kit/bundle (BoM-ready for future manufacturing).
-  - [ ] Packaging levels with their own barcodes (unit, box, pallet) and GS1 barcode nomenclature support.
+  - [x] Product types: storable, consumable, service, combo (POS menus), kit/bundle (BoM-ready for future manufacturing).
+  - [x] Packaging levels with their own barcodes (unit, box, pallet) and GS1 barcode nomenclature support.
   - [x] Attribute values created on the fly; per-variant price extras; archive unused variants.
   - [ ] Vendor price list per product (vendor, price, MOQ, lead time) used by Purchasing replenishment.
   - [ ] Variant grid entry on sales/purchase lines (enter quantities per size × color in one matrix).

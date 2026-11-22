@@ -190,8 +190,8 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
     {
       title: "Catalog Insights",
       items: [
-        { title: "Product Reports", url: "/products/reports", icon: PieChart },
-        { title: "Product Settings", url: "/products/settings", icon: Settings },
+        { title: "Product Reports", url: "/products/reports", icon: PieChart, permissions: ["view_product_reports"] },
+        { title: "Product Settings", url: "/products/settings", icon: Settings, permissions: ["view_product_settings"] },
       ],
     },
   ],

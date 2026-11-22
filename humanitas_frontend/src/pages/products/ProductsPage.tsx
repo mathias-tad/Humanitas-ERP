@@ -18,6 +18,13 @@ import { ScannerSettingsDialog } from '@/components/platform/ScannerSettingsDial
 import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import '@/components/products/registerProductEntities';
 import { LoadMore } from '@/components/platform/InfiniteList';
+import { mediaUrl } from '@/hooks/useProductExtras';
+
+/** Gaps opened from Product Reports (?issue=…). */
+const ISSUE_LABEL: Record<NonNullable<ProductFilters['issue']>, string> = {
+  no_barcode: 'No barcode', no_price: 'No sales price', no_cost: 'No cost', below_cost: 'Priced below cost',
+  no_category: 'No category', no_image: 'No picture', not_eims_ready: 'Not ready for e-invoicing',
+};
 import {
   EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useInfiniteProducts, useProductCategories, type ProductFilters, type ProductType,
 } from '@/hooks/useProducts';
@@ -34,7 +41,14 @@ export default function ProductsPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<ProductFilters>({ status: 'active', page: 1, limit: 25, sort: 'name', order: 'asc' });
+  const [filters, setFilters] = useState<ProductFilters>(() => {
+    const issue = searchParams.get('issue') as ProductFilters['issue'] | null;
+    return {
+      status: 'active', page: 1, limit: 25, sort: 'name', order: 'asc',
+      ...(issue && issue in ISSUE_LABEL ? { issue, kind: 'sellable' as const } : {}),
+      ...(searchParams.get('category_id') ? { category_id: searchParams.get('category_id')! } : {}),
+    };
+  });
   useEffect(() => {
     const t = setTimeout(() => setFilters((f) => ({ ...f, q: search.trim() || undefined, page: 1 })), 300);
     return () => clearTimeout(t);
@@ -145,6 +159,22 @@ export default function ProductsPage() {
             <SelectItem value="not_ready">Needs fixing</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={filters.composition ?? ALL} onValueChange={(v) => setFilters((f) => ({ ...f, composition: v === ALL ? undefined : (v as ProductFilters['composition']), page: 1 }))}>
+          <SelectTrigger className="w-40" aria-label="Kind"><SelectValue placeholder="Any kind" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Any kind</SelectItem>
+            <SelectItem value="single">Single products</SelectItem>
+            <SelectItem value="kit">Kits</SelectItem>
+            <SelectItem value="combo">Combos</SelectItem>
+          </SelectContent>
+        </Select>
+        {filters.issue && (
+          <Badge variant="secondary" className="gap-1">
+            {ISSUE_LABEL[filters.issue]}
+            <button type="button" aria-label="Clear the gap filter" className="ml-1"
+              onClick={() => { setFilters((f) => ({ ...f, issue: undefined, kind: undefined, page: 1 })); setSearchParams((p) => { p.delete('issue'); return p; }, { replace: true }); }}>×</button>
+          </Badge>
+        )}
         <Tabs value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v as ProductFilters['status'], page: 1 }))}>
           <TabsList>
             <TabsTrigger value="active">Active</TabsTrigger>
@@ -173,9 +203,14 @@ export default function ProductsPage() {
               <TableRow key={p.id} className="cursor-pointer" onClick={() => openProduct(p.id)} tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && openProduct(p.id)}>
                 <TableCell>
-                  <div className="font-medium">
+                  <div className="flex items-center gap-2 font-medium">
+                    {p.image_url && <img src={mediaUrl(p.image_url)} alt="" className="h-8 w-8 shrink-0 rounded object-cover" loading="lazy" />}
+                    <span>
                     {p.name} {!p.is_active && <Badge variant="outline" className="ml-1">Archived</Badge>}
+                    {p.composition && p.composition !== 'single' && <Badge variant="secondary" className="ml-1">{p.composition === 'kit' ? 'Kit' : 'Combo'}</Badge>}
+                    {p.is_below_cost && <Badge variant="outline" className="ml-1 border-amber-400 text-amber-700">Below cost</Badge>}
                     {p.has_variants && <Badge variant="secondary" className="ml-1">{p.variant_count} variant{p.variant_count === 1 ? '' : 's'}</Badge>}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">{p.item_code}{p.sku && p.sku !== p.item_code ? ` · ${p.sku}` : ''}</div>
                 </TableCell>

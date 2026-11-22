@@ -17,6 +17,8 @@ import { EntityPicker } from '@/components/platform/EntityPicker';
 import { CompanyBranchSelect } from '@/components/platform/CompanyBranchSelect';
 import { useShortcuts, shortcutHint } from '@/lib/shortcuts';
 import '@/components/products/registerProductEntities';
+import '@/components/contacts/registerContactEntities';
+import { PriceListCustomers } from '@/components/products/PriceListCustomers';
 import {
   downloadComparisonCsv, ruleInputProblem, rulePriceText, ruleTarget, useArchivePriceList, useArchiveRule, usePriceCompare,
   useAddRulesForProducts, usePriceList, usePriceLists, useSavePriceList, useSaveRule,
@@ -182,6 +184,7 @@ function ListDetail({ id, onEdit }: { id: string; onEdit: (l: PriceList) => void
       </div>
       {canEdit && <Button variant="outline" onClick={() => setRule('new')}><Plus className="mr-2 h-4 w-4" /> Add rule</Button>}
       <RuleDialog list={l} target={rule} onClose={() => setRule(null)} />
+      <PriceListCustomers listId={l.id} listName={l.name} isDefault={l.is_default} canEdit={canEdit} />
     </section>
   );
 }

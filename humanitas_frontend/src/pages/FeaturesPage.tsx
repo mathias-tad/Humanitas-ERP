@@ -74,14 +74,20 @@ export default function FeaturesPage() {
             icon: <FeatureBoxesIcon className="w-8 h-8 text-sky-600" />,
             description: "One catalog for Sales, POS, Purchasing, Inventory and the online store: goods, consumables and services with units, barcodes, variants, price lists and Ethiopian MoR e-invoicing fields from day one.",
             features: [
-                "Products with nested categories, sales and purchase units with conversion ratios, and several barcodes per product (unit, box, pallet)",
+                "Products with nested categories, separate base, purchase and sales units with conversion ratios, minimum order and sold-in-multiples rules",
+                "Packaging levels (unit, inner pack, case, pallet) with GS1 GTINs that scan as their quantity, and automatic SKUs and in-store EAN-13 barcodes",
+                "Kits and bundles (fixed components, priced against the components' total) and combos with choice groups, defaults and extra prices",
+                "Picture gallery with a main picture, and attachments such as spec sheets, certificates and manuals",
                 "Attributes and variant matrix (Size × Color…): every combination becomes its own product with SKU, barcodes, cost, price extra and MoR item code",
                 "Price lists for Retail, Wholesale, Distributor and VIP: fixed price, % off or % on cost, by product, several products at once, category or everything, quantity breaks and promotion dates",
+                "Customer price lists: put customers on a list and they buy at its prices; a contact person buys at the company's list",
                 "Barcode, QR and price label printing: EAN-13 / Code 128 / QR, label rolls and A4 sticker sheets, saved label sizes, prices from any price list",
                 "USB, Bluetooth and phone-camera barcode scanning on every screen, with check-digit validation against misreads",
                 "Ethiopian MoR (EIMS) fields on every product: item code, tax code, HS code, excise and readiness check before invoicing",
                 "Full change history per product showing who changed what, from the web or the mobile app",
                 "Mobile app: search, scan, create and edit products, see each product's variants and its price on every price list",
+                "Product reports: catalog make-up, completeness, margins and the lowest-margin products, and gaps (no barcode, price, cost, category or picture, below cost, not e-invoice ready) with CSV",
+                "Product settings for numbering, defaults for new products and required fields",
                 "Price comparison report across lists and CSV export of the catalog"
             ]
         },

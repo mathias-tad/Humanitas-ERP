@@ -20,6 +20,10 @@ import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { VariantsPanel } from './VariantsPanel';
 import { CompanyBranchSelect } from '@/components/platform/CompanyBranchSelect';
 import { ProductPricesPanel } from './ProductPricesPanel';
+import { ProductMediaPanel } from './ProductMediaPanel';
+import { PackagingPanel } from './PackagingPanel';
+import { CompositionPanel } from './CompositionPanel';
+import { useProductSettings } from '@/hooks/useProductExtras';
 import {
   EIMS_ISSUE_TEXT, EIMS_TAX_CODE_LABELS, EIMS_TAX_CODES,
   useArchiveProduct, useCreateProduct, useProduct, useRestoreProduct, useUoms, useUpdateProduct,
@@ -45,6 +49,10 @@ interface FormState {
   category_name: string | null;
   uom_id: string;
   purchase_uom_id: string;
+  /** '' = sold in the base unit */
+  sales_uom_id: string;
+  min_sale_qty: string;
+  sale_qty_step: string;
   sales_price: string;
   cost_price: string;
   tax_code: EimsTaxCode;
@@ -62,7 +70,7 @@ interface FormState {
 export function emptyProductForm(initial?: Record<string, unknown>): FormState {
   return {
     name: String(initial?.name ?? ''), sku: '', product_type: 'consumable', category_id: null, category_name: null,
-    uom_id: '', purchase_uom_id: '', sales_price: '', cost_price: '', tax_code: 'VAT15', item_code: '',
+    uom_id: '', purchase_uom_id: '', sales_uom_id: '', min_sale_qty: '', sale_qty_step: '', sales_price: '', cost_price: '', tax_code: 'VAT15', item_code: '',
     harmonization_code: '', excise_rate: '', invoice_description: '', can_be_sold: true,
     can_be_purchased: true, description: '',
     // A barcode scanned on the Products page that matched nothing starts the new product.
@@ -84,6 +92,9 @@ export function productToForm(p: Product): FormState {
   return {
     name: p.name, sku: p.sku ?? '', product_type: p.product_type, category_id: p.category_id, category_name: p.category_name,
     uom_id: p.uom_id, purchase_uom_id: p.purchase_uom_id, sales_price: String(Number(p.sales_price)),
+    sales_uom_id: p.sales_uom_id && p.sales_uom_id !== p.uom_id ? p.sales_uom_id : '',
+    min_sale_qty: Number(p.min_sale_qty ?? 0) > 0 ? String(Number(p.min_sale_qty)) : '',
+    sale_qty_step: p.sale_qty_step && Number(p.sale_qty_step) > 0 ? String(Number(p.sale_qty_step)) : '',
     cost_price: String(Number(p.cost_price)), tax_code: p.tax_code ?? 'VAT15', item_code: p.item_code ?? '',
     harmonization_code: p.harmonization_code ?? '', excise_rate: p.excise_rate === null || p.excise_rate === undefined ? '' : String(Number(p.excise_rate)),
     invoice_description: p.invoice_description ?? '',
@@ -109,7 +120,14 @@ export function validateProductForm(f: FormState, uoms: UomCategory[]): Record<s
   if (f.invoice_description.trim().length > MOR_DESCRIPTION_MAX) errors.invoice_description = `At most ${MOR_DESCRIPTION_MAX} characters`;
   if (f.uom_id && f.purchase_uom_id) {
     const cat = (id: string) => uoms.find((c) => c.units.some((u) => u.id === id))?.id;
-    if (cat(f.uom_id) !== cat(f.purchase_uom_id)) errors.purchase_uom_id = 'Must be the same kind of unit as the sales unit';
+    if (cat(f.uom_id) !== cat(f.purchase_uom_id)) errors.purchase_uom_id = 'Must be the same kind of unit as the base unit';
+  }
+  if (f.uom_id && f.sales_uom_id) {
+    const cat = (id: string) => uoms.find((c) => c.units.some((u) => u.id === id))?.id;
+    if (cat(f.uom_id) !== cat(f.sales_uom_id)) errors.sales_uom_id = 'Must be the same kind of unit as the base unit';
+  }
+  for (const key of ['min_sale_qty', 'sale_qty_step'] as const) {
+    if (f[key] !== '' && (Number.isNaN(Number(f[key])) || Number(f[key]) < 0)) errors[key] = 'Must be 0 or more';
   }
   const codes = f.barcodes.map((b) => b.barcode.trim()).filter(Boolean);
   if (new Set(codes).size !== codes.length) errors.barcodes = 'Each barcode can be listed only once';
@@ -126,6 +144,10 @@ export function formToInput(f: FormState): ProductInput {
     category_id: f.category_id,
     uom_id: f.uom_id || undefined,
     purchase_uom_id: f.purchase_uom_id || undefined,
+    // Empty = sold in the base unit.
+    sales_uom_id: f.sales_uom_id || f.uom_id || undefined,
+    min_sale_qty: num(f.min_sale_qty) ?? 0,
+    sale_qty_step: f.sale_qty_step !== '' && Number(f.sale_qty_step) > 0 ? Number(f.sale_qty_step) : null,
     sales_price: num(f.sales_price) ?? 0,
     cost_price: num(f.cost_price) ?? 0,
     tax_code: f.tax_code,
@@ -180,6 +202,8 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   // undefined until known: a new product starts in the current company (rule 16).
   const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
   const drawer = useRecordDrawer();
+  const settings = useProductSettings(hasPermission('view_product_settings'));
+  const warnBelowCost = settings.data?.warn_below_cost ?? true;
   // A variant takes name, type, category, units, tax and description from its parent.
   const isVariant = mode === 'edit' && !!product.data?.parent_id;
   // A parent is not sold or scanned itself: barcodes go on its variants.
@@ -224,7 +248,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     try {
       // Company: sent on create, and on edit only when changed.
       const companyChanged = mode === 'create' ? companyId !== undefined : companyId !== undefined && companyId !== (product.data?.company_id ?? null);
-      const input = { ...formToInput(f), ...(companyChanged && !isVariant ? { company_id: companyId } : {}) };
+      const input: ProductInput = { ...formToInput(f), ...(companyChanged && !isVariant ? { company_id: companyId } : {}) };
+      // Unchanged barcodes are not sent, so generated ones keep their mark (a product getting variants drops them).
+      if (mode === 'edit' && product.data && JSON.stringify(input.barcodes) === JSON.stringify(formToInput(productToForm(product.data)).barcodes)) {
+        delete input.barcodes;
+      }
       const saved = mode === 'create' ? await create.mutateAsync(input) : await update.mutateAsync({ id: id!, input });
       toast.success(mode === 'create' ? `Product “${saved.name}” created` : 'Product saved');
       onSaved(saved);
@@ -296,15 +324,33 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared disabled={isVariant || !canEdit} idPrefix="p" />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="p-uom">Sales unit</Label>
+            <Label htmlFor="p-uom">Base unit (stock)</Label>
             <UnitSelect id="p-uom" value={f.uom_id} uoms={uoms} placeholder="Units (default)" disabled={isVariant}
-              onChange={(v) => setF((s) => ({ ...s, uom_id: v, purchase_uom_id: '' }))} />
+              onChange={(v) => setF((s) => ({ ...s, uom_id: v, purchase_uom_id: '', sales_uom_id: '' }))} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-puom">Purchase unit</Label>
-            <UnitSelect id="p-puom" value={f.purchase_uom_id} uoms={uoms} onlyCategoryOf={purchaseOptionsFor} placeholder="Same as sales unit" disabled={isVariant}
+            <UnitSelect id="p-puom" value={f.purchase_uom_id} uoms={uoms} onlyCategoryOf={purchaseOptionsFor} placeholder="Same as base unit" disabled={isVariant}
               onChange={(v) => set('purchase_uom_id', v)} />
             {fieldError('purchase_uom_id')}
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="p-suom">Sales unit</Label>
+            <UnitSelect id="p-suom" value={f.sales_uom_id} uoms={uoms} onlyCategoryOf={purchaseOptionsFor} placeholder="Same as base unit" disabled={isVariant}
+              onChange={(v) => set('sales_uom_id', v)} />
+            {fieldError('sales_uom_id')}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-moq">Minimum order</Label>
+            <Input id="p-moq" inputMode="decimal" disabled={isVariant} value={f.min_sale_qty} onChange={(e) => set('min_sale_qty', e.target.value)} placeholder="None" />
+            {fieldError('min_sale_qty')}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-step">Sold in multiples of</Label>
+            <Input id="p-step" inputMode="decimal" disabled={isVariant} value={f.sale_qty_step} onChange={(e) => set('sale_qty_step', e.target.value)} placeholder="Any quantity" />
+            {fieldError('sale_qty_step')}
           </div>
         </div>
         {selectedUnit && !selectedUnit.mor_code && (
@@ -322,6 +368,9 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
                 </p>
               )}
               {k === 'sales_price' && isParent && <p className="text-xs text-muted-foreground">Each variant adds its own extra</p>}
+              {k === 'sales_price' && warnBelowCost && Number(f.sales_price) > 0 && Number(f.cost_price) > Number(f.sales_price) && (
+                <p className="text-xs text-amber-700" role="status">Below cost: each sale loses {(Number(f.cost_price) - Number(f.sales_price)).toFixed(2)}</p>
+              )}
             </div>
           ))}
           <div className="space-y-1.5">
@@ -445,6 +494,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
           <TabsTrigger value="variants">Variants{isParent ? ` (${product.data.variant_count})` : ''}</TabsTrigger>
         )}
         {product.data && hasPermission('view_price_lists') && <TabsTrigger value="prices">Prices</TabsTrigger>}
+        {product.data && <TabsTrigger value="media">Pictures{product.data.media_count ? ` (${product.data.media_count})` : ''}</TabsTrigger>}
+        {product.data && !isParent && <TabsTrigger value="packaging">Packaging</TabsTrigger>}
+        {product.data && !isParent && !isVariant && (
+          <TabsTrigger value="contents">{product.data.composition === 'kit' ? 'Kit' : product.data.composition === 'combo' ? 'Combo' : 'Contents'}</TabsTrigger>
+        )}
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="pt-4">
@@ -478,6 +532,21 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
       {product.data && hasPermission('view_price_lists') && (
         <TabsContent value="prices" className="pt-4">
           <ProductPricesPanel productId={product.data.id} />
+        </TabsContent>
+      )}
+      {product.data && (
+        <TabsContent value="media" className="pt-4">
+          <ProductMediaPanel productId={product.data.id} readOnly={!product.data.is_active} />
+        </TabsContent>
+      )}
+      {product.data && !isParent && (
+        <TabsContent value="packaging" className="pt-4">
+          <PackagingPanel product={product.data} />
+        </TabsContent>
+      )}
+      {product.data && !isParent && !isVariant && (
+        <TabsContent value="contents" className="pt-4">
+          <CompositionPanel product={product.data} />
         </TabsContent>
       )}
       <TabsContent value="history" className="pt-4">

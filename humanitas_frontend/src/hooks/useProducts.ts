@@ -28,6 +28,8 @@ export interface ProductBarcode {
   packaging?: string | null;
   quantity?: number | string;
   is_primary?: boolean;
+  /** Made by the in-store numbering (Product Settings). */
+  is_generated?: boolean;
 }
 
 export interface Product {
@@ -43,6 +45,20 @@ export interface Product {
   uom_symbol: string | null;
   purchase_uom_id: string;
   purchase_uom_name: string;
+  /** The unit it is sold in; same unit category as the base unit (uom_id). */
+  sales_uom_id: string;
+  sales_uom_name: string;
+  sales_uom_symbol: string | null;
+  /** Minimum order and "sold in multiples of", in the sales unit. */
+  min_sale_qty: string;
+  sale_qty_step: string | null;
+  composition: 'single' | 'kit' | 'combo';
+  is_below_cost: boolean;
+  media_count: number;
+  packagings: { id: string; name: string; level: string; quantity: string; gtin: string | null; can_sell: boolean; can_buy: boolean }[];
+  /** Lookup only: the package a scanned code belongs to and how many units it holds. */
+  scanned_packaging?: string | null;
+  scanned_quantity?: number;
   sales_price: string;
   cost_price: string;
   tax_rate: string | null;
@@ -89,6 +105,9 @@ export interface ProductInput {
   category_id?: string | null;
   uom_id?: string;
   purchase_uom_id?: string;
+  sales_uom_id?: string;
+  min_sale_qty?: number;
+  sale_qty_step?: number | null;
   sales_price?: number;
   cost_price?: number;
   tax_code?: EimsTaxCode;
@@ -143,6 +162,9 @@ export interface ProductFilters {
   product_type?: ProductType;
   status?: 'active' | 'archived' | 'all';
   eims?: 'ready' | 'not_ready';
+  /** A catalog gap from Product Reports. */
+  issue?: 'no_barcode' | 'no_price' | 'no_cost' | 'below_cost' | 'no_category' | 'no_image' | 'not_eims_ready';
+  composition?: 'single' | 'kit' | 'combo';
   /** catalog (default): products and parents | sellable: products and variants (for sale lines) | all */
   kind?: 'catalog' | 'sellable' | 'all';
   parent_id?: string;
