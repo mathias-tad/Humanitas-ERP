@@ -83,10 +83,11 @@ export default function LeadsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input ref={searchRef} className="pl-8" placeholder="Search title, person, company, phone or email" aria-label="Search leads" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={owner} onValueChange={(v) => setOwner(v as 'all' | 'me')}>
+        {!hasPermission('view_all_crm_records') && <span className="text-xs text-muted-foreground">Showing the leads you own or created</span>}
+        {hasPermission('view_all_crm_records') && <Select value={owner} onValueChange={(v) => setOwner(v as 'all' | 'me')}>
           <SelectTrigger className="w-36" aria-label="Owner"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">Everyone's</SelectItem><SelectItem value="me">My leads</SelectItem></SelectContent>
-        </Select>
+        </Select>}
         <div className="w-44"><CrmListSelect kind="sources" value={sourceId} onChange={setSourceId} placeholder="Any source" /></div>
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>

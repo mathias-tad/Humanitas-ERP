@@ -369,6 +369,7 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "view_crm_setup", label: "View Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
   { id: "create_crm_setup", label: "Add Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
   { id: "edit_crm_setup", label: "Edit Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
+  { id: "view_all_crm_records", label: "See everyone's leads, deals and activities (otherwise only their own)", group: "CRM Visibility", module: "crm" },
   { id: "delete_crm_setup", label: "Archive Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
 ];
 

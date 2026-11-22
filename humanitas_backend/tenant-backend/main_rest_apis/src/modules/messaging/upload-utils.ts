@@ -53,13 +53,18 @@ export function randomUploadName(prefix: string, ext: string): string {
  * - CSP sandbox: even if something slipped through, it cannot run script on the API origin
  * - non-media files are forced to download instead of rendering inline
  */
-export function setUploadResponseHeaders(res: { setHeader: (k: string, v: string) => void }, filePath: string) {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox");
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+export function setUploadResponseHeaders(
+  res: { setHeader?: (k: string, v: string) => unknown; header?: (k: string, v: string) => unknown },
+  filePath: string,
+) {
+  // @fastify/static 10 passes the Fastify reply (reply.header); older versions the raw response (setHeader).
+  const set = (k: string, v: string) => (typeof res.header === 'function' ? res.header(k, v) : res.setHeader?.(k, v));
+  set('X-Content-Type-Options', 'nosniff');
+  set('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'; sandbox");
+  set('Cross-Origin-Resource-Policy', 'same-site');
   const ext = path.extname(filePath).toLowerCase();
   const inline = /^\.(jpe?g|png|gif|webp|heic|m4a|mp3|ogg|oga|opus|wav|aac|webm|mp4|mov|m4v|pdf)$/.test(ext);
   if (!inline) {
-    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+    set('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
   }
 }

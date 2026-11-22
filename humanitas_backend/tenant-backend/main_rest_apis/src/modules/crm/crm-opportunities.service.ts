@@ -5,7 +5,7 @@ import type { CatalogContext } from '../products/products.service';
 import { csvCell } from '../products/products.service';
 import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
 import { cleanTags } from '../contacts/contacts.rules';
-import { CrmBase, ENTITY, blankToNull, setClause } from './crm.base';
+import { CrmBase, ENTITY, blankToNull, ownSql, ownsCrmRow, setClause } from './crm.base';
 import { dealProbability, forecastByMonth, stuck, weighted } from './crm.rules';
 import { CrmSetupService, type StageRow } from './crm-setup.service';
 import type {
@@ -247,11 +247,13 @@ export class CrmOpportunitiesService extends CrmBase {
   // ── helpers ────────────────────────────────────────────────────────────────────
   private async setStage(ctx: CatalogContext, conn: Queryable, scope: CompanyScope, deal: Deal, to: StageRow, status: 'open' | 'won' | 'lost', lost?: LoseDto) {
     await conn.query(
+      // $2 is only the status column: PostgreSQL refuses one parameter used as varchar and as text
+      // ("inconsistent types deduced for parameter"), which made every stage move a server error.
       `UPDATE crm_opportunities SET stage_id = $1, stage_changed_at = now(), status = $2,
-              closed_at = CASE WHEN $2 = 'open' THEN NULL ELSE now() END,
+              closed_at = CASE WHEN $7 THEN NULL ELSE now() END,
               lost_reason_id = $3, lost_note = $4, updated_by = $5, updated_at = now()
         WHERE id = $6`,
-      [to.id, status, status === 'lost' ? lost!.lost_reason_id : null, status === 'lost' ? blankToNull(lost?.note) ?? null : null, ctx.user?.sub ?? null, deal.id],
+      [to.id, status, status === 'lost' ? lost!.lost_reason_id : null, status === 'lost' ? blankToNull(lost?.note) ?? null : null, ctx.user?.sub ?? null, deal.id, status === 'open'],
     );
     const from = String(deal.stage_name ?? '');
     const days = CrmOpportunitiesService.decorate(deal).days_in_stage;
@@ -319,6 +321,8 @@ export class CrmOpportunitiesService extends CrmBase {
       where.push(`o.status = 'open' AND NOT EXISTS (SELECT 1 FROM crm_activities a WHERE a.related_type = 'opportunity' AND a.related_id = o.id AND a.is_active AND a.done_at IS NULL)`);
     }
     if (q.attention === 'stuck') where.push(`o.status = 'open' AND s.rotting_days IS NOT NULL AND o.stage_changed_at < now() - make_interval(days => s.rotting_days)`);
+    const own = ownSql(scope, 'o', params);
+    if (own) where.push(own);
     const f = companyFilter(scope, 'o', params.length + 1);
     if (f) {
       params.push(f.param);
@@ -329,7 +333,7 @@ export class CrmOpportunitiesService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string): Promise<Deal> {
     const [row] = await conn.query(`${DEAL_SQL} WHERE o.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id)) throw new NotFoundException('Opportunity not found');
+    if (!row || !isVisible(scope, row.company_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Opportunity not found');
     return row;
   }
 }

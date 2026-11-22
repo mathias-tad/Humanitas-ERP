@@ -3,11 +3,12 @@ import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
 import { companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
-import { CrmBase, ENTITY, blankToNull, setClause } from './crm.base';
+import { CrmBase, ENTITY, blankToNull, ownsCrmRow, setClause, type CrmScope } from './crm.base';
 import type { CompleteActivityDto, CreateActivityDto, ListActivitiesQueryDto, UpdateActivityDto } from './dto/crm.dto';
 
 const ACTIVITY_SQL = `
   SELECT a.*, u.full_name AS assigned_to_name,
+         l.owner_id AS lead_owner_id, l.created_by AS lead_created_by, o.owner_id AS deal_owner_id, o.created_by AS deal_created_by,
          CASE a.related_type WHEN 'lead' THEN l.title WHEN 'opportunity' THEN o.name WHEN 'contact' THEN c.name END AS related_name
     FROM crm_activities a
     LEFT JOIN users u ON u.id = a.assigned_to
@@ -125,12 +126,23 @@ export class CrmActivitiesService extends CrmBase {
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────────
+  /** Mine when assigned to me, created by me, or on a lead or deal of mine. */
+  private ownsActivity(scope: CompanyScope, a: Record<string, unknown>): boolean {
+    const mine = (scope as CrmScope).mine;
+    if (!mine) return true;
+    return a.assigned_to === mine || a.created_by === mine
+      || (a.related_type === 'lead' && (a.lead_owner_id === mine || a.lead_created_by === mine))
+      || (a.related_type === 'opportunity' && (a.deal_owner_id === mine || a.deal_created_by === mine));
+  }
+
   private async checkRelated(conn: Queryable, scope: CompanyScope, type: 'lead' | 'opportunity' | 'contact' | null, id: string | null) {
     if (!type && !id) return null;
     if (!type || !id) throw new BadRequestException('Say what the activity is about (a lead, a deal or a contact) and which one');
     const table = { lead: 'crm_leads', opportunity: 'crm_opportunities', contact: 'contacts' }[type];
-    const [row] = await conn.query(`SELECT id, company_id, is_active FROM ${table} WHERE id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id) || !row.is_active) throw new BadRequestException(`That ${type === 'opportunity' ? 'deal' : type} was not found`);
+    const extra = type === 'contact' ? '' : ', owner_id, created_by';
+    const [row] = await conn.query(`SELECT id, company_id, is_active${extra} FROM ${table} WHERE id = $1`, [id]);
+    const visible = row && isVisible(scope, row.company_id) && (type === 'contact' || ownsCrmRow(scope as { mine?: string | null }, row));
+    if (!visible || !row.is_active) throw new BadRequestException(`That ${type === 'opportunity' ? 'deal' : type} was not found`);
     return { type, id, company_id: row.company_id as string | null };
   }
 
@@ -153,6 +165,13 @@ export class CrmActivitiesService extends CrmBase {
     }
     if (q.related_type) where.push(`a.related_type = $${params.push(q.related_type)}`);
     if (q.related_id) where.push(`a.related_id = $${params.push(q.related_id)}`);
+    const mine = (scope as CrmScope).mine;
+    if (mine) {
+      const n = params.push(mine);
+      where.push(`(a.assigned_to = $${n} OR a.created_by = $${n}
+        OR (a.related_type = 'lead' AND EXISTS (SELECT 1 FROM crm_leads x WHERE x.id = a.related_id AND (x.owner_id = $${n} OR x.created_by = $${n})))
+        OR (a.related_type = 'opportunity' AND EXISTS (SELECT 1 FROM crm_opportunities x WHERE x.id = a.related_id AND (x.owner_id = $${n} OR x.created_by = $${n}))))`);
+    }
     const f = companyFilter(scope, 'a', params.length + 1);
     if (f) {
       params.push(f.param);
@@ -163,7 +182,7 @@ export class CrmActivitiesService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const [row] = await conn.query(`${ACTIVITY_SQL} WHERE a.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id) || !row.is_active) throw new NotFoundException('Activity not found');
+    if (!row || !isVisible(scope, row.company_id) || !row.is_active || !this.ownsActivity(scope, row)) throw new NotFoundException('Activity not found');
     return row;
   }
 }

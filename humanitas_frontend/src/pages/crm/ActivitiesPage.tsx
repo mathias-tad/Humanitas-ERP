@@ -52,10 +52,10 @@ export default function ActivitiesPage() {
             {tab('done', 'Done')}
           </TabsList>
         </Tabs>
-        <Select value={who} onValueChange={(v) => setWho(v as 'me' | 'all')}>
+        {hasPermission('view_all_crm_records') && <Select value={who} onValueChange={(v) => setWho(v as 'me' | 'all')}>
           <SelectTrigger className="w-40" aria-label="Whose"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="me">Mine</SelectItem><SelectItem value="all">Everyone's</SelectItem></SelectContent>
-        </Select>
+        </Select>}
       </div>
       <ul className="divide-y rounded-lg border">
         {list.rows.map((a) => (

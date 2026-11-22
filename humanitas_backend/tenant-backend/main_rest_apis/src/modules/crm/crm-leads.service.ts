@@ -6,7 +6,7 @@ import { csvCell } from '../products/products.service';
 import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
 import { cleanTags } from '../contacts/contacts.rules';
 import { ContactsService } from '../contacts/contacts.service';
-import { CrmBase, ENTITY, blankToNull, setClause } from './crm.base';
+import { CrmBase, ENTITY, blankToNull, ownSql, ownsCrmRow, setClause } from './crm.base';
 import { leadStatusProblem, type LeadStatus } from './crm.rules';
 import { CrmOpportunitiesService } from './crm-opportunities.service';
 import type { ConvertLeadDto, CreateLeadDto, ListLeadsQueryDto, LoseDto, UpdateLeadDto } from './dto/crm.dto';
@@ -253,6 +253,8 @@ export class CrmLeadsService extends CrmBase {
     const owner = this.userParam(ctx, q.owner_id);
     if (owner) where.push(`l.owner_id = $${params.push(owner)}`);
     if (q.source_id) where.push(`l.source_id = $${params.push(q.source_id)}`);
+    const own = ownSql(scope, 'l', params);
+    if (own) where.push(own);
     const f = companyFilter(scope, 'l', params.length + 1);
     if (f) {
       params.push(f.param);
@@ -263,7 +265,7 @@ export class CrmLeadsService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string): Promise<Lead> {
     const [row] = await conn.query(`${LEAD_SQL} WHERE l.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id)) throw new NotFoundException('Lead not found');
+    if (!row || !isVisible(scope, row.company_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Lead not found');
     return row;
   }
 }

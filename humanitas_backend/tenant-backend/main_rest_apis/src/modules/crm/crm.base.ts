@@ -2,7 +2,33 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
-import { resolveCompanyScope, type Queryable } from '../products/products.scope';
+import { resolveCompanyScope, type CompanyScope, type Queryable } from '../products/products.scope';
+import type { AuthUser } from '../../common/types/authenticated-request';
+import { VIEW_ALL_CRM_RECORDS } from './crm.permissions';
+
+/** The company scope plus whose records: null = everyone's, else only this user's own. */
+export type CrmScope = CompanyScope & { mine: string | null };
+
+/** Owners, Administrators and holders of view_all_crm_records see every CRM record. */
+export function seesAllCrm(user: Pick<AuthUser, 'role' | 'permissions'> | undefined): boolean {
+  if (!user) return true;
+  if (['owner', 'admin', 'administrator'].includes(String(user.role ?? '').toLowerCase())) return true;
+  const perms = user.permissions ?? [];
+  return perms.includes('*') || perms.includes(VIEW_ALL_CRM_RECORDS);
+}
+
+/** Whether a lead or deal is the person's own (they own it or created it). */
+export function ownsCrmRow(scope: { mine?: string | null }, row: { owner_id?: unknown; created_by?: unknown }): boolean {
+  return !scope.mine || row.owner_id === scope.mine || row.created_by === scope.mine;
+}
+
+/** SQL limiting leads (alias l) or deals (alias o) to the person's own; pushes the parameter. */
+export function ownSql(scope: CompanyScope, alias: string, params: unknown[]): string | null {
+  const mine = (scope as CrmScope).mine;
+  if (!mine) return null;
+  const n = params.push(mine);
+  return `(${alias}.owner_id = $${n} OR ${alias}.created_by = $${n})`;
+}
 
 export const blankToNull = (v: unknown) => (typeof v === 'string' ? v.trim() || null : v);
 
@@ -16,7 +42,8 @@ export abstract class CrmBase {
 
   protected async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const company = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope: CrmScope = { ...company, mine: seesAllCrm(ctx.user) ? null : ctx.user?.sub ?? null };
     return { conn, scope };
   }
 

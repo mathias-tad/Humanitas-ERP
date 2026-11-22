@@ -23,6 +23,7 @@ import {
   CRM_ADMIN_ONLY_PERMISSIONS,
   CRM_EMPLOYEE_PERMISSIONS,
   CRM_MANAGER_PERMISSIONS,
+  CRM_SCOPE_PERMISSIONS,
 } from '../crm/crm.permissions';
 
 @Injectable()
@@ -88,6 +89,7 @@ export class RolesService {
       ...ALL_PRODUCTS_PERMISSIONS,
       ...ALL_CONTACTS_PERMISSIONS,
       ...ALL_CRM_PERMISSIONS,
+      ...CRM_SCOPE_PERMISSIONS,
       'correct_attendance', 'view_holidays', 'manage_holidays',
       'view_announcements', 'create_announcements', 'edit_announcements', 'delete_announcements',
       'view_events', 'create_events', 'edit_events', 'delete_events',
@@ -475,6 +477,7 @@ export class RolesService {
       ...ALL_PRODUCTS_PERMISSIONS,
       ...ALL_CONTACTS_PERMISSIONS,
       ...ALL_CRM_PERMISSIONS,
+      ...CRM_SCOPE_PERMISSIONS,
       // Dashboard
       'view_dashboard',
 
@@ -696,7 +699,8 @@ export class RolesService {
       // Products & Catalog (rule 27: one permission per action)
       ...PRODUCTS_MANAGER_PERMISSIONS,
       ...CONTACTS_MANAGER_PERMISSIONS,
-      ...CRM_MANAGER_PERMISSIONS,
+      ...CRM_MANAGER_PERMISSIONS,
+      ...CRM_SCOPE_PERMISSIONS,
       'view_dashboard',
       'view_hrms_reports',
       'view_users',

@@ -35,6 +35,14 @@ export const CRM_SETUP_PERMISSIONS = {
   delete: 'delete_crm_setup',
 } as const;
 
+/**
+ * Record visibility: without this a person sees only the leads and deals they own or created, and the
+ * activities assigned to them, created by them or on their own leads and deals. Owners and Administrators
+ * always see everything. It guards no endpoint of its own; the CRM services check it.
+ */
+export const VIEW_ALL_CRM_RECORDS = 'view_all_crm_records';
+export const CRM_SCOPE_PERMISSIONS: string[] = [VIEW_ALL_CRM_RECORDS];
+
 const values = <T extends Record<string, string>>(o: T) => Object.values(o) as T[keyof T][];
 
 export const ALL_CRM_PERMISSIONS: string[] = [

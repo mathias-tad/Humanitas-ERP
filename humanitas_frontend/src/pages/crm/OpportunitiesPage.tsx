@@ -160,10 +160,11 @@ export default function OpportunitiesPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input ref={searchRef} className="pl-8" placeholder="Search deals or customers" aria-label="Search deals" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={owner} onValueChange={(v) => setOwner(v as 'all' | 'me')}>
+        {!hasPermission('view_all_crm_records') && <span className="text-xs text-muted-foreground">Showing the deals you own or created</span>}
+        {hasPermission('view_all_crm_records') && <Select value={owner} onValueChange={(v) => setOwner(v as 'all' | 'me')}>
           <SelectTrigger className="w-36" aria-label="Owner"><SelectValue /></SelectTrigger>
           <SelectContent><SelectItem value="all">Everyone's</SelectItem><SelectItem value="me">My deals</SelectItem></SelectContent>
-        </Select>
+        </Select>}
         {view === 'list' && (
           <>
             <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
