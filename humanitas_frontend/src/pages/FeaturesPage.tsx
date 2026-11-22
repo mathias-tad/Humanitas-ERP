@@ -128,6 +128,10 @@ export default function FeaturesPage() {
             icon: <Receipt className="w-8 h-8 text-indigo-600" />,
             description: "Omnichannel customer pipeline management with price lists, credit limits, sales quotations, commercial invoices, and e-invoicing compliance.",
             features: [
+                "One Contacts base for every module: companies and the people who work there, marked Customer and/or Vendor, so nobody is entered twice",
+                "Customers with TIN / VAT for e-invoicing, categories, tags, price list, credit limit, payment terms and account manager",
+                "Duplicate warning by TIN, phone (any format: 09…, +251…) or email while a contact is entered",
+                "Contact history: every change plus logged calls, meetings, emails, visits and notes (with which person)",
                 "Customer Relationship Management (CRM) with deal pipeline stages and contact activity",
                 "Dynamic pricing rules, tiered volume discounts, and customer-specific price lists",
                 "Sales quotation to sales order 1-click conversion with inventory reservation",

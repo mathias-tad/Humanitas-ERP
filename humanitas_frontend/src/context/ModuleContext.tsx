@@ -231,6 +231,10 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     }
 
+    // Shared bases open with any module that uses them (same as the server's MODULE_FAMILIES).
+    const MODULE_FAMILIES: Record<string, string[]> = { contacts: ["crm", "sales", "pos", "accounting", "purchasing", "ecommerce", "delivery"] };
+    if (MODULE_FAMILIES[k]) return MODULE_FAMILIES[k].some((m) => isModuleSubscribed(m));
+
     const feats = tenant?.enabled_features?.map((f: string) => f.toLowerCase().trim()) || [];
 
     // Master wildcard allows all features

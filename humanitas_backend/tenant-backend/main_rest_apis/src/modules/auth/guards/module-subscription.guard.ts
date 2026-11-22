@@ -22,6 +22,14 @@ export const RequireModule = (moduleName: string) =>
   SetMetadata(MODULE_KEY, moduleName);
 
 /**
+ * Shared bases open when the tenant has any module that uses them
+ * (contacts: every module with customers or vendors).
+ */
+export const MODULE_FAMILIES: Record<string, string[]> = {
+  contacts: ['crm', 'sales', 'pos', 'accounting', 'purchasing', 'ecommerce', 'delivery'],
+};
+
+/**
  * Verify an access token's signature and expiry with JWT_SECRET (the same
  * secret JwtStrategy uses). Returns the payload, or undefined if the token is
  * forged, expired, a refresh token, or the secret is not configured.
@@ -186,6 +194,7 @@ export class ModuleSubscriptionGuard implements CanActivate {
 
       if (
         feats.includes(req) ||
+        (MODULE_FAMILIES[req] ?? []).some((m) => feats.includes(m)) ||
         (req === 'hrms' && (feats.includes('hr') || feats.includes('hrms') || feats.includes('attendance') || feats.includes('leave') || feats.includes('payroll'))) ||
         (req === 'hr' && (feats.includes('hr') || feats.includes('hrms'))) ||
         (feats.includes('hrms') && ['attendance', 'leave', 'scheduling', 'messaging', 'wfm'].includes(req))
@@ -222,10 +231,14 @@ export class ModuleSubscriptionGuard implements CanActivate {
       }
     }
 
-    const result = await connection.query(
-      `SELECT is_active FROM tenant_modules WHERE module_key = $1 LIMIT 1`,
-      [req],
-    );
+    // A shared base (contacts) is on when any module of its family is on.
+    const family = MODULE_FAMILIES[req];
+    const result = family
+      ? await connection.query(
+          `SELECT bool_or(is_active) AS is_active FROM tenant_modules WHERE module_key = ANY($1::text[]) HAVING count(*) > 0`,
+          [[req, ...family]],
+        )
+      : await connection.query(`SELECT is_active FROM tenant_modules WHERE module_key = $1 LIMIT 1`, [req]);
 
     if (result && result.length > 0) {
       if (!result[0].is_active) {

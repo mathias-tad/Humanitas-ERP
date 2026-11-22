@@ -334,6 +334,17 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "create_label_templates", label: "Create Label Templates", group: "Labels", module: "products" },
   { id: "edit_label_templates", label: "Edit Label Templates", group: "Labels", module: "products" },
   { id: "delete_label_templates", label: "Archive Label Templates", group: "Labels", module: "products" },
+  // Contacts (open with any module that has customers or vendors)
+  { id: "view_contacts", label: "View Contacts and Customers", group: "Contacts", module: "contacts" },
+  { id: "create_contacts", label: "Create Contacts and Customers", group: "Contacts", module: "contacts" },
+  { id: "edit_contacts", label: "Edit Contacts, People and History", group: "Contacts", module: "contacts" },
+  { id: "delete_contacts", label: "Archive Contacts", group: "Contacts", module: "contacts" },
+  { id: "restore_contacts", label: "Restore Contacts", group: "Contacts", module: "contacts" },
+  { id: "export_contacts", label: "Export Contacts", group: "Contacts", module: "contacts" },
+  { id: "view_contact_categories", label: "View Contact Categories", group: "Contact Categories", module: "contacts" },
+  { id: "create_contact_categories", label: "Create Contact Categories", group: "Contact Categories", module: "contacts" },
+  { id: "edit_contact_categories", label: "Edit Contact Categories", group: "Contact Categories", module: "contacts" },
+  { id: "delete_contact_categories", label: "Archive Contact Categories", group: "Contact Categories", module: "contacts" },
 ];
 
 export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));

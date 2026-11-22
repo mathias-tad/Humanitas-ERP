@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/platform/ErrorBoundary";
 import { RecordDrawerProvider } from "@/components/platform/RecordDrawer";
 // Record types any page can create/open in place (featureslist §29)
 import "@/components/products/registerProductEntities";
+import "@/components/contacts/registerContactEntities";
 
 function App() {
   return (

@@ -243,7 +243,9 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       title: "Sales & Invoicing",
       items: [
         { title: "Sales Overview", url: "/sales", icon: BarChart3 },
-        { title: "Customers & Leads", url: "/sales/customers", icon: Users },
+        { title: "Customers", url: "/customers", icon: Users, permissions: ["view_contacts"] },
+        { title: "All Contacts", url: "/contacts", icon: Building2, permissions: ["view_contacts"] },
+        { title: "Contact Categories", url: "/contacts/categories", icon: Tag, permissions: ["view_contact_categories"] },
         { title: "Quotations", url: "/sales/quotations", icon: FileText },
         { title: "Sales Orders (SO)", url: "/sales/orders", icon: TrendingUp },
         { title: "Delivery Orders", url: "/sales/deliveries", icon: Truck },
@@ -264,6 +266,7 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       title: "Point of Sale",
       items: [
         { title: "Register Terminal", url: "/pos", icon: CreditCard, badge: "Live POS" },
+        { title: "Customers", url: "/customers", icon: Users, permissions: ["view_contacts"] },
         { title: "Active Sessions", url: "/pos/sessions", icon: Clock },
         { title: "Sales History", url: "/pos/transactions", icon: Receipt },
         { title: "Cash Float & Z-Reports", url: "/pos/z-reports", icon: Calculator },
@@ -283,6 +286,7 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       title: "General Ledger",
       items: [
         { title: "Financial Dashboard", url: "/accounting", icon: BarChart3 },
+        { title: "Customers & Vendors", url: "/contacts", icon: Building2, permissions: ["view_contacts"] },
         { title: "Chart of Accounts", url: "/accounting/accounts", icon: BookOpen },
         { title: "Journal Entries", url: "/accounting/journals", icon: FileSpreadsheet },
         { title: "Accounts Receivable", url: "/accounting/receivables", icon: TrendingUp },

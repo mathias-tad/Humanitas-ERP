@@ -105,8 +105,9 @@ export function ruleInputProblem(r: PriceRuleInput, currency: string): string | 
   return null;
 }
 
-export function usePriceLists(includeArchived = false) {
+export function usePriceLists(includeArchived = false, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: priceListKeys.list(includeArchived),
     queryFn: () => api.get<PriceList[]>(`/price-lists${includeArchived ? '?include_archived=true' : ''}`),
   });

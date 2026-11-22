@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
-| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 0 | 137 | 0% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 4 | 133 | 3% |
 | 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
 | 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
 | 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1242** | **554** | **688** | **45%** |
+| **TOTAL** | **1242** | **558** | **684** | **45%** |
 
 ---
 
@@ -396,10 +396,10 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Opportunity stage management (move through the pipeline stages; history of every move).
   - [ ] Won and lost opportunity tracking (lost reason required; won links to the quotation / sales order).
 - [ ] **1.3 Customer Management**:
-  - [ ] Customer registration and profile management (company or individual; TIN and VAT number for MoR e-invoicing §39).
-  - [ ] Customer contact information management (several contacts per customer, phones, emails, addresses).
-  - [ ] Customer classification and categorization (type, segment, industry, tags; price list per customer §1).
-  - [ ] Customer communication history (calls, meetings, emails, notes on the customer timeline §30).
+  - [x] Customer registration and profile management (company or individual; TIN and VAT number for MoR e-invoicing §39).
+  - [x] Customer contact information management (several contacts per customer, phones, emails, addresses).
+  - [x] Customer classification and categorization (type, segment, industry, tags; price list per customer §1).
+  - [x] Customer communication history (calls, meetings, emails, notes on the customer timeline §30).
   - [ ] Customer relationship tracking (account manager, related companies, open deals, last contact).
   - [ ] Customer database management (search, filters, import/export §24, archive and restore, merge duplicates).
 - [ ] **1.4 Sales Pipeline Management**:
