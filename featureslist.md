@@ -12,7 +12,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 73 | 73 | 0 | 100% |
-| 1. Products & Catalog Management | 36 | 8 | 28 | 22% |
+| 1. Products & Catalog Management | 36 | 10 | 26 | 28% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1170** | **551** | **619** | **47%** |
+| **TOTAL** | **1170** | **553** | **617** | **47%** |
 
 ---
 
@@ -214,7 +214,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [x] Multi-UOM support with defined conversion factors (e.g., 1 Box = 24 Pieces, 1 Pallet = 50 Boxes).
   - [ ] Separate UOM assignment for Purchasing, Sales, and Inventory stocking.
 - [ ] **Multi-Tier Price Lists**:
-  - [ ] Retail, Wholesale, Distributor, and VIP pricing tiers.
+  - [x] Retail, Wholesale, Distributor, and VIP pricing tiers.
   - [ ] Customer-specific pricing rules and minimum order quantity (MOQ) breaks.
   - [ ] Multi-currency price list bindings with automated exchange rate conversion.
 - [ ] **Media & Specifications**:
@@ -222,7 +222,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Downloadable technical datasheets, user manuals, and warranty documentation attachments.
 - [ ] **Product Reports**:
   - [ ] Product catalog summary (total products, variants, categories, active vs. archived).
-  - [ ] Price list comparison report across tiers.
+  - [x] Price list comparison report across tiers.
   - [ ] Low-stock products report (linked to Inventory module when subscribed).
   - [ ] QR/Barcode generation audit log.
 - [ ] **Odoo-Parity & In-Context Additions**:

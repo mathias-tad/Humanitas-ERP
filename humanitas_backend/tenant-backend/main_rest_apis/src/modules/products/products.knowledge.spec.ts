@@ -9,7 +9,8 @@ import { ALL_PRODUCTS_PERMISSIONS } from './products.permissions';
 describe('Products AI knowledge entries', () => {
   const sql = readFileSync(join(__dirname, '../../migrations/tenant/20261121000003_ai_knowledge_products.sql'), 'utf8');
   const variantsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000002_ai_knowledge_product_variants.sql'), 'utf8');
-  const allSql = sql + variantsSql;
+  const priceListsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000006_ai_knowledge_price_lists.sql'), 'utf8');
+  const allSql = sql + variantsSql + priceListsSql;
 
   it.each(['/products', '/products/categories', '/products/uoms'])('describes the %s page', (route) => {
     expect(sql).toContain(`'${route}'`);
@@ -17,6 +18,12 @@ describe('Products AI knowledge entries', () => {
 
   it.each(ALL_PRODUCTS_PERMISSIONS)('mentions the %s permission', (permission) => {
     expect(allSql).toContain(`"${permission}"`);
+  });
+
+  it('describes price lists and product prices on web and mobile (rule 20)', () => {
+    expect(priceListsSql).toContain(`'/products/pricelists'`);
+    for (const f of ['Price Lists', 'Product Prices']) expect(priceListsSql).toContain(`'${f}'`);
+    expect(priceListsSql.match(/"mobile": \[/g)).toHaveLength(2);
   });
 
   it('describes attributes and variants on web and mobile (rule 20)', () => {

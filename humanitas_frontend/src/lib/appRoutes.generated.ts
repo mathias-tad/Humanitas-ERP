@@ -99,6 +99,7 @@ export const APP_ROUTES: string[] = [
   '/products/*',
   '/products/attributes',
   '/products/categories',
+  '/products/pricelists',
   '/products/uoms',
   '/profile',
   '/purchasing',

@@ -86,7 +86,7 @@ export const GlobalCommandPalette: React.FC = () => {
     }
     let alive = true;
     const t = window.setTimeout(async () => {
-      const defs = allEntities().filter((d) => entityAccess(d, { hasPermission, isModuleSubscribed }).canView);
+      const defs = allEntities().filter((d) => !!d.Form && entityAccess(d, { hasPermission, isModuleSubscribed }).canView);
       setSearchingRecords(true);
       const found = await Promise.all(
         defs.map((d) =>

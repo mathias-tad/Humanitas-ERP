@@ -11,12 +11,14 @@ import { UomsService } from './uoms.service';
 import { ProductAttributesController } from './product-attributes.controller';
 import { ProductAttributesService } from './product-attributes.service';
 import { ProductVariantsService } from './product-variants.service';
+import { PriceListsController } from './price-lists.controller';
+import { PriceListsService } from './price-lists.service';
 
 /** Products & Catalog (featureslist §1). ActivityTimelineService comes from the global platform module. */
 @Module({
   imports: [DatabaseModule, TypeOrmModule.forFeature([Tenant])],
-  controllers: [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController],
-  providers: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService],
-  exports: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService],
+  controllers: [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController, PriceListsController],
+  providers: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService],
+  exports: [ProductsService, ProductCategoriesService, UomsService, ProductAttributesService, ProductVariantsService, PriceListsService],
 })
 export class ProductsModule {}

@@ -32,6 +32,14 @@ export const PRODUCT_ATTRIBUTE_PERMISSIONS = {
   delete: 'delete_product_attributes',
 } as const;
 
+export const PRICE_LIST_PERMISSIONS = {
+  view: 'view_price_lists',
+  create: 'create_price_lists',
+  edit: 'edit_price_lists',
+  delete: 'delete_price_lists',
+  export: 'export_price_lists',
+} as const;
+
 const values = <T extends Record<string, string>>(o: T) => Object.values(o) as T[keyof T][];
 
 /** Every Products permission. */
@@ -40,6 +48,7 @@ export const ALL_PRODUCTS_PERMISSIONS: string[] = [
   ...values(PRODUCT_CATEGORY_PERMISSIONS),
   ...values(UOM_PERMISSIONS),
   ...values(PRODUCT_ATTRIBUTE_PERMISSIONS),
+  ...values(PRICE_LIST_PERMISSIONS),
 ];
 
 /** Destructive or configuration actions kept for Administrators by default. */
@@ -51,6 +60,7 @@ export const PRODUCTS_ADMIN_ONLY_PERMISSIONS: string[] = [
   UOM_PERMISSIONS.edit,
   UOM_PERMISSIONS.delete,
   PRODUCT_ATTRIBUTE_PERMISSIONS.delete,
+  PRICE_LIST_PERMISSIONS.delete,
 ];
 
 /** Managers: everything except the admin-only list. */
@@ -64,4 +74,5 @@ export const PRODUCTS_EMPLOYEE_PERMISSIONS: string[] = [
   PRODUCT_CATEGORY_PERMISSIONS.view,
   UOM_PERMISSIONS.view,
   PRODUCT_ATTRIBUTE_PERMISSIONS.view,
+  PRICE_LIST_PERMISSIONS.view,
 ];

@@ -14,6 +14,8 @@ const MESSAGES: Record<string, string> = {
   uq_product_attributes_name: 'An attribute with this name already exists',
   uq_product_attribute_values_name: 'This attribute already has a value with this name',
   uq_products_variant_combination: 'This product already has a variant with these values',
+  uq_price_lists_name: 'A price list with this name already exists',
+  uq_price_lists_one_default: 'Only one price list can be the default',
 };
 
 export function rethrowCatalogConflict(err: unknown): never {

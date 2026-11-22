@@ -19,6 +19,7 @@ import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { VariantsPanel } from './VariantsPanel';
 import { CompanyBranchSelect } from '@/components/platform/CompanyBranchSelect';
+import { ProductPricesPanel } from './ProductPricesPanel';
 import {
   EIMS_ISSUE_TEXT, EIMS_TAX_CODE_LABELS, EIMS_TAX_CODES,
   useArchiveProduct, useCreateProduct, useProduct, useRestoreProduct, useUoms, useUpdateProduct,
@@ -443,6 +444,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         {product.data && !isVariant && (
           <TabsTrigger value="variants">Variants{isParent ? ` (${product.data.variant_count})` : ''}</TabsTrigger>
         )}
+        {product.data && hasPermission('view_price_lists') && <TabsTrigger value="prices">Prices</TabsTrigger>}
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="pt-4">
@@ -471,6 +473,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
       {product.data && !isVariant && (
         <TabsContent value="variants" className="pt-4">
           <VariantsPanel product={product.data} />
+        </TabsContent>
+      )}
+      {product.data && hasPermission('view_price_lists') && (
+        <TabsContent value="prices" className="pt-4">
+          <ProductPricesPanel productId={product.data.id} />
         </TabsContent>
       )}
       <TabsContent value="history" className="pt-4">
