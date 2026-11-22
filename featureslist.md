@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
-| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 4 | 133 | 3% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 19 | 118 | 14% |
 | 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
 | 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
 | 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1244** | **567** | **677** | **46%** |
+| **TOTAL** | **1244** | **582** | **662** | **47%** |
 
 ---
 
@@ -385,17 +385,17 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 
 - [ ] **1.1 Lead Management**:
   - [ ] Lead registration and creation (web, mobile, quick-create from any page; duplicate check on phone, email and company).
-  - [ ] Lead source management (walk-in, phone, website, referral, campaign, social, trade fair… — configurable list).
+  - [x] Lead source management (walk-in, phone, website, referral, campaign, social, trade fair… — configurable list).
   - [ ] Lead assignment to sales representatives (manual, and by the routing rules below).
-  - [ ] Lead qualification and evaluation (need, budget, timeline, decision maker; qualified / not qualified with reason).
-  - [ ] Lead status tracking (New → Contacted → Qualified → Converted / Lost) with time in each status.
-  - [ ] Lead conversion into opportunities (creates or links the customer and contact; keeps the lead's history).
+  - [x] Lead qualification and evaluation (need, budget, timeline, decision maker; qualified / not qualified with reason).
+  - [x] Lead status tracking (New → Contacted → Qualified → Converted / Lost) with time in each status.
+  - [x] Lead conversion into opportunities (creates or links the customer and contact; keeps the lead's history).
 - [ ] **1.2 Opportunity Management**:
-  - [ ] Sales opportunity creation (from a lead, a customer, or directly).
+  - [x] Sales opportunity creation (from a lead, a customer, or directly).
   - [ ] Opportunity assignment to a representative and team.
-  - [ ] Expected revenue management (amount, currency, expected close date).
-  - [ ] Opportunity probability tracking (default from the stage, editable per deal) and weighted revenue.
-  - [ ] Opportunity stage management (move through the pipeline stages; history of every move).
+  - [x] Expected revenue management (amount, currency, expected close date).
+  - [x] Opportunity probability tracking (default from the stage, editable per deal) and weighted revenue.
+  - [x] Opportunity stage management (move through the pipeline stages; history of every move).
   - [ ] Won and lost opportunity tracking (lost reason required; won links to the quotation / sales order).
 - [ ] **1.3 Customer Management**:
   - [x] Customer registration and profile management (company or individual; TIN and VAT number for MoR e-invoicing §39).
@@ -405,19 +405,19 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Customer relationship tracking (account manager, related companies, open deals, last contact).
   - [ ] Customer database management (search, filters, import/export §24, archive and restore, merge duplicates).
 - [ ] **1.4 Sales Pipeline Management**:
-  - [ ] Sales pipeline configuration (one or more pipelines per company).
-  - [ ] Pipeline stage management (stages with order, default probability and won/lost flags).
-  - [ ] Opportunity progress tracking (Kanban board and list; drag between stages).
+  - [x] Sales pipeline configuration (one or more pipelines per company).
+  - [x] Pipeline stage management (stages with order, default probability and won/lost flags).
+  - [x] Opportunity progress tracking (Kanban board and list; drag between stages).
   - [ ] Sales forecasting (weighted pipeline by expected close month, per rep and team).
-  - [ ] Pending deal monitoring (open deals past their close date or without a next activity).
+  - [x] Pending deal monitoring (open deals past their close date or without a next activity).
   - [ ] Sales conversion tracking (lead → opportunity → won rates).
 - [ ] **1.5 Activity and Follow-Up Management**:
   - [ ] Customer calls and meeting scheduling (on the unified calendar).
-  - [ ] Follow-up task management (next activity on every lead and deal).
+  - [x] Follow-up task management (next activity on every lead and deal).
   - [ ] Appointment and reminder management (in-app, push and email reminders §25).
   - [ ] Email communication tracking (emails logged on the lead, deal and customer).
-  - [ ] Activity assignment (to yourself or a colleague).
-  - [ ] Pending and overdue activity monitoring (my activities: today, overdue, upcoming).
+  - [x] Activity assignment (to yourself or a colleague).
+  - [x] Pending and overdue activity monitoring (my activities: today, overdue, upcoming).
 - [ ] **1.6 Sales Team Management**:
   - [ ] Sales representative management (who sells, for which company and branch).
   - [ ] Sales team assignment (team leader and members).

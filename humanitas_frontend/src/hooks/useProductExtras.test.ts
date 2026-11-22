@@ -54,7 +54,8 @@ describe('media helpers', () => {
     expect(moveId(['a', 'b'], 'a', -1)).toEqual(['a', 'b']);
     expect(fileSizeText(2048)).toBe('2 KB');
     expect(fileSizeText(3 * 1024 * 1024)).toBe('3.0 MB');
-    expect(mediaUrl('/uploads/products/t1/img_1.png')).toBe('/api/uploads/products/t1/img_1.png');
+    expect(mediaUrl('/uploads/products/t1/img_1.png', 'https://api.example.com/api/v1')).toBe('https://api.example.com/uploads/products/t1/img_1.png');
+    expect(mediaUrl('uploads/a.png', 'https://api.example.com/api/v1/')).toBe('https://api.example.com/uploads/a.png');
     expect(mediaUrl('https://cdn.example.com/a.png')).toBe('https://cdn.example.com/a.png');
     expect(mediaUrl(null)).toBe('');
   });

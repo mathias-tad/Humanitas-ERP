@@ -158,6 +158,11 @@ const ProductPriceListsPage = lazy(() => import("./pages/products/PriceListsPage
 const ProductLabelsPage = lazy(() => import("./pages/products/LabelsPage"));
 const ProductReportsPage = lazy(() => import("./pages/products/ProductReportsPage"));
 const ProductSettingsPage = lazy(() => import("./pages/products/ProductSettingsPage"));
+const CrmLeadsPage = lazy(() => import("./pages/crm/LeadsPage"));
+const CrmOpportunitiesPage = lazy(() => import("./pages/crm/OpportunitiesPage"));
+const CrmActivitiesPage = lazy(() => import("./pages/crm/ActivitiesPage"));
+const CrmForecastPage = lazy(() => import("./pages/crm/ForecastPage"));
+const CrmSetupPage = lazy(() => import("./pages/crm/CrmSetupPage"));
 const ContactsPage = lazy(() => import("./pages/contacts/ContactsPage"));
 const CustomersPage = lazy(() => import("./pages/contacts/ContactsPage").then((m) => ({ default: m.CustomersPage })));
 const ContactCategoriesPage = lazy(() => import("./pages/contacts/ContactCategoriesPage"));
@@ -636,6 +641,12 @@ function AppRoutes() {
         <Route path="/contacts" element={<PermissionRoute module="contacts" permission="view_contacts"><ContactsPage /></PermissionRoute>} />
         <Route path="/customers" element={<PermissionRoute module="contacts" permission="view_contacts"><CustomersPage /></PermissionRoute>} />
         <Route path="/contacts/categories" element={<PermissionRoute module="contacts" permission="view_contact_categories"><ContactCategoriesPage /></PermissionRoute>} />
+        <Route path="/crm" element={<Navigate to="/crm/opportunities" replace />} />
+        <Route path="/crm/leads" element={<PermissionRoute module="crm" permission="view_crm_leads"><CrmLeadsPage /></PermissionRoute>} />
+        <Route path="/crm/opportunities" element={<PermissionRoute module="crm" permission="view_crm_opportunities"><CrmOpportunitiesPage /></PermissionRoute>} />
+        <Route path="/crm/activities" element={<PermissionRoute module="crm" permission="view_crm_activities"><CrmActivitiesPage /></PermissionRoute>} />
+        <Route path="/crm/forecast" element={<PermissionRoute module="crm" permission="view_crm_opportunities"><CrmForecastPage /></PermissionRoute>} />
+        <Route path="/crm/setup" element={<PermissionRoute module="crm" permission="view_crm_setup"><CrmSetupPage /></PermissionRoute>} />
         <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
 
         <Route path="/inventory" element={<ComingSoonModulePage moduleKey="inventory" />} />

@@ -238,6 +238,26 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
     },
   ],
 
+  crm: [
+    {
+      title: "Pipeline",
+      items: [
+        { title: "Opportunities", url: "/crm/opportunities", icon: FolderKanban, permissions: ["view_crm_opportunities"] },
+        { title: "Leads", url: "/crm/leads", icon: UserPlus, permissions: ["view_crm_leads"] },
+        { title: "My Activities", url: "/crm/activities", icon: CheckSquare, permissions: ["view_crm_activities"] },
+        { title: "Customers", url: "/customers", icon: Users, permissions: ["view_contacts"] },
+        { title: "All Contacts", url: "/contacts", icon: Building2, permissions: ["view_contacts"] },
+      ],
+    },
+    {
+      title: "Insights & Set-up",
+      items: [
+        { title: "Forecast", url: "/crm/forecast", icon: TrendingUp, permissions: ["view_crm_opportunities"] },
+        { title: "CRM Set-up", url: "/crm/setup", icon: Settings, permissions: ["view_crm_setup"] },
+      ],
+    },
+  ],
+
   sales: [
     {
       title: "Sales & Invoicing",

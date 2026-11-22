@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { API_BASE_URL, getUploadUrl } from '@/config/api.config';
+import { API_BASE_URL } from '@/config/api.config';
 import { getAuthHeaders } from '@/context/AuthContext';
 import { productKeys, scopeKey, toQueryString, type ProductType } from '@/hooks/useProducts';
 
@@ -136,8 +136,21 @@ export const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 export const ATTACHMENT_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.pptx,.txt,.csv,image/jpeg,image/png,image/webp';
 
-/** Where a stored picture or file is served from (the browser cannot reach a bare /uploads path in production). */
-export const mediaUrl = (path: string | null | undefined) => (path ? getUploadUrl(path) : '');
+/**
+ * Where a stored picture or file is served from: the API's own address (https://api…/uploads/…).
+ * The web app's server has no /uploads or /api/uploads route, so a relative path shows a broken image.
+ */
+export function mediaUrl(path: string | null | undefined, apiBase: string = API_BASE_URL): string {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  let origin = '';
+  try {
+    origin = new URL(apiBase, typeof window !== 'undefined' ? window.location.origin : 'http://localhost').origin;
+  } catch {
+    origin = '';
+  }
+  return `${origin}${path.startsWith('/') ? '' : '/'}${path}`;
+}
 
 export function fileSizeText(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

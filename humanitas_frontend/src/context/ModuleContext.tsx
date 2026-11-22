@@ -12,6 +12,7 @@ import {
   Calculator,
   Bot,
   Activity,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export type ERPModuleKey =
   | "inventory"
   | "purchasing"
   | "sales"
+  | "crm"
   | "pos"
   | "accounting"
   | "ai"
@@ -100,6 +102,16 @@ export const ALL_ERP_MODULES: Record<ERPModuleKey, ERPModuleInfo> = {
     defaultRoute: "/sales",
     color: "text-teal-600 dark:text-teal-400",
     bgLight: "bg-teal-500/10 dark:bg-teal-500/20",
+  },
+  crm: {
+    key: "crm",
+    label: "CRM",
+    shortLabel: "CRM",
+    description: "Leads, Pipeline Board, Activities & Forecast",
+    icon: Target,
+    defaultRoute: "/crm/opportunities",
+    color: "text-orange-600 dark:text-orange-400",
+    bgLight: "bg-orange-500/10 dark:bg-orange-500/20",
   },
   pos: {
     key: "pos",
@@ -297,6 +309,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         "inventory",
         "purchasing",
         "sales",
+        "crm",
         "pos",
         "accounting",
         "ai",
@@ -313,6 +326,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (feats.some((f: string) => f === "inventory" || f === "*")) result.push("inventory");
     if (feats.some((f: string) => f === "purchasing" || f === "*")) result.push("purchasing");
     if (feats.some((f: string) => f === "sales" || f === "*")) result.push("sales");
+    if (feats.some((f: string) => f === "crm" || f === "*")) result.push("crm");
     if (feats.some((f: string) => f === "pos" || f === "*")) result.push("pos");
     if (feats.some((f: string) => f === "accounting" || f === "*")) result.push("accounting");
     if (feats.some((f: string) => f.startsWith("ai") || f === "*")) result.push("ai");
@@ -331,6 +345,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       inventory: isModuleSubscribed("inventory"),
       purchasing: isModuleSubscribed("purchasing"),
       sales: isModuleSubscribed("sales"),
+      crm: isModuleSubscribed("crm"),
       pos: isModuleSubscribed("pos"),
       accounting: isModuleSubscribed("accounting"),
       ai: isModuleSubscribed("ai"),
@@ -353,6 +368,8 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setActiveModule("purchasing");
     } else if (path.startsWith("/sales")) {
       setActiveModule("sales");
+    } else if (path.startsWith("/crm")) {
+      setActiveModule("crm");
     } else if (path.startsWith("/pos")) {
       setActiveModule("pos");
     } else if (path.startsWith("/accounting")) {

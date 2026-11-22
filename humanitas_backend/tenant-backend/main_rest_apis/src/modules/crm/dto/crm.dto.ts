@@ -136,6 +136,8 @@ export class ListActivitiesQueryDto extends Paged {
   @IsOptional() @IsIn(['overdue', 'today', 'upcoming', 'open', 'done']) when?: 'overdue' | 'today' | 'upcoming' | 'open' | 'done';
   @IsOptional() @IsIn(RELATED_TYPES) related_type?: (typeof RELATED_TYPES)[number];
   @IsOptional() @IsUUID() related_id?: string;
+  /** The viewer's time zone for today / overdue, e.g. Africa/Addis_Ababa. */
+  @IsOptional() @IsString() @Matches(/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/) tz?: string;
 }
 
 // ── Set-up ───────────────────────────────────────────────────────────────────

@@ -44,6 +44,14 @@ const MODULE_FEATURE_HIGHLIGHTS: Record<ERPModuleKey, string[]> = {
     "Landed Cost distribution (Freight, Customs, Insurance) on receipts",
     "Debit Notes, Return to Vendor and RMA tracking",
   ],
+  crm: [
+    "Leads with sources, owners and qualification",
+    "Kanban pipeline board with weighted revenue per stage",
+    "Calls, meetings and follow-ups with overdue reminders",
+    "Weighted forecast by expected close month",
+    "Lead conversion into customers and deals",
+    "Full history on every lead and deal",
+  ],
   sales: [
     "Lead capture and interactive Kanban sales opportunity pipeline",
     "Professional quotation builder with digital customer sign-off",
