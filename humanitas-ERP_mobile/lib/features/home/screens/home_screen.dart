@@ -28,6 +28,7 @@ import '../../leave/screens/admin_leave_screen.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../organization/widgets/company_branch_switcher.dart';
 import '../../products/screens/products_screen.dart';
+import '../../contacts/screens/contacts_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -40,6 +41,7 @@ class HomeScreen extends ConsumerWidget {
     final hasHR = authState.isModuleSubscribed('hrms') || authState.isModuleSubscribed('hr');
     final hasPMS = authState.isModuleSubscribed('pms');
     final hasProducts = authState.isModuleSubscribed('products') && authState.hasPermission('view_products');
+    final hasContacts = authState.isModuleSubscribed('contacts') && authState.hasPermission('view_contacts');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -277,6 +279,10 @@ class HomeScreen extends ConsumerWidget {
                 if (hasProducts)
                   _QuickActionItem(icon: Icons.inventory_2_outlined, color: AppColors.success, label: 'Products', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProductsScreen()));
+                  }),
+                if (hasContacts)
+                  _QuickActionItem(icon: Icons.contacts_outlined, color: AppColors.primary, label: 'Contacts', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ContactsScreen()));
                   }),
                 _QuickActionItem(icon: Icons.chat_bubble_outline, color: AppColors.teal, label: 'Messages', onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ConversationsScreen()));

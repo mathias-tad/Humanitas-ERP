@@ -63,6 +63,11 @@ class AuthState {
     final m = module.toLowerCase().trim();
     if (enabledFeatures.contains('*')) return true;
     if (enabledFeatures.contains(m)) return true;
+    // Shared bases open with any module that uses them (same as the server's MODULE_FAMILIES).
+    const families = {
+      'contacts': ['crm', 'sales', 'pos', 'accounting', 'purchasing', 'ecommerce', 'delivery'],
+    };
+    if (families[m]?.any(enabledFeatures.contains) ?? false) return true;
     if ((m == 'hrms' || m == 'hr') &&
         (enabledFeatures.contains('hrms') ||
          enabledFeatures.contains('hr') ||
