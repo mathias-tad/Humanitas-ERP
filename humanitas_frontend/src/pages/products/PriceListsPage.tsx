@@ -19,12 +19,15 @@ import { useShortcuts, shortcutHint } from '@/lib/shortcuts';
 import '@/components/products/registerProductEntities';
 import {
   downloadComparisonCsv, ruleInputProblem, rulePriceText, ruleTarget, useArchivePriceList, useArchiveRule, usePriceCompare,
-  usePriceList, usePriceLists, useSavePriceList, useSaveRule,
+  useAddRulesForProducts, usePriceList, usePriceLists, useSavePriceList, useSaveRule,
   type PriceList, type PriceRule, type PriceRuleInput, type RuleCompute, type RuleScope,
 } from '@/hooks/usePriceLists';
 
-const SCOPES: { value: RuleScope; label: string }[] = [
+/** "Several products" makes one rule per product in one step. */
+type DialogScope = RuleScope | 'products';
+const SCOPES: { value: DialogScope; label: string }[] = [
   { value: 'product', label: 'A product' },
+  { value: 'products', label: 'Several products' },
   { value: 'category', label: 'A category' },
   { value: 'all', label: 'Every product' },
 ];
@@ -275,7 +278,9 @@ function ListDialog({ target, onClose, onSaved }: { target: PriceList | 'new' | 
 
 function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceRule | 'new' | null; onClose: () => void }) {
   const save = useSaveRule();
-  const [scope, setScope] = useState<RuleScope>('product');
+  const saveMany = useAddRulesForProducts();
+  const [scope, setScope] = useState<DialogScope>('product');
+  const [many, setMany] = useState<{ id: string; name: string }[]>([]);
   const [productId, setProductId] = useState<string | null>(null);
   const [productLabel, setProductLabel] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -291,6 +296,7 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
     setPrev(key);
     const r = target && target !== 'new' ? target : null;
     setScope(r?.applies_to ?? 'product');
+    setMany([]);
     setProductId(r?.product_id ?? null);
     setProductLabel(r?.product_name ?? null);
     setCategoryId(r?.category_id ?? null);
@@ -304,8 +310,8 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
   if (!target) return null;
   const existing = target !== 'new' ? target : null;
   const input: PriceRuleInput = {
-    applies_to: scope,
-    product_id: scope === 'product' ? productId : null,
+    applies_to: scope === 'products' ? 'product' : scope,
+    product_id: scope === 'product' ? productId : scope === 'products' ? (many[0]?.id ?? null) : null,
     category_id: scope === 'category' ? categoryId : null,
     min_quantity: Number(minQty || 0),
     compute,
@@ -314,14 +320,20 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
     date_start: dateStart || null,
     date_end: dateEnd || null,
   };
-  const problem = ruleInputProblem(input, list.currency);
+  const problem = scope === 'products' && !many.length ? 'Add the products' : ruleInputProblem(input, list.currency);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (problem) return;
     try {
-      await save.mutateAsync({ listId: list.id, ruleId: existing?.id, input });
-      toast.success(existing ? 'Rule saved' : 'Rule added');
+      if (scope === 'products') {
+        const rule = { min_quantity: input.min_quantity, compute: input.compute, fixed_price: input.fixed_price, percent: input.percent, date_start: input.date_start, date_end: input.date_end };
+        const r = await saveMany.mutateAsync({ listId: list.id, productIds: many.map((m) => m.id), rule });
+        toast.success(`${r.added} rule${r.added === 1 ? '' : 's'} added`);
+      } else {
+        await save.mutateAsync({ listId: list.id, ruleId: existing?.id, input });
+        toast.success(existing ? 'Rule saved' : 'Rule added');
+      }
       onClose();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -339,9 +351,9 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="r-scope">Applies to</Label>
-              <Select value={scope} onValueChange={(v) => setScope(v as RuleScope)}>
+              <Select value={scope} onValueChange={(v) => setScope(v as DialogScope)}>
                 <SelectTrigger id="r-scope" className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>{SCOPES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                <SelectContent>{SCOPES.filter((s) => !existing || s.value !== 'products').map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
@@ -353,6 +365,27 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
                 <Label htmlFor="r-product">Product</Label>
                 <EntityPicker id="r-product" type="price_rule_product" value={productId} valueLabel={productLabel}
                   onChange={(pid, rec) => { setProductId(pid); setProductLabel((rec as { name?: string } | undefined)?.name ?? null); }} placeholder="Search products" />
+              </div>
+            )}
+            {scope === 'products' && (
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="r-products">Products (one rule for each)</Label>
+                <EntityPicker id="r-products" type="price_rule_product" value={null} valueLabel={null}
+                  onChange={(pid, rec) => {
+                    if (pid && !many.some((m) => m.id === pid)) setMany((cur) => [...cur, { id: pid, name: (rec as { name?: string } | undefined)?.name ?? pid }]);
+                  }}
+                  placeholder="Search and add products" />
+                {many.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {many.map((m) => (
+                      <Badge key={m.id} variant="secondary" className="gap-1">
+                        {m.name}
+                        <button type="button" aria-label={`Remove ${m.name}`} onClick={() => setMany((cur) => cur.filter((x) => x.id !== m.id))}>×</button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">For every product choose “Every product”; for a whole category choose “A category”.</p>
               </div>
             )}
             {scope === 'category' && (
@@ -387,7 +420,7 @@ function RuleDialog({ list, target, onClose }: { list: PriceList; target: PriceR
           {problem && <p className="text-xs text-destructive" role="alert">{problem}</p>}
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={save.isPending || !!problem}>{save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {existing ? 'Save rule' : 'Add rule'}</Button>
+            <Button type="submit" disabled={save.isPending || saveMany.isPending || !!problem}>{(save.isPending || saveMany.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {existing ? 'Save rule' : scope === 'products' && many.length ? `Add ${many.length} rule${many.length === 1 ? '' : 's'}` : 'Add rule'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

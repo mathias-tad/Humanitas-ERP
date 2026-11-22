@@ -329,6 +329,11 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "edit_price_lists", label: "Edit Price Lists & Rules", group: "Price Lists", module: "products" },
   { id: "delete_price_lists", label: "Archive Price Lists", group: "Price Lists", module: "products" },
   { id: "export_price_lists", label: "Export Price Comparison", group: "Price Lists", module: "products" },
+  // Labels
+  { id: "view_label_templates", label: "Print Labels (view templates)", group: "Labels", module: "products" },
+  { id: "create_label_templates", label: "Create Label Templates", group: "Labels", module: "products" },
+  { id: "edit_label_templates", label: "Edit Label Templates", group: "Labels", module: "products" },
+  { id: "delete_label_templates", label: "Archive Label Templates", group: "Labels", module: "products" },
 ];
 
 export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));

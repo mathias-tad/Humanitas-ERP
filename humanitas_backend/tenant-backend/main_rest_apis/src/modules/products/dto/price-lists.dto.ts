@@ -1,5 +1,6 @@
+import { OmitType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 
 export const RULE_SCOPES = ['product', 'category', 'all'] as const;
 export const RULE_COMPUTES = ['fixed', 'discount', 'markup'] as const;
@@ -37,6 +38,11 @@ export class PriceRuleDto {
   @IsOptional() @IsDateString() date_start?: string | null;
   @IsOptional() @IsDateString() date_end?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100000) sort_order?: number;
+}
+
+/** The same rule for several products at once: one rule per product. */
+export class BulkPriceRulesDto extends OmitType(PriceRuleDto, ['applies_to', 'product_id', 'category_id'] as const) {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(500) @IsUUID('all', { each: true }) product_ids: string[];
 }
 
 export class UpdatePriceRuleDto {

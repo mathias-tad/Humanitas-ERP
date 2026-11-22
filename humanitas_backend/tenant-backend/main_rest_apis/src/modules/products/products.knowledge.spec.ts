@@ -10,7 +10,8 @@ describe('Products AI knowledge entries', () => {
   const sql = readFileSync(join(__dirname, '../../migrations/tenant/20261121000003_ai_knowledge_products.sql'), 'utf8');
   const variantsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000002_ai_knowledge_product_variants.sql'), 'utf8');
   const priceListsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000006_ai_knowledge_price_lists.sql'), 'utf8');
-  const allSql = sql + variantsSql + priceListsSql;
+  const labelsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000009_ai_knowledge_labels.sql'), 'utf8');
+  const allSql = sql + variantsSql + priceListsSql + labelsSql;
 
   it.each(['/products', '/products/categories', '/products/uoms'])('describes the %s page', (route) => {
     expect(sql).toContain(`'${route}'`);
@@ -18,6 +19,12 @@ describe('Products AI knowledge entries', () => {
 
   it.each(ALL_PRODUCTS_PERMISSIONS)('mentions the %s permission', (permission) => {
     expect(allSql).toContain(`"${permission}"`);
+  });
+
+  it('describes label printing, and says on mobile that it is done on the web (rules 20, 24.27)', () => {
+    expect(labelsSql).toContain(`'/products/labels'`);
+    expect(labelsSql).toContain(`'Barcode and Price Labels'`);
+    expect(labelsSql).toMatch(/"mobile": \[".*web app/);
   });
 
   it('describes price lists and product prices on web and mobile (rule 20)', () => {

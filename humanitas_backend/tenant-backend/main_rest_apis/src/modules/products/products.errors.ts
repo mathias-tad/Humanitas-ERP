@@ -16,6 +16,7 @@ const MESSAGES: Record<string, string> = {
   uq_products_variant_combination: 'This product already has a variant with these values',
   uq_price_lists_name: 'A price list with this name already exists',
   uq_price_lists_one_default: 'Only one price list can be the default',
+  uq_label_templates_name: 'A label template with this name already exists',
 };
 
 export function rethrowCatalogConflict(err: unknown): never {

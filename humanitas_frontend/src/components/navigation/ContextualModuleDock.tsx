@@ -184,7 +184,7 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
         { title: "Units of Measure", url: "/products/uoms", icon: Ruler, permissions: ["view_uoms"] },
         { title: "Attributes & Variants", url: "/products/attributes", icon: Shapes, permissions: ["view_product_attributes"] },
         { title: "Price Lists", url: "/products/pricelists", icon: Tag, permissions: ["view_price_lists"] },
-        { title: "QR & Barcode Studio", url: "/products/qr-studio", icon: QrCode },
+        { title: "Barcode & Price Labels", url: "/products/labels", icon: QrCode, permissions: ["view_label_templates"] },
       ],
     },
     {

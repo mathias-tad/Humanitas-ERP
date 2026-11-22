@@ -76,7 +76,8 @@ export default function FeaturesPage() {
             features: [
                 "Products with nested categories, sales and purchase units with conversion ratios, and several barcodes per product (unit, box, pallet)",
                 "Attributes and variant matrix (Size × Color…): every combination becomes its own product with SKU, barcodes, cost, price extra and MoR item code",
-                "Price lists for Retail, Wholesale, Distributor and VIP: fixed price, % off or % on cost, by product, category or everything, quantity breaks and promotion dates",
+                "Price lists for Retail, Wholesale, Distributor and VIP: fixed price, % off or % on cost, by product, several products at once, category or everything, quantity breaks and promotion dates",
+                "Barcode, QR and price label printing: EAN-13 / Code 128 / QR, label rolls and A4 sticker sheets, saved label sizes, prices from any price list",
                 "USB, Bluetooth and phone-camera barcode scanning on every screen, with check-digit validation against misreads",
                 "Ethiopian MoR (EIMS) fields on every product: item code, tax code, HS code, excise and readiness check before invoicing",
                 "Full change history per product showing who changed what, from the web or the mobile app",

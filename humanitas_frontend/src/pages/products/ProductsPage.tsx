@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { BadgeCheck, Camera, Download, Package, Plus, Search, Settings2, TriangleAlert } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BadgeCheck, Camera, Download, Package, Plus, Printer, Search, Settings2, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ const ALL = '__all__';
 export default function ProductsPage() {
   const { hasPermission } = useAuth();
   const drawer = useRecordDrawer();
+  const navigate = useNavigate();
   const [scanOpen, setScanOpen] = useState(false);
   const [scannerSettingsOpen, setScannerSettingsOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -90,6 +91,11 @@ export default function ProductsPage() {
         description="Your product catalog: goods, consumables and services with units, prices and barcodes."
         actions={
           <div className="flex gap-2">
+            {hasPermission('view_label_templates') && (
+              <Button variant="outline" onClick={() => navigate('/products/labels')}>
+                <Printer className="mr-2 h-4 w-4" /> Print labels
+              </Button>
+            )}
             {hasPermission('export_products') && (
               <Button variant="outline" onClick={() => downloadProductsCsv(filters).catch((e) => toast.error(errorMessage(e)))} title={shortcutHint('Export to CSV', 'e')}>
                 <Download className="mr-2 h-4 w-4" /> Export CSV

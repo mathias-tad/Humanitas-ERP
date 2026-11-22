@@ -12,7 +12,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 73 | 73 | 0 | 100% |
-| 1. Products & Catalog Management | 36 | 10 | 26 | 28% |
+| 1. Products & Catalog Management | 36 | 11 | 25 | 31% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1242** | **553** | **689** | **45%** |
+| **TOTAL** | **1242** | **554** | **688** | **45%** |
 
 ---
 
@@ -207,7 +207,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [ ] **QR & Barcode Automation Engine**:
   - [ ] Automated cryptographic QR code generation with tamper-proof validation.
   - [ ] Standard Barcode generation (Code-128, EAN-13, UPC).
-  - [ ] Printable QR/Barcode label templates (customizable label size, price tag, SKU, and barcode sticker printing).
+  - [x] Printable QR/Barcode label templates (customizable label size, price tag, SKU, and barcode sticker printing).
   - [x] Mobile & Web camera scanner integration for rapid product lookups.
   - [x] USB and Bluetooth barcode scanners work on any Products screen without clicking a field (scan to open a product, scan to add a barcode, scan an unknown code to create the product); Sales and POS use the same hook.
 - [ ] **Units of Measure (UOM) Engine**:

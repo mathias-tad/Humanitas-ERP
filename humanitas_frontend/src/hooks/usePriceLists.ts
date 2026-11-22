@@ -166,6 +166,16 @@ export function useSaveRule() {
   });
 }
 
+/** One rule per product for several products at once (POST /price-lists/:id/rules/bulk). */
+export function useAddRulesForProducts() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ listId, productIds, rule }: { listId: string; productIds: string[]; rule: Omit<PriceRuleInput, 'applies_to' | 'product_id' | 'category_id'> }) =>
+      api.post<{ added: number }>(`/price-lists/${listId}/rules/bulk`, { ...rule, product_ids: productIds }),
+    onSuccess: invalidate,
+  });
+}
+
 export function useArchiveRule() {
   const invalidate = useInvalidate();
   return useMutation({

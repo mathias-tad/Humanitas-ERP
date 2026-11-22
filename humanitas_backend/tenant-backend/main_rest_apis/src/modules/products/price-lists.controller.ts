@@ -8,7 +8,7 @@ import { PRICE_LIST_PERMISSIONS as P } from './products.permissions';
 import { PriceListsService } from './price-lists.service';
 import { catalogContext } from './products.context';
 import {
-  CompareQueryDto, CreatePriceListDto, ListPriceListsQueryDto, PriceQueryDto, PriceRuleDto, UpdatePriceListDto, UpdatePriceRuleDto,
+  BulkPriceRulesDto, CompareQueryDto, CreatePriceListDto, ListPriceListsQueryDto, PriceQueryDto, PriceRuleDto, UpdatePriceListDto, UpdatePriceRuleDto,
 } from './dto/price-lists.dto';
 
 /** Price lists (Retail, Wholesale, VIP…) and line prices for Sales, POS and the online store. */
@@ -89,6 +89,13 @@ export class PriceListsController {
   @RequirePermissions(P.edit)
   addRule(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: PriceRuleDto) {
     return this.lists.addRule(catalogContext(req), id, dto);
+  }
+
+  /** The same rule for several products at once (one rule per product). */
+  @Post(':id/rules/bulk')
+  @RequirePermissions(P.edit)
+  addRules(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: BulkPriceRulesDto) {
+    return this.lists.addRules(catalogContext(req), id, dto);
   }
 
   @Patch(':id/rules/:ruleId')

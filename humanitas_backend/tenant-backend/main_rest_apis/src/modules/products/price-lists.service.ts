@@ -14,7 +14,7 @@ import {
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import { priceFor, ruleProblem, type PriceRule, type PricedProduct, type PriceResult } from './price-lists.pricing';
-import type { CompareQueryDto, CreatePriceListDto, PriceQueryDto, PriceRuleDto, UpdatePriceListDto, UpdatePriceRuleDto } from './dto/price-lists.dto';
+import type { BulkPriceRulesDto, CompareQueryDto, CreatePriceListDto, PriceQueryDto, PriceRuleDto, UpdatePriceListDto, UpdatePriceRuleDto } from './dto/price-lists.dto';
 
 /** The currency product prices are kept in. */
 export const BASE_CURRENCY = 'ETB';
@@ -185,6 +185,42 @@ export class PriceListsService {
     return this.findRule(conn, listId, row.id);
   }
 
+  /** The same rule for several products at once: one rule per product, all or nothing. */
+  async addRules(ctx: CatalogContext, listId: string, dto: BulkPriceRulesDto) {
+    const { conn, scope } = await this.open(ctx);
+    const list = await this.findVisible(conn, scope, listId);
+    const ids = [...new Set(dto.product_ids)];
+    const { product_ids: _ids, ...ruleFields } = dto;
+    void _ids;
+    const rule = this.normalizeRule({ ...ruleFields, applies_to: 'product', product_id: ids[0] } as PriceRuleDto);
+    const problem = ruleProblem(rule, list.currency, BASE_CURRENCY);
+    if (problem) throw new BadRequestException(problem);
+    const found: { id: string; company_id: string | null; is_active: boolean }[] = await conn.query(
+      `SELECT id, company_id, is_active FROM products WHERE id = ANY($1::uuid[])`, [ids],
+    );
+    const byId = new Map(found.map((p) => [p.id, p]));
+    const bad = ids.filter((id) => {
+      const p = byId.get(id);
+      return !p || !isVisible(scope, p.company_id) || !p.is_active;
+    });
+    if (bad.length) {
+      throw new BadRequestException(`${bad.length} of the chosen products ${bad.length === 1 ? 'is' : 'are'} archived or not found; nothing was added`);
+    }
+    await conn.transaction(async (m: Queryable) => {
+      for (const id of ids) {
+        await m.query(
+          `INSERT INTO price_list_items (price_list_id, applies_to, product_id, category_id, min_quantity, compute, fixed_price, percent,
+                                         date_start, date_end, sort_order, created_by, updated_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
+          [listId, 'product', id, null, rule.min_quantity, rule.compute, rule.fixed_price, rule.percent,
+            rule.date_start, rule.date_end, rule.sort_order, ctx.user?.sub ?? null],
+        );
+      }
+    });
+    await this.record(ctx, listId, 'updated', `${ids.length} product rule${ids.length === 1 ? '' : 's'} added to "${list.name}"`);
+    return { added: ids.length };
+  }
+
   async updateRule(ctx: CatalogContext, listId: string, ruleId: string, dto: UpdatePriceRuleDto) {
     const { conn, scope } = await this.open(ctx);
     const list = await this.findVisible(conn, scope, listId);
@@ -221,6 +257,22 @@ export class PriceListsService {
     const quantity = q.quantity ?? 1;
     const res = priceFor(rules.get(listId) ?? [], this.priced(product, paths), quantity, q.date?.slice(0, 10) ?? today());
     return { ...res, price_list_id: listId, currency: list.currency, quantity };
+  }
+
+  /** Prices of many products on one list (labels and price tags). Products with variants are left out: their variants carry the prices. */
+  async prices(ctx: CatalogContext, q: { product_ids: string[]; price_list_id?: string; quantity?: number }) {
+    const { conn, scope } = await this.open(ctx);
+    const listId = q.price_list_id ?? (await this.getDefault(ctx)).id;
+    const list = await this.findVisible(conn, scope, listId);
+    if (!list.is_active) throw new BadRequestException('This price list is archived');
+    const products = await this.products(conn, scope, { ids: [...new Set(q.product_ids)] });
+    const paths = await this.paths(conn);
+    const rules = (await this.rulesFor(conn, [listId])).get(listId) ?? [];
+    const quantity = q.quantity ?? 1;
+    const day = today();
+    const prices: Record<string, number> = {};
+    for (const p of products) if (!p.has_variants) prices[p.id] = priceFor(rules, this.priced(p, paths), quantity, day).price;
+    return { price_list_id: listId, price_list_name: list.name as string, currency: list.currency as string, quantity, prices };
   }
 
   /** A product's price on every active list (the product's Prices tab). */

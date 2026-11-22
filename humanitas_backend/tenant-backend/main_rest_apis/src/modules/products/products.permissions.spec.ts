@@ -15,7 +15,7 @@ describe('Products permissions (rule 27)', () => {
   });
 
   it('defines separate view/create/edit/delete for every resource', () => {
-    for (const r of ['products', 'product_categories', 'uoms', 'product_attributes', 'price_lists']) {
+    for (const r of ['products', 'product_categories', 'uoms', 'product_attributes', 'price_lists', 'label_templates']) {
       for (const a of ['view', 'create', 'edit', 'delete']) expect(ALL_PRODUCTS_PERMISSIONS).toContain(`${a}_${r}`);
     }
   });
