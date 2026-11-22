@@ -26,6 +26,8 @@ import {
   XCircle,
   RefreshCw,
 } from "lucide-react";
+import { Building2 as CompanyAccessIcon } from "lucide-react";
+import { UserCompanyAccessEditor } from "./UserCompanyAccessEditor";
 import { API_BASE_URL } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -84,7 +86,7 @@ interface UserModalProps {
   roles: Role[];
 }
 
-type TabType = "basic" | "address" | "personal" | "emergency" | "employment" | "biometrics";
+type TabType = "basic" | "address" | "personal" | "emergency" | "employment" | "biometrics" | "access";
 
 export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("basic");
@@ -385,6 +387,7 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     { id: "emergency" as TabType, label: "Emergency", icon: Phone },
     { id: "employment" as TabType, label: "Employment", icon: Briefcase },
     ...(isEditMode ? [{ id: "biometrics" as TabType, label: "Biometrics", icon: Fingerprint }] : []),
+    ...(isEditMode ? [{ id: "access" as TabType, label: "Company access", icon: CompanyAccessIcon }] : []),
   ];
 
 
@@ -995,6 +998,8 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
           )}
 
           {/* Biometrics Tab */}
+          {activeTab === "access" && user?.id && <UserCompanyAccessEditor userId={user.id} />}
+
           {activeTab === "biometrics" && (
             <div className="space-y-4">
               {isLoadingBiometrics ? (

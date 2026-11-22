@@ -1,4 +1,6 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
+import { SearchIndexModule } from './modules/search-index/search-index.module';
+import { CompanyScopeModule } from './modules/company-scope/company-scope.module';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -65,6 +67,8 @@ dns.setDefaultResultOrder('ipv4first');
 
 @Module({
   imports: [
+    SearchIndexModule,
+    CompanyScopeModule,
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,

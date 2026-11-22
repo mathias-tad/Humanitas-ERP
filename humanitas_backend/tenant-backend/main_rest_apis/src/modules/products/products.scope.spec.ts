@@ -21,7 +21,8 @@ describe('company scope for catalog records', () => {
     expect(isVisible(s, null)).toBe(true);
     expect(isVisible(s, A)).toBe(true);
     expect(isVisible(s, B)).toBe(false);
-    expect((await resolveCompanyScope(conn(null), user('staff'))).companyIds).toEqual([]);
+    // No company assigned in a single-company tenant: the user works in that company.
+    expect((await resolveCompanyScope(conn(null), user('staff'))).companyIds).toBeNull();
   });
 
   it('builds a parameterized SQL filter', async () => {
@@ -30,9 +31,10 @@ describe('company scope for catalog records', () => {
     expect(companyFilter(await resolveCompanyScope(conn(A), user('admin')), 'p', 1)).toBeNull();
   });
 
-  it('only lets non-org-wide users assign shared or own-company records', async () => {
+  it('lets non-org-wide users assign records only to their own companies, never shared with all', async () => {
     const s = await resolveCompanyScope(conn(A), user('staff'));
-    expect(() => assertCompanyAssignable(s, null)).not.toThrow();
+    expect(() => assertCompanyAssignable(s, null)).toThrow(ForbiddenException);
+    expect(() => assertCompanyAssignable(s, undefined)).not.toThrow();
     expect(() => assertCompanyAssignable(s, A)).not.toThrow();
     expect(() => assertCompanyAssignable(s, B)).toThrow(ForbiddenException);
   });

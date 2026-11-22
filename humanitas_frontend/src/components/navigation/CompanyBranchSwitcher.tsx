@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { API_BASE_URL } from '@/config/api.config';
+import { pruneScope, useCompanyScope } from '@/hooks/useCompanyScope';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -18,8 +18,6 @@ interface Branch { id: string; company_id: string; company_name?: string; name: 
 
 export const CompanyBranchSwitcher: React.FC = () => {
   const {
-    hasAnyPermission,
-    user,
     activeCompanyIds,
     activeBranchIds,
     setActiveCompanies,
@@ -30,45 +28,41 @@ export const CompanyBranchSwitcher: React.FC = () => {
     clearBranchScope,
   } = useAuth();
   
-  const canViewAllCompanies = hasAnyPermission(['view_all_companies', 'manage_companies']);
-  const canViewAllBranches = hasAnyPermission(['view_all_branches', 'manage_branches']);
+  // Only the companies and branches this user may use (GET /me/company-scope, AGENTS.md rule 16).
+  const scopeQ = useCompanyScope();
+  const scope = scopeQ.data;
+  const companies: Company[] = (scope?.companies ?? []).map((c) => ({ id: c.id, name: c.name, is_default: c.is_default }));
+  const branches: Branch[] = (scope?.companies ?? [])
+    .filter((c) => activeCompanyIds.length === 0 || activeCompanyIds.includes(c.id))
+    .flatMap((c) => c.branches.map((b) => ({ id: b.id, company_id: c.id, company_name: c.name, name: b.name, is_default: b.is_default })));
+  const canViewAllCompanies = companies.length > 1;
+  const canViewAllBranches = branches.length > 1;
   const isLocked = !canViewAllCompanies && !canViewAllBranches;
+  const allCompaniesLabel = scope?.all_companies ? 'All Companies' : 'All my companies';
+  const allBranchesLabel = scope?.all_branches ? 'All Branches' : 'All my branches';
 
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-
+  // A remembered choice the user may no longer use (access changed, another user signed in here) is dropped.
   useEffect(() => {
-    if (!canViewAllCompanies) return;
-    fetch(`${API_BASE_URL}/settings/companies`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then(setCompanies)
-      .catch(() => {});
-  }, [canViewAllCompanies]);
-
-  useEffect(() => {
-    if (!canViewAllBranches) return;
-    const url = activeCompanyIds.length > 0
-      ? `${API_BASE_URL}/settings/branches?company_id=${activeCompanyIds.join(',')}`
-      : `${API_BASE_URL}/settings/branches`;
-    fetch(url, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : [])
-      .then(setBranches)
-      .catch(() => {});
-  }, [canViewAllBranches, activeCompanyIds]);
+    if (!scope) return;
+    const p = pruneScope(scope, activeCompanyIds, activeBranchIds);
+    if (!p.changed) return;
+    if (p.companies.length !== activeCompanyIds.length) setActiveCompanies(p.companies);
+    setActiveBranches(p.branches);
+  }, [scope, activeCompanyIds, activeBranchIds, setActiveCompanies, setActiveBranches]);
 
   if (isLocked) {
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-1 border border-border text-xs text-muted-foreground select-none">
         <Lock className="h-3 w-3 text-muted-foreground" />
         <span className="font-medium truncate max-w-[80px] sm:max-w-[120px]">
-          {user?.company_id ? 'Assigned Unit' : 'Main Organization'}
+          {companies[0]?.name ?? 'My company'}{branches.length === 1 ? ` · ${branches[0].name}` : ''}
         </span>
       </div>
     );
   }
 
   const getCompanyLabel = () => {
-    if (activeCompanyIds.length === 0) return 'All Companies';
+    if (activeCompanyIds.length === 0) return allCompaniesLabel;
     if (activeCompanyIds.length === 1) {
       const match = companies.find(c => c.id === activeCompanyIds[0]);
       return match ? match.name : '1 Company';
@@ -82,7 +76,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
   };
 
   const getBranchLabel = () => {
-    if (activeBranchIds.length === 0) return 'All Branches';
+    if (activeBranchIds.length === 0) return allBranchesLabel;
     if (activeBranchIds.length === 1) {
       const match = branches.find(b => b.id === activeBranchIds[0]);
       return match ? match.name : '1 Branch';
@@ -165,7 +159,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
                 {activeCompanyIds.length === 0 && <Check className="h-3 w-3 stroke-[3]" />}
               </div>
               <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>All Companies</span>
+              <span>{allCompaniesLabel}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -290,7 +284,7 @@ export const CompanyBranchSwitcher: React.FC = () => {
                 {activeBranchIds.length === 0 && <Check className="h-3 w-3 stroke-[3]" />}
               </div>
               <GitBranch className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>All Branches</span>
+              <span>{allBranchesLabel}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />

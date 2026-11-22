@@ -34,14 +34,34 @@ export async function resolveCompanyScope(
 ): Promise<CompanyScope> {
   const userId = user?.sub;
   let ownCompanyId: string | null = null;
+  let allowed: string[] = [];
   if (userId) {
     const rows: { company_id: string | null }[] = await conn.query(`SELECT company_id FROM users WHERE id = $1`, [userId]);
     ownCompanyId = rows[0]?.company_id ?? null;
+    // Allowed companies (user_company_access, rule 16); the user's own company when none are listed.
+    const access: { company_id: string | null; is_default?: boolean }[] = await conn
+      .query(`SELECT company_id, is_default FROM user_company_access WHERE user_id = $1 ORDER BY is_default DESC`, [userId])
+      .catch(() => []);
+    allowed = [...new Set(access.map((r) => r.company_id).filter((c): c is string => !!c))];
+    if (allowed.length) ownCompanyId = access.find((r) => r.is_default && r.company_id)?.company_id ?? allowed[0];
+    else if (ownCompanyId) allowed = [ownCompanyId];
   }
-  const canSeeAll = canSeeAllCompanies(user);
-  const selected = headerCompanyId && UUID.test(headerCompanyId) ? headerCompanyId : undefined;
-  if (canSeeAll) return { canSeeAll, ownCompanyId, companyIds: selected ? [selected] : null };
-  return { canSeeAll, ownCompanyId, companyIds: ownCompanyId ? [ownCompanyId] : [] };
+  let canSeeAll = canSeeAllCompanies(user);
+  if (!canSeeAll && !allowed.length) {
+    // No company assigned: in a tenant with a single company the user works in it.
+    const companies: unknown[] = await conn.query(`SELECT id FROM companies WHERE COALESCE(is_active, true) LIMIT 2`).catch(() => []);
+    if (Array.isArray(companies) && companies.length <= 1) canSeeAll = true;
+  }
+  const selected = (headerCompanyId ?? '').split(',').map((s) => s.trim()).filter((s) => UUID.test(s));
+  if (canSeeAll) return { canSeeAll, ownCompanyId, companyIds: selected.length ? selected : null };
+  const picked = selected.filter((s) => allowed.includes(s));
+  return { canSeeAll, ownCompanyId, companyIds: picked.length ? picked : allowed };
+}
+
+/** Company for a new record: the one picked in the switcher (if single and allowed), else the user's default company. */
+export function defaultRecordCompany(scope: CompanyScope): string | null {
+  if (scope.companyIds && scope.companyIds.length === 1) return scope.companyIds[0];
+  return scope.ownCompanyId ?? (scope.canSeeAll ? null : scope.companyIds?.[0] ?? null);
 }
 
 /** SQL fragment (and its parameter) limiting `alias.company_id` to the scope, or null for no filter. */
@@ -56,8 +76,13 @@ export function isVisible(scope: CompanyScope, companyId: string | null | undefi
   return scope.companyIds === null || scope.companyIds.includes(companyId);
 }
 
-/** A user may assign a record to "shared" or to their own company; org-wide users to any company. */
+/**
+ * Org-wide users may put a record in any company or share it with all (company null);
+ * others only in one of their allowed companies.
+ */
 export function assertCompanyAssignable(scope: CompanyScope, companyId: string | null | undefined): void {
-  if (!companyId || scope.canSeeAll || companyId === scope.ownCompanyId) return;
-  throw new ForbiddenException('You can only assign records to your own company');
+  if (companyId === undefined || scope.canSeeAll) return;
+  if (companyId === null) throw new ForbiddenException('Only users with access to every company can share a record with all companies');
+  if ((scope.companyIds ?? []).includes(companyId) || companyId === scope.ownCompanyId) return;
+  throw new ForbiddenException('You can only assign records to your own companies');
 }

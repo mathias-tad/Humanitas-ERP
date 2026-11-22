@@ -7,6 +7,7 @@ import type { CreateProductDto, ListProductsQueryDto, ProductBarcodeDto, UpdateP
 import {
   assertCompanyAssignable,
   companyFilter,
+  defaultRecordCompany,
   isVisible,
   resolveCompanyScope,
   type CompanyScope,
@@ -180,7 +181,9 @@ export class ProductsService {
 
   async create(ctx: CatalogContext, dto: CreateProductDto) {
     const { conn, scope } = await this.open(ctx);
-    assertCompanyAssignable(scope, dto.company_id);
+    // New products go to the current company; org-wide users may share them with all (company null).
+    const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
+    assertCompanyAssignable(scope, companyId);
     const barcodes = normalizeBarcodes(dto.barcodes);
     const uomId = dto.uom_id ?? (await this.defaultUomId(conn));
     const purchaseUomId = dto.purchase_uom_id ?? uomId;
@@ -199,7 +202,7 @@ export class ProductsService {
             dto.sku?.trim() || null, dto.name.trim(), dto.description ?? null, dto.product_type ?? 'consumable',
             dto.category_id ?? null, uomId, purchaseUomId, dto.sales_price ?? 0, dto.cost_price ?? 0,
             dto.tax_code ?? 'VAT15', dto.can_be_sold ?? true, dto.can_be_purchased ?? true, dto.image_url ?? null,
-            dto.company_id ?? null, ctx.user?.sub ?? null, dto.item_code?.trim() || null,
+            companyId ?? null, ctx.user?.sub ?? null, dto.item_code?.trim() || null,
             dto.harmonization_code?.trim() || null, dto.excise_rate ?? null, dto.invoice_description?.trim() || null,
           ],
         );

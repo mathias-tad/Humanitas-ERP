@@ -18,6 +18,7 @@ import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { VariantsPanel } from './VariantsPanel';
+import { CompanyBranchSelect } from '@/components/platform/CompanyBranchSelect';
 import {
   EIMS_ISSUE_TEXT, EIMS_TAX_CODE_LABELS, EIMS_TAX_CODES,
   useArchiveProduct, useCreateProduct, useProduct, useRestoreProduct, useUoms, useUpdateProduct,
@@ -175,6 +176,8 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const [f, setF] = useState<FormState>(() => emptyProductForm(initial));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [scanOpen, setScanOpen] = useState(false);
+  // undefined until known: a new product starts in the current company (rule 16).
+  const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
   const drawer = useRecordDrawer();
   // A variant takes name, type, category, units, tax and description from its parent.
   const isVariant = mode === 'edit' && !!product.data?.parent_id;
@@ -182,7 +185,10 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const isParent = mode === 'edit' && !!product.data?.has_variants;
 
   useEffect(() => {
-    if (mode === 'edit' && product.data) setF(productToForm(product.data));
+    if (mode === 'edit' && product.data) {
+      setF(productToForm(product.data));
+      setCompanyId(product.data.company_id);
+    }
   }, [mode, product.data]);
 
   const canEdit = mode === 'create' ? hasPermission('create_products') : hasPermission('edit_products');
@@ -215,7 +221,9 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     setErrors(errs);
     if (Object.keys(errs).length) return;
     try {
-      const input = formToInput(f);
+      // Company: sent on create, and on edit only when changed.
+      const companyChanged = mode === 'create' ? companyId !== undefined : companyId !== undefined && companyId !== (product.data?.company_id ?? null);
+      const input = { ...formToInput(f), ...(companyChanged && !isVariant ? { company_id: companyId } : {}) };
       const saved = mode === 'create' ? await create.mutateAsync(input) : await update.mutateAsync({ id: id!, input });
       toast.success(mode === 'create' ? `Product “${saved.name}” created` : 'Product saved');
       onSaved(saved);
@@ -284,6 +292,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
             disabled={isVariant}
           />
         </div>
+        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared disabled={isVariant || !canEdit} idPrefix="p" />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="p-uom">Sales unit</Label>

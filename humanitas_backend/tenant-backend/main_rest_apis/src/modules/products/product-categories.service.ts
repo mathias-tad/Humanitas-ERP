@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CreateProductCategoryDto, UpdateProductCategoryDto } from './dto/products.dto';
-import { assertCompanyAssignable, companyFilter, isVisible, resolveCompanyScope, type CompanyScope, type Queryable } from './products.scope';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import type { CatalogContext } from './products.service';
 
@@ -57,12 +57,13 @@ export class ProductCategoriesService {
 
   async create(ctx: CatalogContext, dto: CreateProductCategoryDto) {
     const { conn, scope } = await this.open(ctx);
-    assertCompanyAssignable(scope, dto.company_id);
+    const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
+    assertCompanyAssignable(scope, companyId);
     if (dto.parent_id) await this.findVisible(conn, scope, dto.parent_id, 'Parent category not found');
     const [row] = await conn.query(
         `INSERT INTO product_categories (name, parent_id, code, description, company_id, created_by, updated_by, excise_rate)
          VALUES ($1,$2,$3,$4,$5,$6,$6,$7) RETURNING *`,
-        [dto.name.trim(), dto.parent_id ?? null, dto.code?.trim() || null, dto.description ?? null, dto.company_id ?? null,
+        [dto.name.trim(), dto.parent_id ?? null, dto.code?.trim() || null, dto.description ?? null, companyId ?? null,
          ctx.user?.sub ?? null, dto.excise_rate ?? 0],
       ).catch(rethrowCatalogConflict);
     await this.timeline.record(ctx.tenantId, {

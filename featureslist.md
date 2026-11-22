@@ -51,7 +51,8 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 37. Quality Guardrails & Regression Prevention | 19 | 1 | 18 | 5% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
-| **TOTAL** | **1150** | **551** | **599** | **48%** |
+| 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
+| **TOTAL** | **1170** | **551** | **619** | **47%** |
 
 ---
 
@@ -1567,3 +1568,30 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
   - [ ] Hosting evidence: data centre in Ethiopia (Tier III), replication across two data centres, registered public IPs.
   - [ ] Support centre evidence: help website with knowledge base, ticketing and status page, plus phone support (uses §32 VoIP).
   - [ ] Accreditation pack: SRS, completed MoR checklist with the inspected system number, INSA security clearance.
+
+---
+
+## 40. 🪪 National ID (Fayda) Verification (`/settings/national-id`)
+
+*Planned: built when scheduled, in both Humanitas and Humanitas-ERP. Uses Ethiopia's Fayda digital ID through VeriFayda 2.0 (eSignet), the National ID Program's OpenID Connect service (id.gov.et), so people prove who they are and consent before their verified details are shared.*
+
+- [ ] **Connection & Credentials**:
+  - [ ] Relying-party registration with the National ID Program: client ID and private key per environment (test / production), encrypted at rest, never logged or committed.
+  - [ ] OpenID Connect authorization-code flow with PKCE, state and nonce, signed client assertion, requested claims and languages (English / Amharic); ID token and user-info signatures validated.
+  - [ ] Settings page: turn on/off, environment, test connection, which details to request.
+- [ ] **Register Users with Fayda**:
+  - [ ] "Register with Fayda" on Add user / Add employee (web and mobile): the person signs in with Fayda (FIN or FAN with OTP or biometrics), consents, and name, date of birth, gender, phone, email, address, nationality and photo are filled in automatically.
+  - [ ] Self-registration and onboarding links: a new hire verifies with Fayda before their account is created.
+  - [ ] Verified details are locked; changing them needs a new verification or an admin with a recorded reason.
+  - [ ] One Fayda identity per user per tenant (duplicate registrations blocked).
+- [ ] **Verify Existing Users**:
+  - [ ] "Verify with Fayda" on a user's profile and in self-service: compares Fayda's details with the stored ones and shows the differences to accept.
+  - [ ] Verification status on every user (Verified / Not verified / Mismatch / Expired) with date and method, a filter in the directory and a report.
+  - [ ] Ask many users to verify at once; optional re-verification interval.
+- [ ] **Privacy & Compliance**:
+  - [ ] Keep only what is needed: Fayda's subject token and a hash of the FIN (never the raw number in logs); the photo stored encrypted in the document vault.
+  - [ ] Consent record (what was shared, when, for what) on the user's timeline; data removed with the user under the retention rules.
+  - [ ] Granular permissions (`view_national_id`, `verify_national_id`, `edit_national_id_settings`), timeline events and an audit log for every verification.
+- [ ] **Connected Features**:
+  - [ ] Onboarding (§16) and the document vault (§15); AI knowledge entries with web and mobile steps; later the same verification for customers (KYC) and vendors.
+  - [ ] Mobile app: the same flow, returning to the app after Fayda sign-in.

@@ -24,6 +24,8 @@ const ALLOWED: Record<string, string> = {
   'overtime/overtime.webhook.controller.ts': 'signed external webhook',
   'delegations/delegations.controller.ts': 'core platform module (COMMON_PLATFORM_MODULES)',
   'ai/ai-settings.controller.ts': 'tenant admins must reach AI settings to enable AI',
+  'company-scope/company-scope.controller.ts': 'every signed-in user needs their own companies and branches (switcher, forms), whatever is subscribed',
+  'search-index/search-index.controller.ts': 'Ctrl+K search for every signed-in user; entries are filtered by subscription and permission',
 };
 
 function controllers(dir: string): string[] {

@@ -45,6 +45,11 @@ export function getEntity<T = unknown>(type: string): EntityDefinition<T> | unde
   return registry.get(type) as EntityDefinition<T> | undefined;
 }
 
+/** Every registered record type (the Ctrl+K search looks records up in each). */
+export function allEntities(): EntityDefinition<unknown>[] {
+  return [...registry.values()] as EntityDefinition<unknown>[];
+}
+
 export interface AccessChecks {
   hasPermission: (permission: string) => boolean;
   isModuleSubscribed: (module: string) => boolean;

@@ -116,13 +116,14 @@ describe('ProductsService', () => {
       ...extra,
     ];
 
-    it('quick-creates from a name only: Units, consumable, shared, logged on the timeline', async () => {
+    it('quick-creates from a name only: Units, consumable, in the current company, logged on the timeline', async () => {
       const conn = fakeConn(createRoutes());
       const res = await build(conn).create(ctx(), { name: '  Buna  ' });
       expect(res.name).toBe('Buna');
       const insert = conn.calls.find((c) => /INSERT INTO products/.test(c.sql))!;
       expect(insert.params.slice(0, 7)).toEqual([null, 'Buna', null, 'consumable', null, UNITS, UNITS]);
-      expect(insert.params[13]).toBeNull();
+      // Rule 16: a new product goes to the user's current company (CO_A), not shared with all.
+      expect(insert.params[13]).toBe(CO_A);
       expect(timeline.record).toHaveBeenCalledWith('t1', expect.objectContaining({
         entityType: 'product', entityId: P1, eventType: 'created', moduleKey: 'products',
         client: { platform: 'web', device: 'desktop', info: {} },
