@@ -8,13 +8,25 @@ import { ALL_PRODUCTS_PERMISSIONS } from './products.permissions';
  */
 describe('Products AI knowledge entries', () => {
   const sql = readFileSync(join(__dirname, '../../migrations/tenant/20261121000003_ai_knowledge_products.sql'), 'utf8');
+  const variantsSql = readFileSync(join(__dirname, '../../migrations/tenant/20261122000002_ai_knowledge_product_variants.sql'), 'utf8');
+  const allSql = sql + variantsSql;
 
   it.each(['/products', '/products/categories', '/products/uoms'])('describes the %s page', (route) => {
     expect(sql).toContain(`'${route}'`);
   });
 
   it.each(ALL_PRODUCTS_PERMISSIONS)('mentions the %s permission', (permission) => {
-    expect(sql).toContain(`"${permission}"`);
+    expect(allSql).toContain(`"${permission}"`);
+  });
+
+  it('describes attributes and variants on web and mobile (rule 20)', () => {
+    expect(variantsSql).toContain(`'/products/attributes'`);
+    for (const f of ['Product Attributes', 'Product Variants']) expect(variantsSql).toContain(`'${f}'`);
+    const entries = variantsSql.split('\n(\n').length - 1;
+    expect(entries).toBe(2);
+    expect(variantsSql.match(/\{"web": \[/g)).toHaveLength(entries);
+    expect(variantsSql.match(/"mobile": \[/g)).toHaveLength(entries);
+    expect(variantsSql).toMatch(/ON CONFLICT \(module_key, feature_name\) DO UPDATE SET/);
   });
 
   it('gives every entry web and mobile instructions and updates entries on re-run', () => {

@@ -166,7 +166,10 @@ export default function ProductsPage() {
               <TableRow key={p.id} className="cursor-pointer" onClick={() => openProduct(p.id)} tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && openProduct(p.id)}>
                 <TableCell>
-                  <div className="font-medium">{p.name} {!p.is_active && <Badge variant="outline" className="ml-1">Archived</Badge>}</div>
+                  <div className="font-medium">
+                    {p.name} {!p.is_active && <Badge variant="outline" className="ml-1">Archived</Badge>}
+                    {p.has_variants && <Badge variant="secondary" className="ml-1">{p.variant_count} variant{p.variant_count === 1 ? '' : 's'}</Badge>}
+                  </div>
                   <div className="text-xs text-muted-foreground">{p.item_code}{p.sku && p.sku !== p.item_code ? ` · ${p.sku}` : ''}</div>
                 </TableCell>
                 <TableCell>{p.category_name ?? <span className="text-muted-foreground">—</span>}</TableCell>

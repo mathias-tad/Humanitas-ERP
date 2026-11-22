@@ -4,10 +4,11 @@ import { MODULE_KEY } from '../auth/guards/module-subscription.guard';
 import { ProductsController } from './products.controller';
 import { ProductCategoriesController } from './product-categories.controller';
 import { UomsController } from './uoms.controller';
+import { ProductAttributesController } from './product-attributes.controller';
 import { ALL_PRODUCTS_PERMISSIONS } from './products.permissions';
 
 /** AGENTS.md rules 4 and 27: module gate on every controller, exactly one permission per endpoint. */
-const controllers = [ProductsController, ProductCategoriesController, UomsController];
+const controllers = [ProductsController, ProductCategoriesController, UomsController, ProductAttributesController];
 
 function handlers(cls: new (...args: never[]) => object) {
   return Object.getOwnPropertyNames(cls.prototype)

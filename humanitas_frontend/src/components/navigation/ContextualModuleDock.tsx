@@ -53,7 +53,7 @@ import {
   Building2,
   GitBranch,
   X,
-  type LucideIcon, Ruler,
+  type LucideIcon, Ruler, Shapes,
 } from "lucide-react";
 
 export interface NavItem {
@@ -182,6 +182,7 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
         { title: "All Products", url: "/products", icon: Package, permissions: ["view_products"] },
         { title: "Categories & Trees", url: "/products/categories", icon: Layers, permissions: ["view_product_categories"] },
         { title: "Units of Measure", url: "/products/uoms", icon: Ruler, permissions: ["view_uoms"] },
+        { title: "Attributes & Variants", url: "/products/attributes", icon: Shapes, permissions: ["view_product_attributes"] },
         { title: "Price Lists", url: "/products/pricelists", icon: Tag },
         { title: "QR & Barcode Studio", url: "/products/qr-studio", icon: QrCode },
       ],

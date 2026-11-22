@@ -11,6 +11,9 @@ const MESSAGES: Record<string, string> = {
   uq_uom_categories_name: 'A unit category with this name already exists',
   uq_uoms_category_name: 'A unit with this name already exists in this category',
   uq_uoms_one_reference: 'This unit category already has a reference unit',
+  uq_product_attributes_name: 'An attribute with this name already exists',
+  uq_product_attribute_values_name: 'This attribute already has a value with this name',
+  uq_products_variant_combination: 'This product already has a variant with these values',
 };
 
 export function rethrowCatalogConflict(err: unknown): never {

@@ -63,6 +63,19 @@ export interface Product {
   archived_at: string | null;
   company_id: string | null;
   barcodes: ProductBarcode[];
+  /** Variants (featureslist §1): set on a variant, which takes its shared details from the parent. */
+  parent_id: string | null;
+  parent_name: string | null;
+  parent_sales_price: string | null;
+  /** The product is a parent: its variants are sold and scanned, not it. */
+  has_variants: boolean;
+  variant_count: number;
+  /** "Red, M" */
+  variant_label: string | null;
+  /** Added to the parent's sales price. */
+  price_extra: string;
+  auto_archived: 'config' | 'parent' | null;
+  variant_values: { attribute_id: string; attribute_name: string; value_id: string; value_name: string; html_color: string | null }[];
   created_at: string;
   updated_at: string;
 }
@@ -87,6 +100,8 @@ export interface ProductInput {
   image_url?: string | null;
   company_id?: string | null;
   barcodes?: ProductBarcode[];
+  /** Variants only. */
+  price_extra?: number;
 }
 
 export interface ProductCategory {
@@ -127,6 +142,9 @@ export interface ProductFilters {
   product_type?: ProductType;
   status?: 'active' | 'archived' | 'all';
   eims?: 'ready' | 'not_ready';
+  /** catalog (default): products and parents | sellable: products and variants (for sale lines) | all */
+  kind?: 'catalog' | 'sellable' | 'all';
+  parent_id?: string;
   sort?: 'name' | 'sku' | 'item_code' | 'sales_price' | 'created_at' | 'updated_at';
   order?: 'asc' | 'desc';
   page?: number;
@@ -183,8 +201,9 @@ export function useProduct(id: string | undefined) {
   });
 }
 
+/** Product pickers (POS, Sales, Purchasing…) offer what can go on a line: variants, not their parents. */
 export function searchProducts(q: string) {
-  return api.get<Paged<Product>>(`/products${toQueryString({ q, limit: 20 })}`).then((r) => r.data);
+  return api.get<Paged<Product>>(`/products${toQueryString({ q, limit: 20, kind: 'sellable' })}`).then((r) => r.data);
 }
 
 function useInvalidate() {

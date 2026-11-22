@@ -16,6 +16,8 @@ import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
+import { useRecordDrawer } from '@/components/platform/RecordDrawer';
+import { VariantsPanel } from './VariantsPanel';
 import {
   EIMS_ISSUE_TEXT, EIMS_TAX_CODE_LABELS, EIMS_TAX_CODES,
   useArchiveProduct, useCreateProduct, useProduct, useRestoreProduct, useUoms, useUpdateProduct,
@@ -139,12 +141,12 @@ export function formToInput(f: FormState): ProductInput {
   };
 }
 
-function UnitSelect({ id, value, onChange, uoms, onlyCategoryOf, placeholder }: {
-  id: string; value: string; onChange: (v: string) => void; uoms: UomCategory[]; onlyCategoryOf?: string; placeholder: string;
+function UnitSelect({ id, value, onChange, uoms, onlyCategoryOf, placeholder, disabled }: {
+  id: string; value: string; onChange: (v: string) => void; uoms: UomCategory[]; onlyCategoryOf?: string; placeholder: string; disabled?: boolean;
 }) {
   const groups = onlyCategoryOf ? uoms.filter((c) => c.units.some((u) => u.id === onlyCategoryOf)) : uoms;
   return (
-    <Select value={value || undefined} onValueChange={onChange}>
+    <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger id={id} className="w-full"><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent>
         {groups.map((c) => (
@@ -173,6 +175,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const [f, setF] = useState<FormState>(() => emptyProductForm(initial));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [scanOpen, setScanOpen] = useState(false);
+  const drawer = useRecordDrawer();
+  // A variant takes name, type, category, units, tax and description from its parent.
+  const isVariant = mode === 'edit' && !!product.data?.parent_id;
+  // A parent is not sold or scanned itself: barcodes go on its variants.
+  const isParent = mode === 'edit' && !!product.data?.has_variants;
 
   useEffect(() => {
     if (mode === 'edit' && product.data) setF(productToForm(product.data));
@@ -190,7 +197,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     ? Number(product.data.category_excise_rate) : null;
   // A USB/Bluetooth scanner adds barcodes while this form is open, wherever the cursor is.
   const scanRef = useRef<(code: string) => void>(() => {});
-  useBarcodeScanner((code) => scanRef.current(code), { enabled: canEdit });
+  useBarcodeScanner((code) => scanRef.current(code), { enabled: canEdit && !isParent });
   const formRef = useRef<HTMLFormElement>(null);
   useShortcuts(
     [{ keys: 'mod+s', description: 'Save the product', group: 'Product form', allowInInputs: true, run: () => formRef.current?.requestSubmit() }],
@@ -245,7 +252,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
       <fieldset disabled={!canEdit || saving} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="p-name">Name *</Label>
-          <Input id="p-name" autoFocus value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Teff flour 1 kg" />
+          <Input id="p-name" autoFocus disabled={isVariant} value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. Teff flour 1 kg" />
           {fieldError('name')}
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -256,7 +263,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-type">Type</Label>
-            <Select value={f.product_type} onValueChange={(v) => set('product_type', v as ProductType)}>
+            <Select value={f.product_type} onValueChange={(v) => set('product_type', v as ProductType)} disabled={isVariant}>
               <SelectTrigger id="p-type" className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
@@ -274,17 +281,18 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
             valueLabel={f.category_name}
             onChange={(cid, rec) => setF((s) => ({ ...s, category_id: cid, category_name: (rec as { full_path?: string } | undefined)?.full_path ?? null }))}
             placeholder="No category"
+            disabled={isVariant}
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="p-uom">Sales unit</Label>
-            <UnitSelect id="p-uom" value={f.uom_id} uoms={uoms} placeholder="Units (default)"
+            <UnitSelect id="p-uom" value={f.uom_id} uoms={uoms} placeholder="Units (default)" disabled={isVariant}
               onChange={(v) => setF((s) => ({ ...s, uom_id: v, purchase_uom_id: '' }))} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-puom">Purchase unit</Label>
-            <UnitSelect id="p-puom" value={f.purchase_uom_id} uoms={uoms} onlyCategoryOf={purchaseOptionsFor} placeholder="Same as sales unit"
+            <UnitSelect id="p-puom" value={f.purchase_uom_id} uoms={uoms} onlyCategoryOf={purchaseOptionsFor} placeholder="Same as sales unit" disabled={isVariant}
               onChange={(v) => set('purchase_uom_id', v)} />
             {fieldError('purchase_uom_id')}
           </div>
@@ -298,11 +306,17 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
               <Label htmlFor={`p-${k}`}>{label}</Label>
               <Input id={`p-${k}`} inputMode="decimal" value={f[k]} onChange={(e) => set(k, e.target.value)} placeholder="0" />
               {fieldError(k)}
+              {k === 'sales_price' && isVariant && product.data && (
+                <p className="text-xs text-muted-foreground">
+                  {Number(product.data.parent_sales_price ?? 0).toFixed(2)} from the parent, extra {(Number(f.sales_price || 0) - Number(product.data.parent_sales_price ?? 0)).toFixed(2)}
+                </p>
+              )}
+              {k === 'sales_price' && isParent && <p className="text-xs text-muted-foreground">Each variant adds its own extra</p>}
             </div>
           ))}
           <div className="space-y-1.5">
             <Label htmlFor="p-tax">Tax</Label>
-            <Select value={f.tax_code} onValueChange={(v) => set('tax_code', v as EimsTaxCode)}>
+            <Select value={f.tax_code} onValueChange={(v) => set('tax_code', v as EimsTaxCode)} disabled={isVariant}>
               <SelectTrigger id="p-tax" className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {(Object.keys(EIMS_TAX_CODE_LABELS) as EimsTaxCode[]).map((c) => (
@@ -324,13 +338,13 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="p-hs">HS code</Label>
-              <Input id="p-hs" maxLength={15} inputMode="numeric" value={f.harmonization_code}
+              <Input id="p-hs" disabled={isVariant} maxLength={15} inputMode="numeric" value={f.harmonization_code}
                 onChange={(e) => set('harmonization_code', e.target.value)} placeholder="Needed for exports" />
               {fieldError('harmonization_code')}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="p-excise">Excise %</Label>
-              <Input id="p-excise" inputMode="decimal" value={f.excise_rate} onChange={(e) => set('excise_rate', e.target.value)}
+              <Input id="p-excise" disabled={isVariant} inputMode="decimal" value={f.excise_rate} onChange={(e) => set('excise_rate', e.target.value)}
                 placeholder={categoryExcise !== null ? `Category: ${categoryExcise}%` : 'From category'} />
               {fieldError('excise_rate')}
             </div>
@@ -350,13 +364,14 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
           </div>
         </section>
         <div className="flex flex-wrap gap-6">
-          <label className="flex items-center gap-2 text-sm"><Switch checked={f.can_be_sold} onCheckedChange={(v) => set('can_be_sold', v)} /> Can be sold</label>
-          <label className="flex items-center gap-2 text-sm"><Switch checked={f.can_be_purchased} onCheckedChange={(v) => set('can_be_purchased', v)} /> Can be purchased</label>
+          <label className="flex items-center gap-2 text-sm"><Switch disabled={isVariant} checked={f.can_be_sold} onCheckedChange={(v) => set('can_be_sold', v)} /> Can be sold</label>
+          <label className="flex items-center gap-2 text-sm"><Switch disabled={isVariant} checked={f.can_be_purchased} onCheckedChange={(v) => set('can_be_purchased', v)} /> Can be purchased</label>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>Barcodes</Label>
-            <div className="flex gap-1">
+            {isParent && <span className="text-xs text-muted-foreground">Each variant has its own (Variants tab)</span>}
+            <div className={isParent ? 'hidden' : 'flex gap-1'}>
               <Button type="button" variant="ghost" size="sm" onClick={() => setScanOpen(true)}>
                 <Camera className="mr-1 h-3 w-3" /> Scan with camera
               </Button>
@@ -388,7 +403,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="p-desc">Description</Label>
-          <Textarea id="p-desc" rows={3} value={f.description} onChange={(e) => set('description', e.target.value)} />
+          <Textarea id="p-desc" disabled={isVariant} rows={3} value={f.description} onChange={(e) => set('description', e.target.value)} />
         </div>
       </fieldset>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
@@ -416,15 +431,39 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     <Tabs defaultValue="details">
       <TabsList>
         <TabsTrigger value="details">Details</TabsTrigger>
+        {product.data && !isVariant && (
+          <TabsTrigger value="variants">Variants{isParent ? ` (${product.data.variant_count})` : ''}</TabsTrigger>
+        )}
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="pt-4">
+        {product.data?.parent_id && (
+          <p className="mb-3 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+            Variant of{' '}
+            <button type="button" className="font-medium text-primary underline"
+              onClick={() => drawer.open({ type: 'product', mode: 'edit', id: product.data!.parent_id!, title: 'Product' })}>
+              {product.data.parent_name}
+            </button>
+            . Name, type, category, units, tax and description come from it; set this variant's SKU, barcodes, price and cost here.
+          </p>
+        )}
+        {isParent && product.data && (
+          <p className="mb-3 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+            This product has {product.data.variant_count} active variant{product.data.variant_count === 1 ? '' : 's'}. Changes here
+            (name, category, units, tax, price) apply to all of them; the variants are what is sold and scanned.
+          </p>
+        )}
         {product.data && <EimsStatus product={product.data} />}
         {product.data && !product.data.is_active && (
           <p className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">This product is archived — hidden from lists and scanners.</p>
         )}
         {details}
       </TabsContent>
+      {product.data && !isVariant && (
+        <TabsContent value="variants" className="pt-4">
+          <VariantsPanel product={product.data} />
+        </TabsContent>
+      )}
       <TabsContent value="history" className="pt-4">
         <TimelinePanel path={`/products/${id}/timeline`} />
       </TabsContent>

@@ -174,6 +174,8 @@ export class UpdateProductDto {
   @IsOptional() @IsBoolean() can_be_purchased?: boolean;
   @IsOptional() @IsUrl({ require_tld: false }) @MaxLength(2000) image_url?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** Variants only: added to the parent's sales price. */
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(-1000000000) @Max(1000000000) price_extra?: number;
   /** When present, replaces the product's barcodes. */
   @IsOptional() @ArrayMaxSize(20) @ValidateNested({ each: true }) @Type(() => ProductBarcodeDto)
   barcodes?: ProductBarcodeDto[];
@@ -185,6 +187,10 @@ export class ListProductsQueryDto {
   @IsOptional() @IsIn(PRODUCT_TYPES) product_type?: ProductType;
   /** active (default) | archived | all */
   @IsOptional() @IsIn(['active', 'archived', 'all']) status?: 'active' | 'archived' | 'all';
+  /** catalog (default): products and parents | sellable: products and variants | all */
+  @IsOptional() @IsIn(['catalog', 'sellable', 'all']) kind?: 'catalog' | 'sellable' | 'all';
+  /** Only the variants of this product. */
+  @IsOptional() @IsUUID() parent_id?: string;
   /** ready | not_ready: filter by e-invoicing readiness (rule 28). */
   @IsOptional() @IsIn(['ready', 'not_ready']) eims?: 'ready' | 'not_ready';
   @IsOptional() @IsIn(['name', 'sku', 'item_code', 'sales_price', 'created_at', 'updated_at']) sort?: string;

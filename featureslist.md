@@ -12,7 +12,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 73 | 73 | 0 | 100% |
-| 1. Products & Catalog Management | 36 | 6 | 30 | 17% |
+| 1. Products & Catalog Management | 36 | 8 | 28 | 22% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
@@ -51,7 +51,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 37. Quality Guardrails & Regression Prevention | 19 | 1 | 18 | 5% |
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
-| **TOTAL** | **1150** | **549** | **601** | **48%** |
+| **TOTAL** | **1150** | **551** | **599** | **48%** |
 
 ---
 
@@ -201,7 +201,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [ ] **Product Master Data**:
   - [ ] Standard goods, services, digital items, and composite/bundled kit items.
   - [x] Multi-level Product Categories with nested tree structures.
-  - [ ] Product Attributes & Dynamic Variant Matrix generator (e.g., Size, Color, Style, Material).
+  - [x] Product Attributes & Dynamic Variant Matrix generator (e.g., Size, Color, Style, Material).
   - [x] SKU & Barcode management with unique constraint validation.
 - [ ] **QR & Barcode Automation Engine**:
   - [ ] Automated cryptographic QR code generation with tamper-proof validation.
@@ -228,7 +228,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Quick-create a product from POS, Sales, Purchasing, Inventory and Online Store lines (name, price, tax, UOM, barcode scan) when the user has `products.create` (§29).
   - [ ] Product types: storable, consumable, service, combo (POS menus), kit/bundle (BoM-ready for future manufacturing).
   - [ ] Packaging levels with their own barcodes (unit, box, pallet) and GS1 barcode nomenclature support.
-  - [ ] Attribute values created on the fly; per-variant price extras; archive unused variants.
+  - [x] Attribute values created on the fly; per-variant price extras; archive unused variants.
   - [ ] Vendor price list per product (vendor, price, MOQ, lead time) used by Purchasing replenishment.
   - [ ] Variant grid entry on sales/purchase lines (enter quantities per size × color in one matrix).
   - [ ] Default shelf life and expiry rules feeding Inventory lots.
