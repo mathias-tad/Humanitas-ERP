@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiDocumentService } from './services/ai-document.service';
+import { AiRequestContextInterceptor } from './services/ai-request-context';
 import { RoleContextBuilderService } from './services/role-context-builder.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard, PERMISSIONS_KEY } from '../auth/guards/permissions.guard';
@@ -56,6 +57,7 @@ export class GenerateFromTemplateDto {
 @Controller('ai/document')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @RequireModule('ai.documents')
+@UseInterceptors(AiRequestContextInterceptor)
 export class AiDocumentController {
   constructor(
     private readonly aiDocumentService: AiDocumentService,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { returnTarget } from '@/lib/returnTo';
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [tenantSlug, setTenantSlug] = useState('');
   const [email, setEmail] = useState('');
@@ -45,7 +47,8 @@ function Login() {
       await login(tenantSlug, email, password);
       // Auto-save on successful login if it matches
       localStorage.setItem('humanitas_tenant_slug', tenantSlug.trim());
-      navigate('/dashboard');
+      // Back to the page they were opening (shared link), else the dashboard.
+      navigate(returnTarget(location.search, true), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

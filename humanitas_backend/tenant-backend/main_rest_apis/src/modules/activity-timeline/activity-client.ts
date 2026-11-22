@@ -18,6 +18,8 @@ export interface ActivityClient {
     browser?: string;
     appVersion?: string;
     userAgent?: string;
+    /** 'ai' when the AI assistant made the request for the user (AI actions). */
+    via?: 'ai';
   };
 }
 
@@ -67,6 +69,12 @@ const APP_PLATFORM: Record<string, { platform: ClientPlatform; device: ClientDev
 };
 
 export function clientFromRequest(req: RequestLike | undefined): ActivityClient {
+  const client = clientFromHeaders(req);
+  if (header(req, 'x-ai-action') === '1') client.info = { ...(client.info ?? {}), via: 'ai' };
+  return client;
+}
+
+function clientFromHeaders(req: RequestLike | undefined): ActivityClient {
   const declared = header(req, 'x-client-platform')?.toLowerCase();
   const appVersion = header(req, 'x-app-version');
   const declaredDevice = header(req, 'x-client-device')?.toLowerCase();

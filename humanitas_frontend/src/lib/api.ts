@@ -1,5 +1,6 @@
 // API helper with automatic tenant header injection and 401 handling
 import { API_BASE_URL } from '@/config/api.config';
+import { redirectToLogin } from '@/lib/returnTo';
 
 interface RequestOptions extends RequestInit {
   skipTenant?: boolean;
@@ -50,7 +51,7 @@ function handleAuthFailure() {
   localStorage.removeItem('tenant_user');
   localStorage.removeItem('tenant_info');
   localStorage.removeItem('tenant_permissions');
-  window.location.href = '/login';
+  redirectToLogin();
 }
 
 export async function apiRequest<T = unknown>(

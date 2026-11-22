@@ -1,6 +1,7 @@
 import "./App.css";
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { loginPathFor, returnTarget } from "./lib/returnTo";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 const Setup = lazy(() => import("./pages/Setup"));
@@ -82,6 +83,7 @@ const ProfilePage = lazy(() => import("./pages/profile/ProfilePage"));
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -92,7 +94,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    // Already signed in (e.g. opened /login?next=...): go straight to the requested page.
+    return <Navigate to={returnTarget(location.search)} replace />;
   }
 
   return <>{children}</>;
@@ -101,6 +104,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -111,7 +115,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Keep the page they opened (a shared link, a bookmark) so sign-in returns them to it.
+    return <Navigate to={loginPathFor(location)} replace />;
   }
 
   return <>{children}</>;

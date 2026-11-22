@@ -24,11 +24,16 @@ import { AiFileParserService } from './services/ai-file-parser.service';
 import { AiSettingsConfigService } from './ai-settings.service';
 import { AiSettingsController } from './ai-settings.controller';
 import { TenantAiKnowledgeService } from './services/tenant-ai-knowledge.service';
+import { DiscoveryModule } from '@nestjs/core';
+import { AppActionCatalogService } from './services/app-action-catalog.service';
+import { AiAppActionsService } from './services/ai-app-actions.service';
+import { AiRequestContextInterceptor } from './services/ai-request-context';
 
 @Module({
   imports: [
     DatabaseModule,
     TypeOrmModule.forFeature([Tenant]),
+    DiscoveryModule,
   ],
   controllers: [
     AiController, 
@@ -55,6 +60,9 @@ import { TenantAiKnowledgeService } from './services/tenant-ai-knowledge.service
     AiFileParserService,
     AiSettingsConfigService,
     TenantAiKnowledgeService,
+    AppActionCatalogService,
+    AiAppActionsService,
+    AiRequestContextInterceptor,
   ],
   exports: [
     AiService, 

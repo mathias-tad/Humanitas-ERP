@@ -1,4 +1,4 @@
-﻿import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+﻿import { Injectable, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
 import { RoleContextBuilderService } from './services/role-context-builder.service';
 import { AgentToolRouterService } from './services/agent-tool-router.service';
 import { AiDbQueryService } from './services/ai-db-query.service';
@@ -8,6 +8,16 @@ import { AiSettingsFetchService, ResolvedAiSettings } from './services/ai-settin
 import { AiAnalyticsService } from './services/ai-analytics.service';
 import { AiActionService } from './services/ai-action.service';
 import { AiFileParserService } from './services/ai-file-parser.service';
+import { AiAppActionsService } from './services/ai-app-actions.service';
+import { aiRequestContext } from './services/ai-request-context';
+
+/** Older action tools that write with raw SQL; replaced by app actions (confirmed, through the API). */
+const LEGACY_WRITE_TOOLS = new Set([
+  'create_user', 'update_user', 'deactivate_user', 'submit_leave_request', 'approve_leave_request', 'reject_leave_request',
+  'cancel_leave_request', 'post_announcement', 'add_loan', 'initiate_payroll_run', 'create_project', 'create_task',
+  'update_task_status', 'create_sprint', 'add_project_member', 'create_shift', 'assign_shift', 'mark_day_off', 'log_overtime',
+  'add_holiday', 'start_employee_onboarding', 'file_grievance', 'enroll_in_course',
+]);
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
@@ -35,6 +45,7 @@ export class AiService {
     @InjectRepository(Tenant)
     private tenantRepository: Repository<Tenant>,
     private databaseService: DatabaseService,
+    @Optional() private appActions?: AiAppActionsService,
   ) {}
 
   /**
@@ -151,6 +162,15 @@ export class AiService {
     // Save user message to history
     await this.conversationService.saveMessage(tenantSlug, convoId, 'user', message);
 
+    // AI actions: a "yes" or "no" here decides the changes proposed earlier in this conversation.
+    const actionCtx = aiRequestContext.getStore();
+    let agentMessage = message;
+    if (actionCtx && aiCapabilities.canPerformActions && this.appActions) {
+      actionCtx.conversationId = convoId;
+      const note = await this.appActions.resolvePending(actionCtx, convoId, message);
+      if (note) agentMessage = `${message}\n\n${note}`;
+    }
+
     const modelName = aiSettings.model || 'gemini-1.5-pro-latest';
     const temperature = aiSettings.temperature ?? 0.7;
 
@@ -161,7 +181,7 @@ export class AiService {
         tenantSlug,
         roleContext,
         pastMessages,
-        message,
+        agentMessage,
         modelName,
         temperature,
         userId,
@@ -345,28 +365,29 @@ User message: ${message || 'Please analyse this document and provide a summary.'
       ? this.actionService.getActionTools(tenantSlug, userId, userPermissions)
       : [];
 
-    const tools = [...uiTools, ...dbTools, ...analyticsTools, ...actionTools];
+    // Anything the user can do in the app, through the app's own API with their sign-in (rule 29).
+    const appCtx = aiRequestContext.getStore();
+    const appActionTools = aiCapabilities.canPerformActions && appCtx?.conversationId && this.appActions
+      ? this.appActions.tools(appCtx, appCtx.conversationId)
+      : [];
+    const legacyTools = appActionTools.length
+      ? actionTools.filter((t: { name?: string }) => !LEGACY_WRITE_TOOLS.has(t.name ?? ''))
+      : actionTools;
+
+    const tools = [...uiTools, ...dbTools, ...analyticsTools, ...legacyTools, ...appActionTools];
 
     const agent = createReactAgent({ llm, tools });
 
     const actionDirectives = aiCapabilities.canPerformActions
-      ? `=== DATABASE QUERY & SYSTEM ACTION TOOLS ===
-You have full tool calling capabilities to query tenant data and perform permitted actions:
-- \`query_tenant_database\`: Execute custom SQL queries on the active tenant's schema for data analytics.
-- \`create_user\`, \`update_user\`, \`deactivate_user\`: Manage employee directory records.
-- \`submit_leave_request\`, \`approve_leave_request\`, \`reject_leave_request\`: Handle leave workflows.
-- \`post_announcement\`: Broadcast company news.
-- \`initiate_payroll_run\`, \`add_loan\`: Execute payroll actions.
-- \`create_project\`, \`create_task\`, \`update_task_status\`: PMS project and task actions.
-- \`analyze_task_distribution\`, \`suggest_task_allocation\`, \`get_all_users_kpi\`: Automated team analytics.
-- \`create_sprint\`: Create a sprint inside a project.
-- \`add_project_member\`: Add a user to a project.
-- \`cancel_leave_request\`: Cancel a leave request.
-- \`create_shift\`: Create a new shift definition.
-- \`assign_shift\`: Assign an employee to a shift.
-- \`mark_day_off\`: Mark a day off for an employee.
-- \`log_overtime\`: Log overtime hours.
-- \`add_holiday\`: Add a public/company holiday.`
+      ? `=== DOING THINGS FOR THE USER (AI ACTIONS) ===
+You can do anything this user could do in the app, in any module they have access to, with their own permissions:
+1. Call \`find_app_actions\` with what the user wants (e.g. "create product", "approve leave request", "list projects"). It lists only the actions this user may run, with their inputs.
+2. When you need an id (a product, employee, request...), look it up first with a GET action (list or search). Never invent ids or values; ask the user for anything required that you do not know.
+3. Call \`run_app_action\`. Reads return data at once. A change is NOT done yet: it is held, and the result tells you what would change.
+4. Describe the change in plain words (what, which record, the key values) and ask the user to reply "yes" to confirm or "no" to cancel. Never say it is done before it is.
+5. When the next message says the user confirmed, call \`run_app_action\` with only the pending_id, then report the outcome from the result (OK, or FAILED with the reason and how to fix it).
+6. If no action fits, or the result says you do not have permission, say so and give the page and steps instead.
+Other data tools: \`query_tenant_database\` (read-only SQL with access rules) and the analytics tools.`
       : `=== AI ACTIONS RESTRICTION: CHAT HELP & GUIDANCE ONLY ===
 Action execution capability ("ai.actions") is NOT included in this organization's subscription tier.
 You DO NOT have tools to mutate database records, submit leaves, create tasks, or create shifts on behalf of the user.

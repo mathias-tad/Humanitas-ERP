@@ -17,8 +17,9 @@ import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { ScannerSettingsDialog } from '@/components/platform/ScannerSettingsDialog';
 import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import '@/components/products/registerProductEntities';
+import { LoadMore } from '@/components/platform/InfiniteList';
 import {
-  EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useProductCategories, useProducts, type ProductFilters, type ProductType,
+  EIMS_ISSUE_TEXT, downloadProductsCsv, lookupProduct, useInfiniteProducts, useProductCategories, type ProductFilters, type ProductType,
 } from '@/hooks/useProducts';
 
 const TYPE_LABEL: Record<ProductType, string> = { storable: 'Stock item', consumable: 'Consumable', service: 'Service' };
@@ -37,11 +38,11 @@ export default function ProductsPage() {
     const t = setTimeout(() => setFilters((f) => ({ ...f, q: search.trim() || undefined, page: 1 })), 300);
     return () => clearTimeout(t);
   }, [search]);
-  const products = useProducts(filters);
+  // 40 at a time; more load as the list is scrolled (rule 24 item 21).
+  const { page: _page, limit: _limit, ...listFilters } = filters;
+  const products = useInfiniteProducts(listFilters);
   const categories = useProductCategories();
-  const rows = products.data?.data ?? [];
-  const meta = products.data?.meta;
-  const pages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
+  const rows = products.rows;
 
   const openProduct = (id: string) => drawer.open({ type: 'product', mode: 'edit', id, title: 'Product' });
 
@@ -211,13 +212,14 @@ export default function ProductsPage() {
         </Table>
       </div>
 
-      {meta && meta.total > meta.limit && (
-        <div className="flex items-center justify-end gap-2 text-sm">
-          <span className="text-muted-foreground">Page {meta.page} of {pages} · {meta.total} products</span>
-          <Button variant="outline" size="sm" disabled={meta.page <= 1} onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}>Previous</Button>
-          <Button variant="outline" size="sm" disabled={meta.page >= pages} onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}>Next</Button>
-        </div>
-      )}
+      <LoadMore
+        hasNextPage={!!products.hasNextPage}
+        isFetchingNextPage={products.isFetchingNextPage}
+        fetchNextPage={products.fetchNextPage}
+        loaded={rows.length}
+        total={products.total}
+        noun="products"
+      />
     </div>
   );
 }

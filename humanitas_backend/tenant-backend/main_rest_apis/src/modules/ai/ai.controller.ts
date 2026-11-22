@@ -1,5 +1,6 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
 import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { AiRequestContextInterceptor } from './services/ai-request-context';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { TenantAiKnowledgeService } from './services/tenant-ai-knowledge.service';
@@ -38,6 +39,7 @@ export class ChatRequestDto {
 @Controller('ai')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @RequireModule('ai')
+@UseInterceptors(AiRequestContextInterceptor)
 export class AiController {
   constructor(
     private readonly aiService: AiService,

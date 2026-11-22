@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Optional } from '@nestjs/common';
 const PDFDocument = require('pdfkit');
 import * as ExcelJS from 'exceljs';
 import { DatabaseService } from '../../database/database.service';
@@ -7,6 +7,11 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { HumanMessage } from '@langchain/core/messages';
+import { AiDbQueryService } from './ai-db-query.service';
+import { AiAppActionsService } from './ai-app-actions.service';
+import { aiRequestContext, type AiRequestContext } from './ai-request-context';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { SystemMessage } from '@langchain/core/messages';
 
 export interface AiDocumentTemplate {
   id: string;
@@ -209,6 +214,8 @@ export class AiDocumentService {
   constructor(
     private databaseService: DatabaseService,
     private aiSettingsFetch: AiSettingsFetchService,
+    @Optional() private dbQuery?: AiDbQueryService,
+    @Optional() private appActions?: AiAppActionsService,
   ) {}
 
   getBuiltinTemplates(): AiDocumentTemplate[] {
@@ -345,6 +352,19 @@ export class AiDocumentService {
         llm = new ChatGoogleGenerativeAI({ model: modelName, temperature: 0, apiKey: settings.api_key });
       }
 
+      const ctx = aiRequestContext.getStore();
+      const permissions = ctx ? await ctx.permissions() : [];
+      // The user's own read actions first: exactly the data they can see in the app (rule 29).
+      if (ctx?.accessToken && this.appActions) {
+        const gathered = await this.gatherWithAppActions(llm, ctx, prompt, permissions).catch((e) => {
+          console.warn('AI-doc app-action gathering failed:', e?.message);
+          return '';
+        });
+        if (gathered.trim()) return gathered;
+      }
+      // Without the query tool there is no safe way to read the database: never run raw SQL.
+      if (!this.dbQuery) return 'No data available for this document.';
+
       const queryPlanResult = await llm.invoke([
         new HumanMessage({
           content: `You are a PostgreSQL expert. The user wants a document about: "${prompt}"
@@ -368,11 +388,12 @@ SELECT id, name FROM departments`
       const queries = cleanPlan.split('---QUERY---').map(q => q.trim()).filter(q => q.toUpperCase().startsWith('SELECT'));
 
       const results: string[] = [];
+      // Same access rules as the chat's data tool: no credentials, payroll only with payroll permission.
+      const safeQuery = this.dbQuery!.getDbTool(tenantSlug, permissions) as unknown as { invoke: (a: { query: string }) => Promise<string> };
       for (const query of queries.slice(0, 3)) {
         try {
-          const data = await dataSource.query(query);
-          const jsonStr = JSON.stringify(data);
-          results.push(`Query: ${query}\nResults: ${jsonStr.length > 8000 ? jsonStr.substring(0, 8000) + '...(truncated)' : jsonStr}`);
+          const out = String(await safeQuery.invoke({ query }));
+          results.push(`Query: ${query}\nResults: ${out.length > 8000 ? out.substring(0, 8000) + '...(truncated)' : out}`);
         } catch (e) {
           // On failure, try a simplified fallback using just the main table
           console.warn(`AI-doc query failed: ${query}`, e.message);
@@ -387,6 +408,33 @@ SELECT id, name FROM departments`
     }
   }
 
+
+  /** A small read-only agent that collects the document's data with the user's own GET actions. */
+  private async gatherWithAppActions(
+    llm: Parameters<typeof createReactAgent>[0]['llm'],
+    ctx: AiRequestContext,
+    prompt: string,
+    permissions: string[],
+  ): Promise<string> {
+    const tools = [
+      ...(this.appActions?.tools(ctx, 'document', { readOnly: true }) ?? []),
+      ...(this.dbQuery ? [this.dbQuery.getDbTool(ctx.tenantSlug, permissions)] : []),
+    ];
+    const agent = createReactAgent({ llm, tools });
+    const result = await agent.invoke({
+      messages: [
+        new SystemMessage(
+          'Collect the data needed for the document below. Use find_app_actions to find read actions, run_app_action to read data, ' +
+            'and query_tenant_database only if no action has it. Use only what the tools return. ' +
+            'Reply with the collected data as compact Markdown tables or JSON with short headings. Do not write the document itself. ' +
+            'If the tools say the user lacks permission for some data, write "Not permitted: <what>".',
+        ),
+        new HumanMessage(`Document requested: ${prompt}`),
+      ],
+    });
+    const last = result.messages[result.messages.length - 1];
+    return typeof last.content === 'string' ? last.content : JSON.stringify(last.content);
+  }
 
   /**
    * Generate a meaningful filename from the user prompt.

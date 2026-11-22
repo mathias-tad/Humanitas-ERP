@@ -79,7 +79,7 @@ export class ActivityTimelineService {
         input.summary ?? null,
         JSON.stringify(input.changes ?? []),
         JSON.stringify(input.payload ?? {}),
-        input.source ?? 'ui',
+        input.source ?? (client.info?.via === 'ai' ? 'ai' : 'ui'),
         input.visibility ?? 'internal',
         input.actorId ?? null,
         input.onBehalfOf ?? null,

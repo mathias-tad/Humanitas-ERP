@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/config/api.config';
+import { redirectToLogin } from '@/lib/returnTo';
 import { queryClient } from '@/lib/queryClient';
 
 interface User {
@@ -194,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           toast.error('Your session has expired. Please login again.');
         }
         clearAuth();
-        window.location.href = '/login';
+        redirectToLogin();
         return false;
       }
       return response.ok;

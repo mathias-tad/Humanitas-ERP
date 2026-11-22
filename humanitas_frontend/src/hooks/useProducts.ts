@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { API_BASE_URL } from '@/config/api.config';
 import { ACTIVE_BRANCH_KEY, ACTIVE_COMPANY_KEY, getAuthHeaders } from '@/context/AuthContext';
+import { useInfiniteList } from '@/components/platform/InfiniteList';
 
 // ── Types (mirror the tenant API, featureslist §1) ─────────────────────────────────────
 export type ProductType = 'storable' | 'consumable' | 'service';
@@ -191,6 +192,13 @@ export function useProducts(filters: ProductFilters) {
     queryFn: () => api.get<Paged<Product>>(`/products${toQueryString({ ...filters })}`),
     placeholderData: (prev) => prev,
   });
+}
+
+/** The product list, loaded a page at a time as the user scrolls (rule 24 item 21). */
+export function useInfiniteProducts(filters: Omit<ProductFilters, 'page' | 'limit'>) {
+  return useInfiniteList<Product>(['products', 'list', ...scopeKey(), filters], (page, limit) =>
+    api.get<Paged<Product>>(`/products${toQueryString({ ...filters, page, limit })}`),
+  );
 }
 
 export function useProduct(id: string | undefined) {
