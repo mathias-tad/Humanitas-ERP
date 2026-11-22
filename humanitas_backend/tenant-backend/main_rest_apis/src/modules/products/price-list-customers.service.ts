@@ -32,12 +32,12 @@ export class PriceListCustomersService {
     if (!list.is_active) throw new BadRequestException('Restore the price list first');
     const ids = [...new Set(contactIds)];
     if (ids.length) {
-      const rows: { id: string; name: string; is_active: boolean; company_id: string | null; parent_id: string | null }[] = await conn.query(
-        `SELECT id, name, is_active, company_id, parent_id FROM contacts WHERE id = ANY($1::uuid[])`, [ids],
+      const rows: { id: string; name: string; is_active: boolean; company_id: string | null; branch_id?: string | null; parent_id: string | null }[] = await conn.query(
+        `SELECT id, name, is_active, company_id, branch_id, parent_id FROM contacts WHERE id = ANY($1::uuid[])`, [ids],
       );
       for (const id of ids) {
         const r = rows.find((x) => x.id === id);
-        if (!r || !isVisible(scope, r.company_id)) throw new BadRequestException('A customer was not found');
+        if (!r || !isVisible(scope, r.company_id, r.branch_id)) throw new BadRequestException('A customer was not found');
         if (!r.is_active) throw new BadRequestException(`"${r.name}" is archived`);
         if (r.parent_id) throw new BadRequestException(`"${r.name}" is a person at a company; put the company on the list`);
       }
@@ -76,18 +76,18 @@ export class PriceListCustomersService {
   /** The list a customer buys at: its own list, else the default list. */
   async forCustomer(ctx: CatalogContext, contactId: string) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
-    const [contact] = await conn.query(`SELECT id, company_id, parent_id FROM contacts WHERE id = $1`, [contactId]);
-    if (!contact || !isVisible(scope, contact.company_id)) throw new NotFoundException('Customer not found');
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
+    const [contact] = await conn.query(`SELECT id, company_id, branch_id, parent_id FROM contacts WHERE id = $1`, [contactId]);
+    if (!contact || !isVisible(scope, contact.company_id, contact.branch_id)) throw new NotFoundException('Customer not found');
     const id = await customerListId(conn, contact.parent_id ?? contactId);
     return { contact_id: contactId, price_list_id: id, source: id ? 'customer' : 'default' };
   }
 
   private async openList(ctx: CatalogContext, listId: string) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
-    const [list] = await conn.query(`SELECT id, name, is_active, company_id FROM price_lists WHERE id = $1`, [listId]);
-    if (!list || !isVisible(scope, list.company_id)) throw new NotFoundException('Price list not found');
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
+    const [list] = await conn.query(`SELECT id, name, is_active, company_id, branch_id FROM price_lists WHERE id = $1`, [listId]);
+    if (!list || !isVisible(scope, list.company_id, list.branch_id)) throw new NotFoundException('Price list not found');
     return { conn, scope, list };
   }
 }

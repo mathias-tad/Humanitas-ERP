@@ -3,7 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
 import { csvCell } from '../products/products.service';
-import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable } from '../products/products.scope';
 import { cleanTags } from '../contacts/contacts.rules';
 import { ContactsService } from '../contacts/contacts.service';
 import { CrmBase, ENTITY, blankToNull, ownSql, ownsCrmRow, setClause } from './crm.base';
@@ -29,7 +29,7 @@ export const LEAD_TRACKED_FIELDS: Record<string, string> = {
 };
 
 const COLUMNS = ['title', 'person_name', 'company_name', 'job_title', 'email', 'phone', 'mobile', 'city', 'source_id', 'owner_id', 'status',
-  'need', 'budget', 'timeline', 'decision_maker', 'expected_revenue', 'tags', 'notes', 'company_id'] as const;
+  'need', 'budget', 'timeline', 'decision_maker', 'expected_revenue', 'tags', 'notes', 'company_id', 'branch_id'] as const;
 
 type Lead = Record<string, unknown> & {
   id: string; code: string; title: string; status: LeadStatus; company_id: string | null; person_name: string | null; company_name: string | null;
@@ -76,7 +76,10 @@ export class CrmLeadsService extends CrmBase {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
-    const row = this.clean({ ...dto, owner_id: dto.owner_id === undefined ? ctx.user?.sub ?? null : dto.owner_id, company_id: companyId ?? null });
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
+    // No branch picked: the database puts the lead in its creator's branch.
+    const row = this.clean({ ...dto, owner_id: dto.owner_id === undefined ? ctx.user?.sub ?? null : dto.owner_id, company_id: companyId ?? null, ...(branchId ? { branch_id: branchId } : {}) });
     await this.checkLinks(conn, row);
     const cols = COLUMNS.filter((c) => row[c] !== undefined);
     const [created] = await conn
@@ -92,6 +95,7 @@ export class CrmLeadsService extends CrmBase {
     const before = await this.findVisible(conn, scope, id);
     if (before.status === 'converted') throw new BadRequestException('This lead is converted; work on its opportunity instead');
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (dto.status && dto.status !== before.status) {
       const problem = leadStatusProblem(before.status, dto.status);
       if (problem) throw new BadRequestException(problem);
@@ -137,8 +141,8 @@ export class CrmLeadsService extends CrmBase {
     let contactId: string;
     let personId: string | null = null;
     if (dto.contact_id) {
-      const [c] = await conn.query(`SELECT id, contact_type, parent_id, company_id, is_active FROM contacts WHERE id = $1`, [dto.contact_id]);
-      if (!c || !isVisible(scope, c.company_id) || !c.is_active) throw new BadRequestException('That contact was not found');
+      const [c] = await conn.query(`SELECT id, contact_type, parent_id, company_id, branch_id, is_active FROM contacts WHERE id = $1`, [dto.contact_id]);
+      if (!c || !isVisible(scope, c.company_id, c.branch_id) || !c.is_active) throw new BadRequestException('That contact was not found');
       contactId = c.contact_type === 'person' && c.parent_id ? c.parent_id : c.id;
       personId = c.contact_type === 'person' ? c.id : null;
       await conn.query(`UPDATE contacts SET is_customer = true, updated_at = now() WHERE id = $1 AND NOT is_customer`, [contactId]);
@@ -162,6 +166,7 @@ export class CrmLeadsService extends CrmBase {
         name: dto.opportunity_name?.trim() || lead.title, contact_id: contactId, person_id: personId, pipeline_id: dto.pipeline_id,
         expected_revenue: dto.expected_revenue ?? (lead.expected_revenue == null ? 0 : Number(lead.expected_revenue)),
         expected_close_date: dto.expected_close_date, owner_id: lead.owner_id, source_id: lead.source_id, lead_id: lead.id, company_id: lead.company_id,
+        branch_id: (lead.branch_id as string | null | undefined) ?? undefined,
       });
       opportunityId = deal.id;
     }
@@ -208,7 +213,7 @@ export class CrmLeadsService extends CrmBase {
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────────
-  private clean(dto: Partial<CreateLeadDto> & { owner_id?: string | null; company_id?: string | null }) {
+  private clean(dto: Partial<CreateLeadDto> & { owner_id?: string | null; company_id?: string | null; branch_id?: string | null }) {
     const out: Record<string, unknown> = {};
     for (const c of COLUMNS) {
       const v = (dto as Record<string, unknown>)[c];
@@ -265,7 +270,7 @@ export class CrmLeadsService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string): Promise<Lead> {
     const [row] = await conn.query(`${LEAD_SQL} WHERE l.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Lead not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Lead not found');
     return row;
   }
 }

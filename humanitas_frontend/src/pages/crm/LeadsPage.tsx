@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarClock, Download, Plus, Search, UserPlus } from 'lucide-react';
+import { CalendarClock, Download, Plus, Search, Upload, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/design-system/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,10 @@ import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import { LoadMore } from '@/components/platform/InfiniteList';
 import { shortcutHint, useShortcuts } from '@/lib/shortcuts';
 import '@/components/crm/registerCrmEntities';
+import { CrmImportDialog } from '@/components/crm/CrmImportDialog';
 import '@/components/contacts/registerContactEntities';
 import { CrmListSelect } from '@/components/crm/CrmCommon';
+import { isStale, lastContactText } from '@/components/crm/FollowUps';
 import {
   LEAD_STATUS_LABEL, downloadCrmCsv, formatMoney, leadWho, useInfiniteLeads, useLeadCounts, type LeadFilters, type LeadStatus,
 } from '@/hooks/useCrm';
@@ -35,6 +37,7 @@ export default function LeadsPage() {
   const { hasPermission } = useAuth();
   const drawer = useRecordDrawer();
   const searchRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<(typeof TABS)[number]['value']>('open');
@@ -74,6 +77,7 @@ export default function LeadsPage() {
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             )}
+            {hasPermission('create_crm_leads') && <Button variant="outline" onClick={() => setImporting(true)}><Upload className="mr-2 h-4 w-4" /> Import</Button>}
             {hasPermission('create_crm_leads') && <Button onClick={create} title={shortcutHint('New lead', 'n')}><Plus className="mr-2 h-4 w-4" /> New lead</Button>}
           </div>
         }
@@ -100,7 +104,7 @@ export default function LeadsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Lead</TableHead><TableHead>Who</TableHead><TableHead>Status</TableHead><TableHead>Source</TableHead>
-              <TableHead>Owner</TableHead><TableHead className="text-right">Expected</TableHead><TableHead>Next step</TableHead>
+              <TableHead>Owner</TableHead><TableHead className="text-right">Expected</TableHead><TableHead>Next step</TableHead><TableHead>Last contact</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -122,11 +126,15 @@ export default function LeadsPage() {
                       <span className={`flex items-center gap-1 ${overdue ? 'text-destructive' : ''}`}><CalendarClock className="h-3 w-3" />{new Date(l.next_activity_at).toLocaleDateString()}</span>
                     ) : (l.status !== 'converted' && l.status !== 'lost' ? <span className="text-amber-700">None planned</span> : '—')}
                   </TableCell>
+                  <TableCell className={`text-xs ${l.status !== 'converted' && l.status !== 'lost' && isStale(l.last_contact_at) ? 'text-amber-700' : ''}`}
+                    title={l.contact_count ? `${l.contact_count} contacts` : undefined}>
+                    {lastContactText(l.last_contact_at, l.last_contact_channel)}
+                  </TableCell>
                 </TableRow>
               );
             })}
             {!leads.rows.length && (
-              <TableRow><TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
+              <TableRow><TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
                 {leads.isLoading ? 'Loading leads…' : (
                   <div className="flex flex-col items-center gap-2">
                     <UserPlus className="h-8 w-8 opacity-40" />
@@ -140,6 +148,7 @@ export default function LeadsPage() {
         </Table>
       </div>
       <LoadMore hasNextPage={!!leads.hasNextPage} isFetchingNextPage={leads.isFetchingNextPage} fetchNextPage={leads.fetchNextPage} loaded={leads.rows.length} total={leads.total} noun="leads" />
+      <CrmImportDialog kind="leads" open={importing} onClose={() => setImporting(false)} />
     </div>
   );
 }

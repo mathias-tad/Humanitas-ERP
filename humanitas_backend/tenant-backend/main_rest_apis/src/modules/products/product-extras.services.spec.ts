@@ -77,7 +77,7 @@ describe('Product packaging and contents', () => {
   it('refuses a component with variants or that is itself a kit', async () => {
     const conn = fakeConn([
       [/SELECT company_id FROM users/, () => [{ company_id: null }]],
-      [/SELECT id, name, is_active, has_variants, composition, company_id FROM products/, () => [
+      [/SELECT id, name, is_active, has_variants, composition, company_id, branch_id FROM products/, () => [
         { id: C1, name: 'T-shirt', is_active: true, has_variants: true, composition: 'single', company_id: null },
         { id: C2, name: 'Coffee', is_active: true, has_variants: false, composition: 'kit', company_id: null },
       ]],
@@ -90,7 +90,7 @@ describe('Product packaging and contents', () => {
   it('saves a kit and shows the components total against the kit price', async () => {
     const conn = fakeConn([
       [/SELECT company_id FROM users/, () => [{ company_id: null }]],
-      [/SELECT id, name, is_active, has_variants, composition, company_id FROM products/, () => [
+      [/SELECT id, name, is_active, has_variants, composition, company_id, branch_id FROM products/, () => [
         { id: C1, name: 'Coffee 500g', is_active: true, has_variants: false, composition: 'single', company_id: null },
         { id: C2, name: 'Mug', is_active: true, has_variants: false, composition: 'single', company_id: null },
       ]],
@@ -119,7 +119,7 @@ describe('Product pictures', () => {
 
   const conn = () => fakeConn([
     [/SELECT company_id FROM users/, () => [{ company_id: null }]],
-    [/SELECT id, name, company_id, image_url FROM products/, () => [{ id: P1, name: 'Teff', company_id: null }]],
+    [/SELECT id, name, company_id, branch_id, image_url FROM products/, () => [{ id: P1, name: 'Teff', company_id: null }]],
     [/count\(\*\)::int AS n FROM product_media/, () => [{ n: 0 }]],
     [/AS has_primary/, () => [{ has_primary: false }]],
     [/INSERT INTO product_media/, () => [{ id: 'm1' }]],
@@ -169,7 +169,7 @@ describe('Customer price lists', () => {
     const conn = fakeConn([
       [/SELECT company_id FROM users/, () => [{ company_id: null }]],
       [/FROM price_lists WHERE id = \$1/, () => [{ id: LIST, name: 'Wholesale', is_active: true, company_id: null }]],
-      [/SELECT id, name, is_active, company_id, parent_id FROM contacts/, (p) => (p[0] as string[]).map((id) => ({ id, name: id === C2 ? 'Sara' : 'Abebe Trading', is_active: true, company_id: null, parent_id: id === C2 ? C1 : null }))],
+      [/SELECT id, name, is_active, company_id, branch_id, parent_id FROM contacts/, (p) => (p[0] as string[]).map((id) => ({ id, name: id === C2 ? 'Sara' : 'Abebe Trading', is_active: true, company_id: null, parent_id: id === C2 ? C1 : null }))],
       [/c.name, l.name AS list_name/, () => [{ name: 'Abebe Trading', list_name: 'Retail' }]],
     ]);
     const timeline = timelineMock();

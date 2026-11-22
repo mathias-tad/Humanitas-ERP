@@ -166,6 +166,8 @@ export class CreateProductDto {
   @IsOptional()
   @IsUUID()
   company_id?: string | null;
+  /** null = shared by every branch. */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 
   @IsOptional()
   @ArrayMaxSize(20)
@@ -202,6 +204,8 @@ export class UpdateProductDto {
   @IsOptional() @IsString() @Matches(IMAGE_URL_PATTERN, { message: 'image_url must be a web address or an uploaded picture' }) @MaxLength(2000)
   image_url?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
   /** Variants only: added to the parent's sales price. */
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(-1000000000) @Max(1000000000) price_extra?: number;
   /** When present, replaces the product's barcodes. */
@@ -239,6 +243,8 @@ export class CreateProductCategoryDto {
   /** Excise rate in % for products in this category (MoR tax guide). */
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(500) excise_rate?: number;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class UpdateProductCategoryDto {
@@ -249,6 +255,8 @@ export class UpdateProductCategoryDto {
   @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 4 }) @Min(0) @Max(500) excise_rate?: number;
   @IsOptional() @IsBoolean() is_active?: boolean;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class CreateUomCategoryDto {

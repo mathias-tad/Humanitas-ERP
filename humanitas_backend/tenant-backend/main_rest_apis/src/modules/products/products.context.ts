@@ -8,6 +8,7 @@ export function catalogContext(req: AuthenticatedRequest): CatalogContext {
     tenantId: req.user?.tenantId || firstHeader(req.headers['x-tenant-id']) || 'default',
     user: req.user,
     companyHeader: firstHeader(req.headers['x-company-id']),
+    branchHeader: firstHeader(req.headers['x-branch-id']),
     client: clientFromRequest(req),
   };
 }

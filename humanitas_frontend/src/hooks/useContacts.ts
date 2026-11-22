@@ -8,7 +8,7 @@ import { scopeKey, toQueryString, type Paged } from '@/hooks/useProducts';
 /** Contacts: companies and people for every module (featureslist §4.1, CRM 1.3); mirrors the tenant API. */
 export type ContactType = 'company' | 'person';
 export type ContactRole = 'customer' | 'vendor';
-export type InteractionKind = 'note' | 'call' | 'meeting' | 'email' | 'visit';
+export type InteractionKind = 'note' | 'call' | 'meeting' | 'email' | 'visit' | 'telegram' | 'whatsapp' | 'sms';
 
 export interface Contact {
   id: string;
@@ -47,6 +47,7 @@ export interface Contact {
   account_manager_name: string | null;
   notes: string | null;
   company_id: string | null;
+  branch_id?: string | null;
   is_active: boolean;
   people_count: number;
   primary_contact: string | null;
@@ -66,7 +67,7 @@ export interface PersonInput {
 export type ContactInput = Partial<Pick<Contact,
   'code' | 'contact_type' | 'parent_id' | 'is_primary_contact' | 'job_title' | 'name' | 'legal_name' | 'tin' | 'vat_number' | 'phone' | 'mobile' |
   'email' | 'website' | 'region' | 'city' | 'subcity' | 'woreda' | 'street' | 'category_id' | 'tags' | 'is_customer' | 'is_vendor' |
-  'price_list_id' | 'payment_terms_days' | 'account_manager_id' | 'notes' | 'company_id'>> & {
+  'price_list_id' | 'payment_terms_days' | 'account_manager_id' | 'notes' | 'company_id' | 'branch_id'>> & {
   credit_limit?: number | null;
   people?: PersonInput[];
   allow_duplicate?: boolean;
@@ -80,6 +81,7 @@ export interface ContactCategory {
   price_list_id: string | null;
   price_list_name: string | null;
   company_id: string | null;
+  branch_id?: string | null;
   sort_order: number;
   is_active: boolean;
   contact_count: number;

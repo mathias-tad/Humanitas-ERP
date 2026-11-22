@@ -147,12 +147,12 @@ describe('CRM activities and set-up', () => {
 
   it('keeps a won and a lost stage, and stages with open deals', async () => {
     const withDeals = fakeConn([
-      [/SELECT s.\*, p.company_id FROM crm_stages s/, () => [stages[1]]],
+      [/SELECT s.\*, p.company_id, p.branch_id FROM crm_stages s/, () => [stages[1]]],
       [/FROM crm_opportunities WHERE stage_id = \$1/, () => [{ n: 2 }]],
     ]);
     await expect(services(withDeals).setup.archiveStage(ctx, S_PROP)).rejects.toThrow(/2 open deals are in Proposal/);
     const onlyWon = fakeConn([
-      [/SELECT s.\*, p.company_id FROM crm_stages s/, () => [stages[2]]],
+      [/SELECT s.\*, p.company_id, p.branch_id FROM crm_stages s/, () => [stages[2]]],
       [/FROM crm_opportunities WHERE stage_id = \$1/, () => [{ n: 0 }]],
       [/FROM crm_stages WHERE pipeline_id = \$1 AND is_active/, () => stages],
     ]);

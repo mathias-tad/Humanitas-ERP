@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
-import { companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
+import { companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, setRecordBranch } from '../products/products.scope';
 import { CrmBase, ENTITY, blankToNull, ownsCrmRow, setClause, type CrmScope } from './crm.base';
 import type { CompleteActivityDto, CreateActivityDto, ListActivitiesQueryDto, UpdateActivityDto } from './dto/crm.dto';
 
@@ -73,6 +73,9 @@ export class CrmActivitiesService extends CrmBase {
       [dto.activity_type, dto.subject.trim(), blankToNull(dto.notes) ?? null, dto.due_at, dto.duration_minutes ?? null, assignee,
         dto.related_type ?? null, dto.related_id ?? null, related?.company_id ?? defaultRecordCompany(scope) ?? null, ctx.user?.sub ?? null],
     );
+    // An activity sits in the branch of what it is about (else the picked branch, else its assignee's).
+    const branchId = related ? related.branch_id : defaultRecordBranch(scope);
+    if (branchId) await setRecordBranch(conn, 'crm_activities', row.id, branchId);
     if (related) {
       await this.record(ctx, ENTITY[related.type], related.id, 'activity', `${TYPE_LABEL[dto.activity_type]} planned: ${dto.subject.trim()}`,
         { activity_id: row.id, due_at: dto.due_at, assigned_to: assignee });
@@ -108,6 +111,14 @@ export class CrmActivitiesService extends CrmBase {
     if (a.done_at) return a;
     await conn.query(`UPDATE crm_activities SET done_at = now(), done_by = $1, outcome = $2, updated_by = $1, updated_at = now() WHERE id = $3`,
       [ctx.user?.sub ?? null, blankToNull(dto.outcome) ?? null, id]);
+    // A call, meeting, email or visit done counts as a contact with the lead or deal.
+    if (a.activity_type !== 'todo' && (a.related_type === 'lead' || a.related_type === 'opportunity') && a.related_id) {
+      await conn.query(
+        `UPDATE ${a.related_type === 'lead' ? 'crm_leads' : 'crm_opportunities'}
+            SET contact_count = contact_count + 1, last_contact_at = now(), last_contact_channel = $1 WHERE id = $2`,
+        [a.activity_type, a.related_id],
+      );
+    }
     if (a.related_type && a.related_id) {
       const type = a.related_type as keyof typeof ENTITY;
       await this.record(ctx, ENTITY[type], a.related_id as string, a.activity_type === 'todo' ? 'activity' : 'interaction',
@@ -140,10 +151,10 @@ export class CrmActivitiesService extends CrmBase {
     if (!type || !id) throw new BadRequestException('Say what the activity is about (a lead, a deal or a contact) and which one');
     const table = { lead: 'crm_leads', opportunity: 'crm_opportunities', contact: 'contacts' }[type];
     const extra = type === 'contact' ? '' : ', owner_id, created_by';
-    const [row] = await conn.query(`SELECT id, company_id, is_active${extra} FROM ${table} WHERE id = $1`, [id]);
-    const visible = row && isVisible(scope, row.company_id) && (type === 'contact' || ownsCrmRow(scope as { mine?: string | null }, row));
+    const [row] = await conn.query(`SELECT id, company_id, branch_id, is_active${extra} FROM ${table} WHERE id = $1`, [id]);
+    const visible = row && isVisible(scope, row.company_id, row.branch_id) && (type === 'contact' || ownsCrmRow(scope as { mine?: string | null }, row));
     if (!visible || !row.is_active) throw new BadRequestException(`That ${type === 'opportunity' ? 'deal' : type} was not found`);
-    return { type, id, company_id: row.company_id as string | null };
+    return { type, id, company_id: row.company_id as string | null, branch_id: (row.branch_id as string | null) ?? null };
   }
 
   private filters(ctx: CatalogContext, scope: CompanyScope, q: ListActivitiesQueryDto & { tz?: string }) {
@@ -182,7 +193,7 @@ export class CrmActivitiesService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const [row] = await conn.query(`${ACTIVITY_SQL} WHERE a.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id) || !row.is_active || !this.ownsActivity(scope, row)) throw new NotFoundException('Activity not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id) || !row.is_active || !this.ownsActivity(scope, row)) throw new NotFoundException('Activity not found');
     return row;
   }
 }

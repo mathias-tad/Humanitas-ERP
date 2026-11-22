@@ -2,12 +2,12 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CreateProductCategoryDto, UpdateProductCategoryDto } from './dto/products.dto';
-import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable } from './products.scope';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import type { CatalogContext } from './products.service';
 
 export const CATEGORY_TRACKED_FIELDS: Record<string, string> = {
-  name: 'Name', parent_id: 'Parent category', code: 'Code', description: 'Description', excise_rate: 'Excise rate', is_active: 'Active', company_id: 'Company',
+  name: 'Name', parent_id: 'Parent category', code: 'Code', description: 'Description', excise_rate: 'Excise rate', is_active: 'Active', company_id: 'Company', branch_id: 'Branch',
 };
 
 @Injectable()
@@ -19,7 +19,7 @@ export class ProductCategoriesService {
 
   private async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    return { conn, scope: await resolveCompanyScope(conn, ctx.user, ctx.companyHeader) };
+    return { conn, scope: await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader) };
   }
 
   /** Flat list with full path and product count; the UI builds the tree. */
@@ -59,6 +59,8 @@ export class ProductCategoriesService {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     if (dto.parent_id) await this.findVisible(conn, scope, dto.parent_id, 'Parent category not found');
     const [row] = await conn.query(
         `INSERT INTO product_categories (name, parent_id, code, description, company_id, created_by, updated_by, excise_rate)
@@ -66,6 +68,10 @@ export class ProductCategoriesService {
         [dto.name.trim(), dto.parent_id ?? null, dto.code?.trim() || null, dto.description ?? null, companyId ?? null,
          ctx.user?.sub ?? null, dto.excise_rate ?? 0],
       ).catch(rethrowCatalogConflict);
+    if (branchId) {
+      await setRecordBranch(conn, 'product_categories', String(row.id), branchId);
+      row.branch_id = branchId;
+    }
     await this.timeline.record(ctx.tenantId, {
       entityType: 'product_category', entityId: String(row.id), eventType: 'created', moduleKey: 'products',
       summary: `Category "${row.name}" created`,
@@ -79,6 +85,7 @@ export class ProductCategoriesService {
     const { conn, scope } = await this.open(ctx);
     const before = await this.findVisible(conn, scope, id);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (dto.parent_id) {
       await this.findVisible(conn, scope, dto.parent_id, 'Parent category not found');
       await this.assertNotDescendant(conn, id, dto.parent_id);
@@ -86,7 +93,7 @@ export class ProductCategoriesService {
     if (dto.is_active === false) await this.assertNoActiveChildren(conn, id);
     const sets: string[] = [];
     const params: unknown[] = [];
-    for (const key of ['name', 'parent_id', 'code', 'description', 'excise_rate', 'is_active', 'company_id'] as const) {
+    for (const key of ['name', 'parent_id', 'code', 'description', 'excise_rate', 'is_active', 'company_id', 'branch_id'] as const) {
       if (dto[key] === undefined) continue;
       let v: unknown = dto[key];
       if (typeof v === 'string' && (key === 'name' || key === 'code')) v = v.trim() || null;
@@ -113,7 +120,7 @@ export class ProductCategoriesService {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string, message = 'Category not found') {
     const rows = await conn.query(`SELECT * FROM product_categories WHERE id = $1`, [id]);
-    if (!rows[0] || !isVisible(scope, rows[0].company_id)) throw new NotFoundException(message);
+    if (!rows[0] || !isVisible(scope, rows[0].company_id, rows[0].branch_id)) throw new NotFoundException(message);
     return rows[0];
   }
 

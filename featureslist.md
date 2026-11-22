@@ -11,12 +11,12 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 
 | Module | Total | ✅ Done | ⏳ Remaining | % Complete |
 |--------|-------|---------|-------------|-----------|
-| 0. System Architecture & Core | 73 | 73 | 0 | 100% |
+| 0. System Architecture & Core | 75 | 75 | 0 | 100% |
 | 1. Products & Catalog Management | 38 | 20 | 18 | 53% |
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
-| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 19 | 118 | 14% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 140 | 22 | 118 | 16% |
 | 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
 | 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
 | 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
@@ -41,7 +41,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 26. Multi-Language (i18n) & Localization Support | 16 | 0 | 16 | 0% |
 | 28. Modular Packaging, Licensing & Deployment | 23 | 1 | 22 | 4% |
 | 29. In-Context Action Framework | 14 | 2 | 12 | 14% |
-| 30. Universal Activity Timeline & Interaction Log | 10 | 0 | 10 | 0% |
+| 30. Universal Activity Timeline & Interaction Log | 10 | 1 | 9 | 10% |
 | 31. Unified Communications — Voice & Video Calls in Chat | 13 | 0 | 13 | 0% |
 | 32. VoIP, Cloud PBX & AI Contact Center | 33 | 0 | 33 | 0% |
 | 33. MCP & Open AI Connectivity | 10 | 0 | 10 | 0% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1244** | **582** | **662** | **47%** |
+| **TOTAL** | **1249** | **588** | **661** | **47%** |
 
 ---
 
@@ -136,6 +136,8 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [x] PL/pgSQL trigger `trg_set_company_branch` auto-inherits `company_id`/`branch_id` from the record's owning user on `BEFORE INSERT`, with fallback to default company/branch.
   - [x] Performance indexes `idx_<table>_company_id` and `idx_<table>_branch_id` on every operational table.
   - [x] **Tenant Migration**: `20261022000001_add_company_branch_to_all_operational_tables.sql` registered and auto-applied on startup.
+  - [x] Every table carries `company_id` and `branch_id` (`20261122000023_branch_scope_every_table.sql`, guarded by `branch-scope-coverage.spec.ts`): owned records (CRM leads, deals, activities, chats, AI chats, audit logs) take their person's; child rows (lines, members, comments, attachments, messages, stages) copy and follow their parent's; catalog and set-up lists (products, categories, price lists, customers, pipelines, roles, settings) are shared (NULL) or limited to one branch.
+  - [x] Catalog, contact and CRM lists and records filtered by the selected branch; new records go to the picked branch; branch-limited users cannot share records with all branches. Branch field on lead, deal, customer, product and price list forms.
 - [x] **Company & Branch Context Switcher (Web)**:
   - [x] `CompanyBranchSwitcher` header component with dropdown switcher for users with `view_all_companies` / `view_all_branches` permissions.
   - [x] Locked badge (`Assigned Unit 🔒`) for single-entity users automatically scoped to their assigned company/branch.
@@ -386,6 +388,8 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [ ] **1.1 Lead Management**:
   - [ ] Lead registration and creation (web, mobile, quick-create from any page; duplicate check on phone, email and company).
   - [x] Lead source management (walk-in, phone, website, referral, campaign, social, trade fair… — configurable list).
+  - [x] Import leads and opportunities from Excel or CSV (columns matched by name, every row checked before saving, duplicates by phone or email skipped, missing sources and customers created on request).
+  - [x] Record visibility: salespeople see the leads, deals and activities they own or created; "See everyone's" for managers.
   - [ ] Lead assignment to sales representatives (manual, and by the routing rules below).
   - [x] Lead qualification and evaluation (need, budget, timeline, decision maker; qualified / not qualified with reason).
   - [x] Lead status tracking (New → Contacted → Qualified → Converted / Lost) with time in each status.
@@ -414,6 +418,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [ ] **1.5 Activity and Follow-Up Management**:
   - [ ] Customer calls and meeting scheduling (on the unified calendar).
   - [x] Follow-up task management (next activity on every lead and deal).
+  - [x] Follow-up log: every contact with a lead or deal (call, meeting, visit, email, Telegram, WhatsApp, SMS, note), direction, time (backdated too), duration, with whom, outcome, numbered 1st, 2nd… contact; next step in the same form; last contact in the lists; deal follow-ups also on the customer.
   - [ ] Appointment and reminder management (in-app, push and email reminders §25).
   - [ ] Email communication tracking (emails logged on the lead, deal and customer).
   - [x] Activity assignment (to yourself or a colleague).
@@ -1388,7 +1393,7 @@ To maintain unwavering code quality, security, and zero-rework consistency durin
 - [ ] **Automatic, immutable, time-stamped entries**: creation, every tracked field change (old → new, who, when, through UI/API/AI/MCP), stage changes with time-in-stage, approvals, generated documents.
 - [ ] **Interaction log (touchpoints)**: channel (VoIP call, app voice call, video call, email, SMS, WhatsApp, chat, meeting, visit), direction, sequence number (1st, 2nd … contact), start/end time, duration, outcome/disposition, participants, user, description.
 - [ ] **Attachments on interactions**: call or video recording, transcript, AI summary, call script used (with version and answers per step), files, screenshots.
-- [ ] Manual entries for past interactions (backdated, flagged in the audit trail).
+- [x] Manual entries for past interactions (backdated, flagged in the audit trail).
 - [ ] **Scheduled activities**: call, meeting, email, to-do with due dates, reminders, overdue badges and **activity plans** (multi-step sequences assigned in one click).
 - [ ] Internal notes vs. customer-visible messages, @mentions, followers with per-event notification preferences.
 - [ ] Filters (channel, user, type, date), search, export; roll-up view on parent records (an account shows its contacts' interactions).

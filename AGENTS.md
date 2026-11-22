@@ -140,6 +140,7 @@ The workspace contains two distinct, purposefully separated folder trees:
     - `view_all_branches` (Company-wide all-branch scope vs. locked to user's assigned branch)
     - `view_all_departments` (Branch-wide all-department scope vs. locked to user's assigned department)
   - Users lacking `view_all_companies` or `view_all_branches` can NEVER query, mutate, or export records belonging to another company or branch.
+  - **Every table carries `company_id` and `branch_id`** (`modules/database/branch-scope-coverage.spec.ts` fails otherwise). Records a person owns take that person's company and branch (`trg_set_company_branch`); child rows (lines, members, comments, attachments) copy their parent's (`trg_inherit_company_branch`) and move with it (`trg_cascade_company_branch`); catalog and set-up rows use NULL for "shared by every company / branch". Services filter with `companyFilter` / `isVisible`, which apply the company and the branch, and new records take the switcher's branch (`defaultRecordBranch`, `assertBranchAssignable`).
 - **Synchronized UI Context Switcher**:
   - Web and mobile navigation headers MUST provide a synchronized Company & Branch context selector for users with multi-entity permissions.
   - For single-company or single-branch users, the selector is automatically locked to their assigned scope with a lock indicator.

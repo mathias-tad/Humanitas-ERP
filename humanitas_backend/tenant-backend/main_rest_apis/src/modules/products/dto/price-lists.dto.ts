@@ -14,6 +14,8 @@ export class CreatePriceListDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100000) sort_order?: number;
   /** null = shared by every company (users with every company only). */
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class UpdatePriceListDto {
@@ -25,6 +27,8 @@ export class UpdatePriceListDto {
   @IsOptional() @IsBoolean() is_active?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(100000) sort_order?: number;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class PriceRuleDto {

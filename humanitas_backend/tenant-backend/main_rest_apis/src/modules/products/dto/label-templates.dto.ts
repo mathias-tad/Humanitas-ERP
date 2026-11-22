@@ -28,6 +28,8 @@ export class CreateLabelTemplateDto {
   @IsOptional() @IsUUID() price_list_id?: string | null;
   /** null = shared by every company. */
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() sort_order?: number;
 }
 

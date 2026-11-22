@@ -17,7 +17,7 @@ export class ProductReportsService {
 
   async summary(ctx: CatalogContext, q: ReportQueryDto = {}) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     const params: unknown[] = [];
     const where: string[] = [];
     const f = companyFilter(scope, 'p', 1);
@@ -109,7 +109,7 @@ export class ProductReportsService {
   /** The products with one catalog gap, as CSV (the Products list shows the same with ?issue=). */
   async exportCsv(ctx: CatalogContext, q: ReportQueryDto): Promise<string> {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     const params: unknown[] = [];
     const where = ['p.is_active', 'NOT p.has_variants'];
     const issues: CatalogIssue[] = q.issue ? [q.issue] : CATALOG_ISSUES;

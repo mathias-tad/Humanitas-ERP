@@ -142,6 +142,9 @@ export default function FeaturesPage() {
                 "Pipeline board: drag deals through stages with default win probabilities, weighted revenue per stage, stuck and past-close warnings, won and lost with reasons",
                 "My activities: calls, meetings, emails, visits and to-dos for yourself or a colleague, overdue / today / upcoming, outcome logged on the history",
                 "Weighted sales forecast by expected close month, CRM set-up of pipelines, stages, lead sources and lost reasons",
+                "Import leads and deals from Excel or CSV: columns matched by name, every row checked first, duplicates skipped, missing sources and customers created on request",
+                "Salespeople see their own leads, deals and activities; managers see everyone's",
+                "Follow-up log on every lead and deal: call, meeting, visit, email, Telegram, WhatsApp or SMS, who contacted whom, when (backdated too), outcome, numbered 1st, 2nd… contact, next step in the same form, last contact in the lists",
                 "Dynamic pricing rules, tiered volume discounts, and customer-specific price lists",
                 "Sales quotation to sales order 1-click conversion with inventory reservation",
                 "Credit limit validation and customer account aging receivables reports",
@@ -607,6 +610,8 @@ export default function FeaturesPage() {
                 "Strict 4-Tier Data Isolation Hierarchy: Tenant → Company → Branch → Department",
                 "Scoped RBAC Permissions: view_all_companies, view_all_branches, view_all_departments",
                 "Allowed companies and branches per user, enforced on the server for every module, with a default company and branch",
+                "Every table carries its company and branch: owned records take their person's, lines and attachments their parent's, catalog lists can be shared by all branches or limited to one",
+                "Branch field on leads, deals, customers, products and price lists; branch-limited users see and change only their branch's records",
                 "Synchronized header Company & Branch context switcher with global query invalidation",
                 "100% of REST endpoints guarded with JwtAuthGuard, ModuleGuard & PermissionsGuard",
                 "Comprehensive immutable audit logging tracking every record mutation and IP address"

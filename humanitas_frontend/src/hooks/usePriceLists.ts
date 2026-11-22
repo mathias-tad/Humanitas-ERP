@@ -37,6 +37,7 @@ export interface PriceList {
   is_default: boolean;
   is_active: boolean;
   company_id: string | null;
+  branch_id?: string | null;
   rule_count: number;
   items?: PriceRule[];
 }
@@ -49,6 +50,7 @@ export interface PriceListInput {
   is_default?: boolean;
   is_active?: boolean;
   company_id?: string | null;
+  branch_id?: string | null;
 }
 
 export interface PriceRuleInput {

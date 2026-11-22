@@ -197,6 +197,7 @@ function ListDialog({ target, onClose, onSaved }: { target: PriceList | 'new' | 
   const [description, setDescription] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
+  const [branchId, setBranchId] = useState<string | null | undefined>(undefined);
   const key = target === 'new' ? 'new' : target?.id ?? null;
   const [prev, setPrev] = useState<string | null>(null);
   if (key !== prev) {
@@ -208,6 +209,7 @@ function ListDialog({ target, onClose, onSaved }: { target: PriceList | 'new' | 
     setDescription(t?.description ?? '');
     setIsDefault(t?.is_default ?? false);
     setCompanyId(t ? t.company_id : undefined);
+    setBranchId(t ? t.branch_id ?? null : undefined);
   }
   if (!target) return null;
   const existing = target !== 'new' ? target : null;
@@ -217,11 +219,13 @@ function ListDialog({ target, onClose, onSaved }: { target: PriceList | 'new' | 
     if (!name.trim()) return;
     try {
       const companyChanged = existing ? companyId !== undefined && companyId !== existing.company_id : companyId !== undefined;
+      const branchChanged = existing ? branchId !== undefined && branchId !== (existing.branch_id ?? null) : branchId !== undefined;
       const saved = await save.mutateAsync({
         id: existing?.id,
         input: {
           name: name.trim(), code: code.trim() || null, currency: currency.trim().toUpperCase(), description: description.trim() || null,
           ...(existing ? {} : { is_default: isDefault }), ...(companyChanged ? { company_id: companyId } : {}),
+          ...(branchChanged ? { branch_id: branchId } : {}),
         },
       });
       toast.success(existing ? 'Price list saved' : `Price list “${saved.name}” created`);
@@ -258,7 +262,7 @@ function ListDialog({ target, onClose, onSaved }: { target: PriceList | 'new' | 
               <Input id="pl-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
             </div>
             <div className="col-span-2">
-              <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared idPrefix="pl" />
+              <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} showBranch startShared branchId={branchId} onBranchChange={setBranchId} allowShared idPrefix="pl" />
             </div>
             {!existing && (
               <label className="col-span-2 flex items-center gap-2 text-sm">

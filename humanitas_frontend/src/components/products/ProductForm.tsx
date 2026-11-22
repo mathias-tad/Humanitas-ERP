@@ -201,6 +201,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
   const [scanOpen, setScanOpen] = useState(false);
   // undefined until known: a new product starts in the current company (rule 16).
   const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
+  const [branchId, setBranchId] = useState<string | null | undefined>(undefined);
   const drawer = useRecordDrawer();
   const settings = useProductSettings(hasPermission('view_product_settings'));
   const warnBelowCost = settings.data?.warn_below_cost ?? true;
@@ -213,6 +214,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     if (mode === 'edit' && product.data) {
       setF(productToForm(product.data));
       setCompanyId(product.data.company_id);
+      setBranchId(product.data.branch_id ?? null);
     }
   }, [mode, product.data]);
 
@@ -248,7 +250,10 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     try {
       // Company: sent on create, and on edit only when changed.
       const companyChanged = mode === 'create' ? companyId !== undefined : companyId !== undefined && companyId !== (product.data?.company_id ?? null);
-      const input: ProductInput = { ...formToInput(f), ...(companyChanged && !isVariant ? { company_id: companyId } : {}) };
+      const branchChanged = mode === 'create' ? branchId !== undefined : branchId !== undefined && branchId !== (product.data?.branch_id ?? null);
+      const input: ProductInput = {
+        ...formToInput(f), ...(companyChanged && !isVariant ? { company_id: companyId } : {}), ...(branchChanged && !isVariant ? { branch_id: branchId } : {}),
+      };
       // Unchanged barcodes are not sent, so generated ones keep their mark (a product getting variants drops them).
       if (mode === 'edit' && product.data && JSON.stringify(input.barcodes) === JSON.stringify(formToInput(productToForm(product.data)).barcodes)) {
         delete input.barcodes;
@@ -321,7 +326,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
             disabled={isVariant}
           />
         </div>
-        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared disabled={isVariant || !canEdit} idPrefix="p" />
+        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} showBranch startShared branchId={branchId} onBranchChange={setBranchId} allowShared disabled={isVariant || !canEdit} idPrefix="p" />
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="p-uom">Base unit (stock)</Label>

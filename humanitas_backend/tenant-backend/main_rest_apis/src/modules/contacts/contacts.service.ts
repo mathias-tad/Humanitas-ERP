@@ -4,7 +4,7 @@ import { ActivityTimelineService } from '../activity-timeline/activity-timeline.
 import type { CatalogContext } from '../products/products.service';
 import { csvCell } from '../products/products.service';
 import {
-  assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable,
+  assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch
 } from '../products/products.scope';
 import { cleanTags, duplicateReason, emailKey, normalizeTin, phoneKey, type DuplicateCandidate } from './contacts.rules';
 import type {
@@ -25,7 +25,7 @@ export const CONTACT_TRACKED_FIELDS: Record<string, string> = {
 const COLUMNS = [
   'code', 'contact_type', 'parent_id', 'is_primary_contact', 'job_title', 'name', 'legal_name', 'tin', 'vat_number', 'phone', 'mobile',
   'email', 'website', 'country', 'region', 'city', 'subcity', 'woreda', 'street', 'category_id', 'tags', 'is_customer', 'is_vendor',
-  'price_list_id', 'credit_limit', 'payment_terms_days', 'account_manager_id', 'notes', 'company_id',
+  'price_list_id', 'credit_limit', 'payment_terms_days', 'account_manager_id', 'notes', 'company_id', 'branch_id',
 ] as const;
 type Column = (typeof COLUMNS)[number];
 type Row = Partial<Record<Column, unknown>>;
@@ -56,7 +56,7 @@ export class ContactsService {
 
   private async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     return { conn, scope };
   }
 
@@ -125,6 +125,9 @@ export class ContactsService {
     const companyId = dto.company_id !== undefined ? dto.company_id : parent ? parent.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
     row.company_id = companyId ?? null;
+    // A person belongs where their company does; otherwise the picked branch (null = every branch).
+    row.branch_id = dto.branch_id !== undefined ? dto.branch_id : parent ? parent.branch_id ?? null : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, row.branch_id as string | null);
     await this.checkLinks(conn, scope, row);
     if (row.tin && !dto.allow_duplicate) await this.refuseSameTin(conn, scope, row.tin as string, null);
     const people = row.contact_type === 'company' ? (dto.people ?? []).filter((p) => p.name?.trim()) : [];
@@ -137,7 +140,7 @@ export class ContactsService {
         }
         const newId = await this.insert(m, row, ctx);
         for (let i = 0; i < people.length; i++) {
-          await this.insert(m, this.personRow(people[i], newId, i === 0, row.company_id as string | null), ctx);
+          await this.insert(m, { ...this.personRow(people[i], newId, i === 0, row.company_id as string | null), branch_id: row.branch_id ?? null }, ctx);
         }
         return newId;
       })
@@ -174,6 +177,7 @@ export class ContactsService {
       await this.checkParent(conn, scope, { ...before, ...row });
     }
     if (row.company_id !== undefined) assertCompanyAssignable(scope, row.company_id as string | null);
+    assertBranchAssignable(scope, row.branch_id as string | null | undefined);
     await this.checkLinks(conn, scope, row);
     if (row.tin && row.tin !== before.tin && !allow_duplicate) await this.refuseSameTin(conn, scope, row.tin as string, id);
     const cols = (Object.keys(row) as Column[]).filter((c) => row[c] !== undefined);
@@ -264,7 +268,7 @@ export class ContactsService {
     }
     const occurredAt = dto.occurred_at ? new Date(dto.occurred_at) : undefined;
     if (occurredAt && occurredAt.getTime() > Date.now() + 5 * 60 * 1000) throw new BadRequestException('Log what already happened; plan future calls as activities');
-    const label = { note: 'Note', call: 'Call', meeting: 'Meeting', email: 'Email', visit: 'Visit' }[dto.kind];
+    const label = { note: 'Note', call: 'Call', meeting: 'Meeting', email: 'Email', visit: 'Visit', telegram: 'Telegram', whatsapp: 'WhatsApp', sms: 'SMS' }[dto.kind];
     const event = {
       eventType: (dto.kind === 'note' ? 'note' : 'interaction') as 'note' | 'interaction', moduleKey: 'contacts',
       payload: { kind: dto.kind, direction: dto.direction ?? null, person_id: person?.id ?? null, contact_name: contact.name },
@@ -303,6 +307,8 @@ export class ContactsService {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     if (dto.price_list_id) await this.checkPriceList(conn, scope, dto.price_list_id);
     const [row] = await conn
       .query(
@@ -311,6 +317,10 @@ export class ContactsService {
         [dto.name.trim(), blankToNull(dto.description) ?? null, dto.color ?? null, dto.price_list_id ?? null, companyId ?? null, dto.sort_order ?? null, ctx.user?.sub ?? null],
       )
       .catch((e: unknown) => this.rethrow(e));
+    if (branchId) {
+      await setRecordBranch(conn, 'contact_categories', row.id, branchId);
+      row.branch_id = branchId;
+    }
     return row;
   }
 
@@ -318,12 +328,13 @@ export class ContactsService {
     const { conn, scope } = await this.open(ctx);
     const before = await this.findCategory(conn, scope, id);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (dto.price_list_id) await this.checkPriceList(conn, scope, dto.price_list_id);
     if (dto.is_active === false) {
       const [{ n }] = await conn.query(`SELECT count(*)::int AS n FROM contacts WHERE category_id = $1 AND is_active`, [id]);
       if (n > 0) throw new BadRequestException(`${n} active contact${n === 1 ? ' is' : 's are'} in this category; move them first`);
     }
-    const fields = ['name', 'description', 'color', 'price_list_id', 'company_id', 'sort_order', 'is_active'] as const;
+    const fields = ['name', 'description', 'color', 'price_list_id', 'company_id', 'branch_id', 'sort_order', 'is_active'] as const;
     const changes = fields.filter((f) => dto[f] !== undefined);
     if (!changes.length) return before;
     const [row] = await conn
@@ -416,11 +427,11 @@ export class ContactsService {
   private async checkParent(conn: Queryable, scope: CompanyScope, row: Row) {
     if (!row.parent_id) return null;
     if (row.contact_type === 'company') throw new BadRequestException('Only a person belongs to a company');
-    const [parent] = await conn.query(`SELECT id, name, contact_type, company_id, is_active FROM contacts WHERE id = $1`, [row.parent_id]);
-    if (!parent || !isVisible(scope, parent.company_id)) throw new BadRequestException('That company was not found');
+    const [parent] = await conn.query(`SELECT id, name, contact_type, company_id, branch_id, is_active FROM contacts WHERE id = $1`, [row.parent_id]);
+    if (!parent || !isVisible(scope, parent.company_id, parent.branch_id)) throw new BadRequestException('That company was not found');
     if (parent.contact_type !== 'company') throw new BadRequestException(`${parent.name} is a person; a person belongs to a company`);
     if (!parent.is_active) throw new BadRequestException(`${parent.name} is archived`);
-    return parent as { id: string; name: string; company_id: string | null };
+    return parent as { id: string; name: string; company_id: string | null; branch_id?: string | null };
   }
 
   private async clearPrimary(m: Queryable, parentId: string, exceptId: string | null) {
@@ -429,8 +440,8 @@ export class ContactsService {
 
   private async checkLinks(conn: Queryable, scope: CompanyScope, row: Row) {
     if (row.category_id) {
-      const [k] = await conn.query(`SELECT id, company_id, is_active FROM contact_categories WHERE id = $1`, [row.category_id]);
-      if (!k || !isVisible(scope, k.company_id) || !k.is_active) throw new BadRequestException('That contact category was not found');
+      const [k] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM contact_categories WHERE id = $1`, [row.category_id]);
+      if (!k || !isVisible(scope, k.company_id, k.branch_id) || !k.is_active) throw new BadRequestException('That contact category was not found');
     }
     if (row.price_list_id) await this.checkPriceList(conn, scope, row.price_list_id as string);
     if (row.account_manager_id) {
@@ -440,28 +451,28 @@ export class ContactsService {
   }
 
   private async refuseSameTin(conn: Queryable, scope: CompanyScope, tin: string, excludeId: string | null) {
-    const rows: { id: string; code: string; name: string; company_id: string | null }[] = await conn.query(
-      `SELECT id, code, name, company_id FROM contacts WHERE tin = $1 AND is_active AND ($2::uuid IS NULL OR id <> $2) LIMIT 5`, [tin, excludeId],
+    const rows: { id: string; code: string; name: string; company_id: string | null; branch_id?: string | null }[] = await conn.query(
+      `SELECT id, code, name, company_id, branch_id FROM contacts WHERE tin = $1 AND is_active AND ($2::uuid IS NULL OR id <> $2) LIMIT 5`, [tin, excludeId],
     );
-    const same = rows.find((r) => isVisible(scope, r.company_id));
+    const same = rows.find((r) => isVisible(scope, r.company_id, r.branch_id));
     if (same) throw new ConflictException(`${same.name} (${same.code}) already has TIN ${tin}. Open that contact, or save anyway if they are different.`);
   }
 
   private async checkPriceList(conn: Queryable, scope: CompanyScope, id: string) {
-    const [list] = await conn.query(`SELECT id, company_id, is_active FROM price_lists WHERE id = $1`, [id]);
-    if (!list || !isVisible(scope, list.company_id)) throw new BadRequestException('Price list not found');
+    const [list] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM price_lists WHERE id = $1`, [id]);
+    if (!list || !isVisible(scope, list.company_id, list.branch_id)) throw new BadRequestException('Price list not found');
     if (!list.is_active) throw new BadRequestException('This price list is archived');
   }
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const [row] = await conn.query(`${DETAIL_SQL} WHERE c.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id)) throw new NotFoundException('Contact not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id)) throw new NotFoundException('Contact not found');
     return row;
   }
 
   private async findCategory(conn: Queryable, scope: CompanyScope, id: string) {
     const [row] = await conn.query(`SELECT * FROM contact_categories WHERE id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id)) throw new NotFoundException('Contact category not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id)) throw new NotFoundException('Contact category not found');
     return row;
   }
 

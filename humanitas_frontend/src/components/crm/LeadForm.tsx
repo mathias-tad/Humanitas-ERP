@@ -21,6 +21,7 @@ import {
 } from '@/hooks/useCrm';
 import { CrmListSelect, LoseDialog, UserSelect } from './CrmCommon';
 import { ActivitiesPanel } from './ActivitiesPanel';
+import { FollowUpDialog, FollowUpsPanel, lastContactText } from './FollowUps';
 
 interface LeadFormState {
   title: string; person_name: string; company_name: string; job_title: string; email: string; phone: string; mobile: string; city: string;
@@ -141,13 +142,16 @@ export function LeadForm({ mode, id, initial, onSaved, onCancel }: EntityFormPro
   const [f, setF] = useState<LeadFormState>(() => emptyLeadForm(initial, user?.id));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
+  const [branchId, setBranchId] = useState<string | null | undefined>(undefined);
   const [converting, setConverting] = useState(false);
   const [losing, setLosing] = useState(false);
+  const [following, setFollowing] = useState(false);
   const lead = q.data;
   useEffect(() => {
     if (mode === 'edit' && lead) {
       setF(leadToForm(lead));
       setCompanyId(lead.company_id);
+      setBranchId(lead.branch_id ?? null);
     }
   }, [mode, lead]);
 
@@ -168,6 +172,8 @@ export function LeadForm({ mode, id, initial, onSaved, onCancel }: EntityFormPro
       const input: LeadInput = { ...leadFormToInput(f), ...(mode === 'create' ? { status: f.status } : {}) };
       const companyChanged = mode === 'create' ? companyId !== undefined : companyId !== undefined && companyId !== (lead?.company_id ?? null);
       if (companyChanged) input.company_id = companyId ?? null;
+      const branchChanged = mode === 'create' ? branchId !== undefined : branchId !== undefined && branchId !== (lead?.branch_id ?? null);
+      if (branchChanged) input.branch_id = branchId ?? null;
       const saved = await save.mutateAsync({ id: mode === 'edit' ? id : undefined, input });
       toast.success(mode === 'create' ? `Lead “${saved.title}” created` : 'Lead saved');
       onSaved(saved);
@@ -214,7 +220,7 @@ export function LeadForm({ mode, id, initial, onSaved, onCancel }: EntityFormPro
             <div className="space-y-1.5"><Label htmlFor="l-rev">Expected revenue</Label><Input id="l-rev" inputMode="decimal" value={f.expected_revenue} onChange={(e) => set('expected_revenue', e.target.value)} />{err('expected_revenue')}</div>
           </div>
         </section>
-        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared disabled={!canEdit} idPrefix="l" />
+        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} showBranch branchId={branchId} onBranchChange={setBranchId} allowShared disabled={!canEdit} idPrefix="l" />
         <div className="space-y-1.5"><Label htmlFor="l-notes">Notes</Label><Textarea id="l-notes" rows={3} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       </fieldset>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
@@ -253,6 +259,7 @@ export function LeadForm({ mode, id, initial, onSaved, onCancel }: EntityFormPro
           </div>
         ) : <Badge variant={lead.status === 'lost' ? 'destructive' : 'secondary'}>{LEAD_STATUS_LABEL[lead.status]}</Badge>}
         <div className="ml-auto flex gap-2">
+          {canAct && lead.status !== 'converted' && <Button size="sm" variant="outline" onClick={() => setFollowing(true)}>Log follow-up</Button>}
           {open && canAct && <Button size="sm" onClick={() => setConverting(true)}><ArrowRightLeft className="mr-1 h-3 w-3" /> Convert</Button>}
           {open && canAct && <Button size="sm" variant="outline" onClick={() => setLosing(true)}><ThumbsDown className="mr-1 h-3 w-3" /> Mark as lost</Button>}
         </div>
@@ -277,15 +284,23 @@ export function LeadForm({ mode, id, initial, onSaved, onCancel }: EntityFormPro
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="followups">Follow-ups{lead.contact_count ? ` (${lead.contact_count})` : ''}</TabsTrigger>
           {hasPermission('view_crm_activities') && <TabsTrigger value="activities">Activities</TabsTrigger>}
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-        <TabsContent value="details" className="pt-4">{details}</TabsContent>
+        <TabsContent value="details" className="pt-4">
+          <p className="mb-3 text-xs text-muted-foreground">Last contact: {lastContactText(lead.last_contact_at, lead.last_contact_channel)}{lead.contact_count ? ` · ${lead.contact_count} contacts so far` : ''}</p>
+          {details}
+        </TabsContent>
+        <TabsContent value="followups" className="pt-4">
+          <FollowUpsPanel target="lead" id={lead.id} name={lead.title} canLog={canAct && lead.status !== 'converted'} />
+        </TabsContent>
         {hasPermission('view_crm_activities') && (
           <TabsContent value="activities" className="pt-4"><ActivitiesPanel related={{ type: 'lead', id: lead.id, name: lead.title }} /></TabsContent>
         )}
         <TabsContent value="history" className="pt-4"><TimelinePanel path={`/crm/leads/${lead.id}/timeline`} /></TabsContent>
       </Tabs>
+      {following && <FollowUpDialog target="lead" id={lead.id} name={lead.title} open onClose={() => setFollowing(false)} />}
       <ConvertDialog lead={lead} open={converting} onClose={() => setConverting(false)} onDone={() => setConverting(false)} />
       <LoseDialog open={losing} title={`Lost: ${lead.title}`} busy={action.isPending} onClose={() => setLosing(false)}
         onConfirm={(reason, note) => action.mutate({ id: lead.id, action: 'lose', body: { lost_reason_id: reason, note: note.trim() || null } }, {

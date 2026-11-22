@@ -13,10 +13,12 @@ import { errorMessage } from '@/lib/errors';
 import { EntityPicker } from '@/components/platform/EntityPicker';
 import { TimelinePanel } from '@/components/platform/TimelinePanel';
 import { CompanyBranchSelect } from '@/components/platform/CompanyBranchSelect';
+import { useRecordDrawer } from '@/components/platform/RecordDrawer';
 import type { EntityFormProps } from '@/components/platform/entityRegistry';
 import { formatMoney, isOverdue, useDeal, useDealAction, usePipelines, useSaveDeal, type Deal, type DealInput } from '@/hooks/useCrm';
 import { CrmListSelect, LoseDialog, UserSelect } from './CrmCommon';
 import { ActivitiesPanel } from './ActivitiesPanel';
+import { FollowUpDialog, FollowUpsPanel, lastContactText } from './FollowUps';
 
 interface DealFormState {
   name: string; contact_id: string | null; contact_name: string | null; person_id: string | null; person_name: string | null;
@@ -56,15 +58,19 @@ export function OpportunityForm({ mode, id, initial, onSaved, onCancel }: Entity
   const pipelines = usePipelines().data ?? [];
   const save = useSaveDeal();
   const action = useDealAction();
+  const drawer = useRecordDrawer();
   const [f, setF] = useState<DealFormState>(() => emptyDealForm(initial, user?.id));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [companyId, setCompanyId] = useState<string | null | undefined>(undefined);
+  const [branchId, setBranchId] = useState<string | null | undefined>(undefined);
   const [losing, setLosing] = useState(false);
+  const [following, setFollowing] = useState(false);
   const deal = q.data;
   useEffect(() => {
     if (mode === 'edit' && deal) {
       setF(dealToForm(deal));
       setCompanyId(deal.company_id);
+      setBranchId(deal.branch_id ?? null);
     }
   }, [mode, deal]);
   const pipeline = useMemo(
@@ -96,6 +102,8 @@ export function OpportunityForm({ mode, id, initial, onSaved, onCancel }: Entity
     };
     const companyChanged = mode === 'create' ? companyId !== undefined : companyId !== undefined && companyId !== (deal?.company_id ?? null);
     if (companyChanged) input.company_id = companyId ?? null;
+    const branchChanged = mode === 'create' ? branchId !== undefined : branchId !== undefined && branchId !== (deal?.branch_id ?? null);
+    if (branchChanged) input.branch_id = branchId ?? null;
     try {
       const saved = await save.mutateAsync({ id: mode === 'edit' ? id : undefined, input });
       toast.success(mode === 'create' ? `Deal “${saved.name}” created` : 'Deal saved');
@@ -162,7 +170,7 @@ export function OpportunityForm({ mode, id, initial, onSaved, onCancel }: Entity
           )}
           <div className="space-y-1.5"><Label htmlFor="d-source">Source</Label><CrmListSelect id="d-source" kind="sources" value={f.source_id} onChange={(v) => set('source_id', v)} placeholder="Not set" /></div>
         </div>
-        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} allowShared disabled={!canEdit} idPrefix="d" />
+        <CompanyBranchSelect companyId={companyId} onCompanyChange={setCompanyId} showBranch branchId={branchId} onBranchChange={setBranchId} allowShared disabled={!canEdit} idPrefix="d" />
         <div className="space-y-1.5"><Label htmlFor="d-notes">Notes</Label><Textarea id="d-notes" rows={3} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></div>
       </fieldset>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
@@ -198,6 +206,7 @@ export function OpportunityForm({ mode, id, initial, onSaved, onCancel }: Entity
         {deal.is_stuck && <Badge variant="outline" className="border-amber-400 text-amber-700">Stuck {deal.days_in_stage} days</Badge>}
         {isOverdue(deal) && <Badge variant="outline" className="border-destructive text-destructive">Past close date</Badge>}
         <div className="ml-auto flex gap-2">
+          {canAct && <Button size="sm" variant="outline" onClick={() => setFollowing(true)}>Log follow-up</Button>}
           {deal.status === 'open' && canAct && <Button size="sm" onClick={() => run(action.mutateAsync({ id: deal.id, action: 'won' }), 'Deal won')}><Trophy className="mr-1 h-3 w-3" /> Won</Button>}
           {deal.status === 'open' && canAct && <Button size="sm" variant="outline" onClick={() => setLosing(true)}><ThumbsDown className="mr-1 h-3 w-3" /> Lost</Button>}
           {deal.status !== 'open' && canAct && <Button size="sm" variant="outline" onClick={() => run(action.mutateAsync({ id: deal.id, action: 'reopen' }), 'Deal reopened')}><Undo2 className="mr-1 h-3 w-3" /> Reopen</Button>}
@@ -212,21 +221,38 @@ export function OpportunityForm({ mode, id, initial, onSaved, onCancel }: Entity
           ))}
         </div>
       )}
+      {deal.lead_id && (
+        <p className="text-xs text-muted-foreground">
+          From lead{' '}
+          <button type="button" className="font-medium text-primary underline"
+            onClick={() => drawer.open({ type: 'crm_lead', mode: 'edit', id: deal.lead_id!, title: 'Lead' })}>
+            {deal.lead_code}{deal.lead_title ? ` · ${deal.lead_title}` : ''}
+          </button>
+        </p>
+      )}
       {deal.status === 'lost' && (
         <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">Lost: {deal.lost_reason_name ?? '—'}{deal.lost_note ? ` · ${deal.lost_note}` : ''}</p>
       )}
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="followups">Follow-ups{deal.contact_count ? ` (${deal.contact_count})` : ''}</TabsTrigger>
           {hasPermission('view_crm_activities') && <TabsTrigger value="activities">Activities</TabsTrigger>}
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
-        <TabsContent value="details" className="pt-4">{details}</TabsContent>
+        <TabsContent value="details" className="pt-4">
+          <p className="mb-3 text-xs text-muted-foreground">Last contact: {lastContactText(deal.last_contact_at, deal.last_contact_channel)}{deal.contact_count ? ` · ${deal.contact_count} contacts so far` : ''}</p>
+          {details}
+        </TabsContent>
+        <TabsContent value="followups" className="pt-4">
+          <FollowUpsPanel target="opportunity" id={deal.id} name={deal.name} canLog={canAct} />
+        </TabsContent>
         {hasPermission('view_crm_activities') && (
           <TabsContent value="activities" className="pt-4"><ActivitiesPanel related={{ type: 'opportunity', id: deal.id, name: deal.name }} /></TabsContent>
         )}
         <TabsContent value="history" className="pt-4"><TimelinePanel path={`/crm/opportunities/${deal.id}/timeline`} /></TabsContent>
       </Tabs>
+      {following && <FollowUpDialog target="opportunity" id={deal.id} name={deal.name} open onClose={() => setFollowing(false)} />}
       <LoseDialog open={losing} title={`Lost: ${deal.name}`} busy={action.isPending} onClose={() => setLosing(false)}
         onConfirm={(reason, note) => action.mutate({ id: deal.id, action: 'lose', body: { lost_reason_id: reason, note: note.trim() || null } }, {
           onSuccess: () => { toast.success('Deal marked as lost'); setLosing(false); },

@@ -48,8 +48,12 @@ export interface Lead {
   tags: string[];
   notes: string | null;
   company_id: string | null;
+  branch_id?: string | null;
   is_active: boolean;
   next_activity_at: string | null;
+  last_contact_at: string | null;
+  last_contact_channel: string | null;
+  contact_count: number;
   created_at: string;
 }
 
@@ -83,15 +87,21 @@ export interface Deal {
   lost_reason_name: string | null;
   lost_note: string | null;
   lead_id: string | null;
+  lead_code: string | null;
+  lead_title: string | null;
   source_id: string | null;
   source_name: string | null;
   tags: string[];
   notes: string | null;
   company_id: string | null;
+  branch_id?: string | null;
   is_active: boolean;
   days_in_stage: number;
   is_stuck: boolean;
   next_activity_at: string | null;
+  last_contact_at: string | null;
+  last_contact_channel: string | null;
+  contact_count: number;
   created_at: string;
 }
 
@@ -113,6 +123,7 @@ export interface Pipeline {
   name: string;
   is_default: boolean;
   company_id: string | null;
+  branch_id?: string | null;
   is_active: boolean;
   stages: Stage[];
 }
@@ -186,6 +197,31 @@ export function monthLabel(month: string): string {
 export function isOverdue(d: Pick<Deal, 'status' | 'expected_close_date'>, today = new Date().toISOString().slice(0, 10)): boolean {
   return d.status === 'open' && !!d.expected_close_date && String(d.expected_close_date).slice(0, 10) < today;
 }
+
+export type DealHealth = 'won' | 'lost' | 'late' | 'attention' | 'on_track';
+
+/**
+ * A deal card's colour: won, lost, late (a step past due or past the close date), needs attention
+ * (no next step planned, or stuck in its stage too long) or on track.
+ */
+export function dealHealth(
+  d: Pick<Deal, 'status' | 'expected_close_date' | 'next_activity_at' | 'is_stuck'>,
+  now = new Date(),
+): DealHealth {
+  if (d.status === 'won') return 'won';
+  if (d.status === 'lost') return 'lost';
+  if ((d.next_activity_at && new Date(d.next_activity_at) < now) || isOverdue(d, now.toISOString().slice(0, 10))) return 'late';
+  if (!d.next_activity_at || d.is_stuck) return 'attention';
+  return 'on_track';
+}
+
+export const DEAL_HEALTH: Record<DealHealth, { label: string; card: string; dot: string }> = {
+  on_track: { label: 'On track', card: 'border-l-emerald-500', dot: 'bg-emerald-500' },
+  attention: { label: 'Needs a next step', card: 'border-l-amber-500', dot: 'bg-amber-500' },
+  late: { label: 'Late', card: 'border-l-red-500', dot: 'bg-red-500' },
+  won: { label: 'Won', card: 'border-l-emerald-600 bg-emerald-50 dark:bg-emerald-950/40', dot: 'bg-emerald-600' },
+  lost: { label: 'Lost', card: 'border-l-slate-400 bg-muted opacity-80', dot: 'bg-slate-400' },
+};
 
 /** Where an activity falls for the person looking at it. */
 export function activityState(a: Pick<Activity, 'due_at' | 'done_at'>, now = new Date()): 'done' | 'overdue' | 'today' | 'upcoming' {

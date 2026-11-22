@@ -17,6 +17,8 @@ interface Props {
   /** Catalog records (products, categories…) can be shared by every company, for users with every company. */
   allowShared?: boolean;
   showBranch?: boolean;
+  /** Catalog records start in every branch (null) unless one branch is picked in the switcher. */
+  startShared?: boolean;
   disabled?: boolean;
   idPrefix?: string;
 }
@@ -27,7 +29,7 @@ interface Props {
  * just one choice.
  */
 export function CompanyBranchSelect({
-  companyId, onCompanyChange, branchId, onBranchChange, allowShared = false, showBranch = false, disabled, idPrefix = 'scope',
+  companyId, onCompanyChange, branchId, onBranchChange, allowShared = false, showBranch = false, startShared = false, disabled, idPrefix = 'scope',
 }: Props) {
   const { activeCompanyIds, activeBranchIds } = useAuth();
   const scopeQ = useCompanyScope();
@@ -41,8 +43,10 @@ export function CompanyBranchSelect({
   }, [scope, companyId, activeCompanyIds, onCompanyChange]);
   useEffect(() => {
     if (!scope || !showBranch || !onBranchChange || branchId !== undefined || companyId === undefined) return;
-    onBranchChange(defaultBranchFor(scope, companyId, activeBranchIds));
-  }, [scope, showBranch, onBranchChange, branchId, companyId, activeBranchIds]);
+    const c = scope.companies.find((x) => x.id === companyId);
+    const picked = activeBranchIds.length === 1 && !!c?.branches.some((b) => b.id === activeBranchIds[0]);
+    onBranchChange(startShared && c?.all_branches && !picked ? null : defaultBranchFor(scope, companyId, activeBranchIds));
+  }, [scope, showBranch, startShared, onBranchChange, branchId, companyId, activeBranchIds]);
 
   if (!scope) return null;
   const company = scope.companies.find((c) => c.id === companyId);
@@ -77,13 +81,13 @@ export function CompanyBranchSelect({
           <Label htmlFor={`${idPrefix}-branch`}>Branch</Label>
           {branchLocked ? (
             <p id={`${idPrefix}-branch`} className="flex h-9 items-center gap-1.5 rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
-              <Lock className="h-3 w-3" aria-hidden /> {branches.find((b) => b.id === branchId)?.name ?? branches[0]?.name ?? '—'}
+              <Lock className="h-3 w-3" aria-hidden /> {branches.find((b) => b.id === branchId)?.name ?? (branchId === null && startShared ? 'All branches' : branches[0]?.name ?? '—')}
             </p>
           ) : (
             <Select value={branchId ?? ANY_BRANCH} onValueChange={(v) => onBranchChange(v === ANY_BRANCH ? null : v)}>
               <SelectTrigger id={`${idPrefix}-branch`} className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {company?.all_branches && <SelectItem value={ANY_BRANCH}>No specific branch</SelectItem>}
+                {company?.all_branches && <SelectItem value={ANY_BRANCH}>{startShared ? 'All branches' : 'No specific branch'}</SelectItem>}
                 {branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>

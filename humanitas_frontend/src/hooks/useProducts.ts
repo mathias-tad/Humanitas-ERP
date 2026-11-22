@@ -79,6 +79,7 @@ export interface Product {
   is_active: boolean;
   archived_at: string | null;
   company_id: string | null;
+  branch_id?: string | null;
   barcodes: ProductBarcode[];
   /** Variants (featureslist §1): set on a variant, which takes its shared details from the parent. */
   parent_id: string | null;
@@ -119,6 +120,7 @@ export interface ProductInput {
   can_be_purchased?: boolean;
   image_url?: string | null;
   company_id?: string | null;
+  branch_id?: string | null;
   barcodes?: ProductBarcode[];
   /** Variants only. */
   price_extra?: number;
@@ -133,6 +135,7 @@ export interface ProductCategory {
   excise_rate: string;
   is_active: boolean;
   company_id: string | null;
+  branch_id?: string | null;
   full_path: string;
   depth: number;
   product_count: number;

@@ -17,7 +17,7 @@ describe('company scope for catalog records', () => {
 
   it('other users see shared records plus their own company, whatever header they send', async () => {
     const s = await resolveCompanyScope(conn(A), user('staff', ['view_products']), B);
-    expect(s).toEqual({ canSeeAll: false, ownCompanyId: A, companyIds: [A] });
+    expect(s).toEqual({ canSeeAll: false, ownCompanyId: A, companyIds: [A], canSeeAllBranches: false, branchIds: null });
     expect(isVisible(s, null)).toBe(true);
     expect(isVisible(s, A)).toBe(true);
     expect(isVisible(s, B)).toBe(false);

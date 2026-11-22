@@ -3,7 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from './products.service';
 import {
-  assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable,
+  assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import { layoutProblem, type LabelLayout } from './label-templates.layout';
@@ -14,7 +14,7 @@ import type { CreateLabelTemplateDto, LabelPricesDto, UpdateLabelTemplateDto } f
 const COLUMNS = [
   'name', 'layout', 'label_width_mm', 'label_height_mm', 'page_width_mm', 'page_height_mm', 'columns', 'rows',
   'margin_top_mm', 'margin_left_mm', 'gap_x_mm', 'gap_y_mm', 'barcode_format', 'show_name', 'show_variant', 'show_sku',
-  'show_price', 'show_barcode_text', 'show_company', 'font_size_pt', 'price_list_id', 'company_id', 'sort_order', 'is_active',
+  'show_price', 'show_barcode_text', 'show_company', 'font_size_pt', 'price_list_id', 'company_id', 'branch_id', 'sort_order', 'is_active',
 ] as const;
 type Column = (typeof COLUMNS)[number];
 
@@ -45,7 +45,7 @@ export class LabelTemplatesService {
 
   private async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     return { conn, scope };
   }
 
@@ -74,7 +74,9 @@ export class LabelTemplatesService {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
-    const row: Partial<Record<Column, unknown>> = { ...TEMPLATE_DEFAULTS, ...defined(dto), company_id: companyId ?? null };
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
+    const row: Partial<Record<Column, unknown>> = { ...TEMPLATE_DEFAULTS, ...defined(dto), company_id: companyId ?? null, branch_id: branchId };
     delete row.is_active;
     this.checkLayout(row);
     await this.checkPriceList(conn, scope, row.price_list_id as string | null);
@@ -99,6 +101,7 @@ export class LabelTemplatesService {
     const before = await this.findVisible(conn, scope, id);
     const changes = defined(dto);
     if (changes.company_id !== undefined) assertCompanyAssignable(scope, changes.company_id as string | null);
+    assertBranchAssignable(scope, changes.branch_id as string | null | undefined);
     if (Object.keys(changes).length === 0) return before;
     this.checkLayout({ ...before, ...changes });
     if (changes.price_list_id !== undefined) await this.checkPriceList(conn, scope, changes.price_list_id as string | null);
@@ -134,14 +137,14 @@ export class LabelTemplatesService {
 
   private async checkPriceList(conn: Queryable, scope: CompanyScope, id: string | null | undefined) {
     if (!id) return;
-    const [list] = await conn.query(`SELECT id, company_id, is_active FROM price_lists WHERE id = $1`, [id]);
-    if (!list || !isVisible(scope, list.company_id)) throw new BadRequestException('Price list not found');
+    const [list] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM price_lists WHERE id = $1`, [id]);
+    if (!list || !isVisible(scope, list.company_id, list.branch_id)) throw new BadRequestException('Price list not found');
     if (!list.is_active) throw new BadRequestException('This price list is archived');
   }
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const [row] = await conn.query(`SELECT * FROM label_templates WHERE id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id)) throw new NotFoundException('Label template not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id)) throw new NotFoundException('Label template not found');
     return row;
   }
 

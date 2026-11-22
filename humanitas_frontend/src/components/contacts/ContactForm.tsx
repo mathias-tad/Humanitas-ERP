@@ -27,7 +27,7 @@ type Draft = {
   contact_type: ContactType; parent_id: string | null; parent_label: string | null; job_title: string; name: string; legal_name: string;
   code: string; tin: string; vat_number: string; phone: string; mobile: string; email: string; website: string; region: string; city: string;
   subcity: string; woreda: string; street: string; category_id: string | null; tags: string; is_customer: boolean; is_vendor: boolean;
-  price_list_id: string | null; credit_limit: string; payment_terms_days: string; notes: string; company_id: string | null | undefined;
+  price_list_id: string | null; credit_limit: string; payment_terms_days: string; notes: string; company_id: string | null | undefined; branch_id: string | null | undefined;
 };
 const str = (v: unknown) => (v == null ? '' : String(v));
 const empty = (i?: Record<string, unknown>): Draft => ({
@@ -36,6 +36,7 @@ const empty = (i?: Record<string, unknown>): Draft => ({
   phone: str(i?.phone), mobile: '', email: '', website: '', region: '', city: '', subcity: '', woreda: '', street: '', category_id: null, tags: '',
   is_customer: i?.is_customer === true, is_vendor: i?.is_vendor === true, price_list_id: null, credit_limit: '', payment_terms_days: '0', notes: '',
   company_id: undefined,
+  branch_id: undefined,
 });
 const fromContact = (c: Contact): Draft => ({
   contact_type: c.contact_type, parent_id: c.parent_id, parent_label: c.parent_name, job_title: c.job_title ?? '', name: c.name,
@@ -43,7 +44,7 @@ const fromContact = (c: Contact): Draft => ({
   email: c.email ?? '', website: c.website ?? '', region: c.region ?? '', city: c.city ?? '', subcity: c.subcity ?? '', woreda: c.woreda ?? '',
   street: c.street ?? '', category_id: c.category_id, tags: (c.tags ?? []).join(', '), is_customer: c.is_customer, is_vendor: c.is_vendor,
   price_list_id: c.price_list_id, credit_limit: c.credit_limit == null ? '' : String(Number(c.credit_limit)),
-  payment_terms_days: String(c.payment_terms_days ?? 0), notes: c.notes ?? '', company_id: c.company_id,
+  payment_terms_days: String(c.payment_terms_days ?? 0), notes: c.notes ?? '', company_id: c.company_id, branch_id: c.branch_id ?? null,
 });
 
 /** Contact create/edit in the record drawer: details, people (companies) and history (featureslist §4.1, CRM 1.3). */
@@ -113,6 +114,7 @@ function DetailsForm({ contact, initial, onSaved, onCancel }: { contact?: Contac
   const input = useMemo<ContactInput>(() => {
     const text = (v: string) => v.trim() || null;
     const changedCompany = contact ? d.company_id !== undefined && d.company_id !== contact.company_id : d.company_id !== undefined;
+    const changedBranch = isCompany && (contact ? d.branch_id !== undefined && d.branch_id !== (contact.branch_id ?? null) : d.branch_id !== undefined);
     return {
       contact_type: d.contact_type, parent_id: isCompany ? null : d.parent_id, job_title: isCompany ? null : text(d.job_title),
       name: d.name.trim(), legal_name: isCompany ? text(d.legal_name) : null, tin: text(d.tin), vat_number: text(d.vat_number),
@@ -123,6 +125,7 @@ function DetailsForm({ contact, initial, onSaved, onCancel }: { contact?: Contac
       notes: text(d.notes), ...(canSeeLists ? { price_list_id: d.price_list_id } : {}),
       ...(d.code.trim() && d.code.trim() !== contact?.code ? { code: d.code.trim() } : {}),
       ...(changedCompany ? { company_id: d.company_id } : {}),
+      ...(changedBranch ? { branch_id: d.branch_id } : {}),
     };
   }, [d, contact, canSeeLists, isCompany]);
 
@@ -245,7 +248,8 @@ function DetailsForm({ contact, initial, onSaved, onCancel }: { contact?: Contac
           <Textarea id="ct-notes" value={d.notes} onChange={(e) => set('notes', e.target.value)} disabled={!canSave} rows={3} />
         </div>
         <div className="col-span-2">
-          <CompanyBranchSelect companyId={d.company_id} onCompanyChange={(v) => set('company_id', v)} allowShared idPrefix="ct" disabled={!canSave} />
+          <CompanyBranchSelect companyId={d.company_id} onCompanyChange={(v) => set('company_id', v)} showBranch={isCompany} startShared
+            branchId={d.branch_id} onBranchChange={(v) => set('branch_id', v)} allowShared idPrefix="ct" disabled={!canSave} />
         </div>
       </div>
 
@@ -336,7 +340,8 @@ function People({ company, canEdit, canCreate }: { company: Contact; canEdit: bo
 
 const KINDS: { value: InteractionKind; label: string }[] = [
   { value: 'call', label: 'Call' }, { value: 'meeting', label: 'Meeting' }, { value: 'email', label: 'Email' },
-  { value: 'visit', label: 'Visit' }, { value: 'note', label: 'Note' },
+  { value: 'visit', label: 'Visit' }, { value: 'telegram', label: 'Telegram' }, { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'sms', label: 'SMS' }, { value: 'note', label: 'Note' },
 ];
 
 function LogInteraction({ contact }: { contact: Contact }) {

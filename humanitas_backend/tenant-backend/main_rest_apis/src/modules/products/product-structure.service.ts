@@ -129,12 +129,12 @@ export class ProductStructureService {
       );
       if (used) throw new BadRequestException(`"${product.name}" is part of "${used.name}"; a kit or combo cannot be inside another one`);
       const ids = [...new Set([...components.map((c) => c.component_id), ...groups.flatMap((g) => g.choices.map((c) => c.component_id))])];
-      const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
-      const rows: { id: string; name: string; is_active: boolean; has_variants: boolean; composition: string; company_id: string | null }[] =
-        await conn.query(`SELECT id, name, is_active, has_variants, composition, company_id FROM products WHERE id = ANY($1::uuid[])`, [ids]);
+      const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
+      const rows: { id: string; name: string; is_active: boolean; has_variants: boolean; composition: string; company_id: string | null; branch_id?: string | null }[] =
+        await conn.query(`SELECT id, name, is_active, has_variants, composition, company_id, branch_id FROM products WHERE id = ANY($1::uuid[])`, [ids]);
       for (const id of ids) {
         const r = rows.find((x) => x.id === id);
-        if (!r || !isVisible(scope, r.company_id)) throw new BadRequestException('A component was not found');
+        if (!r || !isVisible(scope, r.company_id, r.branch_id)) throw new BadRequestException('A component was not found');
         if (!r.is_active) throw new BadRequestException(`"${r.name}" is archived`);
         if (r.has_variants) throw new BadRequestException(`"${r.name}" has variants; choose one of them`);
         if (r.composition !== 'single') throw new BadRequestException(`"${r.name}" is itself a kit or combo`);

@@ -36,6 +36,8 @@ export class CreateLeadDto {
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) tags?: string[];
   @IsOptional() @IsString() @MaxLength(5000) notes?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class UpdateLeadDto extends PartialType(CreateLeadDto) {}
@@ -80,6 +82,8 @@ export class CreateOpportunityDto {
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) tags?: string[];
   @IsOptional() @IsString() @MaxLength(5000) notes?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
 }
 
 export class UpdateOpportunityDto extends PartialType(CreateOpportunityDto) {}
@@ -145,6 +149,8 @@ export class PipelineDto {
   @IsString() @Length(1, 100) name: string;
   @IsOptional() @IsBoolean() is_default?: boolean;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() sort_order?: number;
 }
 export class UpdatePipelineDto extends PartialType(PipelineDto) {

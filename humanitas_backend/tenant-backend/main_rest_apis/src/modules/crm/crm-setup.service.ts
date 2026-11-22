@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
-import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch } from '../products/products.scope';
 import { CrmBase, setClause } from './crm.base';
 import type { ListItemDto, PipelineDto, ReorderStagesDto, StageDto, UpdateListItemDto, UpdatePipelineDto, UpdateStageDto } from './dto/crm.dto';
 
@@ -66,7 +66,7 @@ export class CrmSetupService extends CrmBase {
   async resolvePipeline(conn: Queryable, scope: CompanyScope, id?: string | null) {
     if (id) {
       const [p] = await conn.query(`SELECT * FROM crm_pipelines WHERE id = $1`, [id]);
-      if (!p || !isVisible(scope, p.company_id)) throw new BadRequestException('That pipeline was not found');
+      if (!p || !isVisible(scope, p.company_id, p.branch_id)) throw new BadRequestException('That pipeline was not found');
       if (!p.is_active) throw new BadRequestException(`The ${p.name} pipeline is archived`);
       return p;
     }
@@ -77,8 +77,8 @@ export class CrmSetupService extends CrmBase {
     const rows = await conn.query(
       `SELECT p.* FROM crm_pipelines p WHERE p.is_active ${f ? `AND ${f.sql}` : ''} ORDER BY p.is_default DESC, p.sort_order LIMIT 20`, params,
     );
-    const pick = rows.find((p: { is_default: boolean; company_id: string | null }) => p.is_default && p.company_id === company)
-      ?? rows.find((p: { is_default: boolean; company_id: string | null }) => p.is_default && !p.company_id) ?? rows[0];
+    const pick = rows.find((p: { is_default: boolean; company_id: string | null; branch_id?: string | null }) => p.is_default && p.company_id === company)
+      ?? rows.find((p: { is_default: boolean; company_id: string | null; branch_id?: string | null }) => p.is_default && !p.company_id) ?? rows[0];
     if (!pick) throw new BadRequestException('Create a pipeline first (CRM -> Set-up)');
     return pick;
   }
@@ -91,6 +91,8 @@ export class CrmSetupService extends CrmBase {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     const id = await conn
       .transaction(async (m: Queryable) => {
         if (dto.is_default) await this.clearDefault(m, companyId ?? null);
@@ -109,6 +111,8 @@ export class CrmSetupService extends CrmBase {
         return p.id as string;
       })
       .catch((e: unknown) => this.rethrow(e));
+    // its stages follow (trg_cascade_company_branch)
+    if (branchId) await setRecordBranch(conn, 'crm_pipelines', id, branchId);
     return (await this.pipelines(ctx, true)).find((p: { id: string }) => p.id === id);
   }
 
@@ -116,6 +120,7 @@ export class CrmSetupService extends CrmBase {
     const { conn, scope } = await this.open(ctx);
     const before = await this.findPipeline(conn, scope, id);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (dto.is_active === false) {
       if (before.is_default) throw new BadRequestException('Make another pipeline the default before archiving this one');
       const [{ n }] = await conn.query(`SELECT count(*)::int AS n FROM crm_opportunities WHERE pipeline_id = $1 AND is_active AND status = 'open'`, [id]);
@@ -123,7 +128,7 @@ export class CrmSetupService extends CrmBase {
     }
     if (dto.is_default === false && before.is_default) throw new BadRequestException('Make another pipeline the default instead');
     const row = { ...dto, name: dto.name?.trim() };
-    const set = setClause(row, ['name', 'is_default', 'company_id', 'sort_order', 'is_active']);
+    const set = setClause(row, ['name', 'is_default', 'company_id', 'branch_id', 'sort_order', 'is_active']);
     if (!set.present.length) return before;
     await conn
       .transaction(async (m: Queryable) => {
@@ -236,13 +241,13 @@ export class CrmSetupService extends CrmBase {
 
   async findPipeline(conn: Queryable, scope: CompanyScope, id: string) {
     const [p] = await conn.query(`SELECT * FROM crm_pipelines WHERE id = $1`, [id]);
-    if (!p || !isVisible(scope, p.company_id)) throw new NotFoundException('Pipeline not found');
+    if (!p || !isVisible(scope, p.company_id, p.branch_id)) throw new NotFoundException('Pipeline not found');
     return p;
   }
 
   async findStage(conn: Queryable, scope: CompanyScope, id: string): Promise<StageRow> {
-    const [s] = await conn.query(`SELECT s.*, p.company_id FROM crm_stages s JOIN crm_pipelines p ON p.id = s.pipeline_id WHERE s.id = $1`, [id]);
-    if (!s || !isVisible(scope, s.company_id) || !s.is_active) throw new NotFoundException('Stage not found');
+    const [s] = await conn.query(`SELECT s.*, p.company_id, p.branch_id FROM crm_stages s JOIN crm_pipelines p ON p.id = s.pipeline_id WHERE s.id = $1`, [id]);
+    if (!s || !isVisible(scope, s.company_id, s.branch_id) || !s.is_active) throw new NotFoundException('Stage not found');
     return s;
   }
 }

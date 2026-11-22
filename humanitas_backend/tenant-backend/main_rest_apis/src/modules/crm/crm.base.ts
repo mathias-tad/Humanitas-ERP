@@ -42,7 +42,7 @@ export abstract class CrmBase {
 
   protected async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const company = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const company = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     const scope: CrmScope = { ...company, mine: seesAllCrm(ctx.user) ? null : ctx.user?.sub ?? null };
     return { conn, scope };
   }

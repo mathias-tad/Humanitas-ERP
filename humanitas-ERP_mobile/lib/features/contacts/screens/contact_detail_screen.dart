@@ -317,7 +317,10 @@ class _LogInteractionSheetState extends ConsumerState<LogInteractionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const kinds = [('call', 'Call'), ('meeting', 'Meeting'), ('email', 'Email'), ('visit', 'Visit'), ('note', 'Note')];
+    const kinds = [
+      ('call', 'Call'), ('meeting', 'Meeting'), ('email', 'Email'), ('visit', 'Visit'),
+      ('telegram', 'Telegram'), ('whatsapp', 'WhatsApp'), ('sms', 'SMS'), ('note', 'Note'),
+    ];
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(

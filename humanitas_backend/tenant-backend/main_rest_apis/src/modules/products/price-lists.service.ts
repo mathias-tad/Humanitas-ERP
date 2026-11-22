@@ -10,7 +10,7 @@ import {
   isVisible,
   resolveCompanyScope,
   type CompanyScope,
-  type Queryable,
+  type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import { customerListId } from './price-list-customers.service';
@@ -63,7 +63,7 @@ export class PriceListsService {
 
   private async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     return { conn, scope };
   }
 
@@ -104,6 +104,8 @@ export class PriceListsService {
     const { conn, scope } = await this.open(ctx);
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     const id = await conn
       .transaction(async (m: Queryable) => {
         if (dto.is_default) await this.clearDefault(m, companyId ?? null);
@@ -117,6 +119,7 @@ export class PriceListsService {
         return row.id as string;
       })
       .catch(rethrowCatalogConflict);
+    if (branchId) await setRecordBranch(conn, 'price_lists', id, branchId);
     await this.record(ctx, id, 'created', `Price list "${dto.name.trim()}" created`);
     return this.get(ctx, id);
   }
@@ -125,6 +128,7 @@ export class PriceListsService {
     const { conn, scope } = await this.open(ctx);
     const before = await this.findVisible(conn, scope, id);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (dto.is_active === false && before.is_default) throw new BadRequestException('Make another price list the default before archiving this one');
     if (dto.is_default === false && before.is_default) throw new BadRequestException('Make another price list the default instead');
     if (dto.currency && dto.currency !== before.currency && dto.currency !== BASE_CURRENCY) {
@@ -145,6 +149,7 @@ export class PriceListsService {
     if (dto.description !== undefined) put('description', dto.description);
     if (dto.sort_order !== undefined) put('sort_order', dto.sort_order);
     if (dto.company_id !== undefined) put('company_id', dto.company_id);
+    if (dto.branch_id !== undefined) put('branch_id', dto.branch_id);
     if (dto.is_active !== undefined) put('is_active', dto.is_active);
     if (dto.is_default) put('is_default', true);
     await conn
@@ -197,13 +202,13 @@ export class PriceListsService {
     const rule = this.normalizeRule({ ...ruleFields, applies_to: 'product', product_id: ids[0] } as PriceRuleDto);
     const problem = ruleProblem(rule, list.currency, BASE_CURRENCY);
     if (problem) throw new BadRequestException(problem);
-    const found: { id: string; company_id: string | null; is_active: boolean }[] = await conn.query(
-      `SELECT id, company_id, is_active FROM products WHERE id = ANY($1::uuid[])`, [ids],
+    const found: { id: string; company_id: string | null; branch_id?: string | null; is_active: boolean }[] = await conn.query(
+      `SELECT id, company_id, branch_id, is_active FROM products WHERE id = ANY($1::uuid[])`, [ids],
     );
     const byId = new Map(found.map((p) => [p.id, p]));
     const bad = ids.filter((id) => {
       const p = byId.get(id);
-      return !p || !isVisible(scope, p.company_id) || !p.is_active;
+      return !p || !isVisible(scope, p.company_id, p.branch_id) || !p.is_active;
     });
     if (bad.length) {
       throw new BadRequestException(`${bad.length} of the chosen products ${bad.length === 1 ? 'is' : 'are'} archived or not found; nothing was added`);
@@ -338,7 +343,7 @@ export class PriceListsService {
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const rows = await conn.query(`${LIST_SQL} WHERE pl.id = $1`, [id]);
     const list = rows[0];
-    if (!list || !isVisible(scope, list.company_id)) throw new NotFoundException('Price list not found');
+    if (!list || !isVisible(scope, list.company_id, list.branch_id)) throw new NotFoundException('Price list not found');
     return list;
   }
 
@@ -378,13 +383,13 @@ export class PriceListsService {
     const problem = ruleProblem(rule, currency, BASE_CURRENCY);
     if (problem) throw new BadRequestException(problem);
     if (rule.product_id) {
-      const [p] = await conn.query(`SELECT id, company_id, is_active FROM products WHERE id = $1`, [rule.product_id]);
-      if (!p || !isVisible(scope, p.company_id)) throw new BadRequestException('Product not found');
+      const [p] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM products WHERE id = $1`, [rule.product_id]);
+      if (!p || !isVisible(scope, p.company_id, p.branch_id)) throw new BadRequestException('Product not found');
       if (!p.is_active) throw new BadRequestException('That product is archived');
     }
     if (rule.category_id) {
-      const [c] = await conn.query(`SELECT id, company_id, is_active FROM product_categories WHERE id = $1`, [rule.category_id]);
-      if (!c || !isVisible(scope, c.company_id)) throw new BadRequestException('Category not found');
+      const [c] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM product_categories WHERE id = $1`, [rule.category_id]);
+      if (!c || !isVisible(scope, c.company_id, c.branch_id)) throw new BadRequestException('Category not found');
     }
   }
 

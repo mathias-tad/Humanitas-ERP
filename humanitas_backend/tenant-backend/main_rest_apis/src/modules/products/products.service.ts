@@ -11,7 +11,7 @@ import {
   isVisible,
   resolveCompanyScope,
   type CompanyScope,
-  type Queryable,
+  type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch
 } from './products.scope';
 import { rethrowCatalogConflict } from './products.errors';
 import { EIMS_READY_SQL, withEimsStatus } from './products.eims';
@@ -24,6 +24,8 @@ export interface CatalogContext {
   tenantId: string;
   user?: AuthUser;
   companyHeader?: string;
+  /** x-branch-id, checked by CompanyScopeInterceptor. */
+  branchHeader?: string;
   client?: ActivityClient;
 }
 
@@ -50,6 +52,7 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
   can_be_purchased: 'Can be purchased',
   image_url: 'Image',
   company_id: 'Company',
+  branch_id: 'Branch',
   barcodes: 'Barcodes',
   price_extra: 'Variant price extra',
 };
@@ -57,7 +60,7 @@ export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
 const UPDATABLE = [
   'name', 'sku', 'description', 'product_type', 'category_id', 'uom_id', 'purchase_uom_id', 'sales_uom_id', 'min_sale_qty', 'sale_qty_step',
   'sales_price', 'cost_price', 'tax_code', 'item_code', 'harmonization_code', 'excise_rate', 'invoice_description',
-  'can_be_sold', 'can_be_purchased', 'image_url', 'company_id', 'price_extra',
+  'can_be_sold', 'can_be_purchased', 'image_url', 'company_id', 'branch_id', 'price_extra',
 ] as const;
 
 /** Copies a parent's shared details, name and price to its variants. $1 = parent id, $2 = actor. */
@@ -67,7 +70,7 @@ export const SYNC_VARIANTS_SQL = `
          uom_id = par.uom_id, purchase_uom_id = par.purchase_uom_id, sales_uom_id = par.sales_uom_id,
          min_sale_qty = par.min_sale_qty, sale_qty_step = par.sale_qty_step, tax_code = par.tax_code,
          harmonization_code = par.harmonization_code, excise_rate = par.excise_rate, can_be_sold = par.can_be_sold,
-         can_be_purchased = par.can_be_purchased, company_id = par.company_id,
+         can_be_purchased = par.can_be_purchased, company_id = par.company_id, branch_id = par.branch_id,
          sales_price = GREATEST(0, par.sales_price + v.price_extra),
          name = CASE WHEN length(par.name || ' (' || v.variant_label || ')') <= 255
                      THEN par.name || ' (' || v.variant_label || ')'
@@ -145,7 +148,7 @@ export class ProductsService {
 
   private async open(ctx: CatalogContext) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
     return { conn, scope };
   }
 
@@ -207,6 +210,8 @@ export class ProductsService {
     // New products go to the current company; org-wide users may share them with all (company null).
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     const barcodes = normalizeBarcodes(dto.barcodes);
     const uomId = dto.uom_id ?? (await this.defaultUomId(conn));
     const purchaseUomId = dto.purchase_uom_id ?? uomId;
@@ -239,6 +244,7 @@ export class ProductsService {
         }
         return row.id as string;
       }).catch(rethrowCatalogConflict);
+    if (branchId) await setRecordBranch(conn, 'products', id, branchId);
 
     const product = await this.findVisible(conn, scope, id);
     await this.timeline.record(ctx.tenantId, {
@@ -255,6 +261,7 @@ export class ProductsService {
     const before = await this.findVisible(conn, scope, id);
     dto = this.variantRules(before, dto);
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     if (this.settings) await this.settings.checkUpdate(conn, before, dto);
     const uomId = dto.uom_id ?? before.uom_id;
     const purchaseUomId = dto.purchase_uom_id ?? before.purchase_uom_id;
@@ -410,7 +417,7 @@ export class ProductsService {
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string) {
     const rows = await conn.query(`${SELECT_PRODUCT} WHERE p.id = $1`, [id]);
     const product = rows[0];
-    if (!product || !isVisible(scope, product.company_id)) throw new NotFoundException('Product not found');
+    if (!product || !isVisible(scope, product.company_id, product.branch_id)) throw new NotFoundException('Product not found');
     return withEimsStatus(product);
   }
 
@@ -559,9 +566,9 @@ export class ProductsService {
   }
 
   private async checkCategory(conn: Queryable, scope: CompanyScope, categoryId: string) {
-    const rows = await conn.query(`SELECT id, is_active, company_id FROM product_categories WHERE id = $1`, [categoryId]);
+    const rows = await conn.query(`SELECT id, is_active, company_id, branch_id FROM product_categories WHERE id = $1`, [categoryId]);
     const c = rows[0];
-    if (!c || !isVisible(scope, c.company_id)) throw new BadRequestException('Category not found');
+    if (!c || !isVisible(scope, c.company_id, c.branch_id)) throw new BadRequestException('Category not found');
     if (!c.is_active) throw new BadRequestException('Category is archived');
   }
 }

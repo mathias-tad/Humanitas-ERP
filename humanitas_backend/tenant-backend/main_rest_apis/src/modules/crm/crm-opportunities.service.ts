@@ -3,7 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { CatalogContext } from '../products/products.service';
 import { csvCell } from '../products/products.service';
-import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable } from '../products/products.scope';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch } from '../products/products.scope';
 import { cleanTags } from '../contacts/contacts.rules';
 import { CrmBase, ENTITY, blankToNull, ownSql, ownsCrmRow, setClause } from './crm.base';
 import { dealProbability, forecastByMonth, stuck, weighted } from './crm.rules';
@@ -15,7 +15,7 @@ import type {
 const DEAL_SQL = `
   SELECT o.*, s.name AS stage_name, s.probability AS stage_probability, s.rotting_days, s.is_won AS stage_is_won, s.is_lost AS stage_is_lost,
          p.name AS pipeline_name, c.name AS contact_name, pc.name AS person_name, u.full_name AS owner_name,
-         src.name AS source_name, lr.name AS lost_reason_name,
+         src.name AS source_name, lr.name AS lost_reason_name, ld.code AS lead_code, ld.title AS lead_title,
          (SELECT min(a.due_at) FROM crm_activities a WHERE a.related_type = 'opportunity' AND a.related_id = o.id AND a.is_active AND a.done_at IS NULL) AS next_activity_at
     FROM crm_opportunities o
     JOIN crm_stages s ON s.id = o.stage_id
@@ -24,7 +24,8 @@ const DEAL_SQL = `
     LEFT JOIN contacts pc ON pc.id = o.person_id
     LEFT JOIN users u ON u.id = o.owner_id
     LEFT JOIN crm_lead_sources src ON src.id = o.source_id
-    LEFT JOIN crm_lost_reasons lr ON lr.id = o.lost_reason_id`;
+    LEFT JOIN crm_lost_reasons lr ON lr.id = o.lost_reason_id
+    LEFT JOIN crm_leads ld ON ld.id = o.lead_id`;
 
 export const DEAL_TRACKED_FIELDS: Record<string, string> = {
   name: 'Name', contact_name: 'Customer', person_name: 'Contact person', pipeline_name: 'Pipeline', stage_name: 'Stage',
@@ -111,6 +112,8 @@ export class CrmOpportunitiesService extends CrmBase {
     if (stage.is_lost) throw new BadRequestException('Create the deal in an open stage, then mark it as lost with the reason');
     const companyId = dto.company_id !== undefined ? dto.company_id : defaultRecordCompany(scope);
     assertCompanyAssignable(scope, companyId);
+    const branchId = dto.branch_id !== undefined ? dto.branch_id : defaultRecordBranch(scope);
+    assertBranchAssignable(scope, branchId);
     await this.checkContacts(conn, scope, dto.contact_id, dto.person_id);
     await this.checkUser(conn, dto.owner_id, 'owner');
     await this.checkListItem(conn, 'crm_lead_sources', dto.source_id, 'lead source');
@@ -125,6 +128,8 @@ export class CrmOpportunitiesService extends CrmBase {
           blankToNull(dto.notes) ?? null, companyId ?? null, ctx.user?.sub ?? null],
       )
       .catch((e: unknown) => this.rethrow(e));
+    // No branch picked: the database puts the deal in its creator's branch.
+    if (branchId) await setRecordBranch(conn, 'crm_opportunities', row.id, branchId);
     await this.record(ctx, ENTITY.opportunity, row.id, 'created', `Deal "${dto.name.trim()}" created in ${stage.name}`);
     if (dto.contact_id) await this.record(ctx, ENTITY.contact, dto.contact_id, 'updated', `Deal "${dto.name.trim()}" created`);
     return this.get(ctx, row.id);
@@ -138,6 +143,7 @@ export class CrmOpportunitiesService extends CrmBase {
       if (dto.stage_id && dto.stage_id !== before.stage_id) throw new BadRequestException('Move the deal with its stage buttons (or drag it on the board)');
     }
     if (dto.company_id !== undefined) assertCompanyAssignable(scope, dto.company_id);
+    assertBranchAssignable(scope, dto.branch_id);
     await this.checkContacts(conn, scope, dto.contact_id !== undefined ? dto.contact_id : (before.contact_id as string | null), dto.person_id !== undefined ? dto.person_id : (before.person_id as string | null));
     await this.checkUser(conn, dto.owner_id, 'owner');
     await this.checkListItem(conn, 'crm_lead_sources', dto.source_id, 'lead source');
@@ -145,7 +151,7 @@ export class CrmOpportunitiesService extends CrmBase {
       ...dto, name: dto.name?.trim(), tags: dto.tags ? cleanTags(dto.tags) : undefined, notes: dto.notes === undefined ? undefined : blankToNull(dto.notes),
       expected_close_date: dto.expected_close_date === undefined ? undefined : dto.expected_close_date?.slice(0, 10) ?? null,
     };
-    const set = setClause(row, ['name', 'contact_id', 'person_id', 'owner_id', 'expected_revenue', 'currency', 'probability', 'expected_close_date', 'source_id', 'tags', 'notes', 'company_id']);
+    const set = setClause(row, ['name', 'contact_id', 'person_id', 'owner_id', 'expected_revenue', 'currency', 'probability', 'expected_close_date', 'source_id', 'tags', 'notes', 'company_id', 'branch_id']);
     if (!set.present.length) return this.get(ctx, id);
     await conn
       .query(`UPDATE crm_opportunities SET ${set.sql}, updated_by = $${set.params.length + 1}, updated_at = now() WHERE id = $${set.params.length + 2}`,
@@ -292,12 +298,12 @@ export class CrmOpportunitiesService extends CrmBase {
 
   private async checkContacts(conn: Queryable, scope: CompanyScope, contactId?: string | null, personId?: string | null) {
     if (contactId) {
-      const [c] = await conn.query(`SELECT id, company_id, is_active FROM contacts WHERE id = $1`, [contactId]);
-      if (!c || !isVisible(scope, c.company_id) || !c.is_active) throw new BadRequestException('That customer was not found');
+      const [c] = await conn.query(`SELECT id, company_id, branch_id, is_active FROM contacts WHERE id = $1`, [contactId]);
+      if (!c || !isVisible(scope, c.company_id, c.branch_id) || !c.is_active) throw new BadRequestException('That customer was not found');
     }
     if (personId) {
-      const [p] = await conn.query(`SELECT id, parent_id, company_id, is_active FROM contacts WHERE id = $1 AND contact_type = 'person'`, [personId]);
-      if (!p || !isVisible(scope, p.company_id) || !p.is_active) throw new BadRequestException('That contact person was not found');
+      const [p] = await conn.query(`SELECT id, parent_id, company_id, branch_id, is_active FROM contacts WHERE id = $1 AND contact_type = 'person'`, [personId]);
+      if (!p || !isVisible(scope, p.company_id, p.branch_id) || !p.is_active) throw new BadRequestException('That contact person was not found');
       if (contactId && p.parent_id !== contactId && p.id !== contactId) throw new BadRequestException('That person does not work at this customer');
     }
   }
@@ -333,7 +339,7 @@ export class CrmOpportunitiesService extends CrmBase {
 
   private async findVisible(conn: Queryable, scope: CompanyScope, id: string): Promise<Deal> {
     const [row] = await conn.query(`${DEAL_SQL} WHERE o.id = $1`, [id]);
-    if (!row || !isVisible(scope, row.company_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Opportunity not found');
+    if (!row || !isVisible(scope, row.company_id, row.branch_id) || !ownsCrmRow(scope as { mine?: string | null }, row)) throw new NotFoundException('Opportunity not found');
     return row;
   }
 }

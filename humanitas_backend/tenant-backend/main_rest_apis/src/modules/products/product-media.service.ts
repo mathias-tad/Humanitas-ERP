@@ -147,9 +147,9 @@ export class ProductMediaService {
 
   private async openProduct(ctx: CatalogContext, productId: string) {
     const conn = await this.databaseService.getTenantConnectionById(ctx.tenantId);
-    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader);
-    const [product] = await conn.query(`SELECT id, name, company_id, image_url FROM products WHERE id = $1`, [productId]);
-    if (!product || !isVisible(scope, product.company_id)) throw new NotFoundException('Product not found');
+    const scope = await resolveCompanyScope(conn, ctx.user, ctx.companyHeader, ctx.branchHeader);
+    const [product] = await conn.query(`SELECT id, name, company_id, branch_id, image_url FROM products WHERE id = $1`, [productId]);
+    if (!product || !isVisible(scope, product.company_id, product.branch_id)) throw new NotFoundException('Product not found');
     return { conn, product };
   }
 

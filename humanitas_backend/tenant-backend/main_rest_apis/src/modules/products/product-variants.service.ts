@@ -119,11 +119,11 @@ export class ProductVariantsService {
           const name = variantName(product.name, c.label);
           const [row] = await m.query(
             `INSERT INTO products (sku, name, description, product_type, category_id, uom_id, purchase_uom_id, sales_price, cost_price,
-                                   tax_code, can_be_sold, can_be_purchased, image_url, company_id, created_by, updated_by,
+                                   tax_code, can_be_sold, can_be_purchased, image_url, company_id, branch_id, created_by, updated_by,
                                    harmonization_code, excise_rate, parent_id, variant_key, variant_label, price_extra,
                                    sales_uom_id, min_sale_qty, sale_qty_step)
              SELECT $2, $3, p.description, p.product_type, p.category_id, p.uom_id, p.purchase_uom_id, p.sales_price, p.cost_price,
-                    p.tax_code, p.can_be_sold, p.can_be_purchased, p.image_url, p.company_id, $4, $4,
+                    p.tax_code, p.can_be_sold, p.can_be_purchased, p.image_url, p.company_id, p.branch_id, $4, $4,
                     p.harmonization_code, p.excise_rate, p.id, $5, $6, 0,
                     p.sales_uom_id, p.min_sale_qty, p.sale_qty_step
                FROM products p WHERE p.id = $1

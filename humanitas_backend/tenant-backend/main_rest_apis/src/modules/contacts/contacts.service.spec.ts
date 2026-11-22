@@ -55,7 +55,7 @@ describe('ContactsService', () => {
 
   it('adds a person to a company and records it on the company too', async () => {
     const conn = fakeConn([
-      [/SELECT id, name, contact_type, company_id, is_active FROM contacts WHERE id/, () => [{ id: C1, name: 'Abebe Trading', contact_type: 'company', company_id: null, is_active: true }]],
+      [/SELECT id, name, contact_type, company_id, branch_id, is_active FROM contacts WHERE id/, () => [{ id: C1, name: 'Abebe Trading', contact_type: 'company', company_id: null, is_active: true }]],
       [/SELECT count\(\*\)::int AS n FROM contacts WHERE parent_id/, () => [{ n: 0 }]],
       [/INSERT INTO contacts/, () => [{ id: P1 }]],
       [DETAIL, () => [company({ id: P1, contact_type: 'person', parent_id: C1, name: 'Sara' })]],
@@ -68,7 +68,7 @@ describe('ContactsService', () => {
   });
 
   it('keeps people under companies only', async () => {
-    const person = fakeConn([[/SELECT id, name, contact_type, company_id, is_active FROM contacts WHERE id/, () => [{ id: P1, name: 'Sara', contact_type: 'person', company_id: null, is_active: true }]]]);
+    const person = fakeConn([[/SELECT id, name, contact_type, company_id, branch_id, is_active FROM contacts WHERE id/, () => [{ id: P1, name: 'Sara', contact_type: 'person', company_id: null, is_active: true }]]]);
     await expect(build(person).svc.create(ctx, { name: 'Abel', parent_id: P1 })).rejects.toThrow(/Sara is a person/);
     await expect(build(fakeConn([])).svc.create(ctx, { name: 'X', contact_type: 'company', parent_id: C1 })).rejects.toThrow('Only a person belongs to a company');
   });

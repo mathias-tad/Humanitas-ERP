@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -10,6 +10,9 @@ import { CrmLeadsService } from './crm-leads.service';
 import { CrmOpportunitiesService } from './crm-opportunities.service';
 import { CrmActivitiesService } from './crm-activities.service';
 import { CrmSetupService } from './crm-setup.service';
+import { CrmImportService, type ImportKind, type ImportMode, type ImportOptions } from './crm-import.service';
+import { CrmFollowUpsService } from './crm-follow-ups.service';
+import { LogFollowUpDto } from './dto/follow-up.dto';
 import {
   BoardQueryDto, CompleteActivityDto, ConvertLeadDto, CreateActivityDto, CreateLeadDto, CreateOpportunityDto, ForecastQueryDto,
   ListActivitiesQueryDto, ListItemDto, ListLeadsQueryDto, ListOpportunitiesQueryDto, LoseDto, MoveStageDto, PipelineDto, ReorderStagesDto,
@@ -18,12 +21,70 @@ import {
 
 const timelineOpts = (limit?: string, before?: string) => ({ limit: limit ? Number(limit) : undefined, before });
 
+/** multipart/form-data: file, mode (preview | check | import), mapping (JSON: field -> column), options (JSON). */
+async function importRequest(req: AuthenticatedRequest) {
+  const part = await (req as unknown as { file?: () => Promise<any> }).file?.();
+  if (!part) throw new BadRequestException('Choose a file');
+  const data: Buffer = await part.toBuffer();
+  if (part.file?.truncated) throw new BadRequestException('The file is larger than 5 MB; split it');
+  const field = (k: string): string | undefined => part.fields?.[k]?.value;
+  const json = (k: string) => {
+    const v = field(k);
+    if (!v) return undefined;
+    try {
+      return JSON.parse(v);
+    } catch {
+      throw new BadRequestException(`${k} is not valid`);
+    }
+  };
+  const mode = (field('mode') ?? 'preview') as ImportMode;
+  if (!['preview', 'check', 'import'].includes(mode)) throw new BadRequestException('mode is preview, check or import');
+  const mapping = json('mapping');
+  if (mapping !== undefined && (typeof mapping !== 'object' || Array.isArray(mapping) || mapping === null)) throw new BadRequestException('mapping is not valid');
+  const raw = (json('options') ?? {}) as Record<string, unknown>;
+  const options: ImportOptions = {
+    create_missing_sources: raw.create_missing_sources === true,
+    create_missing_customers: raw.create_missing_customers === true,
+    default_owner: raw.default_owner === 'none' ? 'none' : 'me',
+  };
+  return { file: { data, filename: String(part.filename ?? 'import.csv') }, mode, mapping: mapping as Record<string, number> | undefined, options };
+}
+
+async function runImport(importer: CrmImportService, req: AuthenticatedRequest, kind: ImportKind) {
+  const r = await importRequest(req);
+  return importer.run(catalogContext(req), kind, r.file, r.mode, r.mapping, r.options);
+}
+
 /** Leads (CRM 1.1). */
 @Controller('crm/leads')
 @RequireModule('crm')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class CrmLeadsController {
-  constructor(private readonly leads: CrmLeadsService) {}
+  constructor(
+    private readonly leads: CrmLeadsService,
+    private readonly importer: CrmImportService,
+    private readonly followUps: CrmFollowUpsService,
+  ) {}
+
+  @Get(':id/follow-ups')
+  @RequirePermissions(L.view)
+  listFollowUps(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Query('limit') limit?: string, @Query('before') before?: string) {
+    return this.followUps.list(catalogContext(req), 'lead', id, timelineOpts(limit, before));
+  }
+
+  /** Log a contact that already happened (call, meeting, visit, email, Telegram, WhatsApp, SMS or a note), optionally with the next step. */
+  @Post(':id/follow-ups')
+  @RequirePermissions(L.edit)
+  logFollowUp(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: LogFollowUpDto) {
+    return this.followUps.log(catalogContext(req), 'lead', id, dto);
+  }
+
+  /** Import leads from Excel or CSV: mode=preview, then check, then import. */
+  @Post('import')
+  @RequirePermissions(L.create)
+  importLeads(@Request() req: AuthenticatedRequest) {
+    return runImport(this.importer, req, 'leads');
+  }
 
   @Get()
   @RequirePermissions(L.view)
@@ -94,7 +155,31 @@ export class CrmLeadsController {
 @RequireModule('crm')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 export class CrmOpportunitiesController {
-  constructor(private readonly deals: CrmOpportunitiesService) {}
+  constructor(
+    private readonly deals: CrmOpportunitiesService,
+    private readonly importer: CrmImportService,
+    private readonly followUps: CrmFollowUpsService,
+  ) {}
+
+  @Get(':id/follow-ups')
+  @RequirePermissions(O.view)
+  listFollowUps(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Query('limit') limit?: string, @Query('before') before?: string) {
+    return this.followUps.list(catalogContext(req), 'opportunity', id, timelineOpts(limit, before));
+  }
+
+  /** Log a contact that already happened (call, meeting, visit, email, Telegram, WhatsApp, SMS or a note), optionally with the next step. */
+  @Post(':id/follow-ups')
+  @RequirePermissions(O.edit)
+  logFollowUp(@Request() req: AuthenticatedRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: LogFollowUpDto) {
+    return this.followUps.log(catalogContext(req), 'opportunity', id, dto);
+  }
+
+  /** Import deals from Excel or CSV: mode=preview, then check, then import. */
+  @Post('import')
+  @RequirePermissions(O.create)
+  importDeals(@Request() req: AuthenticatedRequest) {
+    return runImport(this.importer, req, 'opportunities');
+  }
 
   @Get()
   @RequirePermissions(O.view)

@@ -7,7 +7,7 @@ import {
 
 export const CONTACT_TYPES = ['company', 'person'] as const;
 export const CONTACT_ROLES = ['customer', 'vendor'] as const;
-export const INTERACTION_KINDS = ['note', 'call', 'meeting', 'email', 'visit'] as const;
+export const INTERACTION_KINDS = ['note', 'call', 'meeting', 'email', 'visit', 'telegram', 'whatsapp', 'sms'] as const;
 
 /** A person created together with their company. */
 export class ContactPersonDto {
@@ -50,6 +50,8 @@ export class CreateContactDto {
   @IsOptional() @IsUUID() account_manager_id?: string | null;
   @IsOptional() @IsString() @MaxLength(5000) notes?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
   /** People created with a company (the first one is the primary contact). */
   @IsOptional() @IsArray() @ArrayMaxSize(50) @ValidateNested({ each: true }) @Type(() => ContactPersonDto) people?: ContactPersonDto[];
   /** Save even though another contact has the same TIN. */
@@ -97,6 +99,8 @@ export class ContactCategoryDto {
   @IsOptional() @Matches(/^#[0-9A-Fa-f]{6}$/) color?: string | null;
   @IsOptional() @IsUUID() price_list_id?: string | null;
   @IsOptional() @IsUUID() company_id?: string | null;
+  /** null = shared by every branch (users with every branch only). */
+  @IsOptional() @IsUUID() branch_id?: string | null;
   @IsOptional() @Type(() => Number) @IsInt() sort_order?: number;
 }
 
