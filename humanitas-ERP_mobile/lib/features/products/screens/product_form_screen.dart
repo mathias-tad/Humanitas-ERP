@@ -68,9 +68,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     setState(() => _saving = true);
     final repo = ref.read(productsRepositoryProvider);
     try {
-      final saved = widget.isEdit
-          ? await repo.updateProduct(widget.product!.id, _f.toJson())
-          : await repo.createProduct(_f.toJson());
+      final body = _f.toJson();
+      if (widget.isEdit && !_f.barcodesChangedFrom(widget.product!)) body.remove('barcodes');
+      final saved = widget.isEdit ? await repo.updateProduct(widget.product!.id, body) : await repo.createProduct(body);
       invalidateProducts(ref);
       if (!mounted) return;
       showProductsSnack(context, widget.isEdit ? 'Product saved' : 'Product "${saved.name}" created');
@@ -112,6 +112,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final uoms = uomsAsync.asData?.value ?? const <UomCategory>[];
     final salesUnit = _findUnit(uoms, _f.uomId);
     final purchaseUnit = _findUnit(uoms, _f.purchaseUomId);
+    final sellUnit = _findUnit(uoms, _f.salesUomId);
 
     InputDecoration deco(String label, String key, {String? hint, String? helper}) => InputDecoration(
           labelText: label,
@@ -186,7 +187,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.straighten),
-              title: const Text('Sales unit'),
+              title: const Text('Base unit (stock)'),
               subtitle: Text(salesUnit?.label ?? 'Units (default)'),
               trailing: const Icon(Icons.chevron_right),
               onTap: uoms.isEmpty
@@ -197,6 +198,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       setState(() {
                         _f.uomId = u.id;
                         _f.purchaseUomId = null;
+                        _f.salesUomId = null;
                       });
                     },
             ),
@@ -209,7 +211,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.shopping_cart_outlined),
               title: const Text('Purchase unit'),
-              subtitle: Text(purchaseUnit?.label ?? 'Same as sales unit'),
+              subtitle: Text(purchaseUnit?.label ?? 'Same as base unit'),
               trailing: const Icon(Icons.chevron_right),
               onTap: uoms.isEmpty
                   ? null
@@ -221,6 +223,43 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
             if (_errors['purchase_uom_id'] != null)
               Text(_errors['purchase_uom_id']!, style: const TextStyle(fontSize: 12, color: AppColors.error)),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.sell_outlined),
+              title: const Text('Sales unit'),
+              subtitle: Text(sellUnit?.label ?? 'Same as base unit'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: uoms.isEmpty
+                  ? null
+                  : () async {
+                      final u = await showUnitPicker(context, uoms, sameKindAs: _f.uomId);
+                      if (u == null) return;
+                      setState(() => _f.salesUomId = u.id == _f.uomId ? null : u.id);
+                    },
+            ),
+            if (_errors['sales_uom_id'] != null)
+              Text(_errors['sales_uom_id']!, style: const TextStyle(fontSize: 12, color: AppColors.error)),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _f.minSaleQty,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: deco('Minimum order', 'min_sale_qty', hint: 'None'),
+                    onChanged: (v) => _f.minSaleQty = v,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _f.saleQtyStep,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: deco('Sold in multiples of', 'sale_qty_step', hint: 'Any quantity'),
+                    onChanged: (v) => _f.saleQtyStep = v,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             Row(
               children: [

@@ -12,6 +12,7 @@ import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
 import '../widgets/products_common.dart';
 import 'product_categories_screen.dart';
+import 'catalog_report_screen.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 import 'product_scan_screen.dart';
@@ -108,6 +109,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               final Widget screen = switch (v) {
                 'categories' => const ProductCategoriesScreen(),
                 'units' => const UnitsScreen(),
+                'report' => const CatalogReportScreen(),
                 _ => const ScannerSettingsScreen(),
               };
               Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
@@ -116,6 +118,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               if (auth.hasPermission('view_product_categories'))
                 const PopupMenuItem(value: 'categories', child: Text('Categories')),
               if (auth.hasPermission('view_uoms')) const PopupMenuItem(value: 'units', child: Text('Units of measure')),
+              if (auth.hasPermission('view_product_reports'))
+                const PopupMenuItem(value: 'report', child: Text('Catalog report')),
               const PopupMenuItem(value: 'scanner', child: Text('Scanner settings')),
             ],
           ),
@@ -229,7 +233,7 @@ class _AutoLoadMoreState extends State<_AutoLoadMore> {
   }
 }
 
-class _ProductList extends StatelessWidget {
+class _ProductList extends ConsumerWidget {
   final ProductPage page;
   final ProductQuery query;
   final bool canCreate;
@@ -245,7 +249,7 @@ class _ProductList extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (page.items.isEmpty) {
       final q = query.q.trim();
       return ListView(
@@ -287,7 +291,15 @@ class _ProductList extends StatelessWidget {
           );
         }
         final p = page.items[i];
+        final thumb = ref.read(productsRepositoryProvider).mediaUrl(p.imageUrl);
         return ListTile(
+          leading: thumb.isEmpty
+              ? null
+              : ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.network(thumb, width: 40, height: 40, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(width: 40, height: 40)),
+                ),
           title: Row(
             children: [
               Flexible(child: Text(p.name, overflow: TextOverflow.ellipsis)),
@@ -304,6 +316,8 @@ class _ProductList extends StatelessWidget {
             if (p.sku != null && p.sku != p.itemCode) p.sku!,
             p.unitLabel,
             if (p.hasVariants) '${p.variantCount} variants',
+            if (p.compositionLabel != null) p.compositionLabel!,
+            if (p.isBelowCost) 'below cost',
           ].join(' · ')),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

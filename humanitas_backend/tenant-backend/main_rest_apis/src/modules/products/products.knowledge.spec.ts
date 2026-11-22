@@ -22,6 +22,15 @@ describe('Products AI knowledge entries', () => {
     expect(allSql).toContain(`"${permission}"`);
   });
 
+  it('gives the app steps for pictures, packaging, kits and the catalog report (rules 20, 24.27)', () => {
+    const mobile = readFileSync(join(__dirname, '../../migrations/tenant/20261122000018_ai_knowledge_products_completion_mobile.sql'), 'utf8');
+    for (const f of ['Product Reports', 'Product Pictures and Attachments', 'Packaging and GS1 Barcodes', 'Kits and Combos', 'Customer Price Lists']) {
+      expect(mobile).toContain(`feature_name = '${f}'`);
+    }
+    for (const s of ['CatalogReportScreen', 'ProductDetailScreen', 'ProductFormScreen']) expect(mobile).toContain(`'${s}'`);
+    expect(mobile).not.toMatch(/next app update/);
+  });
+
   it('describes label printing, and says on mobile that it is done on the web (rules 20, 24.27)', () => {
     expect(labelsSql).toContain(`'/products/labels'`);
     expect(labelsSql).toContain(`'Barcode and Price Labels'`);

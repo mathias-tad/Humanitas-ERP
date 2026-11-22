@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/providers.dart';
 import '../models/product_models.dart';
 import '../models/price_models.dart';
+import '../models/product_extras_models.dart';
 import '../repositories/products_repository.dart';
 import 'product_pager.dart';
 
@@ -35,7 +36,25 @@ void invalidateProducts(WidgetRef ref) {
   ref.invalidate(productPricesProvider);
   ref.invalidate(productDetailProvider);
   ref.invalidate(productCategoriesProvider);
+  ref.invalidate(productMediaProvider);
+  ref.invalidate(productCompositionProvider);
+  ref.invalidate(catalogReportProvider);
 }
+
+/// A product's pictures and attachments.
+final productMediaProvider = FutureProvider.autoDispose.family<List<ProductMedia>, String>((ref, id) {
+  return ref.watch(productsRepositoryProvider).media(id);
+});
+
+/// A kit's components or a combo's choice groups.
+final productCompositionProvider = FutureProvider.autoDispose.family<ProductComposition, String>((ref, id) {
+  return ref.watch(productsRepositoryProvider).composition(id);
+});
+
+/// Catalog report (web: Product Reports).
+final catalogReportProvider = FutureProvider.autoDispose<CatalogReport>((ref) {
+  return ref.watch(productsRepositoryProvider).catalogReport();
+});
 
 /// The product list, page after page (40 at a time, more as it scrolls).
 final productPagesProvider =

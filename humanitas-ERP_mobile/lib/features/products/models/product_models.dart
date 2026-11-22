@@ -2,6 +2,8 @@
 /// The MoR e-invoicing rules mirror the backend (AGENTS.md rule 28, docs/eims/EIMS_REFERENCE.md).
 library;
 
+import 'product_extras_models.dart';
+
 /// MoR line tax codes and their labels.
 const List<String> kEimsTaxCodes = ['VAT15', 'VAT0', 'VATEX', 'TOT2', 'TOT10'];
 
@@ -58,13 +60,17 @@ class ProductBarcode {
   final double quantity;
   final bool isPrimary;
 
-  const ProductBarcode({required this.barcode, this.packaging, this.quantity = 1, this.isPrimary = false});
+  /// Made by the in-store numbering (Product Settings in the web app).
+  final bool isGenerated;
+
+  const ProductBarcode({required this.barcode, this.packaging, this.quantity = 1, this.isPrimary = false, this.isGenerated = false});
 
   factory ProductBarcode.fromJson(Map<String, dynamic> json) => ProductBarcode(
         barcode: json['barcode']?.toString() ?? '',
         packaging: _toStr(json['packaging']),
         quantity: _toDoubleOrNull(json['quantity']) ?? 1,
         isPrimary: json['is_primary'] == true,
+        isGenerated: json['is_generated'] == true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -118,6 +124,28 @@ class Product {
   final bool hasVariants;
   final int variantCount;
 
+  /// The main picture (gallery) or a web address.
+  final String? imageUrl;
+
+  /// The unit it is sold in (same kind as the base unit [uomId]).
+  final String? salesUomId;
+  final String? salesUomName;
+  final String? salesUomSymbol;
+
+  /// Minimum order and "sold in multiples of", in the sales unit.
+  final double minSaleQty;
+  final double? saleQtyStep;
+
+  /// single | kit | combo
+  final String composition;
+  final bool isBelowCost;
+  final int mediaCount;
+  final List<PackagingInfo> packagings;
+
+  /// Lookup only: the package a scanned code belongs to and how many units it holds.
+  final String? scannedPackaging;
+  final double scannedQuantity;
+
   const Product({
     required this.id,
     required this.name,
@@ -152,6 +180,18 @@ class Product {
     this.priceExtra = 0,
     this.hasVariants = false,
     this.variantCount = 0,
+    this.imageUrl,
+    this.salesUomId,
+    this.salesUomName,
+    this.salesUomSymbol,
+    this.minSaleQty = 0,
+    this.saleQtyStep,
+    this.composition = 'single',
+    this.isBelowCost = false,
+    this.mediaCount = 0,
+    this.packagings = const [],
+    this.scannedPackaging,
+    this.scannedQuantity = 1,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -193,8 +233,28 @@ class Product {
       priceExtra: _toDouble(json['price_extra']),
       hasVariants: json['has_variants'] == true,
       variantCount: _toDouble(json['variant_count']).toInt(),
+      imageUrl: _toStr(json['image_url']),
+      salesUomId: _toStr(json['sales_uom_id']),
+      salesUomName: _toStr(json['sales_uom_name']),
+      salesUomSymbol: _toStr(json['sales_uom_symbol']),
+      minSaleQty: _toDouble(json['min_sale_qty']),
+      saleQtyStep: _toDoubleOrNull(json['sale_qty_step']),
+      composition: json['composition']?.toString() ?? 'single',
+      isBelowCost: json['is_below_cost'] == true,
+      mediaCount: _toDouble(json['media_count']).toInt(),
+      packagings: json['packagings'] is List
+          ? (json['packagings'] as List).whereType<Map<String, dynamic>>().map(PackagingInfo.fromJson).toList()
+          : const [],
+      scannedPackaging: _toStr(json['scanned_packaging']),
+      scannedQuantity: _toDoubleOrNull(json['scanned_quantity']) ?? 1,
     );
   }
+
+  /// The sales unit's label; the base unit when it is sold in it.
+  String get salesUnitLabel => salesUomSymbol ?? salesUomName ?? unitLabel;
+
+  /// "Kit", "Combo" or null for a single product.
+  String? get compositionLabel => composition == 'kit' ? 'Kit' : composition == 'combo' ? 'Combo' : null;
 
   String get typeLabel => kProductTypeLabels[productType] ?? productType;
 
@@ -495,6 +555,11 @@ class ProductFormData {
   String? categoryLabel;
   String? uomId;
   String? purchaseUomId;
+
+  /// null = sold in the base unit.
+  String? salesUomId;
+  String minSaleQty;
+  String saleQtyStep;
   String salesPrice;
   String costPrice;
   String taxCode;
@@ -515,6 +580,9 @@ class ProductFormData {
     this.categoryLabel,
     this.uomId,
     this.purchaseUomId,
+    this.salesUomId,
+    this.minSaleQty = '',
+    this.saleQtyStep = '',
     this.salesPrice = '',
     this.costPrice = '',
     this.taxCode = 'VAT15',
@@ -536,6 +604,9 @@ class ProductFormData {
         categoryLabel: p.categoryName,
         uomId: p.uomId,
         purchaseUomId: p.purchaseUomId,
+        salesUomId: p.salesUomId != null && p.salesUomId != p.uomId ? p.salesUomId : null,
+        minSaleQty: p.minSaleQty > 0 ? formatNumber(p.minSaleQty) : '',
+        saleQtyStep: p.saleQtyStep != null && p.saleQtyStep! > 0 ? formatNumber(p.saleQtyStep!) : '',
         salesPrice: formatNumber(p.salesPrice),
         costPrice: formatNumber(p.costPrice),
         taxCode: p.taxCode,
@@ -554,7 +625,7 @@ class ProductFormData {
     final errors = <String, String>{};
     if (name.trim().isEmpty) errors['name'] = 'Name is required';
     if (sku.trim().isNotEmpty && !kSkuPattern.hasMatch(sku.trim())) errors['sku'] = 'Letters, digits, . _ - / only';
-    for (final entry in {'sales_price': salesPrice, 'cost_price': costPrice}.entries) {
+    for (final entry in {'sales_price': salesPrice, 'cost_price': costPrice, 'min_sale_qty': minSaleQty, 'sale_qty_step': saleQtyStep}.entries) {
       final v = entry.value.trim();
       if (v.isNotEmpty && ((double.tryParse(v) ?? -1) < 0)) errors[entry.key] = 'Must be 0 or more';
     }
@@ -582,13 +653,32 @@ class ProductFormData {
       }
 
       if (kindOf(uomId!) != kindOf(purchaseUomId!)) {
-        errors['purchase_uom_id'] = 'Must be the same kind of unit as the sales unit';
+        errors['purchase_uom_id'] = 'Must be the same kind of unit as the base unit';
       }
+    }
+    if (uomId != null && salesUomId != null && uoms.isNotEmpty) {
+      String? kindOf(String id) {
+        for (final c in uoms) {
+          if (c.units.any((u) => u.id == id)) return c.id;
+        }
+        return null;
+      }
+
+      if (kindOf(uomId!) != kindOf(salesUomId!)) errors['sales_uom_id'] = 'Must be the same kind of unit as the base unit';
     }
     final codes = barcodes.map((b) => b.barcode.trim()).where((b) => b.isNotEmpty).toList();
     if (codes.toSet().length != codes.length) errors['barcodes'] = 'Each barcode can be listed only once';
     if (codes.any((c) => c.contains(RegExp(r'\s')))) errors['barcodes'] = 'Barcodes cannot contain spaces';
     return errors;
+  }
+
+  /// Whether the barcodes differ from [p]'s. Unchanged barcodes are not sent, so generated ones keep their mark.
+  bool barcodesChangedFrom(Product p) {
+    String key(List<ProductBarcode> list) => list
+        .where((b) => b.barcode.trim().isNotEmpty)
+        .map((b) => '${b.barcode.trim()}|${b.packaging ?? ''}|${b.quantity}|${b.isPrimary}')
+        .join(',');
+    return key(barcodes) != key(p.barcodes);
   }
 
   /// True when the name is too long for MoR and no shorter invoice description is set.
@@ -606,6 +696,9 @@ class ProductFormData {
       'category_id': categoryId,
       if (uomId != null) 'uom_id': uomId,
       if (purchaseUomId != null) 'purchase_uom_id': purchaseUomId,
+      if (salesUomId != null || uomId != null) 'sales_uom_id': salesUomId ?? uomId,
+      'min_sale_qty': numOrNull(minSaleQty) ?? 0,
+      'sale_qty_step': (numOrNull(saleQtyStep) ?? 0) > 0 ? numOrNull(saleQtyStep) : null,
       'sales_price': numOrNull(salesPrice) ?? 0,
       'cost_price': numOrNull(costPrice) ?? 0,
       'tax_code': taxCode,

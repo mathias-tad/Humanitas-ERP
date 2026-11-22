@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,8 @@ import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
 import '../widgets/products_common.dart';
 import '../widgets/product_variants_prices.dart';
+import '../widgets/product_media_view.dart';
+import '../widgets/product_structure_section.dart';
 import 'product_form_screen.dart';
 
 /// One product: details with e-invoicing readiness, and its full change history (featureslist §30).
@@ -61,6 +64,7 @@ class ProductDetailScreen extends ConsumerWidget {
       const Tab(text: 'Details'),
       if (showVariants) const Tab(text: 'Variants'),
       if (showPrices) const Tab(text: 'Prices'),
+      if (product != null) Tab(text: product.mediaCount > 0 ? 'Photos (${product.mediaCount})' : 'Photos'),
       const Tab(text: 'History'),
     ];
 
@@ -97,6 +101,7 @@ class ProductDetailScreen extends ConsumerWidget {
               _ProductDetails(product: p),
               if (showVariants) ProductVariantsView(product: p),
               if (showPrices) ProductPricesView(productId: p.id),
+              ProductMediaView(product: p),
               ProductTimelineView(productId: p.id),
             ],
           ),
@@ -106,14 +111,15 @@ class ProductDetailScreen extends ConsumerWidget {
   }
 }
 
-class _ProductDetails extends StatelessWidget {
+class _ProductDetails extends ConsumerWidget {
   final Product product;
 
   const _ProductDetails({required this.product});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = product;
+    final imageUrl = ref.read(productsRepositoryProvider).mediaUrl(p.imageUrl);
     final money = NumberFormat('#,##0.00');
     final excise = p.exciseRate == null
         ? '${formatNumber(p.effectiveExciseRate)}% (from category)'
@@ -130,14 +136,42 @@ class _ProductDetails extends StatelessWidget {
             ),
             child: const Text('This product is archived: hidden from lists and scanners.'),
           ),
+        if (imageUrl.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        if (p.isBelowCost)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('Priced below cost: each sale loses ${money.format(p.costPrice - p.salesPrice)}.'),
+          ),
         EimsReadinessBanner(product: p),
+        if (p.compositionLabel != null) _Row('Kind', p.compositionLabel!),
         if (p.isVariant) _Row('Variant of', [p.parentName ?? '—', if (p.variantLabel != null) p.variantLabel!].join(' · ')),
         if (p.hasVariants) _Row('Variants', '${p.variantCount} (see the Variants tab)'),
         _Row('Item code', p.itemCode),
         _Row('SKU', p.sku ?? '—'),
         _Row('Type', p.typeLabel),
         _Row('Category', p.categoryName ?? '—'),
-        _Row('Unit', p.uomMorCode == null ? p.unitLabel : '${p.unitLabel} · MoR ${p.uomMorCode}'),
+        _Row('Base unit', p.uomMorCode == null ? p.unitLabel : '${p.unitLabel} · MoR ${p.uomMorCode}'),
+        if (p.salesUomId != null && p.salesUomId != p.uomId) _Row('Sales unit', p.salesUnitLabel),
+        if (p.minSaleQty > 0) _Row('Minimum order', '${formatNumber(p.minSaleQty)} ${p.salesUnitLabel}'),
+        if (p.saleQtyStep != null && p.saleQtyStep! > 0) _Row('Sold in multiples of', '${formatNumber(p.saleQtyStep!)} ${p.salesUnitLabel}'),
         _Row('Sales price', money.format(p.salesPrice)),
         _Row('Cost', money.format(p.costPrice)),
         _Row('Tax', kEimsTaxCodeLabels[p.taxCode] ?? p.taxCode),
@@ -161,6 +195,7 @@ class _ProductDetails extends StatelessWidget {
               if (b.isPrimary) 'Primary',
             ].join(' · ')),
           ),
+        ProductStructureSection(product: p),
         if (p.description != null && p.description!.isNotEmpty) ...[
           const ProductsSectionTitle('Description'),
           Text(p.description!),

@@ -9,6 +9,7 @@ import '../models/product_models.dart';
 import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
 import '../widgets/products_common.dart';
+import '../models/product_extras_models.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 
@@ -50,6 +51,9 @@ class _ProductScanScreenState extends ConsumerState<ProductScanScreen> {
       final product = await ref.read(productsRepositoryProvider).lookup(code);
       if (!mounted) return;
       if (product != null) {
+        // A case or box barcode scans as its quantity.
+        final scanned = scannedQuantityText(product.scannedPackaging, product.scannedQuantity, product.unitLabel);
+        if (scanned != null) showProductsSnack(context, scanned);
         await Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(builder: (_) => ProductDetailScreen(productId: product.id)),
         );

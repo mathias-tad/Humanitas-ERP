@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../core/api/api_client.dart';
 import '../models/price_models.dart';
+import '../models/product_extras_models.dart';
 import '../models/product_models.dart';
 
 /// A failed Products API call, with the server's message when it sent one.
@@ -110,6 +111,43 @@ class ProductsRepository {
         final res = await _dio.get('/price-lists/for-product/$productId', queryParameters: {'quantity': quantity.toString()});
         return ProductPrices.fromJson(_map(res.data));
       }, 'Could not load the prices');
+
+  // ── Pictures, contents, catalog report ─────────────────────────────────────
+  /// The full address of a stored picture or attachment.
+  String mediaUrl(String? path) => resolveMediaUrl(_dio.options.baseUrl, path);
+
+  Future<List<ProductMedia>> media(String productId) => _call(() async {
+        final res = await _dio.get('/products/$productId/media');
+        return _list(res.data).map(ProductMedia.fromJson).toList();
+      }, 'Could not load the pictures');
+
+  /// Uploads a photo from the camera or gallery (JPEG or PNG, up to 5 MB).
+  Future<ProductMedia> uploadPicture(String productId, String filePath, String fileName) => _call(() async {
+        final form = FormData.fromMap({
+          'kind': 'image',
+          'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        });
+        final res = await _dio.post('/products/$productId/media', data: form);
+        return ProductMedia.fromJson(_map(res.data));
+      }, 'Could not upload the picture');
+
+  Future<void> setMainPicture(String productId, String mediaId) => _call(() async {
+        await _dio.patch('/products/$productId/media/$mediaId', data: {'is_primary': true});
+      }, 'Could not change the main picture');
+
+  Future<void> removeMedia(String productId, String mediaId) => _call(() async {
+        await _dio.delete('/products/$productId/media/$mediaId');
+      }, 'Could not remove the picture');
+
+  Future<ProductComposition> composition(String productId) => _call(() async {
+        final res = await _dio.get('/products/$productId/composition');
+        return ProductComposition.fromJson(_map(res.data));
+      }, 'Could not load the contents');
+
+  Future<CatalogReport> catalogReport() => _call(() async {
+        final res = await _dio.get('/product-reports/summary');
+        return CatalogReport.fromJson(_map(res.data));
+      }, 'Could not load the catalog report');
 
   // ── Categories ──────────────────────────────────────────────────────────────
   Future<List<ProductCategory>> listCategories({bool includeArchived = false}) => _call(() async {
