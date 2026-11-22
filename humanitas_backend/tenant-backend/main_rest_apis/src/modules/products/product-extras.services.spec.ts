@@ -4,7 +4,7 @@ import * as path from 'path';
 import { BadRequestException } from '@nestjs/common';
 import { ProductSettingsService } from './product-settings.service';
 import { ProductStructureService } from './product-structure.service';
-import { ProductMediaService } from './product-media.service';
+import { ProductMediaService, storageErrorMessage } from './product-media.service';
 import { PriceListCustomersService, customerListId } from './price-list-customers.service';
 import { ProductReportsService } from './product-reports.service';
 import type { ProductsService, CatalogContext } from './products.service';
@@ -138,6 +138,17 @@ describe('Product pictures', () => {
     expect(String(insert.params[2])).toMatch(/^\/uploads\/products\/tenant-1\/img_\d+_[0-9a-f]{32}\.png$/);
     expect(fs.readdirSync(path.join(dir, 'products', 'tenant-1'))).toHaveLength(1);
     expect(c.calls.some((x) => /UPDATE products SET image_url = \$1/.test(x.sql) && x.params[0] === insert.params[2])).toBe(true);
+  });
+
+  it('says plainly when the server cannot write the file', async () => {
+    const svc = new ProductMediaService(dbFor(conn()), timelineMock() as never);
+    const blocked = path.join(dir, 'blocked');
+    fs.writeFileSync(blocked, 'a file where a folder should be');
+    svc.uploadsRoot = () => blocked;
+    await expect(svc.upload(ctx, P1, { data: Buffer.from([0xff, 0xd8, 0xff, 0xe0]), filename: 'teff.jpg' }, {}))
+      .rejects.toThrow(/could not save the file|cannot save files/);
+    expect(storageErrorMessage({ code: 'EACCES' })).toMatch(/uploads folder is not writable \(EACCES\)/);
+    expect(storageErrorMessage({ code: 'ENOSPC' })).toMatch(/disk is full/);
   });
 
   it('refuses a file that only pretends to be a picture', async () => {

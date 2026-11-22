@@ -190,6 +190,10 @@ jobs:
             fi
 
             docker compose build
+            # The APIs run as the image's "node" user (uid 1000) and write pictures and files into ./uploads,
+            # which is mounted from this folder. Keep it writable for them (no sudo needed: done in a container).
+            mkdir -p uploads
+            docker run --rm -v "$PWD/uploads:/u" busybox:1.36 sh -c 'chown -R 1000:1000 /u && chmod -R u+rwX /u'
             # An interrupted recreate can leave a container renamed to '<12-hex-id>_<name>',
             # which makes the next 'up' fail with a name conflict. If that happens, remove
             # only such leftovers from this compose project and try once more.

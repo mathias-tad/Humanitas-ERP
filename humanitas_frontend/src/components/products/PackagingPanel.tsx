@@ -3,6 +3,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
@@ -14,7 +15,10 @@ import {
 
 const blank = (): Packaging => ({ name: '', level: 'case', quantity: '', gtin: '', weight_kg: '', can_sell: true, can_buy: true });
 
-/** Packaging levels (GS1): how many base units each package holds and its own GTIN, which scans as that quantity. */
+/**
+ * Packaging levels (GS1): the boxes, cartons and pallets a product also comes in, how many base units
+ * each holds, and their own GTIN barcode, which scans as that quantity.
+ */
 export function PackagingPanel({ product }: { product: Product }) {
   const { hasPermission } = useAuth();
   const canEdit = hasPermission('edit_products') && product.is_active && !product.has_variants;
@@ -55,40 +59,56 @@ export function PackagingPanel({ product }: { product: Product }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Quantities are in the base unit ({unit}). A package's GTIN scans as its quantity at the till, in receiving and in stock counts.
+        The boxes, cartons and pallets this product also comes in. Quantities are in the base unit ({unit}). A package's GTIN
+        (the barcode printed on the box) scans as its whole quantity at the till, in receiving and in stock counts.
       </p>
-      {rows.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-[1fr_8rem_5rem_9.5rem_5rem_auto_auto_auto] gap-2 text-xs font-medium text-muted-foreground">
-            <span>Name</span><span>Level</span><span>Qty ({unit})</span><span>GTIN</span><span>Weight kg</span><span>Sell</span><span>Buy</span><span />
-          </div>
-          {rows.map((r, i) => {
-            const g = (r.gtin ?? '').trim();
-            return (
-              <div key={i} className="grid grid-cols-[1fr_8rem_5rem_9.5rem_5rem_auto_auto_auto] items-center gap-2">
-                <Input aria-label={`Packaging name ${i + 1}`} value={r.name} placeholder="Box of 12" disabled={!canEdit} onChange={(e) => set(i, { name: e.target.value })} />
-                <Select value={r.level} onValueChange={(v) => set(i, { level: v as PackagingLevel })} disabled={!canEdit}>
-                  <SelectTrigger aria-label={`Level ${i + 1}`}><SelectValue /></SelectTrigger>
+      {rows.map((r, i) => {
+        const g = (r.gtin ?? '').trim();
+        const badGtin = !!g && !isValidGtin(g);
+        return (
+          <fieldset key={i} disabled={!canEdit} className="space-y-3 rounded-md border p-3" aria-label={r.name || `Packaging ${i + 1}`}>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_7rem]">
+              <div className="min-w-0 space-y-1">
+                <Label htmlFor={`pk-name-${i}`}>Name</Label>
+                <Input id={`pk-name-${i}`} value={r.name} placeholder="e.g. Box of 12" onChange={(e) => set(i, { name: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`pk-level-${i}`}>Level</Label>
+                <Select value={r.level} onValueChange={(v) => set(i, { level: v as PackagingLevel })}>
+                  <SelectTrigger id={`pk-level-${i}`}><SelectValue /></SelectTrigger>
                   <SelectContent>{PACKAGING_LEVELS.map((l) => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input aria-label={`Quantity ${i + 1}`} inputMode="decimal" value={String(r.quantity)} disabled={!canEdit} onChange={(e) => set(i, { quantity: e.target.value })} />
-                <div>
-                  <Input aria-label={`GTIN ${i + 1}`} inputMode="numeric" maxLength={14} value={r.gtin ?? ''} placeholder="Optional" disabled={!canEdit}
-                    className={g && !isValidGtin(g) ? 'border-destructive' : ''} onChange={(e) => set(i, { gtin: e.target.value.replace(/\s/g, '') })} />
-                </div>
-                <Input aria-label={`Weight ${i + 1}`} inputMode="decimal" value={String(r.weight_kg ?? '')} disabled={!canEdit} onChange={(e) => set(i, { weight_kg: e.target.value })} />
-                <Switch aria-label={`Sold in this package ${i + 1}`} checked={r.can_sell} disabled={!canEdit} onCheckedChange={(v) => set(i, { can_sell: v })} />
-                <Switch aria-label={`Bought in this package ${i + 1}`} checked={r.can_buy} disabled={!canEdit} onCheckedChange={(v) => set(i, { can_buy: v })} />
-                {canEdit ? (
-                  <Button variant="ghost" size="icon" aria-label={`Remove packaging ${i + 1}`} onClick={() => { setRows((rs) => rs.filter((_, j) => j !== i)); setDirty(true); }}>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`pk-qty-${i}`}>Holds ({unit})</Label>
+                <Input id={`pk-qty-${i}`} inputMode="decimal" value={String(r.quantity)} placeholder="12" onChange={(e) => set(i, { quantity: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
+              <div className="min-w-0 space-y-1">
+                <Label htmlFor={`pk-gtin-${i}`}>GTIN (box barcode)</Label>
+                <Input id={`pk-gtin-${i}`} inputMode="numeric" maxLength={14} value={r.gtin ?? ''} placeholder="Optional: 8, 12, 13 or 14 digits"
+                  aria-invalid={badGtin} className={badGtin ? 'border-destructive' : ''} onChange={(e) => set(i, { gtin: e.target.value.replace(/\s/g, '') })} />
+                {badGtin && <p className="text-xs text-destructive">Not a valid GTIN: check the digits.</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`pk-weight-${i}`}>Weight kg</Label>
+                <Input id={`pk-weight-${i}`} inputMode="decimal" value={String(r.weight_kg ?? '')} placeholder="—" onChange={(e) => set(i, { weight_kg: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-4 pb-2">
+                <label className="flex items-center gap-2 text-sm"><Switch checked={r.can_sell} onCheckedChange={(v) => set(i, { can_sell: v })} /> Sold</label>
+                <label className="flex items-center gap-2 text-sm"><Switch checked={r.can_buy} onCheckedChange={(v) => set(i, { can_buy: v })} /> Bought</label>
+                {canEdit && (
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${r.name || `packaging ${i + 1}`}`}
+                    onClick={() => { setRows((rs) => rs.filter((_, j) => j !== i)); setDirty(true); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                ) : <span />}
+                )}
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          </fieldset>
+        );
+      })}
       {!rows.length && <p className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">No packaging yet (for example Box of 12, Carton of 48, Pallet of 960).</p>}
       {dirty && problem && <p className="text-xs text-destructive" role="alert">{problem}</p>}
       {canEdit && (

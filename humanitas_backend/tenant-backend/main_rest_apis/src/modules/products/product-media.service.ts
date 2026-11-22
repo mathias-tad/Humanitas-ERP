@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DatabaseService } from '../database/database.service';
@@ -12,6 +12,16 @@ import { sniffFile } from './product-structure';
 export const MAX_MEDIA_PER_PRODUCT = 30;
 export const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 
+/** A disk error as a message the person can act on (the uploads folder must be writable by the app). */
+export function storageErrorMessage(err: unknown): string {
+  const code = (err as { code?: string })?.code;
+  if (code === 'EACCES' || code === 'EPERM' || code === 'EROFS') {
+    return `The server cannot save files: its uploads folder is not writable (${code}). Ask your administrator to give the app write access to the uploads folder.`;
+  }
+  if (code === 'ENOSPC') return 'The server disk is full, so the file could not be saved.';
+  return `The server could not save the file${code ? ` (${code})` : ''}.`;
+}
+
 export interface UploadedFile {
   data: Buffer;
   filename: string;
@@ -24,6 +34,8 @@ const MEDIA_SQL = `SELECT id, product_id, kind, file_path, file_name, mime_type,
 /** Product gallery (pictures) and attachments (spec sheets, certificates, manuals). */
 @Injectable()
 export class ProductMediaService {
+  private readonly logger = new Logger(ProductMediaService.name);
+
   /** Where files go; tests point it at a temporary folder. */
   uploadsRoot = () => getUploadsDir();
 
@@ -51,11 +63,17 @@ export class ProductMediaService {
     const [{ n }] = await conn.query(`SELECT count(*)::int AS n FROM product_media WHERE product_id = $1 AND is_active`, [productId]);
     if (n >= MAX_MEDIA_PER_PRODUCT) throw new BadRequestException(`A product can have up to ${MAX_MEDIA_PER_PRODUCT} pictures and attachments`);
 
-    const dir = path.join(this.uploadsRoot(), 'products', ctx.tenantId.replace(/[^a-zA-Z0-9-]/g, ''));
-    await fs.promises.mkdir(dir, { recursive: true });
+    const tenantDir = ctx.tenantId.replace(/[^a-zA-Z0-9-]/g, '');
     const stored = randomUploadName(kind === 'image' ? 'img' : 'doc', ext);
-    await fs.promises.writeFile(path.join(dir, stored), file.data);
-    const filePath = `/uploads/products/${path.basename(dir)}/${stored}`;
+    try {
+      const dir = path.join(this.uploadsRoot(), 'products', tenantDir);
+      await fs.promises.mkdir(dir, { recursive: true });
+      await fs.promises.writeFile(path.join(dir, stored), file.data);
+    } catch (err) {
+      this.logger.error(`Saving a product file failed: ${(err as Error)?.message}`, (err as Error)?.stack);
+      throw new InternalServerErrorException(storageErrorMessage(err));
+    }
+    const filePath = `/uploads/products/${tenantDir}/${stored}`;
     const name = path.basename(file.filename).slice(0, 255) || stored;
 
     const id = await conn.transaction(async (m: Queryable) => {
