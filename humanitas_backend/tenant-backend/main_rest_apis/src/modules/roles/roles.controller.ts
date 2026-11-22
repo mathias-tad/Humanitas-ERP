@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSION_CATALOG } from './permission-catalog';
 
 interface AuthenticatedRequest extends FastifyRequest {
   user: {
@@ -40,6 +41,13 @@ export class RolesController {
   @RequirePermissions('view_roles', 'view_dashboard', 'view_users')
   async findAll(@Req() req: AuthenticatedRequest) {
     return this.rolesService.findAll(req.user.tenantSlug);
+  }
+
+  @Get('permission-catalog')
+  @ApiOperation({ summary: 'Every permission a role can be given, with its group and subscription module' })
+  @RequirePermissions('view_roles')
+  permissionCatalog() {
+    return PERMISSION_CATALOG;
   }
 
   @Get(':id')

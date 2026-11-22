@@ -1,0 +1,341 @@
+/**
+ * Every permission a role can be given, grouped for the Access Control page.
+ * `module` is the subscription it belongs to ('core' shows for every tenant). Access Control lists only
+ * the entries of subscribed modules. permission-catalog.spec.ts fails when a permission the code checks
+ * is missing here, so add new permissions in the same change (AGENTS rule 24 item 25).
+ */
+export interface PermissionCatalogEntry {
+  id: string;
+  label: string;
+  group: string;
+  module: string;
+}
+
+export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
+  // Dashboard
+  { id: "view_dashboard", label: "View Dashboard", group: "Dashboard", module: "core" },
+  // Users
+  { id: "view_users", label: "View Users", group: "Users", module: "core" },
+  { id: "edit_users", label: "Edit Users", group: "Users", module: "core" },
+  { id: "create_users", label: "Create Users", group: "Users", module: "core" },
+  { id: "delete_users", label: "Delete Users", group: "Users", module: "core" },
+  { id: "view_user_attachments", label: "View User Attachments", group: "Users", module: "core" },
+  { id: "manage_user_attachments", label: "Manage User Attachments", group: "Users", module: "core" },
+  { id: "view_departments", label: "View Departments", group: "Users", module: "core" },
+  { id: "manage_departments", label: "Manage Departments", group: "Users", module: "core" },
+  { id: "view_all_departments", label: "View All Departments (Org-Wide Scope)", group: "Users", module: "core" },
+  // Organization
+  { id: "view_companies", label: "View Companies", group: "Organization", module: "core" },
+  { id: "manage_companies", label: "Manage Companies (Create/Edit/Delete)", group: "Organization", module: "core" },
+  { id: "view_all_companies", label: "View All Companies (Enterprise Org-Wide Scope)", group: "Organization", module: "core" },
+  { id: "view_branches", label: "View Branches", group: "Organization", module: "core" },
+  { id: "manage_branches", label: "Manage Branches (Create/Edit/Delete)", group: "Organization", module: "core" },
+  { id: "view_all_branches", label: "View All Branches (Company-Wide Scope)", group: "Organization", module: "core" },
+  // Access Control
+  { id: "view_roles", label: "View Roles", group: "Access Control", module: "core" },
+  { id: "edit_roles", label: "Edit Roles", group: "Access Control", module: "core" },
+  { id: "create_roles", label: "Create Roles", group: "Access Control", module: "core" },
+  { id: "delete_roles", label: "Delete Roles", group: "Access Control", module: "core" },
+  // Devices
+  { id: "view_devices", label: "View Devices", group: "Devices", module: "hrms" },
+  { id: "manage_devices", label: "Manage Devices", group: "Devices", module: "hrms" },
+  { id: "authorize_devices", label: "Authorize / Revoke Devices", group: "Devices", module: "hrms" },
+  { id: "sync_devices", label: "Sync Device Templates & Users", group: "Devices", module: "hrms" },
+  { id: "view_device_logs", label: "View Device Logs", group: "Devices", module: "hrms" },
+  // Attendance
+  { id: "view_attendance", label: "View All Attendance", group: "Attendance", module: "hrms" },
+  { id: "edit_attendance", label: "Edit Attendance", group: "Attendance", module: "hrms" },
+  { id: "correct_attendance", label: "Correct Attendance", group: "Attendance", module: "hrms" },
+  { id: "view_my_attendance", label: "View My Attendance", group: "Attendance", module: "hrms" },
+  { id: "clock_in_out", label: "Clock In/Out", group: "Attendance", module: "hrms" },
+  { id: "view_qr_display", label: "View QR Display", group: "Attendance", module: "hrms" },
+  { id: "manage_attendance_devices", label: "Manage Attendance Devices", group: "Attendance", module: "hrms" },
+  { id: "manage_attendance_networks", label: "Manage Allowed Networks", group: "Attendance", module: "hrms" },
+  { id: "view_overtime_workers", label: "View OT Monitor", group: "Attendance", module: "hrms" },
+  { id: "force_clockout", label: "Force Clock Out", group: "Attendance", module: "hrms" },
+  { id: "manage_shift_assignments", label: "Manage Shift Assignments", group: "Attendance", module: "hrms" },
+  { id: "manage_attendance", label: "Manage Attendance", group: "Attendance", module: "hrms" },
+  { id: "mark_attendance", label: "Mark Attendance", group: "Attendance", module: "hrms" },
+  { id: "manage_biometric_devices", label: "Manage Biometric Devices", group: "Attendance", module: "hrms" },
+  // Roster
+  { id: "view_roster", label: "View Roster", group: "Roster", module: "hrms" },
+  { id: "manage_roster", label: "Manage Roster (Create/Edit)", group: "Roster", module: "hrms" },
+  { id: "view_shifts", label: "View Shifts & Patterns", group: "Roster", module: "hrms" },
+  { id: "manage_shifts", label: "Manage Shifts & Patterns", group: "Roster", module: "hrms" },
+  { id: "view_wfm_opportunities", label: "View VET/VTO Opportunities", group: "Roster", module: "hrms" },
+  { id: "claim_wfm_opportunities", label: "Claim VET/VTO Opportunities", group: "Roster", module: "hrms" },
+  { id: "broadcast_wfm_opportunities", label: "Broadcast VET/VTO Opportunities", group: "Roster", module: "hrms" },
+  { id: "manage_wfm_claims", label: "Approve/Reject VET/VTO Claims", group: "Roster", module: "hrms" },
+  { id: "manage_wfm_settings", label: "Manage WFM & Fatigue Policies", group: "Roster", module: "hrms" },
+  // Leave
+  { id: "view_leave", label: "View All Leave Requests", group: "Leave", module: "hrms" },
+  { id: "approve_leave", label: "Approve Leave Requests", group: "Leave", module: "hrms" },
+  { id: "view_my_leave", label: "View My Leave Requests", group: "Leave", module: "hrms" },
+  { id: "request_leave", label: "Request Leave", group: "Leave", module: "hrms" },
+  { id: "manage_leave", label: "Manage Leave", group: "Leave", module: "hrms" },
+  // Payroll
+  { id: "view_payroll", label: "View All Payroll", group: "Payroll", module: "hrms" },
+  { id: "view_payroll_dashboard", label: "View Payroll Dashboard", group: "Payroll", module: "hrms" },
+  { id: "run_payroll", label: "Run Payroll", group: "Payroll", module: "hrms" },
+  { id: "view_my_payslip", label: "View My Payslip", group: "Payroll", module: "hrms" },
+  { id: "view_payroll_history", label: "View Payroll History", group: "Payroll", module: "hrms" },
+  { id: "view_tax_reports", label: "View Tax Reports", group: "Payroll", module: "hrms" },
+  { id: "absence_penalty_approve", label: "Approve Absence Penalties", group: "Payroll", module: "hrms" },
+  { id: "manage_payroll", label: "Manage Payroll", group: "Payroll", module: "hrms" },
+  { id: "approve_loans", label: "Approve Loans", group: "Payroll", module: "hrms" },
+  { id: "edit_payroll", label: "Edit Payroll", group: "Payroll", module: "hrms" },
+  // Loan Management
+  { id: "manage_loans", label: "Manage Loans (Approve/Reject)", group: "Loan Management", module: "hrms" },
+  { id: "manage_loan_workflows", label: "Manage Loan Workflows", group: "Loan Management", module: "hrms" },
+  // PMS
+  { id: "view_pms", label: "View PMS (Full Access)", group: "PMS", module: "pms" },
+  { id: "view_pms_dashboard", label: "View PMS Dashboard", group: "PMS", module: "pms" },
+  { id: "view_my_tasks", label: "View My Tasks", group: "PMS", module: "pms" },
+  { id: "view_all_tasks", label: "View All Tasks", group: "PMS", module: "pms" },
+  { id: "create_tasks", label: "Create Tasks", group: "PMS", module: "pms" },
+  { id: "edit_tasks", label: "Edit Tasks", group: "PMS", module: "pms" },
+  { id: "edit_own_tasks", label: "Edit Own Tasks", group: "PMS", module: "pms" },
+  { id: "delete_tasks", label: "Delete Tasks", group: "PMS", module: "pms" },
+  { id: "view_projects", label: "View Projects", group: "PMS", module: "pms" },
+  { id: "create_projects", label: "Create Projects", group: "PMS", module: "pms" },
+  { id: "edit_projects", label: "Edit Projects", group: "PMS", module: "pms" },
+  { id: "delete_projects", label: "Delete Projects", group: "PMS", module: "pms" },
+  { id: "view_pms_reports", label: "View Reports", group: "PMS", module: "pms" },
+  { id: "view_teams", label: "View Teams", group: "PMS", module: "pms" },
+  { id: "create_teams", label: "Create Teams", group: "PMS", module: "pms" },
+  { id: "edit_teams", label: "Edit Teams", group: "PMS", module: "pms" },
+  { id: "delete_teams", label: "Delete Teams", group: "PMS", module: "pms" },
+  { id: "manage_team_members", label: "Manage Team Members", group: "PMS", module: "pms" },
+  { id: "view_team_dashboard", label: "View Team Dashboard", group: "PMS", module: "pms" },
+  { id: "view_sprints", label: "View Sprints", group: "PMS", module: "pms" },
+  { id: "manage_sprints", label: "Manage Sprints", group: "PMS", module: "pms" },
+  { id: "assign_tasks", label: "Assign Tasks", group: "PMS", module: "pms" },
+  { id: "approve_tasks", label: "Approve Tasks", group: "PMS", module: "pms" },
+  { id: "log_time", label: "Log Time", group: "PMS", module: "pms" },
+  { id: "view_time_logs", label: "View Time Logs", group: "PMS", module: "pms" },
+  { id: "reassign_tasks", label: "Re-assign claimed task", group: "PMS", module: "pms" },
+  { id: "view_team_kpis", label: "View Team KPIs", group: "PMS", module: "pms" },
+  { id: "view_own_kpis", label: "View Own KPIs", group: "PMS", module: "pms" },
+  { id: "manage_pms_settings", label: "Manage PMS Settings", group: "PMS", module: "pms" },
+  { id: "export_pms_data", label: "Export PMS Data", group: "PMS", module: "pms" },
+  { id: "view_tasks", label: "View Tasks", group: "PMS", module: "pms" },
+  { id: "manage_project_members", label: "Manage Project Members", group: "PMS", module: "pms" },
+  { id: "view_project_members", label: "View Project Members", group: "PMS", module: "pms" },
+  { id: "view_pms_settings", label: "View PMS Settings", group: "PMS", module: "pms" },
+  { id: "manage_projects", label: "Manage Projects", group: "PMS", module: "pms" },
+  { id: "block_tasks", label: "Block Tasks", group: "PMS", module: "pms" },
+  { id: "review_tasks", label: "Review Tasks", group: "PMS", module: "pms" },
+  { id: "view_pms_team", label: "View PMS Team", group: "PMS", module: "pms" },
+  // KPI
+  { id: "view_kpi", label: "View KPI", group: "KPI", module: "pms" },
+  { id: "create_kpi", label: "Create KPI", group: "KPI", module: "pms" },
+  { id: "edit_kpi", label: "Edit KPI", group: "KPI", module: "pms" },
+  { id: "delete_kpi", label: "Delete KPI", group: "KPI", module: "pms" },
+  { id: "view_performance_reviews", label: "View Performance Reviews", group: "KPI", module: "pms" },
+  { id: "create_performance_reviews", label: "Create Performance Reviews", group: "KPI", module: "pms" },
+  { id: "approve_performance_reviews", label: "Approve Performance Reviews", group: "KPI", module: "pms" },
+  // Settings
+  { id: "view_general_settings", label: "View General Settings", group: "Settings", module: "core" },
+  { id: "edit_general_settings", label: "Edit General Settings", group: "Settings", module: "core" },
+  { id: "view_company_settings", label: "View Company Settings", group: "Settings", module: "core" },
+  { id: "edit_company_settings", label: "Edit Company Settings", group: "Settings", module: "core" },
+  { id: "view_payroll_settings", label: "View Payroll Settings", group: "Settings", module: "hrms" },
+  { id: "edit_payroll_settings", label: "Edit Payroll Settings", group: "Settings", module: "hrms" },
+  { id: "view_accounts_privacy_settings", label: "View Accounts & Privacy", group: "Settings", module: "core" },
+  { id: "edit_accounts_privacy_settings", label: "Edit Accounts & Privacy", group: "Settings", module: "core" },
+  { id: "view_hrm_settings", label: "View HRM Settings", group: "Settings", module: "hrms" },
+  { id: "edit_hrm_settings", label: "Edit HRM Settings", group: "Settings", module: "hrms" },
+  { id: "view_tasks_settings", label: "View Tasks Settings", group: "Settings", module: "pms" },
+  { id: "edit_tasks_settings", label: "Edit Tasks Settings", group: "Settings", module: "pms" },
+  { id: "view_kpi_settings", label: "View KPI Settings", group: "Settings", module: "pms" },
+  { id: "edit_kpi_settings", label: "Edit KPI Settings", group: "Settings", module: "pms" },
+  { id: "view_notifications_settings", label: "View Notifications Settings", group: "Settings", module: "core" },
+  { id: "edit_notifications_settings", label: "Edit Notifications Settings", group: "Settings", module: "core" },
+  { id: "view_email_settings", label: "View Email Settings", group: "Settings", module: "core" },
+  { id: "edit_email_settings", label: "Edit Email Settings", group: "Settings", module: "core" },
+  { id: "manage_settings", label: "Manage Settings", group: "Settings", module: "core" },
+  // System Logs
+  { id: "view_logs", label: "View System Logs", group: "System Logs", module: "core" },
+  { id: "manage_logs", label: "Manage Logs (Retry)", group: "System Logs", module: "core" },
+  { id: "logs_manage", label: "Logs Manage", group: "System Logs", module: "core" },
+  { id: "logs_view", label: "Logs View", group: "System Logs", module: "core" },
+  // Overtime
+  { id: "overtime_view", label: "View Overtime Tab", group: "Overtime", module: "hrms" },
+  { id: "overtime_management", label: "Manage Overtime (Edit/Calculate)", group: "Overtime", module: "hrms" },
+  // Messaging
+  { id: "use_messaging", label: "Use Messaging", group: "Messaging", module: "core" },
+  { id: "create_groups", label: "Create Group Chats", group: "Messaging", module: "core" },
+  { id: "manage_own_groups", label: "Manage Own Groups", group: "Messaging", module: "core" },
+  { id: "delete_any_message", label: "Delete Any Message (Admin)", group: "Messaging", module: "core" },
+  { id: "bypass_privacy_mode", label: "Bypass Privacy Mode", group: "Messaging", module: "core" },
+  { id: "export_chat_history", label: "Export Chat History", group: "Messaging", module: "core" },
+  { id: "broadcast_messages", label: "Broadcast Messages", group: "Messaging", module: "core" },
+  { id: "create_channels", label: "Create Channels", group: "Messaging", module: "core" },
+  { id: "manage_any_group", label: "Manage Any Group", group: "Messaging", module: "core" },
+  { id: "manage_channels", label: "Manage Channels", group: "Messaging", module: "core" },
+  { id: "manage_chat_settings", label: "Manage Chat Settings", group: "Messaging", module: "core" },
+  { id: "view_chat_settings", label: "View Chat Settings", group: "Messaging", module: "core" },
+  // Recruitment
+  { id: "manage_recruitment", label: "Manage Recruitment (Jobs & Candidates)", group: "Recruitment", module: "hrms" },
+  { id: "view_recruitment", label: "View Recruitment", group: "Recruitment", module: "hrms" },
+  // AI Intelligence
+  { id: "use_ai", label: "Use AI Assistant (Base Access)", group: "AI Intelligence", module: "ai" },
+  { id: "ai_help", label: "AI Help & Knowledge Base Queries", group: "AI Intelligence", module: "ai" },
+  { id: "ai_documents", label: "AI Document Generation", group: "AI Intelligence", module: "ai" },
+  { id: "ai_actions", label: "AI System Actions (Execute on Behalf)", group: "AI Intelligence", module: "ai" },
+  { id: "ai_full", label: "Full AI Suite (All Capabilities)", group: "AI Intelligence", module: "ai" },
+  { id: "view_ai_history", label: "View AI History", group: "AI Intelligence", module: "ai" },
+  { id: "view_ai_settings", label: "View AI Settings", group: "AI Intelligence", module: "ai" },
+  { id: "manage_ai_settings", label: "Manage AI Settings", group: "AI Intelligence", module: "ai" },
+  { id: "view_ai_usage", label: "View AI Usage", group: "AI Intelligence", module: "ai" },
+  { id: "manage_system", label: "Manage System", group: "AI Intelligence", module: "ai" },
+  { id: "manage_ai", label: "Manage AI", group: "AI Intelligence", module: "ai" },
+  // Notifications
+  { id: "view_notification_preferences", label: "View Notification Preferences", group: "Notifications", module: "core" },
+  { id: "manage_notification_preferences", label: "Manage Notification Preferences (Admin)", group: "Notifications", module: "core" },
+  { id: "manage_notification_templates", label: "Manage Notification Templates", group: "Notifications", module: "core" },
+  { id: "view_notification_reports", label: "View Notification Reports", group: "Notifications", module: "core" },
+  // Dynamic Approvals
+  { id: "view_approval_rules", label: "View Approval Workflows & Rules", group: "Dynamic Approvals", module: "core" },
+  { id: "manage_approval_rules", label: "Manage Approval Rules & Workflows", group: "Dynamic Approvals", module: "core" },
+  { id: "approve_requests", label: "Approve or Reject Approval Requests", group: "Dynamic Approvals", module: "core" },
+  { id: "view_approval_requests", label: "View Approval Requests & History", group: "Dynamic Approvals", module: "core" },
+  // Announcements
+  { id: "view_announcements", label: "View Announcements", group: "Announcements", module: "core" },
+  { id: "create_announcements", label: "Create Announcements", group: "Announcements", module: "core" },
+  { id: "edit_announcements", label: "Edit Announcements", group: "Announcements", module: "core" },
+  { id: "delete_announcements", label: "Delete Announcements", group: "Announcements", module: "core" },
+  // Calendar
+  { id: "view_calendar", label: "View Calendar", group: "Calendar", module: "core" },
+  { id: "create_calendar_events", label: "Create Calendar Events", group: "Calendar", module: "core" },
+  { id: "edit_calendar_events", label: "Edit Calendar Events", group: "Calendar", module: "core" },
+  { id: "delete_calendar_events", label: "Delete Calendar Events", group: "Calendar", module: "core" },
+  { id: "manage_calendar", label: "Manage Calendar", group: "Calendar", module: "core" },
+  // Delegations
+  { id: "manage_delegations", label: "Manage Delegations", group: "Delegations", module: "core" },
+  { id: "view_delegations", label: "View Delegations", group: "Delegations", module: "core" },
+  // Developer API
+  { id: "view_developer_api", label: "View Developer API", group: "Developer API", module: "core" },
+  { id: "manage_developer_api", label: "Manage Developer API", group: "Developer API", module: "core" },
+  // Events
+  { id: "view_events", label: "View Events", group: "Events", module: "core" },
+  { id: "create_events", label: "Create Events", group: "Events", module: "core" },
+  { id: "edit_events", label: "Edit Events", group: "Events", module: "core" },
+  { id: "delete_events", label: "Delete Events", group: "Events", module: "core" },
+  // Holidays
+  { id: "view_holidays", label: "View Holidays", group: "Holidays", module: "hrms" },
+  { id: "manage_holidays", label: "Manage Holidays", group: "Holidays", module: "hrms" },
+  // Assets
+  { id: "view_assets", label: "View Assets", group: "Assets", module: "hrms" },
+  { id: "manage_assets", label: "Manage Assets", group: "Assets", module: "hrms" },
+  { id: "view_my_assets", label: "View My Assets", group: "Assets", module: "hrms" },
+  { id: "view_asset_reports", label: "View Asset Reports", group: "Assets", module: "hrms" },
+  { id: "assign_assets", label: "Assign Assets", group: "Assets", module: "hrms" },
+  // Benefits
+  { id: "view_benefit_plans", label: "View Benefit Plans", group: "Benefits", module: "hrms" },
+  { id: "view_my_benefits", label: "View My Benefits", group: "Benefits", module: "hrms" },
+  { id: "manage_benefits", label: "Manage Benefits", group: "Benefits", module: "hrms" },
+  { id: "manage_enrollments", label: "Manage Enrollments", group: "Benefits", module: "hrms" },
+  { id: "view_benefit_reports", label: "View Benefit Reports", group: "Benefits", module: "hrms" },
+  // Employee Documents
+  { id: "view_employee_documents", label: "View Employee Documents", group: "Employee Documents", module: "hrms" },
+  { id: "view_my_documents", label: "View My Documents", group: "Employee Documents", module: "hrms" },
+  { id: "view_documents", label: "View Documents", group: "Employee Documents", module: "hrms" },
+  { id: "manage_documents", label: "Manage Documents", group: "Employee Documents", module: "hrms" },
+  { id: "manage_employee_documents", label: "Manage Employee Documents", group: "Employee Documents", module: "hrms" },
+  { id: "generate_employee_letters", label: "Generate Employee Letters", group: "Employee Documents", module: "hrms" },
+  { id: "manage_letter_templates", label: "Manage Letter Templates", group: "Employee Documents", module: "hrms" },
+  { id: "verify_employee_documents", label: "Verify Employee Documents", group: "Employee Documents", module: "hrms" },
+  // Expenses
+  { id: "view_expenses", label: "View Expenses", group: "Expenses", module: "hrms" },
+  { id: "view_my_expenses", label: "View My Expenses", group: "Expenses", module: "hrms" },
+  { id: "manage_expense_policies", label: "Manage Expense Policies", group: "Expenses", module: "hrms" },
+  { id: "manage_expenses", label: "Manage Expenses", group: "Expenses", module: "hrms" },
+  { id: "submit_expenses", label: "Submit Expenses", group: "Expenses", module: "hrms" },
+  { id: "approve_expenses", label: "Approve Expenses", group: "Expenses", module: "hrms" },
+  { id: "reimburse_expenses", label: "Reimburse Expenses", group: "Expenses", module: "hrms" },
+  { id: "view_expense_reports", label: "View Expense Reports", group: "Expenses", module: "hrms" },
+  // Grievances
+  { id: "file_grievance", label: "File Grievance", group: "Grievances", module: "hrms" },
+  { id: "manage_grievances", label: "Manage Grievances", group: "Grievances", module: "hrms" },
+  { id: "view_grievances", label: "View Grievances", group: "Grievances", module: "hrms" },
+  { id: "view_grievance_reports", label: "View Grievance Reports", group: "Grievances", module: "hrms" },
+  { id: "investigate_grievances", label: "Investigate Grievances", group: "Grievances", module: "hrms" },
+  // Import / Export
+  { id: "view_import_export", label: "View Import Export", group: "Import / Export", module: "hrms" },
+  { id: "manage_import", label: "Manage Import", group: "Import / Export", module: "hrms" },
+  { id: "rollback_import", label: "Rollback Import", group: "Import / Export", module: "hrms" },
+  { id: "manage_export", label: "Manage Export", group: "Import / Export", module: "hrms" },
+  { id: "manage_export_schedules", label: "Manage Export Schedules", group: "Import / Export", module: "hrms" },
+  // Onboarding
+  { id: "view_onboarding", label: "View Onboarding", group: "Onboarding", module: "hrms" },
+  { id: "manage_onboarding", label: "Manage Onboarding", group: "Onboarding", module: "hrms" },
+  // HR Reports
+  { id: "view_hrms_reports", label: "View HR Reports", group: "HR Reports", module: "hrms" },
+  { id: "export_bank_transfer_file", label: "Export Bank Transfer File", group: "HR Reports", module: "hrms" },
+  // Surveys
+  { id: "view_survey_results", label: "View Survey Results", group: "Surveys", module: "hrms" },
+  { id: "view_surveys", label: "View Surveys", group: "Surveys", module: "hrms" },
+  { id: "manage_survey_actions", label: "Manage Survey Actions", group: "Surveys", module: "hrms" },
+  { id: "manage_surveys", label: "Manage Surveys", group: "Surveys", module: "hrms" },
+  { id: "participate_survey", label: "Participate Survey", group: "Surveys", module: "hrms" },
+  // Training
+  { id: "view_training_courses", label: "View Training Courses", group: "Training", module: "hrms" },
+  { id: "view_my_training", label: "View My Training", group: "Training", module: "hrms" },
+  { id: "manage_training", label: "Manage Training", group: "Training", module: "hrms" },
+  { id: "enroll_training", label: "Enroll Training", group: "Training", module: "hrms" },
+  { id: "complete_training", label: "Complete Training", group: "Training", module: "hrms" },
+  { id: "view_skills", label: "View Skills", group: "Training", module: "hrms" },
+  { id: "manage_skills", label: "Manage Skills", group: "Training", module: "hrms" },
+  { id: "view_training_reports", label: "View Training Reports", group: "Training", module: "hrms" },
+  // Performance Reviews
+  { id: "view_reviews", label: "View Reviews", group: "Performance Reviews", module: "pms" },
+  { id: "manage_reviews", label: "Manage Reviews", group: "Performance Reviews", module: "pms" },
+  { id: "view_my_reviews", label: "View My Reviews", group: "Performance Reviews", module: "pms" },
+  { id: "calibrate_reviews", label: "Calibrate Reviews", group: "Performance Reviews", module: "pms" },
+  { id: "manage_pips", label: "Manage PIPs", group: "Performance Reviews", module: "pms" },
+  // Workforce Flex
+  { id: "manage_schedules", label: "Manage Schedules", group: "Workforce Flex", module: "hrms" },
+  { id: "view_schedules", label: "View Schedules", group: "Workforce Flex", module: "hrms" },
+  // Self Service
+  { id: "view_self_service", label: "View Self Service", group: "Self Service", module: "hrms" },
+  { id: "edit_my_profile", label: "Edit My Profile", group: "Self Service", module: "hrms" },
+  { id: "manage_profile_requests", label: "Manage Profile Requests", group: "Self Service", module: "hrms" },
+  // Products
+  { id: "view_products", label: "View Products", group: "Products", module: "products" },
+  { id: "create_products", label: "Create Products", group: "Products", module: "products" },
+  { id: "edit_products", label: "Edit Products", group: "Products", module: "products" },
+  { id: "delete_products", label: "Archive Products", group: "Products", module: "products" },
+  { id: "restore_products", label: "Restore Products", group: "Products", module: "products" },
+  { id: "export_products", label: "Export Products", group: "Products", module: "products" },
+  // Product Categories
+  { id: "view_product_categories", label: "View Categories", group: "Product Categories", module: "products" },
+  { id: "create_product_categories", label: "Create Categories", group: "Product Categories", module: "products" },
+  { id: "edit_product_categories", label: "Edit Categories", group: "Product Categories", module: "products" },
+  { id: "delete_product_categories", label: "Archive Categories", group: "Product Categories", module: "products" },
+  // Units of Measure
+  { id: "view_uoms", label: "View Units", group: "Units of Measure", module: "products" },
+  { id: "create_uoms", label: "Create Units", group: "Units of Measure", module: "products" },
+  { id: "edit_uoms", label: "Edit Units", group: "Units of Measure", module: "products" },
+  { id: "delete_uoms", label: "Archive Units", group: "Units of Measure", module: "products" },
+  // Attributes & Variants
+  { id: "view_product_attributes", label: "View Attributes & Variants", group: "Attributes & Variants", module: "products" },
+  { id: "create_product_attributes", label: "Create Attributes & Variants", group: "Attributes & Variants", module: "products" },
+  { id: "edit_product_attributes", label: "Edit Attributes & Variants", group: "Attributes & Variants", module: "products" },
+  { id: "delete_product_attributes", label: "Archive Attributes", group: "Attributes & Variants", module: "products" },
+  // Price Lists
+  { id: "view_price_lists", label: "View Price Lists", group: "Price Lists", module: "products" },
+  { id: "create_price_lists", label: "Create Price Lists", group: "Price Lists", module: "products" },
+  { id: "edit_price_lists", label: "Edit Price Lists & Rules", group: "Price Lists", module: "products" },
+  { id: "delete_price_lists", label: "Archive Price Lists", group: "Price Lists", module: "products" },
+  { id: "export_price_lists", label: "Export Price Comparison", group: "Price Lists", module: "products" },
+];
+
+export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));
+
+/** Requested permissions that are not in the catalog. Ones the role already holds are kept as they are. */
+export function unknownPermissions(requested: unknown, held: readonly string[] = []): string[] {
+  if (!Array.isArray(requested)) return [];
+  const keep = new Set(held);
+  return [...new Set(requested.map(String))].filter((p) => !PERMISSION_IDS.has(p) && !keep.has(p));
+}

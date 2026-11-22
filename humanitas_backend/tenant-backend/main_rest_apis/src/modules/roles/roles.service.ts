@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { unknownPermissions } from './permission-catalog';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { DatabaseService } from '../database/database.service';
@@ -21,7 +22,22 @@ export class RolesService {
     private readonly holidaysService: HolidaysService,
   ) { }
 
-  private isUuid(val: string): boolean {
+  /** Only catalog permissions can be granted; ones a role already holds stay as they are (older roles). */
+  private async assertKnownPermissions(connection: DataSource, roleId: string | null, requested: unknown): Promise<void> {
+    if (unknownPermissions(requested).length === 0) return;
+    let held: string[] = [];
+    if (roleId && this.isUuid(roleId)) {
+      const rows = await connection.query(`SELECT permissions FROM roles WHERE id = $1`, [roleId]);
+      const value = rows?.[0]?.permissions;
+      held = Array.isArray(value) ? value : typeof value === 'string' ? JSON.parse(value) : [];
+    }
+    const unknown = unknownPermissions(requested, held);
+    if (unknown.length > 0) {
+      throw new BadRequestException(`These permissions do not exist: ${unknown.join(', ')}`);
+    }
+  }
+
+  private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
   }
 
@@ -841,7 +857,8 @@ export class RolesService {
       await this.databaseService.getTenantConnection(databaseName);
     await this.ensureRolesTable(connection);
 
-    const result = await connection.query(
+    await this.assertKnownPermissions(connection, null, dto.permissions);
+    const result = await connection.query(
       `INSERT INTO roles (name, description, permissions) VALUES ($1, $2, $3) RETURNING *`,
       [dto.name, dto.description || '', JSON.stringify(dto.permissions || [])],
     );
@@ -866,7 +883,8 @@ export class RolesService {
       updates.push(`description = $${paramIndex++}`);
       values.push(dto.description);
     }
-    if (dto.permissions !== undefined) {
+    if (dto.permissions !== undefined) {
+      await this.assertKnownPermissions(connection, id, dto.permissions);
       updates.push(`permissions = $${paramIndex++}`);
       values.push(JSON.stringify(dto.permissions));
     }
@@ -918,6 +936,7 @@ export class RolesService {
       await this.databaseService.getTenantConnection(databaseName);
     await this.ensureRolesTable(connection);
 
+    await this.assertKnownPermissions(connection, id, permissions);
     console.log(`[RolesService] Updating permissions for Role ${id}. Perms count: ${permissions.length}`);
     try {
       const result = await connection.query(
