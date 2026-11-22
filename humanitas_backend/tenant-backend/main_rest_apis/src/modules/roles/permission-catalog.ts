@@ -345,6 +345,27 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "create_contact_categories", label: "Create Contact Categories", group: "Contact Categories", module: "contacts" },
   { id: "edit_contact_categories", label: "Edit Contact Categories", group: "Contact Categories", module: "contacts" },
   { id: "delete_contact_categories", label: "Archive Contact Categories", group: "Contact Categories", module: "contacts" },
+  // CRM
+  { id: "view_crm_leads", label: "View Leads", group: "CRM Leads", module: "crm" },
+  { id: "create_crm_leads", label: "Create Leads", group: "CRM Leads", module: "crm" },
+  { id: "edit_crm_leads", label: "Edit Leads (status, convert, lost)", group: "CRM Leads", module: "crm" },
+  { id: "delete_crm_leads", label: "Archive Leads", group: "CRM Leads", module: "crm" },
+  { id: "restore_crm_leads", label: "Restore Leads", group: "CRM Leads", module: "crm" },
+  { id: "export_crm_leads", label: "Export Leads", group: "CRM Leads", module: "crm" },
+  { id: "view_crm_opportunities", label: "View Opportunities", group: "CRM Opportunities", module: "crm" },
+  { id: "create_crm_opportunities", label: "Create Opportunities", group: "CRM Opportunities", module: "crm" },
+  { id: "edit_crm_opportunities", label: "Edit Opportunities (stages, won, lost)", group: "CRM Opportunities", module: "crm" },
+  { id: "delete_crm_opportunities", label: "Archive Opportunities", group: "CRM Opportunities", module: "crm" },
+  { id: "restore_crm_opportunities", label: "Restore Opportunities", group: "CRM Opportunities", module: "crm" },
+  { id: "export_crm_opportunities", label: "Export Opportunities", group: "CRM Opportunities", module: "crm" },
+  { id: "view_crm_activities", label: "View Activities", group: "CRM Activities", module: "crm" },
+  { id: "create_crm_activities", label: "Plan Activities", group: "CRM Activities", module: "crm" },
+  { id: "edit_crm_activities", label: "Edit and Complete Activities", group: "CRM Activities", module: "crm" },
+  { id: "delete_crm_activities", label: "Delete Activities", group: "CRM Activities", module: "crm" },
+  { id: "view_crm_setup", label: "View Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
+  { id: "create_crm_setup", label: "Add Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
+  { id: "edit_crm_setup", label: "Edit Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
+  { id: "delete_crm_setup", label: "Archive Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
 ];
 
 export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));
