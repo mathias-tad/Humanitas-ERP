@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
-| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 65 | 0 | 65 | 0% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 137 | 0 | 137 | 0% |
 | 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
 | 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
 | 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1170** | **553** | **617** | **47%** |
+| **TOTAL** | **1242** | **553** | **689** | **45%** |
 
 ---
 
@@ -378,6 +378,83 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 ---
 
 ## 4.1 🤝 World-Class Enterprise CRM & Customer Lifecycle Suite (`/crm`)
+
+> **CRM foundation first.** Sub-modules 1.1–1.10 below are built first, in this order; the advanced items further down build on them. Every list pages as it scrolls, every record has a timeline (§30), every action has its own permission and works in the mobile app (AGENTS rule 24 items 21, 27).
+
+- [ ] **1.1 Lead Management**:
+  - [ ] Lead registration and creation (web, mobile, quick-create from any page; duplicate check on phone, email and company).
+  - [ ] Lead source management (walk-in, phone, website, referral, campaign, social, trade fair… — configurable list).
+  - [ ] Lead assignment to sales representatives (manual, and by the routing rules below).
+  - [ ] Lead qualification and evaluation (need, budget, timeline, decision maker; qualified / not qualified with reason).
+  - [ ] Lead status tracking (New → Contacted → Qualified → Converted / Lost) with time in each status.
+  - [ ] Lead conversion into opportunities (creates or links the customer and contact; keeps the lead's history).
+- [ ] **1.2 Opportunity Management**:
+  - [ ] Sales opportunity creation (from a lead, a customer, or directly).
+  - [ ] Opportunity assignment to a representative and team.
+  - [ ] Expected revenue management (amount, currency, expected close date).
+  - [ ] Opportunity probability tracking (default from the stage, editable per deal) and weighted revenue.
+  - [ ] Opportunity stage management (move through the pipeline stages; history of every move).
+  - [ ] Won and lost opportunity tracking (lost reason required; won links to the quotation / sales order).
+- [ ] **1.3 Customer Management**:
+  - [ ] Customer registration and profile management (company or individual; TIN and VAT number for MoR e-invoicing §39).
+  - [ ] Customer contact information management (several contacts per customer, phones, emails, addresses).
+  - [ ] Customer classification and categorization (type, segment, industry, tags; price list per customer §1).
+  - [ ] Customer communication history (calls, meetings, emails, notes on the customer timeline §30).
+  - [ ] Customer relationship tracking (account manager, related companies, open deals, last contact).
+  - [ ] Customer database management (search, filters, import/export §24, archive and restore, merge duplicates).
+- [ ] **1.4 Sales Pipeline Management**:
+  - [ ] Sales pipeline configuration (one or more pipelines per company).
+  - [ ] Pipeline stage management (stages with order, default probability and won/lost flags).
+  - [ ] Opportunity progress tracking (Kanban board and list; drag between stages).
+  - [ ] Sales forecasting (weighted pipeline by expected close month, per rep and team).
+  - [ ] Pending deal monitoring (open deals past their close date or without a next activity).
+  - [ ] Sales conversion tracking (lead → opportunity → won rates).
+- [ ] **1.5 Activity and Follow-Up Management**:
+  - [ ] Customer calls and meeting scheduling (on the unified calendar).
+  - [ ] Follow-up task management (next activity on every lead and deal).
+  - [ ] Appointment and reminder management (in-app, push and email reminders §25).
+  - [ ] Email communication tracking (emails logged on the lead, deal and customer).
+  - [ ] Activity assignment (to yourself or a colleague).
+  - [ ] Pending and overdue activity monitoring (my activities: today, overdue, upcoming).
+- [ ] **1.6 Sales Team Management**:
+  - [ ] Sales representative management (who sells, for which company and branch).
+  - [ ] Sales team assignment (team leader and members).
+  - [ ] Lead and opportunity distribution (round-robin or by team).
+  - [ ] Individual sales performance monitoring.
+  - [ ] Sales target management (monthly or quarterly targets per rep and team).
+  - [ ] Team productivity tracking (activities done, deals won, revenue against target).
+- [ ] **1.7 Quotation and Sales Integration** (built with Sales §4):
+  - [ ] Customer quotation preparation from an opportunity (price lists §1).
+  - [ ] Quotation tracking (draft, sent, accepted, expired) on the opportunity.
+  - [ ] Quotation approval and confirmation (discount approvals §9).
+  - [ ] Sales order integration (confirmed quotation becomes a sales order; the deal is won).
+  - [ ] Customer purchase history (orders and invoices on the customer).
+  - [ ] Sales transaction tracking (orders, invoices, payments per customer).
+- [ ] **1.8 Customer Complaints and Support**:
+  - [ ] Customer complaint registration (web, mobile, and from the customer portal).
+  - [ ] Customer issue tracking (status, priority, due date).
+  - [ ] Service request management.
+  - [ ] Complaint assignment and resolution (to a person or team; resolution notes; reopen).
+  - [ ] Customer feedback management.
+  - [ ] Customer satisfaction monitoring (rating after resolution; satisfaction trend).
+- [ ] **1.9 CRM Reporting and Analytics**:
+  - [ ] Lead generation reports (by source, period, rep).
+  - [ ] Lead conversion reports.
+  - [ ] Opportunity analysis reports (won/lost, reasons, average deal size, cycle length).
+  - [ ] Sales pipeline reports.
+  - [ ] Sales representative performance reports.
+  - [ ] Sales forecasting reports.
+  - [ ] Customer analysis reports (by class, region, revenue, activity).
+- [ ] **1.10 CRM Dashboard**:
+  - [ ] Total leads overview.
+  - [ ] Total opportunities overview.
+  - [ ] Won and lost opportunities.
+  - [ ] Sales pipeline overview.
+  - [ ] Expected revenue dashboard.
+  - [ ] Sales team performance dashboard.
+  - [ ] Customer activity dashboard.
+
+**Advanced CRM (after the foundation):**
 
 - [ ] **Handwriting-to-Text & Digital Ink Recognition (Zoho / Apple Pencil Rival)**:
   - [ ] **Interactive Digital Ink Canvas**: Smooth handwriting input area on tablets, touchscreens, mobile, and desktop stylus for sales reps in the field.

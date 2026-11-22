@@ -104,6 +104,20 @@ class Product {
   final bool eimsReady;
   final List<String> eimsIssues;
 
+  /// Variants (featureslist §1): set on a variant, which belongs to [parentName].
+  final String? parentId;
+  final String? parentName;
+
+  /// "Red, M"
+  final String? variantLabel;
+
+  /// Added to the parent's sales price.
+  final double priceExtra;
+
+  /// The product is a parent: its variants are sold and scanned, not it.
+  final bool hasVariants;
+  final int variantCount;
+
   const Product({
     required this.id,
     required this.name,
@@ -132,6 +146,12 @@ class Product {
     this.barcodes = const [],
     this.eimsReady = false,
     this.eimsIssues = const [],
+    this.parentId,
+    this.parentName,
+    this.variantLabel,
+    this.priceExtra = 0,
+    this.hasVariants = false,
+    this.variantCount = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -167,12 +187,20 @@ class Product {
           : const [],
       eimsReady: json['eims_ready'] == true,
       eimsIssues: rawIssues is List ? rawIssues.map((e) => e.toString()).toList() : const [],
+      parentId: _toStr(json['parent_id']),
+      parentName: _toStr(json['parent_name']),
+      variantLabel: _toStr(json['variant_label']),
+      priceExtra: _toDouble(json['price_extra']),
+      hasVariants: json['has_variants'] == true,
+      variantCount: _toDouble(json['variant_count']).toInt(),
     );
   }
 
   String get typeLabel => kProductTypeLabels[productType] ?? productType;
 
   String get unitLabel => uomSymbol ?? uomName;
+
+  bool get isVariant => parentId != null;
 
   String? get primaryBarcode {
     for (final b in barcodes) {
@@ -202,6 +230,10 @@ class ProductPage {
   }
 
   bool get hasMore => page * limit < total;
+
+  /// This page followed by [next] (the list loads page after page).
+  ProductPage append(ProductPage next) =>
+      ProductPage(items: [...items, ...next.items], page: next.page, limit: next.limit, total: next.total);
 }
 
 /// List filters. Equality matters: it is the key of the list provider.

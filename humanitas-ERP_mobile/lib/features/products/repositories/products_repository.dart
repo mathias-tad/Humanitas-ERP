@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../core/api/api_client.dart';
+import '../models/price_models.dart';
 import '../models/product_models.dart';
 
 /// A failed Products API call, with the server's message when it sent one.
@@ -96,6 +97,19 @@ class ProductsRepository {
         );
         return TimelinePage.fromJson(_map(res.data));
       }, 'Could not load the history');
+
+  /// The variants of a product with variants (set up in the web app).
+  Future<List<Product>> variants(String productId) => _call(() async {
+        final res = await _dio.get('/products/$productId/variants');
+        final list = _map(res.data)['variants'];
+        return list is List ? list.whereType<Map<String, dynamic>>().map(Product.fromJson).toList() : <Product>[];
+      }, 'Could not load the variants');
+
+  /// The product's price on every active price list at [quantity].
+  Future<ProductPrices> prices(String productId, {double quantity = 1}) => _call(() async {
+        final res = await _dio.get('/price-lists/for-product/$productId', queryParameters: {'quantity': quantity.toString()});
+        return ProductPrices.fromJson(_map(res.data));
+      }, 'Could not load the prices');
 
   // ── Categories ──────────────────────────────────────────────────────────────
   Future<List<ProductCategory>> listCategories({bool includeArchived = false}) => _call(() async {

@@ -90,7 +90,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       );
     }
     final canCreate = auth.hasPermission('create_products');
-    final listAsync = ref.watch(productListProvider(_query));
+    final listAsync = ref.watch(productPagesProvider(_query));
 
     return Scaffold(
       appBar: AppBar(
@@ -176,17 +176,17 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref.refresh(productListProvider(_query).future),
+              onRefresh: () => ref.read(productPagesProvider(_query).notifier).refresh(),
               child: listAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => ListView(
-                  children: [ProductsErrorView(error: e, onRetry: () => ref.invalidate(productListProvider(_query)))],
+                  children: [ProductsErrorView(error: e, onRetry: () => ref.invalidate(productPagesProvider(_query)))],
                 ),
                 data: (page) => _ProductList(
                   page: page,
                   query: _query,
                   canCreate: canCreate,
-                  onLoadMore: () => setState(() => _query = _query.copyWith(limit: (_query.limit + 25).clamp(25, 200))),
+                  onLoadMore: () => ref.read(productPagesProvider(_query).notifier).loadMore(),
                   onCreate: (name) => _openCreate(name: name),
                 ),
               ),
@@ -194,6 +194,37 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Loads the next page as soon as the end of the list comes into view (AGENTS.md rule 24 item 21).
+class _AutoLoadMore extends StatefulWidget {
+  final VoidCallback onLoadMore;
+  final int loaded;
+  final int total;
+
+  const _AutoLoadMore({required this.onLoadMore, required this.loaded, required this.total});
+
+  @override
+  State<_AutoLoadMore> createState() => _AutoLoadMoreState();
+}
+
+class _AutoLoadMoreState extends State<_AutoLoadMore> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onLoadMore();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: widget.onLoadMore,
+      icon: const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+      label: Text('Loading more (${widget.loaded} of ${widget.total})…'),
     );
   }
 }
@@ -238,7 +269,7 @@ class _ProductList extends StatelessWidget {
       );
     }
     final money = NumberFormat('#,##0.00');
-    final canLoadMore = page.items.length < page.total && query.limit < 200;
+    final canLoadMore = page.hasMore;
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 96),
       itemCount: page.items.length + 1,
@@ -249,7 +280,7 @@ class _ProductList extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Center(
               child: canLoadMore
-                  ? TextButton(onPressed: onLoadMore, child: Text('Load more (${page.items.length} of ${page.total})'))
+                  ? _AutoLoadMore(onLoadMore: onLoadMore, loaded: page.items.length, total: page.total)
                   : Text('${page.total} product${page.total == 1 ? '' : 's'}',
                       style: const TextStyle(color: AppColors.textSecondaryLight)),
             ),
@@ -267,7 +298,13 @@ class _ProductList extends StatelessWidget {
                 ),
             ],
           ),
-          subtitle: Text([p.itemCode, if (p.sku != null && p.sku != p.itemCode) p.sku!, p.unitLabel].join(' · ')),
+          subtitle: Text([
+            if (p.variantLabel != null) p.variantLabel!,
+            p.itemCode,
+            if (p.sku != null && p.sku != p.itemCode) p.sku!,
+            p.unitLabel,
+            if (p.hasVariants) '${p.variantCount} variants',
+          ].join(' · ')),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

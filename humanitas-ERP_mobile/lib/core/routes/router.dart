@@ -7,6 +7,10 @@ import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/setup_account_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/home/screens/main_layout_screen.dart';
+import '../../features/organization/models/company_scope.dart';
+import '../../features/organization/providers/company_scope_provider.dart';
+import '../api/scope_headers.dart';
+import 'return_path.dart';
 
 // ─── RouterNotifier ──────────────────────────────────────────────────────────
 // Listens to AuthProvider and notifies GoRouter to re-run redirect logic.
@@ -20,6 +24,11 @@ class RouterNotifier extends ChangeNotifier {
     _authState = _ref.read(authProvider);
     _ref.listen<AuthState>(authProvider, (_, next) {
       _authState = next;
+      if (next.status == AuthStatus.unauthenticated) {
+        // A new sign-in starts without the last user's company/branch choice.
+        ScopeHeaders.clear();
+        _ref.read(scopeSelectionProvider.notifier).state = ScopeSelection.none;
+      }
       notifyListeners(); // triggers GoRouter.redirect — does NOT recreate the router
     });
   }
@@ -47,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // App startup check → show splash
       if (status == AuthStatus.loading || status == AuthStatus.initial) {
-        return isSplash ? null : '/splash';
+        return isSplash ? null : withReturn('/splash', state.uri);
       }
 
       // User is actively logging in → stay exactly where we are
@@ -57,7 +66,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Not logged in → go to login
       if (status == AuthStatus.unauthenticated) {
-        return isLogin ? null : '/login';
+        return isLogin ? null : withReturn('/login', state.uri);
       }
 
       // Login error → STAY on the current screen (snackbar shows the message)
@@ -72,7 +81,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Fully authenticated → go home
       if (status == AuthStatus.authenticated) {
-        if (isSplash || isLogin || isSetup) return '/home';
+        // Back to where the app was going before sign-in (rule 24 item 22).
+        if (isSplash || isLogin || isSetup) return returnPathFrom(state.uri) ?? '/home';
       }
 
       return null;
@@ -92,8 +102,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/home',
-        builder: (_, _) => const MainLayoutScreen(),
+        builder: (_, _) => const _ScopedHome(),
       ),
     ],
   );
 });
+
+/// The home screens, opened again when the company/branch changes so everything they show
+/// loads for the new selection (AGENTS.md rule 16).
+class _ScopedHome extends ConsumerWidget {
+  const _ScopedHome();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) =>
+      KeyedSubtree(key: ValueKey(ref.watch(scopeEpochProvider)), child: const MainLayoutScreen());
+}

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../services/secure_storage_service.dart';
 import 'api_constants.dart';
+import 'scope_headers.dart';
 
 class AuthInterceptor extends Interceptor {
   final SecureStorageService _storage;
@@ -30,6 +31,9 @@ class AuthInterceptor extends Interceptor {
     if (tenantSlug != null && tenantSlug.isNotEmpty) {
       options.headers['x-tenant-slug'] = tenantSlug;
     }
+
+    // The company/branch picked in the switcher (the server checks it against the user's access).
+    ScopeHeaders.applyTo(options.headers);
 
     // ignore: avoid_print
     print('[API] ${options.method} ${options.path} | HasToken: ${token != null && token.isNotEmpty} | Slug: $tenantSlug');

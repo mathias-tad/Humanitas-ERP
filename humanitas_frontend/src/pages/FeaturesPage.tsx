@@ -80,6 +80,7 @@ export default function FeaturesPage() {
                 "USB, Bluetooth and phone-camera barcode scanning on every screen, with check-digit validation against misreads",
                 "Ethiopian MoR (EIMS) fields on every product: item code, tax code, HS code, excise and readiness check before invoicing",
                 "Full change history per product showing who changed what, from the web or the mobile app",
+                "Mobile app: search, scan, create and edit products, see each product's variants and its price on every price list",
                 "Price comparison report across lists and CSV export of the catalog"
             ]
         },

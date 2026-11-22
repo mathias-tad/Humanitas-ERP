@@ -8,6 +8,7 @@ import '../models/product_models.dart';
 import '../providers/products_providers.dart';
 import '../repositories/products_repository.dart';
 import '../widgets/products_common.dart';
+import '../widgets/product_variants_prices.dart';
 import 'product_form_screen.dart';
 
 /// One product: details with e-invoicing readiness, and its full change history (featureslist §30).
@@ -54,8 +55,18 @@ class ProductDetailScreen extends ConsumerWidget {
     final productAsync = ref.watch(productDetailProvider(productId));
     final product = productAsync.asData?.value;
 
+    final showVariants = product != null && product.hasVariants;
+    final showPrices = product != null && auth.hasPermission('view_price_lists');
+    final tabs = <Tab>[
+      const Tab(text: 'Details'),
+      if (showVariants) const Tab(text: 'Variants'),
+      if (showPrices) const Tab(text: 'Prices'),
+      const Tab(text: 'History'),
+    ];
+
     return DefaultTabController(
-      length: 2,
+      key: ValueKey(tabs.length),
+      length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
           title: Text(product?.name ?? 'Product'),
@@ -76,7 +87,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 onPressed: () => _toggleArchive(context, ref, product),
               ),
           ],
-          bottom: const TabBar(tabs: [Tab(text: 'Details'), Tab(text: 'History')]),
+          bottom: TabBar(isScrollable: tabs.length > 3, tabs: tabs),
         ),
         body: productAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -84,6 +95,8 @@ class ProductDetailScreen extends ConsumerWidget {
           data: (p) => TabBarView(
             children: [
               _ProductDetails(product: p),
+              if (showVariants) ProductVariantsView(product: p),
+              if (showPrices) ProductPricesView(productId: p.id),
               ProductTimelineView(productId: p.id),
             ],
           ),
@@ -118,6 +131,8 @@ class _ProductDetails extends StatelessWidget {
             child: const Text('This product is archived: hidden from lists and scanners.'),
           ),
         EimsReadinessBanner(product: p),
+        if (p.isVariant) _Row('Variant of', [p.parentName ?? '—', if (p.variantLabel != null) p.variantLabel!].join(' · ')),
+        if (p.hasVariants) _Row('Variants', '${p.variantCount} (see the Variants tab)'),
         _Row('Item code', p.itemCode),
         _Row('SKU', p.sku ?? '—'),
         _Row('Type', p.typeLabel),

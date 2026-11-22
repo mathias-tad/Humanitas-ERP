@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/providers.dart';
 import '../providers/delegation_provider.dart';
 import '../screens/delegations_screen.dart';
