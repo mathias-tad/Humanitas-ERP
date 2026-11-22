@@ -154,6 +154,7 @@ const ProductsPage = lazy(() => import("./pages/products/ProductsPage"));
 const ProductCategoriesPage = lazy(() => import("./pages/products/CategoriesPage"));
 const ProductUnitsPage = lazy(() => import("./pages/products/UnitsPage"));
 const ProductAttributesPage = lazy(() => import("./pages/products/AttributesPage"));
+const ProductPriceListsPage = lazy(() => import("./pages/products/PriceListsPage"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const FormBuilder = lazy(() => import("./pages/FormBuilder"));
 const Recruitment = lazy(() => import("./pages/Recruitment"));
@@ -225,7 +226,7 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/accounts" element={
-          <PermissionRoute module="hrms" permissions={["view_users", "edit_users", "create_users", "delete_users"]}>
+          <PermissionRoute module="users" permissions={["view_users", "edit_users", "create_users", "delete_users"]}>
             <Accounts />
           </PermissionRoute>
         } />
@@ -240,7 +241,7 @@ function AppRoutes() {
           </PermissionRoute>
         } />
         <Route path="/accesscontrol" element={
-          <PermissionRoute module="hrms" permissions={["view_roles", "edit_roles", "create_roles", "delete_roles"]}>
+          <PermissionRoute module="users" permissions={["view_roles", "edit_roles", "create_roles", "delete_roles"]}>
             <AccessControl />
           </PermissionRoute>
         } />
@@ -622,6 +623,7 @@ function AppRoutes() {
         <Route path="/products/categories" element={<PermissionRoute module="products" permission="view_product_categories"><ProductCategoriesPage /></PermissionRoute>} />
         <Route path="/products/uoms" element={<PermissionRoute module="products" permission="view_uoms"><ProductUnitsPage /></PermissionRoute>} />
         <Route path="/products/attributes" element={<PermissionRoute module="products" permission="view_product_attributes"><ProductAttributesPage /></PermissionRoute>} />
+        <Route path="/products/pricelists" element={<PermissionRoute module="products" permission="view_price_lists"><ProductPriceListsPage /></PermissionRoute>} />
         <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
 
         <Route path="/inventory" element={<ComingSoonModulePage moduleKey="inventory" />} />

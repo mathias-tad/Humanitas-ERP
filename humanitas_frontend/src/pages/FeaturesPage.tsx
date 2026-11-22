@@ -35,6 +35,7 @@ import {
     Store,
     Receipt
 } from "lucide-react";
+import { Boxes as FeatureBoxesIcon, Command as FeatureCommandIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useState } from "react";
@@ -62,6 +63,24 @@ export default function FeaturesPage() {
                 "Multi-currency transactions with automated forex gain/loss calculations",
                 "Bank reconciliation with statement import and automated transaction matching",
                 "Fixed asset registry with automated straight-line and declining depreciation schedules"
+            ]
+        },
+        {
+            id: "products",
+            group: "erp",
+            title: "Products, Variants & Multi-Tier Price Lists",
+            badge: "Catalog Core",
+            badgeColor: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+            icon: <FeatureBoxesIcon className="w-8 h-8 text-sky-600" />,
+            description: "One catalog for Sales, POS, Purchasing, Inventory and the online store: goods, consumables and services with units, barcodes, variants, price lists and Ethiopian MoR e-invoicing fields from day one.",
+            features: [
+                "Products with nested categories, sales and purchase units with conversion ratios, and several barcodes per product (unit, box, pallet)",
+                "Attributes and variant matrix (Size × Color…): every combination becomes its own product with SKU, barcodes, cost, price extra and MoR item code",
+                "Price lists for Retail, Wholesale, Distributor and VIP: fixed price, % off or % on cost, by product, category or everything, quantity breaks and promotion dates",
+                "USB, Bluetooth and phone-camera barcode scanning on every screen, with check-digit validation against misreads",
+                "Ethiopian MoR (EIMS) fields on every product: item code, tax code, HS code, excise and readiness check before invoicing",
+                "Full change history per product showing who changed what, from the web or the mobile app",
+                "Price comparison report across lists and CSV export of the catalog"
             ]
         },
         {
@@ -427,6 +446,8 @@ export default function FeaturesPage() {
             icon: <Bot className="w-8 h-8 text-purple-600" />,
             description: "Cross-module business intelligence copilots, tenant policy knowledge vault, verifiable document citations, predictive forecasting, and automated ERP actions.",
             features: [
+                "AI actions: the assistant does anything you can do in the app, in any module, through the app itself with your own permissions, and every change waits for your yes",
+                "AI documents (PDF, Word, Excel) built only from data you are allowed to see",
                 "Cross-module AI copilots for Accounting, Inventory, Sales, HRMS, and PMS",
                 "Tenant Policy Knowledge Vault: upload PDFs, DOCX, or policy text with automatic semantic chunking",
                 "Verifiable legal & policy citation badges pointing to exact document, section, and page (zero data guessing)",
@@ -434,6 +455,23 @@ export default function FeaturesPage() {
                 "Demand forecasting, inventory reorder recommendations & cash flow projections",
                 "Strict Two-Layer Security: AI capability tier check + business RBAC permission gate",
                 "Zero-data fabrication mandate with direct SQL tenant database tool execution"
+            ]
+        },
+        {
+            id: "productivity",
+            group: "ai_workflows",
+            title: "Productivity, Search & Navigation",
+            badge: "Built for Speed",
+            badgeColor: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+            icon: <FeatureCommandIcon className="w-8 h-8 text-indigo-600" />,
+            description: "Find anything in seconds and work without the mouse: one search box for the whole system, keyboard shortcuts everywhere and lists that stay fast at any size.",
+            features: [
+                "Ctrl+K searches every page, menu, sub-menu, button and record (products and more) you are allowed to use",
+                "Keyboard shortcuts in every module, shown on hover, with a ? help window",
+                "Long lists load 40 rows at a time and keep loading as you scroll",
+                "Shared links survive sign-in: opening a link while signed out returns to it after login",
+                "Create related records in place (a category from a product form) without leaving the page",
+                "Self-service free-trial sign-up with module selection from the website"
             ]
         },
         {
@@ -553,6 +591,7 @@ export default function FeaturesPage() {
                 "Isolated PostgreSQL database per tenant provisioned via automated migration runners",
                 "Strict 4-Tier Data Isolation Hierarchy: Tenant → Company → Branch → Department",
                 "Scoped RBAC Permissions: view_all_companies, view_all_branches, view_all_departments",
+                "Allowed companies and branches per user, enforced on the server for every module, with a default company and branch",
                 "Synchronized header Company & Branch context switcher with global query invalidation",
                 "100% of REST endpoints guarded with JwtAuthGuard, ModuleGuard & PermissionsGuard",
                 "Comprehensive immutable audit logging tracking every record mutation and IP address"
@@ -577,14 +616,16 @@ export default function FeaturesPage() {
         }
     ];
 
+    // Counts follow the cards, so they never go stale.
+    const countOf = (group: string) => categories.filter((c) => c.group === group).length;
     const filterOptions = [
-        { id: "all", label: "All Features (30)" },
-        { id: "erp", label: "ERP Core & Supply Chain (5)" },
-        { id: "workforce", label: "Workforce & Talent (8)" },
-        { id: "financials", label: "Payroll & Expenses (3)" },
-        { id: "pms_culture", label: "PMS & Culture (5)" },
-        { id: "ai_workflows", label: "AI & Workflows (6)" },
-        { id: "security_infra", label: "Security & Mobile (3)" }
+        { id: "all", label: `All Features (${categories.length})` },
+        { id: "erp", label: `ERP Core & Supply Chain (${countOf("erp")})` },
+        { id: "workforce", label: `Workforce & Talent (${countOf("workforce")})` },
+        { id: "financials", label: `Payroll & Expenses (${countOf("financials")})` },
+        { id: "pms_culture", label: `PMS & Culture (${countOf("pms_culture")})` },
+        { id: "ai_workflows", label: `AI & Workflows (${countOf("ai_workflows")})` },
+        { id: "security_infra", label: `Security & Mobile (${countOf("security_infra")})` }
     ];
 
     const filteredCategories = activeFilter === "all"

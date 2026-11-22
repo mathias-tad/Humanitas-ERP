@@ -387,7 +387,7 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
     { id: "emergency" as TabType, label: "Emergency", icon: Phone },
     { id: "employment" as TabType, label: "Employment", icon: Briefcase },
     ...(isEditMode ? [{ id: "biometrics" as TabType, label: "Biometrics", icon: Fingerprint }] : []),
-    ...(isEditMode ? [{ id: "access" as TabType, label: "Company access", icon: CompanyAccessIcon }] : []),
+    { id: "access" as TabType, label: "Company access", icon: CompanyAccessIcon },
   ];
 
 
@@ -397,7 +397,7 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[720px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Edit User" : "Add New User"}</DialogTitle>
           <DialogDescription>
@@ -412,7 +412,7 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
         )}
 
         {/* Tabs */}
-        <div className="flex border-b overflow-x-auto">
+        <div className="flex flex-wrap border-b">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -999,6 +999,12 @@ export function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalPro
 
           {/* Biometrics Tab */}
           {activeTab === "access" && user?.id && <UserCompanyAccessEditor userId={user.id} />}
+          {activeTab === "access" && !user?.id && (
+            <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              A new user works in the company and branch chosen on the Employment tab. Save the user, then open them again here to
+              give access to more companies or branches.
+            </p>
+          )}
 
           {activeTab === "biometrics" && (
             <div className="space-y-4">

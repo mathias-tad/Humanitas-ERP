@@ -183,7 +183,7 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
         { title: "Categories & Trees", url: "/products/categories", icon: Layers, permissions: ["view_product_categories"] },
         { title: "Units of Measure", url: "/products/uoms", icon: Ruler, permissions: ["view_uoms"] },
         { title: "Attributes & Variants", url: "/products/attributes", icon: Shapes, permissions: ["view_product_attributes"] },
-        { title: "Price Lists", url: "/products/pricelists", icon: Tag },
+        { title: "Price Lists", url: "/products/pricelists", icon: Tag, permissions: ["view_price_lists"] },
         { title: "QR & Barcode Studio", url: "/products/qr-studio", icon: QrCode },
       ],
     },
@@ -325,7 +325,8 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       items: [
         { title: "System Health", url: "/system-logs", icon: Activity },
         { title: "Audit Trail", url: "/audit-logs", icon: Shield },
-        { title: "Access Control", url: "/accesscontrol", icon: Key },
+        { title: "Users", url: "/accounts", icon: Users, permissions: ["view_users"] },
+        { title: "Access Control", url: "/accesscontrol", icon: Key, permissions: ["view_roles"] },
         { title: "Approval Rules", url: "/settings/approvals", icon: GitPullRequest, permissions: ["manage_approval_rules"] },
         { title: "Developer API & Webhooks", url: "/settings/developer-api", icon: Code2, permissions: ["view_developer_api", "manage_developer_api"] },
         { title: "E-Signature Settings", url: "/settings/esign", icon: PenLine, permissions: ["manage_documents", "manage_employee_documents"] },

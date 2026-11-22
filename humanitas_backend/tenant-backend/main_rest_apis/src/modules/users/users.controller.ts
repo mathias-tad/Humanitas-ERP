@@ -47,7 +47,8 @@ interface AuthenticatedRequest extends FastifyRequest {
 
 @ApiTags('Users')
 @Controller('users')
-@RequireModule('hrms')
+// Users are shared by every module (rule 24 item 24); payroll allowances below stay HR-only.
+@RequireModule('users')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @ApiBearerAuth()
 export class UsersController {
@@ -414,6 +415,7 @@ export class UsersController {
   }
 
   @Get(':id/effective-allowances')
+  @RequireModule('hrms')
   @ApiOperation({ summary: 'Get user effective allowances (category + overrides)' })
   async getEffectiveAllowances(
     @Req() req: AuthenticatedRequest,
@@ -435,6 +437,7 @@ export class UsersController {
   }
 
   @Patch(':id/override-allowance')
+  @RequireModule('hrms')
   @RequirePermissions('edit_payroll')
   @ApiOperation({ summary: 'Override user allowance (requires edit_payroll permission)' })
   async overrideAllowance(
@@ -451,6 +454,7 @@ export class UsersController {
 
   // Category Allowances Management
   @Get('categories/:categoryId/allowances')
+  @RequireModule('hrms')
   @ApiOperation({ summary: 'Get all allowances for a category' })
   @RequirePermissions('edit_payroll')
   async getCategoryAllowances(
@@ -461,6 +465,7 @@ export class UsersController {
   }
 
   @Post('categories/:categoryId/allowances')
+  @RequireModule('hrms')
   @ApiOperation({ summary: 'Add allowance to category' })
   @RequirePermissions('edit_payroll')
   async addCategoryAllowance(
@@ -472,6 +477,7 @@ export class UsersController {
   }
 
   @Delete('categories/allowances/:allowanceId')
+  @RequireModule('hrms')
   @ApiOperation({ summary: 'Delete category allowance' })
   @RequirePermissions('edit_payroll')
   async deleteCategoryAllowance(
