@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/core/routes/return_path.dart';
+import 'package:humanitas_erp_mobile/core/routes/return_path.dart';
 
 void main() {
   test('accepts the app own screens only', () {

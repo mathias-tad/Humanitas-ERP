@@ -371,6 +371,29 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "edit_crm_setup", label: "Edit Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
   { id: "view_all_crm_records", label: "See everyone's leads, deals and activities (otherwise only their own)", group: "CRM Visibility", module: "crm" },
   { id: "delete_crm_setup", label: "Archive Pipelines, Stages, Sources and Lost Reasons", group: "CRM Set-up", module: "crm" },
+  // Warehouses (Inventory)
+  { id: "view_warehouses", label: "View Warehouses", group: "Warehouses", module: "inventory" },
+  { id: "create_warehouses", label: "Create Warehouses", group: "Warehouses", module: "inventory" },
+  { id: "edit_warehouses", label: "Edit & Restore Warehouses", group: "Warehouses", module: "inventory" },
+  { id: "delete_warehouses", label: "Archive Warehouses", group: "Warehouses", module: "inventory" },
+  // Storage Locations (Inventory)
+  { id: "view_inventory_locations", label: "View Storage Locations", group: "Storage Locations", module: "inventory" },
+  { id: "create_inventory_locations", label: "Create Storage Locations", group: "Storage Locations", module: "inventory" },
+  { id: "edit_inventory_locations", label: "Edit Storage Locations", group: "Storage Locations", module: "inventory" },
+  { id: "delete_inventory_locations", label: "Archive Storage Locations", group: "Storage Locations", module: "inventory" },
+  // Stock (Inventory)
+  { id: "view_stock", label: "View Stock on Hand & Movements", group: "Stock", module: "inventory" },
+  { id: "adjust_stock", label: "Make Stock Adjustments", group: "Stock", module: "inventory" },
+  { id: "export_stock", label: "Export Stock", group: "Stock", module: "inventory" },
+  { id: "view_stock_valuation", label: "View Stock Valuation (Cost & Value)", group: "Stock", module: "inventory" },
+  // Transfers (Inventory)
+  { id: "view_transfers", label: "View Transfers", group: "Transfers", module: "inventory" },
+  { id: "create_transfers", label: "Create Transfers", group: "Transfers", module: "inventory" },
+  { id: "edit_transfers", label: "Edit Transfers & Move Lines", group: "Transfers", module: "inventory" },
+  { id: "delete_transfers", label: "Delete Un-posted Transfers", group: "Transfers", module: "inventory" },
+  { id: "validate_transfers", label: "Mark Transfers Done (Post Stock)", group: "Transfers", module: "inventory" },
+  { id: "cancel_transfers", label: "Cancel Transfers", group: "Transfers", module: "inventory" },
+  { id: "export_transfers", label: "Export Transfers", group: "Transfers", module: "inventory" },
 ];
 
 export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));

@@ -25,6 +25,12 @@ import {
   CRM_MANAGER_PERMISSIONS,
   CRM_SCOPE_PERMISSIONS,
 } from '../crm/crm.permissions';
+import {
+  ALL_INVENTORY_PERMISSIONS,
+  INVENTORY_ADMIN_ONLY_PERMISSIONS,
+  INVENTORY_EMPLOYEE_PERMISSIONS,
+  INVENTORY_MANAGER_PERMISSIONS,
+} from '../inventory/inventory.permissions';
 
 @Injectable()
 export class RolesService {
@@ -90,6 +96,7 @@ export class RolesService {
       ...ALL_CONTACTS_PERMISSIONS,
       ...ALL_CRM_PERMISSIONS,
       ...CRM_SCOPE_PERMISSIONS,
+      ...ALL_INVENTORY_PERMISSIONS,
       'correct_attendance', 'view_holidays', 'manage_holidays',
       'view_announcements', 'create_announcements', 'edit_announcements', 'delete_announcements',
       'view_events', 'create_events', 'edit_events', 'delete_events',
@@ -275,6 +282,7 @@ export class RolesService {
       ...PRODUCTS_ADMIN_ONLY_PERMISSIONS,
       ...CONTACTS_ADMIN_ONLY_PERMISSIONS,
       ...CRM_ADMIN_ONLY_PERMISSIONS,
+      ...INVENTORY_ADMIN_ONLY_PERMISSIONS,
       'delete_any_message', 'bypass_privacy_mode', 'export_chat_history',
       'manage_channels', 'manage_any_group', 'broadcast_messages', 'manage_chat_settings',
       'authorize_devices', 'view_all_departments',
@@ -321,6 +329,7 @@ export class RolesService {
       ...PRODUCTS_EMPLOYEE_PERMISSIONS,
       ...CONTACTS_EMPLOYEE_PERMISSIONS,
       ...CRM_EMPLOYEE_PERMISSIONS,
+      ...INVENTORY_EMPLOYEE_PERMISSIONS,
       'view_my_tasks', 'view_pms_dashboard', 'log_time', 'view_own_kpis',
       'view_my_attendance', 'view_my_leave', 'view_my_payslip', 'edit_own_tasks',
       'use_messaging', 'create_groups', 'manage_own_groups', 'view_chat_settings',
@@ -478,6 +487,7 @@ export class RolesService {
       ...ALL_CONTACTS_PERMISSIONS,
       ...ALL_CRM_PERMISSIONS,
       ...CRM_SCOPE_PERMISSIONS,
+      ...ALL_INVENTORY_PERMISSIONS,
       // Dashboard
       'view_dashboard',
 
@@ -701,6 +711,7 @@ export class RolesService {
       ...CONTACTS_MANAGER_PERMISSIONS,
       ...CRM_MANAGER_PERMISSIONS,
       ...CRM_SCOPE_PERMISSIONS,
+      ...INVENTORY_MANAGER_PERMISSIONS,
       'view_dashboard',
       'view_hrms_reports',
       'view_users',
@@ -785,6 +796,7 @@ export class RolesService {
       ...PRODUCTS_EMPLOYEE_PERMISSIONS,
       ...CONTACTS_EMPLOYEE_PERMISSIONS,
       ...CRM_EMPLOYEE_PERMISSIONS,
+      ...INVENTORY_EMPLOYEE_PERMISSIONS,
       'view_dashboard',
       'view_my_attendance',
       'view_my_leave',

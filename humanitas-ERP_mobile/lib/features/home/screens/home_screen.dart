@@ -29,6 +29,7 @@ import '../../calendar/screens/calendar_screen.dart';
 import '../../organization/widgets/company_branch_switcher.dart';
 import '../../products/screens/products_screen.dart';
 import '../../contacts/screens/contacts_screen.dart';
+import '../../inventory/screens/stock_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -42,6 +43,7 @@ class HomeScreen extends ConsumerWidget {
     final hasPMS = authState.isModuleSubscribed('pms');
     final hasProducts = authState.isModuleSubscribed('products') && authState.hasPermission('view_products');
     final hasContacts = authState.isModuleSubscribed('contacts') && authState.hasPermission('view_contacts');
+    final hasStock = authState.isModuleSubscribed('inventory') && authState.hasPermission('view_stock');
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -279,6 +281,10 @@ class HomeScreen extends ConsumerWidget {
                 if (hasProducts)
                   _QuickActionItem(icon: Icons.inventory_2_outlined, color: AppColors.success, label: 'Products', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProductsScreen()));
+                  }),
+                if (hasStock)
+                  _QuickActionItem(icon: Icons.all_inbox_outlined, color: AppColors.warning, label: 'Stock', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StockScreen()));
                   }),
                 if (hasContacts)
                   _QuickActionItem(icon: Icons.contacts_outlined, color: AppColors.primary, label: 'Contacts', onTap: () {

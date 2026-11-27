@@ -5,7 +5,7 @@ import { CrmSetupService } from './crm-setup.service';
 import { seesAllCrm, ownsCrmRow } from './crm.base';
 import { VIEW_ALL_CRM_RECORDS } from './crm.permissions';
 import type { ContactsService } from '../contacts/contacts.service';
-import type { CatalogContext } from '../products/products.service';
+import type { CatalogContext } from '../../common/records/record-context';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 

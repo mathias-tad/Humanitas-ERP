@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
-import type { CatalogContext } from '../products/products.service';
-import { csvCell } from '../products/products.service';
-import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable } from '../products/products.scope';
+import type { CatalogContext } from '../../common/records/record-context';
+import { csvCell } from '../../common/records/csv';
+import { assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable } from '../../common/records/record-scope';
 import { cleanTags } from '../contacts/contacts.rules';
 import { ContactsService } from '../contacts/contacts.service';
 import { CrmBase, ENTITY, blankToNull, ownSql, ownsCrmRow, setClause } from './crm.base';

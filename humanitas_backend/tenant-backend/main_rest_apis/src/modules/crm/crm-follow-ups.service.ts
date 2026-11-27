@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
-import type { CatalogContext } from '../products/products.service';
-import { isVisible, type Queryable } from '../products/products.scope';
+import type { CatalogContext } from '../../common/records/record-context';
+import { isVisible, type Queryable } from '../../common/records/record-scope';
 import { CrmBase, ENTITY, ownsCrmRow } from './crm.base';
 import type { FollowUpChannel, LogFollowUpDto } from './dto/follow-up.dto';
 

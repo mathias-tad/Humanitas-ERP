@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
-import type { CatalogContext } from '../products/products.service';
-import { csvCell } from '../products/products.service';
+import type { CatalogContext } from '../../common/records/record-context';
+import { csvCell } from '../../common/records/csv';
 import {
   assertCompanyAssignable, companyFilter, defaultRecordCompany, isVisible, resolveCompanyScope, type CompanyScope, type Queryable, defaultRecordBranch, assertBranchAssignable, setRecordBranch
-} from '../products/products.scope';
+} from '../../common/records/record-scope';
 import { cleanTags, duplicateReason, emailKey, normalizeTin, phoneKey, type DuplicateCandidate } from './contacts.rules';
 import type {
   ContactCategoryDto, ContactInteractionDto, ContactPersonDto, CreateContactDto, DuplicatesQueryDto, ListContactsQueryDto,

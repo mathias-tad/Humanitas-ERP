@@ -1,8 +1,8 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
-import type { CatalogContext } from '../products/products.service';
-import { resolveCompanyScope, type CompanyScope, type Queryable } from '../products/products.scope';
+import type { CatalogContext } from '../../common/records/record-context';
+import { resolveCompanyScope, type CompanyScope, type Queryable } from '../../common/records/record-scope';
 import type { AuthUser } from '../../common/types/authenticated-request';
 import { VIEW_ALL_CRM_RECORDS } from './crm.permissions';
 

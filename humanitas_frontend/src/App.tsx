@@ -10,6 +10,9 @@ import { RecordDrawerProvider } from "@/components/platform/RecordDrawer";
 import "@/components/products/registerProductEntities";
 import "@/components/crm/registerCrmEntities";
 import "@/components/contacts/registerContactEntities";
+import "@/components/inventory/registerInventoryEntities";
+// Modules plug into the modules they build on (rule 30)
+import "@/components/inventory/registerInventorySlots";
 
 function App() {
   return (

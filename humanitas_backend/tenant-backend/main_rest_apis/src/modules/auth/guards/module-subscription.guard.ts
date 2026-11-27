@@ -22,12 +22,11 @@ export const RequireModule = (moduleName: string) =>
   SetMetadata(MODULE_KEY, moduleName);
 
 /**
- * Shared bases open when the tenant has any module that uses them
- * (contacts: every module with customers or vendors).
+ * A base module is open when the tenant has any module built on it (the module map, rule 30):
+ * Contacts with CRM, Sales, POS…; Products with Inventory, Sales, Purchasing, POS…
  */
-export const MODULE_FAMILIES: Record<string, string[]> = {
-  contacts: ['crm', 'sales', 'pos', 'accounting', 'purchasing', 'ecommerce', 'delivery'],
-};
+export { MODULE_FAMILIES } from '../../../common/modules/module-manifest';
+import { MODULE_FAMILIES } from '../../../common/modules/module-manifest';
 
 /**
  * Verify an access token's signature and expiry with JWT_SECRET (the same

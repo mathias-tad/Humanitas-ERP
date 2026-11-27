@@ -4,7 +4,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
-import { catalogContext } from '../products/products.context';
+import { catalogContext } from '../../common/records/record-context';
 import { ACTIVITY_PERMISSIONS as A, CRM_SETUP_PERMISSIONS as S, LEAD_PERMISSIONS as L, OPPORTUNITY_PERMISSIONS as O } from './crm.permissions';
 import { CrmLeadsService } from './crm-leads.service';
 import { CrmOpportunitiesService } from './crm-opportunities.service';

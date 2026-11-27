@@ -1,3 +1,4 @@
+import '../../../core/modules/module_manifest.dart';
 import '../../../core/models/user_model.dart';
 
 enum AuthStatus {
@@ -63,21 +64,22 @@ class AuthState {
     final m = module.toLowerCase().trim();
     if (enabledFeatures.contains('*')) return true;
     if (enabledFeatures.contains(m)) return true;
-    // Shared bases open with any module that uses them (same as the server's MODULE_FAMILIES).
-    const families = {
-      'contacts': ['crm', 'sales', 'pos', 'accounting', 'purchasing', 'ecommerce', 'delivery'],
-    };
-    if (families[m]?.any(enabledFeatures.contains) ?? false) return true;
+    // A base module is on when any module built on it is (the module map, rule 30).
+    if (dependentsOf(m).any(enabledFeatures.contains)) return true;
     if ((m == 'hrms' || m == 'hr') &&
         (enabledFeatures.contains('hrms') ||
          enabledFeatures.contains('hr') ||
          enabledFeatures.contains('attendance') ||
          enabledFeatures.contains('leave') ||
-         enabledFeatures.contains('payroll'))) return true;
+         enabledFeatures.contains('payroll'))) {
+      return true;
+    }
     if (m == 'pms' &&
         (enabledFeatures.contains('pms') ||
          enabledFeatures.contains('tasks') ||
-         enabledFeatures.contains('projects'))) return true;
+         enabledFeatures.contains('projects'))) {
+      return true;
+    }
     return false;
   }
 }

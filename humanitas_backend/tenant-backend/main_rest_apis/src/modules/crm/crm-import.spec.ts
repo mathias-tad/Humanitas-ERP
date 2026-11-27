@@ -2,7 +2,7 @@ import { DEAL_FIELDS, LEAD_FIELDS, leadStatusOf, normalizeHeader, parseAmount, p
 import { CrmImportService, readSheet } from './crm-import.service';
 import { CrmSetupService } from './crm-setup.service';
 import type { ContactsService } from '../contacts/contacts.service';
-import type { CatalogContext } from '../products/products.service';
+import type { CatalogContext } from '../../common/records/record-context';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 

@@ -4,8 +4,8 @@ import * as path from 'path';
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import { ContactsService } from '../contacts/contacts.service';
-import type { CatalogContext } from '../products/products.service';
-import { defaultRecordCompany, isVisible, type Queryable } from '../products/products.scope';
+import type { CatalogContext } from '../../common/records/record-context';
+import { defaultRecordCompany, isVisible, type Queryable } from '../../common/records/record-scope';
 import { CrmBase, ENTITY } from './crm.base';
 import { CrmSetupService } from './crm-setup.service';
 import {

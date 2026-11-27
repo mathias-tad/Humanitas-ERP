@@ -4,7 +4,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
-import { catalogContext } from '../products/products.context';
+import { catalogContext } from '../../common/records/record-context';
 import { CONTACT_CATEGORY_PERMISSIONS as CP, CONTACT_PERMISSIONS as P } from './contacts.permissions';
 import { ContactsService } from './contacts.service';
 import {

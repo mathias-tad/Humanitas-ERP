@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { MODULE_FAMILIES } from "@/lib/moduleManifest";
 import {
   Users,
   Briefcase,
@@ -243,9 +244,8 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return true;
     }
 
-    // Shared bases open with any module that uses them (same as the server's MODULE_FAMILIES).
-    const MODULE_FAMILIES: Record<string, string[]> = { contacts: ["crm", "sales", "pos", "accounting", "purchasing", "ecommerce", "delivery"] };
-    if (MODULE_FAMILIES[k]) return MODULE_FAMILIES[k].some((m) => isModuleSubscribed(m));
+    // A base module is on when any module built on it is (the module map, rule 30).
+    if (MODULE_FAMILIES[k]?.some((m) => isModuleSubscribed(m))) return true;
 
     const feats = tenant?.enabled_features?.map((f: string) => f.toLowerCase().trim()) || [];
 
@@ -322,7 +322,7 @@ export const ModuleProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (feats.some((f: string) => f === "hr" || f === "hrms" || f === "*")) result.push("hrms");
     if (feats.some((f: string) => f === "pms" || f === "*")) result.push("pms");
-    if (feats.some((f: string) => f === "products" || f === "*")) result.push("products");
+    if (feats.includes("*") || isModuleSubscribed("products")) result.push("products");
     if (feats.some((f: string) => f === "inventory" || f === "*")) result.push("inventory");
     if (feats.some((f: string) => f === "purchasing" || f === "*")) result.push("purchasing");
     if (feats.some((f: string) => f === "sales" || f === "*")) result.push("sales");

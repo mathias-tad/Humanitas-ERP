@@ -13,7 +13,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 75 | 75 | 0 | 100% |
 | 1. Products & Catalog Management | 38 | 20 | 18 | 53% |
-| 2. Inventory & Warehouse Management | 41 | 0 | 41 | 0% |
+| 2. Inventory & Warehouse Management | 41 | 8 | 33 | 20% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
 | 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 140 | 22 | 118 | 16% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1249** | **588** | **661** | **47%** |
+| **TOTAL** | **1249** | **596** | **653** | **48%** |
 
 ---
 
@@ -108,7 +108,8 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 
 ## 🧱 Part B — How the Modules Fit Together
 
-- **Base modules** (Products, Inventory, Sales, POS, CRM, VoIP, Fleet, …) never import each other's code or tables.
+- **Base modules** (Products, Inventory, Sales, POS, CRM, VoIP, Fleet, …) never import each other's code or tables, except a module they declare as a dependency in the module map (Inventory → Products, CRM → Contacts; AGENTS.md rule 30). Subscribing to a module brings its dependencies.
+- **Extension points**: a module built on another plugs into it through the base module's hooks (server `ModuleHooksService`, e.g. Inventory refuses to archive a product with stock) and slots (web `registerSlot`, e.g. the product form's Stock tab); the base module never imports it.
 - **Bridge modules** hold the cross-module logic and switch on automatically when every module they connect is active. For example, `pos_sales` turns on with POS + Sales, and `crm_voip` with CRM + VoIP.
 - **Shared platform services** are available to every module: the timeline (§30), communications (§31–32), the quick-create/drawer framework (§29), approvals, notifications, and the AI/MCP tool registry (§33).
 - **Events and contracts** connect modules asynchronously, so a module can be removed, sold alone or deployed on-prem without breaking the others (§28).
@@ -245,16 +246,16 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 ## 2. 🏭 Inventory & Warehouse Management (`/inventory`)
 
 - [ ] **Multi-Warehouse & Location Hierarchy**:
-  - [ ] Unlimited warehouses with hierarchical internal storage locations (Warehouse -> Zone -> Aisle -> Rack -> Bin).
+  - [x] Unlimited warehouses with hierarchical internal storage locations (Warehouse -> Zone -> Aisle -> Rack -> Bin).
   - [ ] Virtual transit locations for inter-warehouse transfers.
   - [ ] Scrap and adjustment staging locations.
 - [ ] **Real-Time Stock Tracking & Movements**:
-  - [ ] Real-time Stock Quant tracking per SKU, Warehouse, and Bin.
-  - [ ] Movement ledger recording Inbound, Outbound, Internal Transfer, and Scrapped quantities with timestamp & operator ID.
+  - [x] Real-time Stock Quant tracking per SKU, Warehouse, and Bin.
+  - [x] Movement ledger recording Inbound, Outbound, Internal Transfer, and Scrapped quantities with timestamp & operator ID.
   - [ ] Low-stock threshold alerts and automated Reorder Point (ROP) suggestions.
 - [ ] **Advanced Valuation & Costing (via Python Engine)**:
-  - [ ] **FIFO (First-In, First-Out)** costing queue layer calculation.
-  - [ ] **AVCO (Weighted Average Cost)** real-time recalculation upon Goods Receipt Notes (GRN).
+  - [x] **FIFO (First-In, First-Out)** costing queue layer calculation.
+  - [x] **AVCO (Weighted Average Cost)** real-time recalculation upon Goods Receipt Notes (GRN).
   - [ ] Standard Costing with variance reporting against actual purchase prices.
 - [ ] **Batch, Lot & Expiration Date Management**:
   - [ ] Batch/Lot number assignment during receiving.
@@ -270,9 +271,9 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
 - [ ] **Inter-Warehouse Transfers**:
   - [ ] Transfer requisition, pick/pack dispatch, in-transit tracking, and QR scan receiving at the destination warehouse.
 - [ ] **Inventory Reports**:
-  - [ ] Real-time stock levels by warehouse, location, and product.
+  - [x] Real-time stock levels by warehouse, location, and product.
   - [ ] Stock valuation report (FIFO layers / AVCO unit costs).
-  - [ ] Stock movement history report with date-range filtering.
+  - [x] Stock movement history report with date-range filtering.
   - [ ] Batch/Lot expiration forecast report.
   - [ ] Slow-moving and dead-stock analysis.
   - [ ] Stocktake variance and adjustment audit report.
@@ -282,7 +283,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Forecast view per product: on hand, reserved, incoming, outgoing, forecast date.
   - [ ] Mobile barcode app for receiving, picking, packing, counting and transfers (camera or rugged scanner).
   - [ ] In-context stock popover on Sales/POS/Online Store lines (per warehouse, forecast, alternatives).
-  - [ ] Quick stock adjustment from the product drawer, permission-gated and logged on the timeline.
+  - [x] Quick stock adjustment from the product drawer, permission-gated and logged on the timeline.
   - [ ] Replenishment report with one-click RFQ creation.
   - [ ] Scales and RFID readers through a local device bridge (IoT).
 

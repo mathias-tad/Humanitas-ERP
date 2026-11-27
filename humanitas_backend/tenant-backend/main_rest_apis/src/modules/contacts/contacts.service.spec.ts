@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
-import type { CatalogContext } from '../products/products.service';
+import type { CatalogContext } from '../../common/records/record-context';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 

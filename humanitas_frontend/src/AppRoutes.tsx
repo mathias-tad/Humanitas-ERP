@@ -159,6 +159,11 @@ const ProductLabelsPage = lazy(() => import("./pages/products/LabelsPage"));
 const ProductReportsPage = lazy(() => import("./pages/products/ProductReportsPage"));
 const ProductSettingsPage = lazy(() => import("./pages/products/ProductSettingsPage"));
 const CrmLeadsPage = lazy(() => import("./pages/crm/LeadsPage"));
+const InventoryStockPage = lazy(() => import("./pages/inventory/StockPage"));
+const InventoryWarehousesPage = lazy(() => import("./pages/inventory/WarehousesPage"));
+const InventoryLocationsPage = lazy(() => import("./pages/inventory/LocationsPage"));
+const InventoryTransfersPage = lazy(() => import("./pages/inventory/TransfersPage"));
+const InventoryMovementsPage = lazy(() => import("./pages/inventory/MovementsPage"));
 const CrmOpportunitiesPage = lazy(() => import("./pages/crm/OpportunitiesPage"));
 const CrmActivitiesPage = lazy(() => import("./pages/crm/ActivitiesPage"));
 const CrmForecastPage = lazy(() => import("./pages/crm/ForecastPage"));
@@ -649,7 +654,11 @@ function AppRoutes() {
         <Route path="/crm/setup" element={<PermissionRoute module="crm" permission="view_crm_setup"><CrmSetupPage /></PermissionRoute>} />
         <Route path="/products/*" element={<ComingSoonModulePage moduleKey="products" />} />
 
-        <Route path="/inventory" element={<ComingSoonModulePage moduleKey="inventory" />} />
+        <Route path="/inventory" element={<PermissionRoute module="inventory" permission="view_stock"><InventoryStockPage /></PermissionRoute>} />
+        <Route path="/inventory/warehouses" element={<PermissionRoute module="inventory" permission="view_warehouses"><InventoryWarehousesPage /></PermissionRoute>} />
+        <Route path="/inventory/locations" element={<PermissionRoute module="inventory" permission="view_inventory_locations"><InventoryLocationsPage /></PermissionRoute>} />
+        <Route path="/inventory/transfers" element={<PermissionRoute module="inventory" permission="view_transfers"><InventoryTransfersPage /></PermissionRoute>} />
+        <Route path="/inventory/movements" element={<PermissionRoute module="inventory" permission="view_stock"><InventoryMovementsPage /></PermissionRoute>} />
         <Route path="/inventory/*" element={<ComingSoonModulePage moduleKey="inventory" />} />
 
         <Route path="/purchasing" element={<ComingSoonModulePage moduleKey="purchasing" />} />

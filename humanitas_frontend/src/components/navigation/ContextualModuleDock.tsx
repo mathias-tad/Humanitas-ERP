@@ -201,8 +201,10 @@ export const MODULE_NAV_CONFIGS: Record<ERPModuleKey, { title: string; items: Na
       title: "Warehouse Operations",
       items: [
         { title: "Stock Overview", url: "/inventory", icon: Boxes },
-        { title: "Warehouses & Bins", url: "/inventory/warehouses", icon: Warehouse },
-        { title: "Stock Movements", url: "/inventory/movements", icon: Truck },
+        { title: "Transfers", url: "/inventory/transfers", icon: Truck },
+        { title: "Warehouses", url: "/inventory/warehouses", icon: Warehouse },
+        { title: "Locations & Bins", url: "/inventory/locations", icon: Boxes },
+        { title: "Stock Movements", url: "/inventory/movements", icon: Clock },
         { title: "Batches & Expiry", url: "/inventory/batches", icon: Clock },
         { title: "Stocktake Audits", url: "/inventory/stocktakes", icon: CheckSquare },
       ],

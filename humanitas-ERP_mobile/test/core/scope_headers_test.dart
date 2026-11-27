@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../lib/core/api/scope_headers.dart';
+import 'package:humanitas_erp_mobile/core/api/scope_headers.dart';
 
 void main() {
   tearDown(ScopeHeaders.clear);

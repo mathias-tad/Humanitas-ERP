@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSlot } from '@/lib/moduleSlots';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/AuthContext';
 import { errorMessage } from '@/lib/errors';
@@ -490,10 +491,12 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
     </form>
   );
 
+  // Tabs added by modules built on Products (Inventory's Stock tab…), rule 30.
+  const slotTabs = useSlot('product.tabs', product.data ? { productId: product.data.id, isActive: product.data.is_active, isParent: !!isParent, productType: product.data.product_type } : undefined);
   if (mode === 'create') return details;
   return (
     <Tabs defaultValue="details">
-      <TabsList>
+      <TabsList className="flex-wrap">
         <TabsTrigger value="details">Details</TabsTrigger>
         {product.data && !isVariant && (
           <TabsTrigger value="variants">Variants{isParent ? ` (${product.data.variant_count})` : ''}</TabsTrigger>
@@ -504,6 +507,7 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
         {product.data && !isParent && !isVariant && (
           <TabsTrigger value="contents">{product.data.composition === 'kit' ? 'Kit' : product.data.composition === 'combo' ? 'Combo' : 'Contents'}</TabsTrigger>
         )}
+        {product.data && slotTabs.map((t) => <TabsTrigger key={t.id} value={t.id}>{t.label}</TabsTrigger>)}
         <TabsTrigger value="history">History</TabsTrigger>
       </TabsList>
       <TabsContent value="details" className="pt-4">
@@ -554,6 +558,11 @@ export function ProductForm({ mode, id, initial, onSaved, onCancel }: EntityForm
           <CompositionPanel product={product.data} />
         </TabsContent>
       )}
+      {product.data && slotTabs.map((t) => (
+        <TabsContent key={t.id} value={t.id} className="pt-4">
+          <t.Component productId={product.data!.id} isActive={product.data!.is_active} isParent={!!isParent} productType={product.data!.product_type} />
+        </TabsContent>
+      ))}
       <TabsContent value="history" className="pt-4">
         <TimelinePanel path={`/products/${id}/timeline`} />
       </TabsContent>

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.config import get_settings
 from app.database import db_manager
-from app.routers import payroll, kpi, health, leave, overtime, pms_kpi, system
+from app.routers import payroll, kpi, health, leave, overtime, pms_kpi, system, inventory
 
 
 @asynccontextmanager
@@ -54,3 +54,4 @@ app.include_router(leave.router, prefix="/api", tags=["Leave"])
 app.include_router(overtime.router, prefix="/api/overtime", tags=["Overtime"])
 app.include_router(pms_kpi.router, prefix="/api/pms/kpi", tags=["PMS KPI"])
 app.include_router(system.router, prefix="/api/system", tags=["System"])
+app.include_router(inventory.router, prefix="/api/inventory", tags=["Inventory"])

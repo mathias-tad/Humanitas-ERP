@@ -1,4 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import type { CatalogContext } from '../../common/records/record-context';
+import { csvCell } from '../../common/records/csv';
+import { ModuleHooksService } from '../../common/modules/module-hooks.service';
 import { DatabaseService } from '../database/database.service';
 import { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 import type { ActivityClient } from '../activity-timeline/activity-client';
@@ -19,15 +22,8 @@ import { SHARED_WITH_VARIANTS, VARIANT_OWN_FIELDS } from './product-variants';
 import { ProductSettingsService } from './product-settings.service';
 import { ISSUE_SQL } from './product-structure';
 
-/** Request context every Products call needs. */
-export interface CatalogContext {
-  tenantId: string;
-  user?: AuthUser;
-  companyHeader?: string;
-  /** x-branch-id, checked by CompanyScopeInterceptor. */
-  branchHeader?: string;
-  client?: ActivityClient;
-}
+/** The request context lives in common/records (shared by every module, rule 30). */
+export type { CatalogContext } from '../../common/records/record-context';
 
 /** Fields shown on the product timeline (featureslist §30). */
 export const PRODUCT_TRACKED_FIELDS: Record<string, string> = {
@@ -116,12 +112,7 @@ const SELECT_PRODUCT = `
     LEFT JOIN products par ON par.id = p.parent_id`;
 
 /** Escape a CSV cell, and neutralise spreadsheet formulas (CSV injection). */
-export function csvCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  let s = typeof value === 'object' ? JSON.stringify(value) : String(value);
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+export { csvCell } from '../../common/records/csv';
 
 /** Validate and normalise a barcode list: unique values, exactly one primary when any exist. */
 export function normalizeBarcodes(input: ProductBarcodeDto[] | undefined): ProductBarcodeDto[] {
@@ -144,6 +135,8 @@ export class ProductsService {
     private readonly timeline: ActivityTimelineService,
     /** Product Settings: defaults, generated SKUs and barcodes. Optional so older tests can build the service. */
     private readonly settings?: ProductSettingsService,
+    /** Modules built on Products answer its events (Inventory refuses to archive a product with stock, rule 30). */
+    @Optional() private readonly hooks?: ModuleHooksService,
   ) {}
 
   private async open(ctx: CatalogContext) {
@@ -430,6 +423,13 @@ export class ProductsService {
       if (!product.parent_has_variants) {
         throw new BadRequestException(`"${product.parent_name}" no longer has variants. Set up its variants again to bring this one back.`);
       }
+    }
+    if (!active && this.hooks) {
+      const variants: { id: string }[] = product.has_variants
+        ? await conn.query(`SELECT id FROM products WHERE parent_id = $1 AND is_active`, [id])
+        : [];
+      const refusal = await this.hooks.veto('product.archive', { tenantId: ctx.tenantId, conn, productIds: [id, ...variants.map((v) => v.id)] });
+      if (refusal) throw new BadRequestException(refusal);
     }
     await conn.transaction(async (m: Queryable) => {
       await m.query(

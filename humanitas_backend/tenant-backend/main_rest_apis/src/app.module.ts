@@ -56,6 +56,8 @@ import { ActivityTimelineModule } from './modules/activity-timeline/activity-tim
 import { ProductsModule } from './modules/products/products.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
 import { CrmModule } from './modules/crm/crm.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { ModuleHooksModule } from './common/modules/module-hooks.service';
 import { HrmsSurveysModule } from './modules/hrms-surveys/hrms-surveys.module';
 import { HrmsImportExportModule } from './modules/hrms-import-export/hrms-import-export.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
@@ -182,9 +184,11 @@ dns.setDefaultResultOrder('ipv4first');
     HrmsExpensesModule,
     HrmsAssetsModule,
     ActivityTimelineModule,
+    ModuleHooksModule,
     ProductsModule,
     ContactsModule,
     CrmModule,
+    InventoryModule,
     HrmsSurveysModule,
     HrmsImportExportModule,
     ApprovalsModule,

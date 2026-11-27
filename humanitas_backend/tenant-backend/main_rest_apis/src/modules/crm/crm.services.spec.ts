@@ -4,7 +4,7 @@ import { CrmOpportunitiesService } from './crm-opportunities.service';
 import { CrmLeadsService } from './crm-leads.service';
 import { CrmActivitiesService } from './crm-activities.service';
 import type { ContactsService } from '../contacts/contacts.service';
-import type { CatalogContext } from '../products/products.service';
+import type { CatalogContext } from '../../common/records/record-context';
 import type { DatabaseService } from '../database/database.service';
 import type { ActivityTimelineService } from '../activity-timeline/activity-timeline.service';
 
