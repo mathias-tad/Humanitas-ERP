@@ -7,6 +7,7 @@ import {
   InventoryTransfersController,
   InventoryWarehousesController,
 } from './inventory.controllers';
+import { InventoryStocktakesController } from './stocktakes.controller';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ALL_INVENTORY_PERMISSIONS } from './inventory.permissions';
@@ -16,7 +17,9 @@ import { ALL_INVENTORY_PERMISSIONS } from './inventory.permissions';
  * endpoint carries exactly one registered permission, and that permission is one of the
  * module's granular set (one per action, never a bundled `manage_*`).
  */
-const controllers = [InventoryWarehousesController, InventoryLocationsController, InventoryStockController, InventoryTransfersController];
+const controllers = [
+  InventoryWarehousesController, InventoryLocationsController, InventoryStockController, InventoryTransfersController, InventoryStocktakesController,
+];
 
 function handlers(cls: new (...args: never[]) => object) {
   return Object.getOwnPropertyNames(cls.prototype)
@@ -36,7 +39,7 @@ describe('Inventory controllers', () => {
     const perms: string[] = Reflect.getMetadata(PERMISSIONS_KEY, fn);
     expect(perms).toHaveLength(1);
     expect(ALL_INVENTORY_PERMISSIONS).toContain(perms[0]);
-    expect(perms[0]).toMatch(/^(view|create|edit|delete|restore|export|adjust|validate|cancel)_/);
+    expect(perms[0]).toMatch(/^(view|create|edit|delete|restore|export|adjust|validate|cancel|count|approve)_/);
   });
 
   it('no endpoint uses a bundled manage_* permission (rule 27)', () => {
@@ -48,13 +51,18 @@ describe('Inventory controllers', () => {
 });
 
 describe('Inventory AI knowledge (rules 20, 24.27)', () => {
-  const sql = readFileSync(join(__dirname, '../../migrations/tenant/20261127000002_ai_knowledge_inventory.sql'), 'utf8');
+  // Each Inventory feature adds its own knowledge migration; together they cover every permission.
+  const dir = join(__dirname, '../../migrations/tenant');
+  const base = readFileSync(join(dir, '20261127000002_ai_knowledge_inventory.sql'), 'utf8');
+  const sql = [base, readFileSync(join(dir, '20261128000004_ai_knowledge_stocktakes.sql'), 'utf8')].join('\n');
   it.each(ALL_INVENTORY_PERMISSIONS)('mentions the %s permission', (p) => expect(sql).toContain(`"${p}"`));
   it('describes every Inventory page with web and mobile steps', () => {
     for (const r of ['/inventory', '/inventory/warehouses', '/inventory/locations', '/inventory/transfers', '/inventory/movements']) {
       expect(sql).toContain(`'${r}'`);
     }
-    expect(sql.match(/"mobile": \[/g)).toHaveLength(6);
+    expect(sql).toContain("'/inventory/stocktakes'");
+    expect(base.match(/"mobile": \[/g)).toHaveLength(6);
+    expect(sql.match(/"mobile": \[/g)).toHaveLength(7);
   });
 
   it('uses every permission it grants on some endpoint', () => {

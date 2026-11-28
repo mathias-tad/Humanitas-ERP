@@ -13,7 +13,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 |--------|-------|---------|-------------|-----------|
 | 0. System Architecture & Core | 75 | 75 | 0 | 100% |
 | 1. Products & Catalog Management | 38 | 20 | 18 | 53% |
-| 2. Inventory & Warehouse Management | 41 | 8 | 33 | 20% |
+| 2. Inventory & Warehouse Management | 42 | 11 | 31 | 26% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
 | 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 141 | 23 | 118 | 16% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1250** | **597** | **653** | **48%** |
+| **TOTAL** | **1251** | **600** | **651** | **48%** |
 
 ---
 
@@ -265,8 +265,9 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Unique serial number logging on receipt and dispatch for high-value/warranty items.
   - [ ] Full cradle-to-grave serial history lookup.
 - [ ] **Stocktaking & Physical Inventory Audits**:
-  - [ ] Cycle counting and annual physical stocktake sessions.
-  - [ ] Blind counts vs. system expected counts.
+  - [x] Cycle counting and annual physical stocktake sessions.
+  - [x] Blind counts vs. system expected counts.
+  - [x] Count by scanning on web and mobile (location, then product barcodes, SKUs or lot/serial numbers); products found elsewhere added; posting adjusts against what is on hand at that moment, so stock moved during the count is never adjusted twice.
   - [ ] Variance discrepancy reports with multi-level approval workflows for stock adjustments.
 - [ ] **Inter-Warehouse Transfers**:
   - [ ] Transfer requisition, pick/pack dispatch, in-transit tracking, and QR scan receiving at the destination warehouse.

@@ -164,6 +164,7 @@ const InventoryWarehousesPage = lazy(() => import("./pages/inventory/WarehousesP
 const InventoryLocationsPage = lazy(() => import("./pages/inventory/LocationsPage"));
 const InventoryTransfersPage = lazy(() => import("./pages/inventory/TransfersPage"));
 const InventoryMovementsPage = lazy(() => import("./pages/inventory/MovementsPage"));
+const InventoryStocktakesPage = lazy(() => import("./pages/inventory/StocktakesPage"));
 const CrmOpportunitiesPage = lazy(() => import("./pages/crm/OpportunitiesPage"));
 const CrmActivitiesPage = lazy(() => import("./pages/crm/ActivitiesPage"));
 const CrmForecastPage = lazy(() => import("./pages/crm/ForecastPage"));
@@ -659,6 +660,7 @@ function AppRoutes() {
         <Route path="/inventory/locations" element={<PermissionRoute module="inventory" permission="view_inventory_locations"><InventoryLocationsPage /></PermissionRoute>} />
         <Route path="/inventory/transfers" element={<PermissionRoute module="inventory" permission="view_transfers"><InventoryTransfersPage /></PermissionRoute>} />
         <Route path="/inventory/movements" element={<PermissionRoute module="inventory" permission="view_stock"><InventoryMovementsPage /></PermissionRoute>} />
+        <Route path="/inventory/stocktakes" element={<PermissionRoute module="inventory" permission="view_stocktakes"><InventoryStocktakesPage /></PermissionRoute>} />
         <Route path="/inventory/*" element={<ComingSoonModulePage moduleKey="inventory" />} />
 
         <Route path="/purchasing" element={<ComingSoonModulePage moduleKey="purchasing" />} />

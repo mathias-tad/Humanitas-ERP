@@ -12,6 +12,8 @@ import { WarehousesService } from './warehouses.service';
 import { StockService } from './stock.service';
 import { TransfersService } from './transfers.service';
 import { ValuationClient } from './valuation-client';
+import { StocktakesService } from './stocktakes.service';
+import { InventoryStocktakesController } from './stocktakes.controller';
 import { ModuleHooksService } from '../../common/modules/module-hooks.service';
 import { registerInventoryHooks } from './inventory.hooks';
 
@@ -23,9 +25,12 @@ import { registerInventoryHooks } from './inventory.hooks';
  */
 @Module({
   imports: [DatabaseModule, TypeOrmModule.forFeature([Tenant])],
-  controllers: [InventoryWarehousesController, InventoryLocationsController, InventoryStockController, InventoryTransfersController],
-  providers: [WarehousesService, StockService, TransfersService, ValuationClient],
-  exports: [WarehousesService, StockService, TransfersService],
+  controllers: [
+    InventoryWarehousesController, InventoryLocationsController, InventoryStockController, InventoryTransfersController,
+    InventoryStocktakesController,
+  ],
+  providers: [WarehousesService, StockService, TransfersService, StocktakesService, ValuationClient],
+  exports: [WarehousesService, StockService, TransfersService, StocktakesService],
 })
 export class InventoryModule implements OnModuleInit {
   constructor(private readonly hooks: ModuleHooksService) {}

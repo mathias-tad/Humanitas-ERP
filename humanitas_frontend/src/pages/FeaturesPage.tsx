@@ -104,6 +104,7 @@ export default function FeaturesPage() {
                 "Receipts, deliveries, internal moves and returns that move all their lines at once when marked done",
                 "Stock adjustments with the reason kept in an append-only movement history; cost hidden from people without the valuation permission",
                 "Stock tab on every product and a product with stock cannot be archived; mobile stock look-up and adjustment",
+                "Stocktakes: cycle, full, blind and spot counts by scanning on web and mobile, accuracy and the value found and missing, approval before the differences post",
                 "Multi-warehouse, multi-aisle, and bin-level location inventory tracking",
                 "Python-delegated real-time inventory costing: AVCO (Weighted Average) and FIFO queues",
                 "Serial number and batch/lot expiration tracking with quarantine capabilities",

@@ -38,6 +38,17 @@ export const TRANSFER_PERMISSIONS = {
   export: 'export_transfers',
 } as const;
 
+/** Stocktakes: plan, count, approve and post (posting is what changes stock). */
+export const STOCKTAKE_PERMISSIONS = {
+  view: 'view_stocktakes',
+  create: 'create_stocktakes',
+  count: 'count_stocktakes',
+  /** Post the differences as stock adjustments; also sees what a blind count expected. */
+  approve: 'approve_stocktakes',
+  cancel: 'cancel_stocktakes',
+  export: 'export_stocktakes',
+} as const;
+
 const values = <T extends Record<string, string>>(o: T) => Object.values(o) as T[keyof T][];
 
 /** Every Inventory permission. */
@@ -46,6 +57,7 @@ export const ALL_INVENTORY_PERMISSIONS: string[] = [
   ...values(LOCATION_PERMISSIONS),
   ...values(STOCK_PERMISSIONS),
   ...values(TRANSFER_PERMISSIONS),
+  ...values(STOCKTAKE_PERMISSIONS),
 ];
 
 /** Destructive or stock-moving actions kept for Administrators by default. */
@@ -54,6 +66,7 @@ export const INVENTORY_ADMIN_ONLY_PERMISSIONS: string[] = [
   LOCATION_PERMISSIONS.delete,
   STOCK_PERMISSIONS.adjust,
   TRANSFER_PERMISSIONS.delete,
+  STOCKTAKE_PERMISSIONS.approve,
 ];
 
 /** Managers: everything except the admin-only list. They run the warehouse day to day. */
@@ -70,4 +83,6 @@ export const INVENTORY_EMPLOYEE_PERMISSIONS: string[] = [
   TRANSFER_PERMISSIONS.create,
   TRANSFER_PERMISSIONS.edit,
   TRANSFER_PERMISSIONS.validate,
+  STOCKTAKE_PERMISSIONS.view,
+  STOCKTAKE_PERMISSIONS.count,
 ];

@@ -394,6 +394,13 @@ export const PERMISSION_CATALOG: PermissionCatalogEntry[] = [
   { id: "validate_transfers", label: "Mark Transfers Done (Post Stock)", group: "Transfers", module: "inventory" },
   { id: "cancel_transfers", label: "Cancel Transfers", group: "Transfers", module: "inventory" },
   { id: "export_transfers", label: "Export Transfers", group: "Transfers", module: "inventory" },
+  // Stocktakes (Inventory)
+  { id: "view_stocktakes", label: "View Stocktakes", group: "Stocktakes", module: "inventory" },
+  { id: "create_stocktakes", label: "Plan & Start Stocktakes", group: "Stocktakes", module: "inventory" },
+  { id: "count_stocktakes", label: "Count Stock (Scan & Enter Quantities)", group: "Stocktakes", module: "inventory" },
+  { id: "approve_stocktakes", label: "Approve & Post Stocktake Differences", group: "Stocktakes", module: "inventory" },
+  { id: "cancel_stocktakes", label: "Cancel Stocktakes", group: "Stocktakes", module: "inventory" },
+  { id: "export_stocktakes", label: "Export Count Sheets", group: "Stocktakes", module: "inventory" },
 ];
 
 export const PERMISSION_IDS: ReadonlySet<string> = new Set(PERMISSION_CATALOG.map((p) => p.id));

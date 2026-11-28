@@ -70,6 +70,7 @@ export const APP_ROUTES: string[] = [
   '/inventory/*',
   '/inventory/locations',
   '/inventory/movements',
+  '/inventory/stocktakes',
   '/inventory/transfers',
   '/inventory/warehouses',
   '/leave',
