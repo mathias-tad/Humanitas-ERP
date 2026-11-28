@@ -20,6 +20,7 @@ import { LeaveScheduler } from './leave.scheduler';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 import { SetLeaveWorkflowDto } from './dto/set-leave-workflow.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, ScopedUser, requestScope } from '../company-scope/request-scope';
 
 @ApiTags('Leave')
 @ApiBearerAuth()
@@ -108,7 +109,7 @@ export class LeaveController {
     return this.leaveService.getAllLeaveRequests(req.user.tenantId, {
       status,
       user_id: userId,
-    });
+    }, requestScope(req));
   }
 
   // ============ WORKFLOW ENDPOINTS ============
@@ -138,6 +139,7 @@ export class LeaveController {
   // ============ REQUEST ENDPOINTS ============
 
   @Post('requests/:id/approve')
+  @ScopedRecord('leave_requests')
   @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Approve a leave request' })
   async approveLeaveRequest(
@@ -160,6 +162,7 @@ export class LeaveController {
   }
 
   @Post('requests/:id/reject')
+  @ScopedRecord('leave_requests')
   @RequirePermissions('approve_leave')
   @ApiOperation({ summary: 'Reject a leave request' })
   async rejectLeaveRequest(
@@ -196,6 +199,7 @@ export class LeaveController {
   }
 
   @Get('status/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user leave status (admin)' })
   async getUserLeaveStatus(
@@ -216,6 +220,7 @@ export class LeaveController {
   }
 
   @Get('calculated-balance/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_leave')
   @ApiOperation({ summary: 'Get user calculated leave balance (admin)' })
   async getUserCalculatedBalance(
@@ -247,6 +252,7 @@ export class LeaveController {
   // ============ INITIAL BALANCE REGISTRATION (for existing employees) ============
 
   @Get('balances/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_leave')
   @ApiOperation({
     summary: 'Get user leave balances with calculated annual leave (admin)',
@@ -259,6 +265,7 @@ export class LeaveController {
   }
 
   @Post('balances/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_leave')
   @ApiOperation({
     summary: 'Register/update initial leave balance for existing employee',
@@ -283,6 +290,7 @@ export class LeaveController {
   }
 
   @Post('balances/:userId/calculate')
+  @ScopedUser()
   @RequirePermissions('manage_leave')
   @ApiOperation({
     summary:

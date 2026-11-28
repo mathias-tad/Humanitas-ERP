@@ -1,4 +1,5 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, ScopedRecords, ScopedUser, requestScope } from '../company-scope/request-scope';
 import {
   Controller,
   Get,
@@ -59,7 +60,8 @@ export class AttendanceController {
 
   // ============ ROSTER / SCHEDULE ============
 
-  @Get('user-schedule/:userId')
+  @Get('user-schedule/:userId')
+  @ScopedUser()
   @RequirePermissions('view_roster')
   @ApiOperation({ summary: 'Get user schedule (roster) with pattern and overrides' })
   async getUserSchedule(
@@ -82,17 +84,18 @@ export class AttendanceController {
   @RequirePermissions('view_shifts')
   @ApiOperation({ summary: 'Get all shifts' })
   async getShifts(@Request() req: AuthenticatedRequest) {
-    return this.schedulingService.getShifts(req.user.tenantId);
+    return this.schedulingService.getShifts(req.user.tenantId, requestScope(req));
   }
 
   @Post('shifts')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new shift' })
   async createShift(@Request() req: AuthenticatedRequest, @Body() data: CreateShiftDto) {
-    return this.schedulingService.createShift(req.user.tenantId, data, req.user.sub);
+    return this.schedulingService.createShift(req.user.tenantId, data, req.user.sub, requestScope(req));
   }
 
-  @Put('shifts/:id')
+  @Put('shifts/:id')
+  @ScopedRecord('shifts')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Update a shift' })
   async updateShift(
@@ -103,7 +106,8 @@ export class AttendanceController {
     return this.schedulingService.updateShift(req.user.tenantId, id, data, req.user.sub);
   }
 
-  @Delete('shifts/:id')
+  @Delete('shifts/:id')
+  @ScopedRecord('shifts')
   @ApiOperation({ summary: 'Delete a shift' })
   async deleteShift(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.deleteShift(req.user.tenantId, id, req.user.sub);
@@ -114,27 +118,30 @@ export class AttendanceController {
   @RequirePermissions('view_shifts')
   @ApiOperation({ summary: 'Get all schedule patterns' })
   async getSchedulePatterns(@Request() req: AuthenticatedRequest) {
-    return this.schedulingService.getPatterns(req.user.tenantId);
+    return this.schedulingService.getPatterns(req.user.tenantId, requestScope(req));
   }
 
   @Post('patterns')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Create a new schedule pattern' })
   async createSchedulePattern(@Request() req: AuthenticatedRequest, @Body() data: CreateShiftPatternDto) {
-    return this.schedulingService.createPattern(
-      req.user.tenantId,
-      data,
-      req.user.sub,
+    return this.schedulingService.createPattern(
+      req.user.tenantId,
+      data,
+      req.user.sub,
+      requestScope(req),
     );
   }
 
-  @Get('patterns/:id')
+  @Get('patterns/:id')
+  @ScopedRecord('shift_patterns')
   @ApiOperation({ summary: 'Get schedule pattern by ID' })
   async getSchedulePatternById(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.getPatternById(req.user.tenantId, id);
   }
 
-  @Put('patterns/:id')
+  @Put('patterns/:id')
+  @ScopedRecord('shift_patterns')
   @RequirePermissions('manage_shifts')
   @ApiOperation({ summary: 'Update a schedule pattern' })
   async updateSchedulePattern(
@@ -149,7 +156,8 @@ export class AttendanceController {
     );
   }
 
-  @Delete('patterns/:id')
+  @Delete('patterns/:id')
+  @ScopedRecord('shift_patterns')
   @ApiOperation({ summary: 'Delete a schedule pattern' })
   async deleteSchedulePattern(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.schedulingService.deletePattern(req.user.tenantId, id);
@@ -159,17 +167,19 @@ export class AttendanceController {
   @Get('assignments')
   @ApiOperation({ summary: 'Get all shift assignments' })
   async getShiftAssignments(@Request() req: AuthenticatedRequest) {
-    return this.schedulingService.getUserShiftPatterns(req.user.tenantId);
+    return this.schedulingService.getUserShiftPatterns(req.user.tenantId, requestScope(req));
   }
 
-  @Post('assignments')
+  @Post('assignments')
+  @ScopedRecords('users', 'user_id')
   @RequirePermissions('manage_shift_assignments')
   @ApiOperation({ summary: 'Assign shift to user' })
   async assignShift(@Request() req: AuthenticatedRequest, @Body() data: AssignPatternDto) {
     return this.schedulingService.assignPattern(req.user.tenantId, data, req.user.sub);
   }
 
-  @Delete('assignments/:userId')
+  @Delete('assignments/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_shift_assignments')
   @ApiOperation({ summary: 'Remove shift assignment' })
   async removeAssignment(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
@@ -179,20 +189,21 @@ export class AttendanceController {
   @Get('users/unassigned')
   @ApiOperation({ summary: 'Get users without shift assignments' })
   async getUnassignedUsers(@Request() req: AuthenticatedRequest) {
-    return this.schedulingService.getUnassignedUsers(req.user.tenantId);
+    return this.schedulingService.getUnassignedUsers(req.user.tenantId, requestScope(req));
   }
 
   @Get('users/with-assignments')
   @ApiOperation({ summary: 'Get all users with their assignment status' })
   async getUsersWithAssignments(@Request() req: AuthenticatedRequest) {
-    return this.schedulingService.getUsersWithAssignments(req.user.tenantId);
+    return this.schedulingService.getUsersWithAssignments(req.user.tenantId, requestScope(req));
   }
 
   // ============ ROSTER / SCHEDULE ============
 
 
 
-  @Post('assign-pattern')
+  @Post('assign-pattern')
+  @ScopedRecords('users', 'user_id')
   @RequirePermissions('manage_roster')
   @ApiOperation({ summary: 'Assign pattern to user (Flexible)' })
   async assignPattern(@Request() req: AuthenticatedRequest, @Body() data: AssignPatternDto) {

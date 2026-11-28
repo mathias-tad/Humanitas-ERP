@@ -1,4 +1,5 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { requestScope } from '../company-scope/request-scope';
 import {
     Controller,
     Get,
@@ -43,7 +44,7 @@ export class PmsController {
     @Get('projects')
     @RequirePermissions('view_projects', 'view_pms', 'view_tasks', 'view_my_tasks')
     findAllProjects(@Req() req: AuthenticatedRequest) {
-        return this.pmsService.findAllProjects(req.user.tenantId, req.user?.sub, req.user?.role);
+        return this.pmsService.findAllProjects(req.user.tenantId, req.user?.sub, req.user?.role, requestScope(req));
     }
 
     @Get('projects/:id')
@@ -138,7 +139,7 @@ export class PmsController {
         // Basic filter logic could be enhanced to restrict 'view_my_tasks' users to only their tasks
         // logic inside service or here based on permissions.
         // For now assuming view_pms allows listing, filtering handled by UI.
-        return this.pmsService.findAllTasks(req.user.tenantId, filters);
+        return this.pmsService.findAllTasks(req.user.tenantId, filters, requestScope(req), req.user?.sub);
     }
 
     @Get('tasks/:id')
@@ -228,7 +229,7 @@ export class PmsController {
     @Get('teams')
     @RequirePermissions('view_teams')
     findAllTeams(@Req() req: AuthenticatedRequest) {
-        return this.pmsService.findAllTeams(req.user.tenantId);
+        return this.pmsService.findAllTeams(req.user.tenantId, requestScope(req), req.user?.sub);
     }
 
     @Get('teams/:id')

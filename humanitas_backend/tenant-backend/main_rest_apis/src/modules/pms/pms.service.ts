@@ -18,6 +18,7 @@ import { TaskTimeLog } from './entities/task-time-log.entity';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { scopedIds, type RequestScope } from '../company-scope/request-scope';
 import { DatabaseService } from '../database/database.service';
 import { ManualKPIMetric } from './entities/manual-kpi-metric.entity';
 import { ManualKPIScore } from './entities/manual-kpi-score.entity';
@@ -86,13 +87,17 @@ export class PmsService {
         return repo.save(project);
     }
 
-    async findAllProjects(tenantId: string, userId?: string, userRole?: string) {
+    async findAllProjects(tenantId: string, userId?: string, userRole?: string, scope?: RequestScope) {
         const repo = await this.getTenantRepo<Project>(tenantId, Project);
-        const projects = await repo.find({
+        const found = await repo.find({
             where: { tenant_id: tenantId },
             order: { created_at: 'DESC' },
             relations: ['manager', 'creator', 'members.user', 'sprints', 'team'],
         });
+        // Projects of the request's companies and branches, plus those the user takes part in (rule 16).
+        const inScope = await scopedIds(() => this.databaseService.getTenantConnectionById(tenantId), 'pms_projects', scope);
+        const projects = inScope ? found.filter((p) => inScope.has(String(p.id))
+            || (!!userId && (p.created_by === userId || p.manager_id === userId || !!p.members?.some((m) => m.user_id === userId)))) : found;
 
         // Filter private projects for non-admin users
         if (userId && userRole !== 'owner' && userRole !== 'admin') {
@@ -295,7 +300,7 @@ export class PmsService {
         return savedTask;
     }
 
-    async findAllTasks(tenantId: string, filters?: any) {
+    async findAllTasks(tenantId: string, filters?: any, scope?: RequestScope, userId?: string) {
         const repo = await this.getTenantRepo<Task>(tenantId, Task);
         const where: any = { tenant_id: tenantId };
         if (filters?.projectId) where.project_id = filters.projectId;
@@ -303,11 +308,15 @@ export class PmsService {
         if (filters?.status) where.status = filters.status;
         if (filters?.sprintId) where.sprint_id = filters.sprintId;
 
-        return repo.find({
+        const tasks = await repo.find({
             where,
             order: { created_at: 'DESC' },
             relations: ['project', 'assignee', 'reporter', 'sprint'],
         });
+        // Tasks of the request's companies and branches, plus the user's own (rule 16).
+        const inScope = await scopedIds(() => this.databaseService.getTenantConnectionById(tenantId), 'pms_tasks', scope);
+        if (!inScope) return tasks;
+        return tasks.filter((t) => inScope.has(String(t.id)) || (!!userId && (t.assignee_id === userId || t.reporter_id === userId)));
     }
 
     async findOneTask(tenantId: string, id: string) {
@@ -794,10 +803,15 @@ export class PmsService {
         return savedTeam;
     }
 
-    async findAllTeams(tenantId: string) {
+    async findAllTeams(tenantId: string, scope?: RequestScope, userId?: string) {
 
         const repo = await this.getTenantRepo(tenantId, Team);
-        return repo.find({ relations: ['leader', 'members', 'members.user'] });
+        const teams = await repo.find({ relations: ['leader', 'members', 'members.user'] });
+        // Teams of the request's companies and branches, plus the user's own (rule 16).
+        const inScope = await scopedIds(() => this.databaseService.getTenantConnectionById(tenantId), 'pms_teams', scope);
+        if (!inScope) return teams;
+        return teams.filter((t) => inScope.has(String(t.id))
+            || (!!userId && (t.leader_id === userId || !!t.members?.some((m) => m.user_id === userId))));
     }
 
     async findOneTeam(tenantId: string, id: string) {

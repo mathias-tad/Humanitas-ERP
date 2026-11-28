@@ -7,6 +7,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { newRecordScope, scopeWhere, type RequestScope } from '../company-scope/request-scope';
 import { AuditService } from '../audit/audit.service';
 
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
@@ -137,13 +138,15 @@ export class SchedulingService {
   }
 
   // ============ SHIFTS ============
-  async createShift(tenantId: string, dto: CreateShiftDto, userId: string) {
+  async createShift(tenantId: string, dto: CreateShiftDto, userId: string, scope?: RequestScope) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
+    // The one company/branch the request works in, else shared by all (rule 16).
+    const at = newRecordScope(scope);
     const result = await connection.query(
       `
-      INSERT INTO shifts (name, start_time, end_time, color, is_overnight, description, grace_minutes, wait_for_absent_minutes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO shifts (name, start_time, end_time, color, is_overnight, description, grace_minutes, wait_for_absent_minutes, company_id, branch_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `,
       [
@@ -155,6 +158,8 @@ export class SchedulingService {
         dto.description,
         dto.grace_minutes || 15,
         dto.wait_for_absent_minutes || null,
+        at.company_id,
+        at.branch_id,
       ],
     );
 
@@ -169,10 +174,13 @@ export class SchedulingService {
     return shift;
   }
 
-  async getShifts(tenantId: string) {
+  async getShifts(tenantId: string, scope?: RequestScope) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
-    return await connection.query(`SELECT * FROM shifts WHERE is_active = true ORDER BY name`);
+    // Shared shifts and those of the request's companies and branches (rule 16).
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 's', params);
+    return await connection.query(`SELECT * FROM shifts s WHERE s.is_active = true${where} ORDER BY s.name`, params);
   }
 
   async updateShift(tenantId: string, shiftId: string, dto: UpdateShiftDto, userId: string) {
@@ -239,13 +247,16 @@ export class SchedulingService {
     tenantId: string,
     dto: CreateShiftPatternDto,
     userId: string,
+    scope?: RequestScope,
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
+    // The one company/branch the request works in, else shared by all (rule 16).
+    const at = newRecordScope(scope);
     const result = await connection.query(
       `
-      INSERT INTO shift_patterns (name, description, cycle_length_days, shifts, enable_dayoff_rotation)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO shift_patterns (name, description, cycle_length_days, shifts, enable_dayoff_rotation, company_id, branch_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `,
       [
@@ -254,6 +265,8 @@ export class SchedulingService {
         dto.cycle_length_days,
         JSON.stringify(dto.shifts),
         dto.enable_dayoff_rotation || false,
+        at.company_id,
+        at.branch_id,
       ],
     );
 
@@ -268,11 +281,15 @@ export class SchedulingService {
     return pattern;
   }
 
-  async getPatterns(tenantId: string) {
+  async getPatterns(tenantId: string, scope?: RequestScope) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
+    // Shared patterns and those of the request's companies and branches (rule 16).
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 'p', params);
     return await connection.query(
-      `SELECT * FROM shift_patterns WHERE is_active = true ORDER BY name`,
+      `SELECT * FROM shift_patterns p WHERE p.is_active = true${where} ORDER BY p.name`,
+      params,
     );
   }
 
@@ -418,8 +435,11 @@ export class SchedulingService {
     return assignment;
   }
 
-  async getUserShiftPatterns(tenantId: string) {
+  async getUserShiftPatterns(tenantId: string, scope?: RequestScope) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    // People of the request's companies and branches (rule 16).
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 'u', params);
 
     return await connection.query(`
       SELECT usp.*, 
@@ -428,25 +448,29 @@ export class SchedulingService {
       FROM user_shift_patterns usp
       JOIN users u ON usp.user_id = u.id
       LEFT JOIN shift_patterns sp ON usp.pattern_id = sp.id
-      WHERE u.is_active = true
+      WHERE u.is_active = true${where}
       ORDER BY u.full_name
-    `);
+    `, params);
   }
 
-  async getUnassignedUsers(tenantId: string) {
+  async getUnassignedUsers(tenantId: string, scope?: RequestScope) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 'u', params);
 
     return await connection.query(`
       SELECT u.id, u.full_name, u.email, u.department, u.position, u.avatar_url
       FROM users u
       LEFT JOIN user_shift_patterns usp ON u.id = usp.user_id
-      WHERE u.is_active = true AND usp.id IS NULL
+      WHERE u.is_active = true AND usp.id IS NULL${where}
       ORDER BY u.full_name
-    `);
+    `, params);
   }
 
-  async getUsersWithAssignments(tenantId: string) {
+  async getUsersWithAssignments(tenantId: string, scope?: RequestScope) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 'u', params);
 
     return await connection.query(`
       SELECT u.id, u.full_name, u.email, u.department, u.position, u.avatar_url,
@@ -457,9 +481,9 @@ export class SchedulingService {
       FROM users u
       LEFT JOIN user_shift_patterns usp ON u.id = usp.user_id
       LEFT JOIN shift_patterns sp ON usp.pattern_id = sp.id
-      WHERE u.is_active = true
+      WHERE u.is_active = true${where}
       ORDER BY u.full_name
-    `);
+    `, params);
   }
 
   async removePatternAssignment(tenantId: string, userId: string, auditUserId?: string) {
@@ -687,16 +711,20 @@ export class SchedulingService {
   }
 
   // ============ AUDIT LOGS ============
-  async getAuditLogs(tenantId: string) {
+  async getAuditLogs(tenantId: string, scope?: RequestScope) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
+    // Logs of the request's companies and branches (rule 16).
+    const params: unknown[] = [];
+    const where = scopeWhere(scope, 'a', params);
     return await connection.query(`
-            SELECT a.*, u.full_name as user_name, u.email as user_email 
+            SELECT a.*, u.full_name as user_name, u.email as user_email
             FROM audit_logs a
             LEFT JOIN users u ON a.user_id = u.id
-            ORDER BY a.created_at DESC 
+            WHERE true${where}
+            ORDER BY a.created_at DESC
             LIMIT 100
-        `);
+        `, params);
   }
 
   // Helper to log without AuditService dependency issues for Tenant DB

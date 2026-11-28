@@ -9,6 +9,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, requestScope } from '../company-scope/request-scope';
 
 @Controller('events')
 @RequireModule('events')
@@ -19,10 +20,11 @@ export class EventsController {
     @Get()
     @RequirePermissions('view_events')
     async findAll(@Request() req: AuthenticatedRequest) {
-        return this.eventsService.findAll(req.user.tenantId);
+        return this.eventsService.findAll(req.user.tenantId, requestScope(req));
     }
 
     @Get(':id')
+    @ScopedRecord('events')
     @RequirePermissions('view_events')
     async findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.eventsService.findOne(req.user.tenantId, id);
@@ -31,16 +33,18 @@ export class EventsController {
     @Post()
     @RequirePermissions('create_events')
     async create(@Request() req: AuthenticatedRequest, @Body() dto: CreateEventDto) {
-        return this.eventsService.create(req.user.tenantId, req.user.sub, dto);
+        return this.eventsService.create(req.user.tenantId, req.user.sub, dto, requestScope(req));
     }
 
     @Patch(':id')
+    @ScopedRecord('events')
     @RequirePermissions('edit_events')
     async update(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateEventDto) {
         return this.eventsService.update(req.user.tenantId, id, dto);
     }
 
     @Delete(':id')
+    @ScopedRecord('events')
     @RequirePermissions('delete_events')
     async delete(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.eventsService.delete(req.user.tenantId, id);

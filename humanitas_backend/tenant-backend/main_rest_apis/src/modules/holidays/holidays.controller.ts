@@ -7,6 +7,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, requestScope } from '../company-scope/request-scope';
 
 @ApiTags('Holidays')
 @ApiBearerAuth()
@@ -19,22 +20,24 @@ export class HolidaysController {
     @Get()
     @RequirePermissions('view_holidays')
     findAll(@Request() req: AuthenticatedRequest) {
-        return this.holidaysService.findAll(req.user.tenantId);
+        return this.holidaysService.findAll(req.user.tenantId, requestScope(req));
     }
 
     @Post()
     @RequirePermissions('manage_holidays')
     create(@Request() req: AuthenticatedRequest, @Body() dto: CreateHolidayDto) {
-        return this.holidaysService.create(req.user.tenantId, dto);
+        return this.holidaysService.create(req.user.tenantId, dto, requestScope(req));
     }
 
     @Patch(':id')
+    @ScopedRecord('holidays')
     @RequirePermissions('manage_holidays')
     update(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateHolidayDto) {
         return this.holidaysService.update(req.user.tenantId, id, dto);
     }
 
     @Delete(':id')
+    @ScopedRecord('holidays')
     @RequirePermissions('manage_holidays')
     remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.holidaysService.delete(req.user.tenantId, id);

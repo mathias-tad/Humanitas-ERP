@@ -1,6 +1,7 @@
 import type { DataSource } from 'typeorm';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { scopeWhere, type RequestScope } from '../company-scope/request-scope';
 import {
   CreateCourseDto,
   UpdateCourseDto,
@@ -139,7 +140,7 @@ export class HrmsTrainingService {
     }
   }
 
-  async getCourses(tenantId: string, filters?: { category?: string; delivery_method?: string; is_mandatory?: boolean; is_active?: boolean }) {
+  async getCourses(tenantId: string, filters?: { category?: string; delivery_method?: string; is_mandatory?: boolean; is_active?: boolean }, scope?: RequestScope) {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT c.*,
@@ -168,6 +169,8 @@ export class HrmsTrainingService {
       query += ` AND c.is_active = $${idx++}`;
       params.push(filters.is_active);
     }
+    // Shared courses and those of the request's companies and branches (rule 16).
+    query += scopeWhere(scope, 'c', params);
 
     query += ` GROUP BY c.id ORDER BY c.title ASC`;
     return connection.query(query, params);
@@ -327,7 +330,7 @@ export class HrmsTrainingService {
     return this.getEnrollmentById(tenantId, id);
   }
 
-  async getEnrollments(tenantId: string, filters?: { course_id?: string; user_id?: string; status?: string }) {
+  async getEnrollments(tenantId: string, filters?: { course_id?: string; user_id?: string; status?: string }, scope?: RequestScope) {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT e.*, c.title as course_title, c.category as course_category,
@@ -355,6 +358,8 @@ export class HrmsTrainingService {
       query += ` AND e.status = $${idx++}`;
       params.push(filters.status);
     }
+    // Enrollments of the request's companies and branches (rule 16).
+    query += scopeWhere(scope, 'e', params);
 
     query += ` ORDER BY e.created_at DESC`;
     return connection.query(query, params);
@@ -408,7 +413,7 @@ export class HrmsTrainingService {
     return this.getEnrollmentById(tenantId, id);
   }
 
-  async getEmployeeSkills(tenantId: string, userId?: string) {
+  async getEmployeeSkills(tenantId: string, userId?: string, scope?: RequestScope) {
     const connection = await this.getConnection(tenantId);
     let query = `
       SELECT s.*, COALESCE(u.full_name, '') as user_name, u.department as user_department
@@ -421,6 +426,8 @@ export class HrmsTrainingService {
       query += ` AND s.user_id = $1`;
       params.push(userId);
     }
+    // A person's own skills always; others only within the request's companies and branches (rule 16).
+    if (!userId) query += scopeWhere(scope, 's', params);
     query += ` ORDER BY s.skill_name ASC`;
     return connection.query(query, params);
   }
@@ -457,14 +464,21 @@ export class HrmsTrainingService {
     }
   }
 
-  async getTrainingStats(tenantId: string) {
+  async getTrainingStats(tenantId: string, scope?: RequestScope) {
     const connection = await this.getConnection(tenantId);
+    // Counted within the request's companies and branches (rule 16).
+    const cp: unknown[] = [];
+    const cw = scopeWhere(scope, 'c', cp);
+    const ep: unknown[] = [];
+    const ew = scopeWhere(scope, 'e', ep);
+    const sp: unknown[] = [];
+    const sw = scopeWhere(scope, 's', sp);
 
     const courseCounts = await connection.query(`
       SELECT COUNT(*) as total_courses,
              COUNT(CASE WHEN is_mandatory = true THEN 1 END) as mandatory_courses
-      FROM training_courses WHERE is_active = true
-    `);
+      FROM training_courses c WHERE is_active = true${cw}
+    `, cp);
 
     const enrollmentCounts = await connection.query(`
       SELECT COUNT(*) as total_enrollments,
@@ -472,23 +486,23 @@ export class HrmsTrainingService {
              COUNT(CASE WHEN status IN ('confirmed', 'nominated') THEN 1 END) as active_enrollments,
              COUNT(CASE WHEN status = 'waitlisted' THEN 1 END) as waitlisted_enrollments,
              AVG(CASE WHEN status = 'completed' THEN score END) as average_score
-      FROM training_enrollments
-    `);
+      FROM training_enrollments e WHERE true${ew}
+    `, ep);
 
     const complianceCounts = await connection.query(`
       SELECT COUNT(*) as mandatory_assignments,
              COUNT(CASE WHEN e.status = 'completed' THEN 1 END) as mandatory_completed
       FROM training_enrollments e
       JOIN training_courses c ON e.course_id = c.id
-      WHERE c.is_mandatory = true
-    `);
+      WHERE c.is_mandatory = true${ew}
+    `, ep);
 
     const skillCounts = await connection.query(`
       SELECT COUNT(*) as total_skills,
              COUNT(DISTINCT user_id) as employees_with_skills,
              COUNT(CASE WHEN verified = true THEN 1 END) as verified_skills
-      FROM employee_skills
-    `);
+      FROM employee_skills s WHERE true${sw}
+    `, sp);
 
     const totalCourses = parseInt(courseCounts[0]?.total_courses || '0', 10);
     const mandatoryCourses = parseInt(courseCounts[0]?.mandatory_courses || '0', 10);

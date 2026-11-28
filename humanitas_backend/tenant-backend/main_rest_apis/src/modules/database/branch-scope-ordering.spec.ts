@@ -21,6 +21,7 @@ const SCOPE_MIGRATIONS = [
   '20261122000023_branch_scope_every_table.sql',
   '20261123000002_inventory_branch_scope.sql',
   '20261127000001_branch_scope_late_tables.sql',
+  '20261127000003_branch_scope_runtime_tables.sql',
 ];
 
 /** The hierarchy itself, the migration log and the access table that defines branch access. */

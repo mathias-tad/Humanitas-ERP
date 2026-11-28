@@ -24,6 +24,7 @@ import {
   UpsertSkillDto,
 } from './dto/hrms-training.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, requestScope } from '../company-scope/request-scope';
 
 @Controller('hrms/training')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -53,10 +54,11 @@ export class HrmsTrainingController {
       delivery_method,
       is_mandatory: is_mandatory !== undefined ? is_mandatory === 'true' : undefined,
       is_active: is_active !== undefined ? is_active === 'true' : undefined,
-    });
+    }, requestScope(req));
   }
 
   @Get('courses/:id')
+  @ScopedRecord('training_courses')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getCourseById(
     @Request() req: AuthenticatedRequest,
@@ -79,6 +81,7 @@ export class HrmsTrainingController {
   }
 
   @Put('courses/:id')
+  @ScopedRecord('training_courses')
   @RequirePermissions('manage_training')
   async updateCourse(
     @Request() req: AuthenticatedRequest,
@@ -130,13 +133,13 @@ export class HrmsTrainingController {
                       req.user?.permissions?.includes('*') ||
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
-    // Regular learners only view their own enrollments
+    // Regular learners only view their own enrollments; managers those of their companies and branches.
     const targetUserId = hasManage ? user_id : req.user.sub;
     return this.trainingService.getEnrollments(tenantId, {
       course_id,
       user_id: targetUserId,
       status,
-    });
+    }, hasManage ? requestScope(req) : undefined);
   }
 
   @Get('my-enrollments')
@@ -150,6 +153,7 @@ export class HrmsTrainingController {
   }
 
   @Get('enrollments/:id')
+  @ScopedRecord('training_enrollments')
   @RequirePermissions('view_training_courses', 'view_my_training', 'manage_training')
   async getEnrollmentById(
     @Request() req: AuthenticatedRequest,
@@ -181,6 +185,7 @@ export class HrmsTrainingController {
   }
 
   @Put('enrollments/:id')
+  @ScopedRecord('training_enrollments')
   @RequirePermissions('manage_training', 'complete_training')
   async updateEnrollmentProgress(
     @Request() req: AuthenticatedRequest,
@@ -207,7 +212,7 @@ export class HrmsTrainingController {
                       ['admin', 'administrator', 'owner'].includes(req.user?.role?.toLowerCase());
 
     const targetUserId = hasManage ? user_id : (user_id || req.user.sub);
-    return this.trainingService.getEmployeeSkills(tenantId, targetUserId);
+    return this.trainingService.getEmployeeSkills(tenantId, targetUserId, requestScope(req));
   }
 
   @Post('skills')
@@ -241,6 +246,6 @@ export class HrmsTrainingController {
     @Headers('x-tenant-id') tenantIdHeader: string,
   ) {
     const tenantId = this.getTenantId(req, tenantIdHeader);
-    return this.trainingService.getTrainingStats(tenantId);
+    return this.trainingService.getTrainingStats(tenantId, requestScope(req));
   }
 }

@@ -8,6 +8,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateOvertimeDto } from './dto/update-overtime.dto';
+import { ScopedRecord, ScopedRecords, requestScope } from '../company-scope/request-scope';
 
 @Controller('overtime')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
@@ -18,7 +19,7 @@ export class OvertimeController {
     @Get()
     @RequirePermissions('overtime_view')
     async findAll(@Request() req: AuthenticatedRequest, @Query() query) {
-        return this.overtimeService.findAll(req.user.tenantId, query);
+        return this.overtimeService.findAll(req.user.tenantId, query, requestScope(req));
     }
 
     @Get('periods')
@@ -34,6 +35,7 @@ export class OvertimeController {
     }
 
     @Patch(':id')
+    @ScopedRecord('overtime_entries')
     @RequirePermissions('overtime_management')
     async update(
         @Request() req: AuthenticatedRequest,
@@ -44,6 +46,7 @@ export class OvertimeController {
     }
 
     @Put('entries/:id')
+    @ScopedRecord('overtime_entries')
     @RequirePermissions('overtime_management')
     async updateEntry(
         @Request() req: AuthenticatedRequest,
@@ -54,12 +57,14 @@ export class OvertimeController {
     }
 
     @Post('approve')
+    @ScopedRecords('overtime_entries')
     @RequirePermissions('overtime_management')
     async approve(@Request() req: AuthenticatedRequest, @Body() body: { ids: string[] }) {
         return this.overtimeService.bulkApprove(req.user.tenantId, req.user.sub, body.ids);
     }
 
     @Post('reject')
+    @ScopedRecords('overtime_entries')
     @RequirePermissions('overtime_management')
     async reject(@Request() req: AuthenticatedRequest, @Body() body: { ids: string[] }) {
         return this.overtimeService.bulkReject(req.user.tenantId, req.user.sub, body.ids);

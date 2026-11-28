@@ -1,14 +1,16 @@
-import { ForbiddenException, Injectable, Logger, type CallHandler, type ExecutionContext, type NestInterceptor } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException, type CallHandler, type ExecutionContext, type NestInterceptor } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { DatabaseService } from '../database/database.service';
 import { CompanyScopeService } from './company-scope.service';
 import { ScopeViolation, canUseBranch, canUseCompany, checkRecordScope, effectiveScope, idList, UUID_RE, type UserScope } from './company-scope';
+import { scopeChecksOf, type ScopeCheck } from './request-scope';
 
 type Req = {
   method?: string;
   user?: { sub?: string; tenantId?: string; role?: string };
   headers: Record<string, string | string[] | undefined>;
   query?: Record<string, unknown>;
+  params?: Record<string, unknown>;
   body?: unknown;
   companyScope?: UserScope;
 };
@@ -22,7 +24,9 @@ const WRITE = new Set(['POST', 'PUT', 'PATCH']);
  * - a limited user who picked nothing gets their default company (and branch), so no module ever
  *   shows them every company's data;
  * - company_id / branch_id in a create or update body must be allowed ("shared by all
- *   companies" only with access to every company).
+ *   companies" only with access to every company);
+ * - a record named by @ScopedRecord / @ScopedUser / @ScopedRecords (request-scope.ts) must be in
+ *   a company and branch the user may use: 404 for one record, 403 for several.
  * Runs after the guards, so the user is known; public routes pass untouched.
  */
 @Injectable()
@@ -52,6 +56,8 @@ export class CompanyScopeInterceptor implements NestInterceptor {
 
     try {
       await this.apply(req, user.tenantId, scope);
+      const checks = scopeChecksOf(typeof context.getHandler === 'function' ? context.getHandler() : undefined);
+      if (checks.length) await this.checkRecords(req, user.tenantId, scope, checks);
     } catch (err) {
       if (err instanceof ScopeViolation) throw new ForbiddenException(err.message);
       throw err;
@@ -102,6 +108,29 @@ export class CompanyScopeInterceptor implements NestInterceptor {
       const companyId = 'company_id' in body ? (body.company_id as string | null | undefined) : undefined;
       if (companyId !== undefined && companyId !== null && typeof companyId !== 'string') throw new ScopeViolation('company_id must be an id');
       checkRecordScope(scope, companyId, bodyBranch, bodyBranch ? branchCompany.get(bodyBranch) : undefined);
+    }
+  }
+
+  /** Refuses records outside the user's companies and branches (a missing row is the handler's 404). */
+  private async checkRecords(req: Req, tenantId: string, scope: UserScope, checks: ScopeCheck[]) {
+    const conn = await this.databaseService.getTenantConnectionById(tenantId);
+    const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? (req.body as Record<string, unknown>) : {};
+    type Row = { id: string; company_id: string | null; branch_id: string | null };
+    for (const check of checks) {
+      const ids = check.param ? idList(req.params?.[check.param]) : idList(body[check.bodyField ?? 'ids']);
+      if (!ids.length) continue;
+      const sql = (match: string) => `SELECT id::text AS id, company_id, branch_id FROM ${check.table} WHERE ${match}`;
+      // uuid ids use the primary key; a table with text ids ('tc-001') is matched as text.
+      const rows: Row[] = ids.every((id) => UUID_RE.test(id))
+        ? await conn.query(sql('id = ANY($1::uuid[])'), [ids]).catch(() => conn.query(sql('id::text = ANY($1::text[])'), [ids]))
+        : await conn.query(sql('id::text = ANY($1::text[])'), [ids]);
+      const owners = await this.branchCompanies(tenantId, rows.map((r) => r.branch_id).filter((b): b is string => !!b));
+      const outside = rows.some((r) =>
+        (!!r.company_id && !canUseCompany(scope, r.company_id))
+        || (!!r.branch_id && !canUseBranch(scope, r.branch_id, owners.get(r.branch_id) ?? r.company_id ?? null)));
+      if (!outside) continue;
+      if (check.param) throw new NotFoundException('Record not found');
+      throw new ForbiddenException('Some of these records belong to a company or branch you do not have access to');
     }
   }
 

@@ -6,6 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { scopeWhere, type RequestScope } from '../company-scope/request-scope';
 import { ApplyLeaveDto } from './dto/apply-leave.dto';
 
 @Injectable()
@@ -403,6 +404,7 @@ export class LeaveService {
   async getAllLeaveRequests(
     tenantId: string,
     filters?: { status?: string; user_id?: string },
+    scope?: RequestScope,
   ) {
     const connection =
       await this.databaseService.getTenantConnectionById(tenantId);
@@ -431,6 +433,8 @@ export class LeaveService {
       paramIndex++;
     }
 
+    // The companies and branches the request works in (rule 16).
+    query += scopeWhere(scope, 'lr', params);
     query += ` ORDER BY lr.created_at DESC`;
 
     const result = await connection.query(query, params);

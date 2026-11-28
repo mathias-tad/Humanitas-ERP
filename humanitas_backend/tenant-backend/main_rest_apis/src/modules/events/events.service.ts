@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateEventDto, UpdateEventDto } from './dto/event.dto';
+import { newRecordScope, scopeWhere, type RequestScope } from '../company-scope/request-scope';
 
 @Injectable()
 export class EventsService {
@@ -11,16 +12,20 @@ export class EventsService {
         private readonly notificationsService: NotificationsService,
         private readonly notificationsGateway: NotificationsGateway,
     ) { }
-    async findAll(tenantId: string) {
+    async findAll(tenantId: string, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // Shared events and those of the request's companies and branches (rule 16).
+        const params: unknown[] = [];
+        const where = scopeWhere(scope, 'e', params);
 
         return connection.query(`
             SELECT e.*, u.full_name as created_by_name,
                    TO_CHAR(e.event_date, 'YYYY-MM-DD') as event_date
             FROM events e
             LEFT JOIN users u ON e.created_by = u.id
+            WHERE true${where}
             ORDER BY e.event_date DESC
-        `);
+        `, params);
     }
 
     async findOne(tenantId: string, id: string) {
@@ -37,12 +42,14 @@ export class EventsService {
         return result[0];
     }
 
-    async create(tenantId: string, userId: string, dto: CreateEventDto) {
+    async create(tenantId: string, userId: string, dto: CreateEventDto, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // The one company/branch the request works in, else shared by all (rule 16).
+        const at = newRecordScope(scope);
 
         const result = await connection.query(`
-            INSERT INTO events (title, content, event_date, event_time, location, target_type, target_ids, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO events (title, content, event_date, event_time, location, target_type, target_ids, created_by, company_id, branch_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
         `, [
             dto.title,
@@ -53,6 +60,8 @@ export class EventsService {
             dto.target_type,
             dto.target_ids || [],
             userId,
+            at.company_id,
+            at.branch_id,
         ]);
 
         const event = result[0];

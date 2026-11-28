@@ -3,6 +3,7 @@ import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcement.dto';
+import { newRecordScope, scopeWhere, type RequestScope } from '../company-scope/request-scope';
 
 @Injectable()
 export class AnnouncementsService {
@@ -11,15 +12,19 @@ export class AnnouncementsService {
         private readonly notificationsService: NotificationsService,
         private readonly notificationsGateway: NotificationsGateway,
     ) { }
-    async findAll(tenantId: string) {
+    async findAll(tenantId: string, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // Shared announcements and those of the request's companies and branches (rule 16).
+        const params: unknown[] = [];
+        const where = scopeWhere(scope, 'a', params);
 
         return connection.query(`
             SELECT a.*, u.full_name as created_by_name
             FROM announcements a
             LEFT JOIN users u ON a.created_by = u.id
+            WHERE true${where}
             ORDER BY a.created_at DESC
-        `);
+        `, params);
     }
 
     async findOne(tenantId: string, id: string) {
@@ -35,12 +40,14 @@ export class AnnouncementsService {
         return result[0];
     }
 
-    async create(tenantId: string, userId: string, dto: CreateAnnouncementDto) {
+    async create(tenantId: string, userId: string, dto: CreateAnnouncementDto, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // The one company/branch the request works in, else shared by all (rule 16).
+        const at = newRecordScope(scope);
 
         const result = await connection.query(`
-            INSERT INTO announcements (title, content, priority, target_type, target_ids, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO announcements (title, content, priority, target_type, target_ids, created_by, company_id, branch_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
         `, [
             dto.title,
@@ -49,6 +56,8 @@ export class AnnouncementsService {
             dto.target_type,
             dto.target_ids || [],
             userId,
+            at.company_id,
+            at.branch_id,
         ]);
 
         const announcement = result[0];

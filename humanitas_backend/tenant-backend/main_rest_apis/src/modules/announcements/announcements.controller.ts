@@ -9,6 +9,7 @@ import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-su
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, requestScope } from '../company-scope/request-scope';
 
 @Controller('announcements')
 @RequireModule('announcements')
@@ -19,10 +20,11 @@ export class AnnouncementsController {
     @Get()
     @RequirePermissions('view_announcements')
     async findAll(@Request() req: AuthenticatedRequest) {
-        return this.announcementsService.findAll(req.user.tenantId);
+        return this.announcementsService.findAll(req.user.tenantId, requestScope(req));
     }
 
     @Get(':id')
+    @ScopedRecord('announcements')
     @RequirePermissions('view_announcements')
     async findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.announcementsService.findOne(req.user.tenantId, id);
@@ -31,16 +33,18 @@ export class AnnouncementsController {
     @Post()
     @RequirePermissions('create_announcements')
     async create(@Request() req: AuthenticatedRequest, @Body() dto: CreateAnnouncementDto) {
-        return this.announcementsService.create(req.user.tenantId, req.user.sub, dto);
+        return this.announcementsService.create(req.user.tenantId, req.user.sub, dto, requestScope(req));
     }
 
     @Patch(':id')
+    @ScopedRecord('announcements')
     @RequirePermissions('edit_announcements')
     async update(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateAnnouncementDto) {
         return this.announcementsService.update(req.user.tenantId, id, dto);
     }
 
     @Delete(':id')
+    @ScopedRecord('announcements')
     @RequirePermissions('delete_announcements')
     async delete(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.announcementsService.delete(req.user.tenantId, id);

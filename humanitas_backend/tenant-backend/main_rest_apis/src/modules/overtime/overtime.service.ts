@@ -7,6 +7,7 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { SystemLogsService } from '../system-logs/system-logs.service';
 import { CalculationType } from '../system-logs/entities/calculation-log.entity';
 import { UpdateOvertimeDto } from './dto/update-overtime.dto';
+import { scopeWhere, type RequestScope } from '../company-scope/request-scope';
 
 @Injectable()
 export class OvertimeService {
@@ -131,7 +132,7 @@ export class OvertimeService {
         endDate?: string,
         status?: string,
         userId?: string
-    }) {
+    }, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
         let query = `
@@ -164,6 +165,8 @@ export class OvertimeService {
             pIdx++;
         }
 
+        // The companies and branches the request works in (rule 16).
+        query += scopeWhere(scope, 'oe', params);
         query += ` ORDER BY oe.date DESC`;
 
         const result = await connection.query(query, params);

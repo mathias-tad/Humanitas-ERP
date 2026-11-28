@@ -2,6 +2,7 @@ import type { DataSource } from 'typeorm';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateHolidayDto, UpdateHolidayDto } from './dto/holiday.dto';
+import { newRecordScope, scopeWhere, type RequestScope } from '../company-scope/request-scope';
 
 @Injectable()
 export class HolidaysService {
@@ -35,23 +36,29 @@ export class HolidaysService {
         console.log(`Seeded ${ethiopianHolidays.length} Ethiopian holidays.`);
     }
 
-    async findAll(tenantId: string) {
+    async findAll(tenantId: string, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // Shared holidays (no company/branch) and those of the request's companies and branches (rule 16).
+        const params: unknown[] = [];
+        const where = scopeWhere(scope, 'h', params);
         // Format date as YYYY-MM-DD string to avoid timezone issues on frontend
         return connection.query(`
-            SELECT id, name, TO_CHAR(date, 'YYYY-MM-DD') as date, description, is_recurring, type, created_at, updated_at 
-            FROM holidays 
+            SELECT id, name, TO_CHAR(date, 'YYYY-MM-DD') as date, description, is_recurring, type, company_id, branch_id, created_at, updated_at
+            FROM holidays h
+            WHERE true${where}
             ORDER BY date ASC
-        `);
+        `, params);
     }
 
-    async create(tenantId: string, dto: CreateHolidayDto) {
+    async create(tenantId: string, dto: CreateHolidayDto, scope?: RequestScope) {
         const connection = await this.databaseService.getTenantConnectionById(tenantId);
+        // The one company/branch the request works in, else shared by all (rule 16).
+        const at = newRecordScope(scope);
 
         const result = await connection.query(
-            `INSERT INTO holidays (name, date, description, is_recurring, type) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [dto.name, dto.date, dto.description, dto.is_recurring ?? true, dto.type ?? 'public']
+            `INSERT INTO holidays (name, date, description, is_recurring, type, company_id, branch_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [dto.name, dto.date, dto.description, dto.is_recurring ?? true, dto.type ?? 'public', at.company_id, at.branch_id]
         );
         return result[0];
     }
