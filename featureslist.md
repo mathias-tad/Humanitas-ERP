@@ -16,7 +16,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 2. Inventory & Warehouse Management | 41 | 8 | 33 | 20% |
 | 3. Purchasing & Vendor Management | 39 | 0 | 39 | 0% |
 | 4. Enterprise Sales, Quotations & E-Invoicing | 44 | 0 | 44 | 0% |
-| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 140 | 22 | 118 | 16% |
+| 4.1. World-Class Enterprise CRM & Customer Lifecycle Suite | 141 | 23 | 118 | 16% |
 | 5. Point of Sale (POS) | 45 | 0 | 45 | 0% |
 | 6. Double-Entry Accounting, Financials & Fixed Assets | 61 | 1 | 60 | 2% |
 | 7. Decoupled Human Resource Management & Recruitment (HRMS) | 64 | 64 | 0 | 100% |
@@ -52,7 +52,7 @@ This document provides a comprehensive, enterprise-grade feature checklist for t
 | 38. Manufacturing (MRP), Quality & Plant Maintenance | 52 | 0 | 52 | 0% |
 | 39. Ethiopian MoR E-Invoicing (EIMS) Compliance | 50 | 5 | 45 | 10% |
 | 40. National ID (Fayda) Verification | 20 | 0 | 20 | 0% |
-| **TOTAL** | **1249** | **596** | **653** | **48%** |
+| **TOTAL** | **1250** | **597** | **653** | **48%** |
 
 ---
 
@@ -424,6 +424,7 @@ Build the <MODULE> module for Humanitas-ERP as an independent, separately sellab
   - [ ] Email communication tracking (emails logged on the lead, deal and customer).
   - [x] Activity assignment (to yourself or a colleague).
   - [x] Pending and overdue activity monitoring (my activities: today, overdue, upcoming).
+  - [x] Mobile app: my day (overdue, today, upcoming), leads (create, edit, status, convert, lost), deals (stage, won, lost, reopen) and follow-ups with the next step.
 - [ ] **1.6 Sales Team Management**:
   - [ ] Sales representative management (who sells, for which company and branch).
   - [ ] Sales team assignment (team leader and members).

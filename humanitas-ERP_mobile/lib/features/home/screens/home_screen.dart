@@ -30,6 +30,7 @@ import '../../organization/widgets/company_branch_switcher.dart';
 import '../../products/screens/products_screen.dart';
 import '../../contacts/screens/contacts_screen.dart';
 import '../../inventory/screens/stock_screen.dart';
+import '../../crm/screens/crm_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -44,6 +45,8 @@ class HomeScreen extends ConsumerWidget {
     final hasProducts = authState.isModuleSubscribed('products') && authState.hasPermission('view_products');
     final hasContacts = authState.isModuleSubscribed('contacts') && authState.hasPermission('view_contacts');
     final hasStock = authState.isModuleSubscribed('inventory') && authState.hasPermission('view_stock');
+    final hasCrm = authState.isModuleSubscribed('crm') &&
+        authState.hasAnyPermission(const [CrmPerm.viewLeads, CrmPerm.viewDeals, CrmPerm.viewActivities]);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -285,6 +288,10 @@ class HomeScreen extends ConsumerWidget {
                 if (hasStock)
                   _QuickActionItem(icon: Icons.all_inbox_outlined, color: AppColors.warning, label: 'Stock', onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StockScreen()));
+                  }),
+                if (hasCrm)
+                  _QuickActionItem(icon: Icons.handshake_outlined, color: AppColors.teal, label: 'CRM', onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CrmScreen()));
                   }),
                 if (hasContacts)
                   _QuickActionItem(icon: Icons.contacts_outlined, color: AppColors.primary, label: 'Contacts', onTap: () {

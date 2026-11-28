@@ -148,6 +148,7 @@ export default function FeaturesPage() {
                 "Weighted sales forecast by expected close month, CRM set-up of pipelines, stages, lead sources and lost reasons",
                 "Import leads and deals from Excel or CSV: columns matched by name, every row checked first, duplicates skipped, missing sources and customers created on request",
                 "Salespeople see their own leads, deals and activities; managers see everyone's",
+                "Mobile CRM: my day, leads, deals and follow-ups in the app: qualify and convert leads, move deals through stages, mark them won or lost, plan the next step on the go",
                 "Follow-up log on every lead and deal: call, meeting, visit, email, Telegram, WhatsApp or SMS, who contacted whom, when (backdated too), outcome, numbered 1st, 2nd… contact, next step in the same form, last contact in the lists",
                 "Dynamic pricing rules, tiered volume discounts, and customer-specific price lists",
                 "Sales quotation to sales order 1-click conversion with inventory reservation",
