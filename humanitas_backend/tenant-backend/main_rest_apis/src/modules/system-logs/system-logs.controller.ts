@@ -1,4 +1,5 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, requestScope } from '../company-scope/request-scope';
 import { Controller, Get, Post, Param, Query, BadRequestException, UseGuards, Request, OnModuleInit } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SystemLogsService } from './system-logs.service';
@@ -150,7 +151,7 @@ export class SystemLogsController implements OnModuleInit {
             : undefined;
         const n = Number(limit);
         const parsedLimit = Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 500) : undefined;
-        return this.logsService.findAll(req.user.tenantId, type, statuses, parsedLimit);
+        return this.logsService.findAll(req.user.tenantId, type, statuses, parsedLimit, requestScope(req));
     }
 
     @Get('server')
@@ -162,6 +163,7 @@ export class SystemLogsController implements OnModuleInit {
     }
 
     @Get(':id')
+    @ScopedRecord('payroll_runs')
     @ApiOperation({ summary: 'Get log by ID' })
     @RequirePermissions('view_logs', 'manage_logs')
     async getLog(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
@@ -171,6 +173,7 @@ export class SystemLogsController implements OnModuleInit {
     }
 
     @Post(':id/retry')
+    @ScopedRecord('payroll_runs')
     @ApiOperation({ summary: 'Retry a failed calculation' })
     @RequirePermissions('manage_logs')
     async retryLog(@Param('id') id: string, @Request() req: AuthenticatedRequest) {

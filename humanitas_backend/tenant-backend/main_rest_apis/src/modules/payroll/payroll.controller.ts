@@ -36,6 +36,7 @@ import {
   UpdateHolidayDto,
 } from './dto/payroll.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
+import { ScopedRecord, ScopedUser, requestScope } from '../company-scope/request-scope';
 
 @ApiTags('Payroll')
 @ApiBearerAuth()
@@ -83,6 +84,7 @@ export class PayrollController {
   }
 
   @Get('income-types/:id/calculate/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Calculate income amount for a user' })
   async calculateIncomeAmount(
@@ -99,6 +101,7 @@ export class PayrollController {
 
   // ==================== USER INCOMES ====================
   @Get('user-incomes/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Get user incomes' })
   async getUserIncomes(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
@@ -106,6 +109,7 @@ export class PayrollController {
   }
 
   @Post('user-incomes/:userId')
+  @ScopedUser()
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Assign income to user' })
   async assignUserIncome(
@@ -121,6 +125,7 @@ export class PayrollController {
   }
 
   @Patch('user-incomes/:id')
+  @ScopedRecord('user_incomes')
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Update user income assignment' })
   async updateUserIncome(
@@ -136,6 +141,7 @@ export class PayrollController {
   }
 
   @Delete('user-incomes/:id')
+  @ScopedRecord('user_incomes')
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Remove user income' })
   async removeUserIncome(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
@@ -143,6 +149,7 @@ export class PayrollController {
   }
 
   @Post('user-incomes/:userId/recalculate')
+  @ScopedUser()
   @RequirePermissions('manage_payroll')
   @ApiOperation({ summary: 'Recalculate all base income assignments for a user' })
   async recalculateUserIncomes(@Request() req: AuthenticatedRequest, @Param('userId') userId: string) {
@@ -309,7 +316,7 @@ export class PayrollController {
   @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get payroll history' })
   async getPayrollHistory(@Request() req: AuthenticatedRequest) {
-    return this.payrollService.getPayrollHistory(req.user.tenantId);
+    return this.payrollService.getPayrollHistory(req.user.tenantId, requestScope(req));
   }
 
   @Get('details')
@@ -324,6 +331,7 @@ export class PayrollController {
       req.user.tenantId,
       parseInt(month),
       parseInt(year),
+      requestScope(req),
     );
   }
 
@@ -395,6 +403,7 @@ export class PayrollController {
       req.user.tenantId,
       m,
       y,
+      requestScope(req),
     );
   }
 
@@ -452,6 +461,7 @@ export class PayrollController {
       req.user.tenantId,
       parseInt(month),
       parseInt(year),
+      requestScope(req),
     );
 
     const workbook = new ExcelJS.Workbook();
@@ -779,6 +789,7 @@ export class PayrollController {
   }
 
   @Get('acting-allowances/:userId')
+  @ScopedUser()
   @RequirePermissions('view_payroll')
   @ApiOperation({ summary: 'Get active acting allowances and prorated calculation for an employee' })
   async getActingAllowancesForUser(

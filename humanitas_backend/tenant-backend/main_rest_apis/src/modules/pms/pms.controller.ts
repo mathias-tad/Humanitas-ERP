@@ -1,5 +1,5 @@
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request';
-import { requestScope } from '../company-scope/request-scope';
+import { ScopedQueryRecord, ScopedRecord, ScopedUser, requestScope } from '../company-scope/request-scope';
 import {
     Controller,
     Get,
@@ -28,6 +28,12 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { ModuleSubscriptionGuard, RequireModule } from '../auth/guards/module-subscription.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+// A PMS record outside the user's branches stays open to the people who take part in it (rule 16).
+const PROJECT = { people: ['manager_id', 'created_by'], members: { table: 'pms_project_members', fk: 'project_id' } };
+const TASK = { people: ['assignee_id', 'reporter_id'], members: { table: 'pms_project_members', fk: 'project_id', column: 'project_id' } };
+const TEAM = { people: ['leader_id'], members: { table: 'pms_team_members', fk: 'team_id' } };
+const SPRINT = { members: { table: 'pms_project_members', fk: 'project_id', column: 'project_id' } };
+
 @Controller('pms')
 @UseGuards(JwtAuthGuard, ModuleSubscriptionGuard, PermissionsGuard)
 @RequireModule('pms')
@@ -48,12 +54,14 @@ export class PmsController {
     }
 
     @Get('projects/:id')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_projects', 'view_pms', 'view_tasks')
     findOneProject(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneProject(req.user.tenantId, id, req.user?.sub, req.user?.role);
     }
 
     @Patch('projects/:id')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('edit_projects')
     updateProject(
         @Req() req: AuthenticatedRequest,
@@ -64,18 +72,21 @@ export class PmsController {
     }
 
     @Delete('projects/:id')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('delete_projects')
     removeProject(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeProject(req.user.tenantId, id);
     }
 
     @Get('projects/:id/kpi')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_pms_reports')
     getProjectKPIs(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectKPIs(req.user.tenantId, id);
     }
 
     @Post('projects/:id/members')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('manage_project_members')
     addProjectMember(
         @Req() req: AuthenticatedRequest,
@@ -86,6 +97,7 @@ export class PmsController {
     }
 
     @Delete('projects/:id/members/:userId')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('manage_project_members')
     removeProjectMember(
         @Req() req: AuthenticatedRequest,
@@ -96,6 +108,7 @@ export class PmsController {
     }
 
     @Get('projects/:id/members')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_project_members')
     getProjectMembers(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectMembers(req.user.tenantId, id);
@@ -103,6 +116,7 @@ export class PmsController {
 
     // ============ SPRINTS ============
     @Patch('projects/:id/members/:userId')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('edit_projects')
     updateProjectMember(
         @Req() req: AuthenticatedRequest,
@@ -120,6 +134,7 @@ export class PmsController {
     }
 
     @Get('sprints')
+    @ScopedQueryRecord('pms_projects', 'projectId', PROJECT)
     @RequirePermissions('view_sprints')
     findAllSprints(@Req() req: AuthenticatedRequest, @Query('projectId') projectId: string) {
         return this.pmsService.findAllSprints(req.user.tenantId, projectId);
@@ -143,12 +158,14 @@ export class PmsController {
     }
 
     @Get('tasks/:id')
+    @ScopedRecord('pms_tasks', 'id', TASK)
     @RequirePermissions('view_pms', 'view_tasks', 'view_my_tasks')
     findOneTask(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneTask(req.user.tenantId, id);
     }
 
     @Get('tasks/:id/history')
+    @ScopedRecord('pms_tasks', 'id', TASK)
     async getTaskHistory(
         @Req() req: AuthenticatedRequest,
         @Param('id') id: string,
@@ -157,6 +174,7 @@ export class PmsController {
     }
 
     @Patch('tasks/:id')
+    @ScopedRecord('pms_tasks', 'id', TASK)
     @RequirePermissions('edit_tasks', 'edit_own_tasks')
     updateTask(
         @Req() req: AuthenticatedRequest,
@@ -169,6 +187,7 @@ export class PmsController {
     }
 
     @Delete('tasks/:id')
+    @ScopedRecord('pms_tasks', 'id', TASK)
     @RequirePermissions('delete_tasks')
     removeTask(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeTask(req.user.tenantId, id);
@@ -195,6 +214,7 @@ export class PmsController {
 
     // ============ USER KPI ============
     @Get('kpi/user/:userId')
+    @ScopedUser()
     @RequirePermissions('view_team_kpis', 'view_own_kpis')
     getUserKPIs(@Req() req: AuthenticatedRequest, @Param('userId') userId: string) {
         return this.pmsService.getUserKPIs(req.user.tenantId, userId);
@@ -216,7 +236,7 @@ export class PmsController {
     @Get('kpi/all-users')
     @RequirePermissions('view_pms_reports', 'view_team_kpis')
     getAllUsersKPIs(@Req() req: AuthenticatedRequest) {
-        return this.pmsService.getAllUsersKPIs(req.user.tenantId);
+        return this.pmsService.getAllUsersKPIs(req.user.tenantId, requestScope(req));
     }
 
     // ============ TEAMS ============
@@ -233,42 +253,49 @@ export class PmsController {
     }
 
     @Get('teams/:id')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('view_teams')
     findOneTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.findOneTeam(req.user.tenantId, id);
     }
 
     @Patch('teams/:id')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('edit_teams')
     updateTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateTeamDto) {
         return this.pmsService.updateTeam(req.user.tenantId, id, dto);
     }
 
     @Delete('teams/:id')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('delete_teams')
     removeTeam(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.removeTeam(req.user.tenantId, id);
     }
 
     @Post('teams/:id/members')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('manage_team_members')
     async addTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
         return this.pmsService.addTeamMember(req.user.tenantId, id, dto, await this.pmsService.resolveCurrentUser(req.user.tenantId, req.user.sub));
     }
 
     @Delete('teams/:id/members/:userId')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('manage_team_members')
     async removeTeamMember(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Param('userId') userId: string) {
         return this.pmsService.removeTeamMember(req.user.tenantId, id, userId, await this.pmsService.resolveCurrentUser(req.user.tenantId, req.user.sub));
     }
 
     @Get('teams/:id/members')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('view_teams')
     getTeamMembers(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTeamMembers(req.user.tenantId, id);
     }
 
     @Get('teams/:id/dashboard')
+    @ScopedRecord('pms_teams', 'id', TEAM)
     @RequirePermissions('view_team_dashboard')
     getTeamDashboard(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTeamDashboard(req.user.tenantId, id);
@@ -288,12 +315,14 @@ export class PmsController {
     }
 
     @Patch('metrics/:id')
+    @ScopedRecord('pms_manual_kpi_metrics')
     @RequirePermissions('manage_pms_settings')
     updateMetric(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateManualMetricDto) {
         return this.pmsService.updateMetric(req.user.tenantId, id, dto);
     }
 
     @Delete('metrics/:id')
+    @ScopedRecord('pms_manual_kpi_metrics')
     @RequirePermissions('manage_pms_settings')
     deleteMetric(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.deleteMetric(req.user.tenantId, id);
@@ -301,12 +330,14 @@ export class PmsController {
 
     // ============ AGILE SPRINTS & BURNDOWN ============
     @Get('sprints/:id/burndown')
+    @ScopedRecord('pms_sprints', 'id', SPRINT)
     @RequirePermissions('view_sprints', 'view_pms')
     getSprintBurndown(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getSprintBurndown(req.user.tenantId, id);
     }
 
     @Get('projects/:id/velocity')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_sprints', 'view_pms', 'view_pms_reports')
     getSprintVelocity(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getSprintVelocity(req.user.tenantId, id);
@@ -314,6 +345,7 @@ export class PmsController {
 
     // ============ BACKLOG MANAGEMENT ============
     @Get('projects/:id/backlog')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_tasks', 'view_pms')
     getProjectBacklog(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectBacklog(req.user.tenantId, id);
@@ -326,6 +358,7 @@ export class PmsController {
     }
 
     @Put('tasks/:id/assign-sprint')
+    @ScopedRecord('pms_tasks', 'id', TASK)
     @RequirePermissions('manage_sprints', 'edit_tasks')
     assignTaskToSprint(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Body() body: { sprint_id?: string | null }) {
         return this.pmsService.assignTaskToSprint(req.user.tenantId, id, body.sprint_id ?? null);
@@ -333,6 +366,7 @@ export class PmsController {
 
     // ============ GANTT & MILESTONES ============
     @Get('projects/:id/gantt')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_tasks', 'view_pms')
     getProjectGanttData(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectGanttData(req.user.tenantId, id);
@@ -340,6 +374,7 @@ export class PmsController {
 
     // ============ PROJECT CALENDAR ============
     @Get('projects/:id/calendar')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_tasks', 'view_pms')
     getProjectCalendarEvents(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getProjectCalendarEvents(req.user.tenantId, id);
@@ -347,12 +382,14 @@ export class PmsController {
 
     // ============ TIME TRACKING & BILLABLE SUMMARY ============
     @Get('projects/:id/time-summary')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('view_pms_reports', 'view_pms')
     getTimeTrackingSummary(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
         return this.pmsService.getTimeTrackingSummary(req.user.tenantId, id);
     }
 
     @Post('projects/:id/convert-to-invoice')
+    @ScopedRecord('pms_projects', 'id', PROJECT)
     @RequirePermissions('manage_projects')
     convertBillableToInvoice(
         @Req() req: AuthenticatedRequest,

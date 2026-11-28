@@ -57,7 +57,7 @@ export class CompanyScopeInterceptor implements NestInterceptor {
     try {
       await this.apply(req, user.tenantId, scope);
       const checks = scopeChecksOf(typeof context.getHandler === 'function' ? context.getHandler() : undefined);
-      if (checks.length) await this.checkRecords(req, user.tenantId, scope, checks);
+      if (checks.length) await this.checkRecords(req, user.tenantId, scope, checks, user.sub);
     } catch (err) {
       if (err instanceof ScopeViolation) throw new ForbiddenException(err.message);
       throw err;
@@ -112,26 +112,53 @@ export class CompanyScopeInterceptor implements NestInterceptor {
   }
 
   /** Refuses records outside the user's companies and branches (a missing row is the handler's 404). */
-  private async checkRecords(req: Req, tenantId: string, scope: UserScope, checks: ScopeCheck[]) {
+  private async checkRecords(req: Req, tenantId: string, scope: UserScope, checks: ScopeCheck[], userId: string) {
     const conn = await this.databaseService.getTenantConnectionById(tenantId);
     const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? (req.body as Record<string, unknown>) : {};
-    type Row = { id: string; company_id: string | null; branch_id: string | null };
+    type Row = { id: string; company_id: string | null; branch_id: string | null; [column: string]: unknown };
     for (const check of checks) {
-      const ids = check.param ? idList(req.params?.[check.param]) : idList(body[check.bodyField ?? 'ids']);
+      const ids = check.param ? idList(req.params?.[check.param])
+        : check.queryField ? idList(req.query?.[check.queryField])
+          : idList(body[check.bodyField ?? 'ids']);
       if (!ids.length) continue;
-      const sql = (match: string) => `SELECT id::text AS id, company_id, branch_id FROM ${check.table} WHERE ${match}`;
+      // Columns naming the people who take part (names checked by the decorator).
+      const extra = [...new Set([...(check.people ?? []), ...(check.members?.column && check.members.column !== 'id' ? [check.members.column] : [])])];
+      const cols = ['id::text AS id', 'company_id', 'branch_id', ...extra.map((c) => `${c}::text AS ${c}`)].join(', ');
+      const sql = (match: string) => `SELECT ${cols} FROM ${check.table} WHERE ${match}`;
       // uuid ids use the primary key; a table with text ids ('tc-001') is matched as text.
       const rows: Row[] = ids.every((id) => UUID_RE.test(id))
         ? await conn.query(sql('id = ANY($1::uuid[])'), [ids]).catch(() => conn.query(sql('id::text = ANY($1::text[])'), [ids]))
         : await conn.query(sql('id::text = ANY($1::text[])'), [ids]);
       const owners = await this.branchCompanies(tenantId, rows.map((r) => r.branch_id).filter((b): b is string => !!b));
-      const outside = rows.some((r) =>
+      const outsideRows = rows.filter((r) =>
         (!!r.company_id && !canUseCompany(scope, r.company_id))
         || (!!r.branch_id && !canUseBranch(scope, r.branch_id, owners.get(r.branch_id) ?? r.company_id ?? null)));
+      let outside = false;
+      for (const r of outsideRows) {
+        if (!(await this.takesPart(conn, check, r, userId))) { outside = true; break; }
+      }
       if (!outside) continue;
-      if (check.param) throw new NotFoundException('Record not found');
+      // One record (route or query id): 404, as if it did not exist; several: 403.
+      if (check.param || check.queryField) throw new NotFoundException('Record not found');
       throw new ForbiddenException('Some of these records belong to a company or branch you do not have access to');
     }
+  }
+
+  /** Whether the user takes part in a record outside their scope (its manager, a member...). */
+  private async takesPart(
+    conn: { query(sql: string, params?: unknown[]): Promise<unknown> },
+    check: ScopeCheck,
+    row: Record<string, unknown>,
+    userId: string,
+  ): Promise<boolean> {
+    if ((check.people ?? []).some((c) => row[c] != null && String(row[c]) === userId)) return true;
+    const m = check.members;
+    const key = m ? row[m.column ?? 'id'] : null;
+    if (!m || key == null) return false;
+    const found = (await conn
+      .query(`SELECT 1 FROM ${m.table} WHERE ${m.fk}::text = $1 AND user_id::text = $2 LIMIT 1`, [String(key), userId])
+      .catch(() => [])) as unknown[];
+    return found.length > 0;
   }
 
   private async branchCompanies(tenantId: string, ids: string[]): Promise<Map<string, string | null>> {

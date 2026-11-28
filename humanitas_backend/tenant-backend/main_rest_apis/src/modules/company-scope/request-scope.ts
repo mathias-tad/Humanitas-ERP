@@ -109,10 +109,23 @@ export interface ScopeCheck {
   param?: string;
   /** Body field with an id or a list of ids (assignments, bulk actions). */
   bodyField?: string;
+  /** Query parameter with the record's id (e.g. ?projectId=). */
+  queryField?: string;
+  /**
+   * People who may open the record wherever it belongs: columns of the record naming a user
+   * (manager, creator, assignee, leader) and a members table (`fk` = the record's `column`,
+   * default its id, plus `user_id`). For work shared across branches, like PMS projects.
+   */
+  people?: string[];
+  members?: { table: string; fk: string; column?: string };
 }
 
+/** Who takes part in a record (see ScopeCheck.people / members). */
+export type Participants = Pick<ScopeCheck, 'people' | 'members'>;
+
 function addCheck(check: ScopeCheck): MethodDecorator {
-  if (!TABLE.test(check.table)) throw new Error(`invalid table ${check.table}`);
+  const names = [check.table, ...(check.people ?? []), ...(check.members ? [check.members.table, check.members.fk, check.members.column ?? 'id'] : [])];
+  for (const n of names) if (!TABLE.test(n)) throw new Error(`invalid table or column ${n}`);
   return (_target, _key, descriptor: PropertyDescriptor) => {
     const fn = descriptor.value as object;
     const list = (Reflect.getMetadata(SCOPE_CHECKS, fn) as ScopeCheck[] | undefined) ?? [];
@@ -121,8 +134,14 @@ function addCheck(check: ScopeCheck): MethodDecorator {
   };
 }
 
-/** The record in route parameter `param` (default `id`) of `table` must be in the user's scope. */
-export const ScopedRecord = (table: string, param = 'id') => addCheck({ table, param });
+/**
+ * The record in route parameter `param` (default `id`) of `table` must be in the user's scope,
+ * unless the user takes part in it (`who`).
+ */
+export const ScopedRecord = (table: string, param = 'id', who?: Participants) => addCheck({ table, param, ...who });
+
+/** The record named by query parameter `field` of `table` must be in the user's scope. */
+export const ScopedQueryRecord = (table: string, field: string, who?: Participants) => addCheck({ table, queryField: field, ...who });
 
 /** The person in route parameter `param` (default `userId`) must be in the user's scope. */
 export const ScopedUser = (param = 'userId') => addCheck({ table: 'users', param });

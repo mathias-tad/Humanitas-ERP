@@ -766,13 +766,17 @@ export class PmsService {
         }
     }
 
-    async getAllUsersKPIs(tenantId: string) {
+    async getAllUsersKPIs(tenantId: string, scope?: RequestScope) {
         const calculationServiceUrl = this.configService.get<string>('CALCULATION_SERVICE_URL') || 'http://localhost:8000';
         try {
             const { data } = await firstValueFrom(
                 this.httpService.get(`${calculationServiceUrl}/api/pms/kpi/all-users/${tenantId}`)
             );
-            return data.data || [];
+            const rows: Array<Record<string, unknown>> = data.data || [];
+            // Only the people of the request's companies and branches (rule 16).
+            const people = await scopedIds(() => this.databaseService.getTenantConnectionById(tenantId), 'users', scope);
+            if (!people) return rows;
+            return rows.filter((r) => people.has(String(r.user_id ?? r.id ?? '')));
         } catch (error) {
             console.error('Calculation Service Error (All Users KPIs):', error.message);
             return [];

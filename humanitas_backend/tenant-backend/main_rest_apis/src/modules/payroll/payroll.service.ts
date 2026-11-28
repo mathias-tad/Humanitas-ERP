@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { scopeWhere, type RequestScope } from '../company-scope/request-scope';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -50,16 +51,32 @@ export class PayrollService {
   }
 
   // Check payroll job status for a specific month/year
-  async getPayrollStatus(tenantId: string, month: number, year: number) {
+  async getPayrollStatus(tenantId: string, month: number, year: number, scope?: RequestScope) {
     try {
       const connection = await this.databaseService.getTenantConnectionById(tenantId);
 
-      const result = await connection.query(
-        `SELECT id, status, 
-                COALESCE(total_employees, 0) as total_employees, 
-                COALESCE(total_gross, 0) as total_gross, 
+      // A run covers the whole tenant; within a company/branch scope the totals are those of its people (rule 16).
+      const params: unknown[] = [month, year];
+      const itemsWhere = scopeWhere(scope, 'pi', params);
+      const result = itemsWhere
+        ? await connection.query(
+          `SELECT pr.id, pr.status,
+                  COUNT(pi.id)::int as total_employees,
+                  COALESCE(SUM(pi.gross_salary), 0) as total_gross,
+                  COALESCE(SUM(pi.net_salary), 0) as total_net
+           FROM payroll_runs pr
+           LEFT JOIN payroll_items pi ON pi.payroll_run_id = pr.id${itemsWhere}
+           WHERE pr.month = $1 AND pr.year = $2
+           GROUP BY pr.id
+           LIMIT 1`,
+          params,
+        )
+        : await connection.query(
+        `SELECT id, status,
+                COALESCE(total_employees, 0) as total_employees,
+                COALESCE(total_gross, 0) as total_gross,
                 COALESCE(total_net, 0) as total_net
-         FROM payroll_runs 
+         FROM payroll_runs
          WHERE month = $1 AND year = $2
          LIMIT 1`,
         [month, year]
@@ -672,21 +689,42 @@ export class PayrollService {
 
   // ── Payroll ───────────────────────────────────────────────────────────────
 
-  async getPayrollHistory(tenantId: string) {
+  async getPayrollHistory(tenantId: string, scope?: RequestScope) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
-    return (await connection.query(`SELECT * FROM payroll_runs ORDER BY year DESC, month DESC`)) || [];
+    const params: unknown[] = [];
+    const itemsWhere = scopeWhere(scope, 'pi', params);
+    if (!itemsWhere) return (await connection.query(`SELECT * FROM payroll_runs ORDER BY year DESC, month DESC`)) || [];
+    // A run covers the whole tenant; within a company/branch scope its totals are those of its people (rule 16).
+    return (await connection.query(
+      `SELECT pr.*,
+              COUNT(pi.id)::int AS total_employees,
+              COALESCE(SUM(pi.gross_salary), 0) AS total_gross,
+              COALESCE(SUM(pi.total_deductions), 0) AS total_deductions,
+              COALESCE(SUM(pi.net_salary), 0) AS total_net,
+              COALESCE(SUM(pi.income_tax), 0) AS total_tax,
+              COALESCE(SUM(pi.pension_employee), 0) AS total_pension_employee,
+              COALESCE(SUM(pi.pension_employer), 0) AS total_pension_employer
+       FROM payroll_runs pr
+       LEFT JOIN payroll_items pi ON pi.payroll_run_id = pr.id${itemsWhere}
+       GROUP BY pr.id
+       ORDER BY pr.year DESC, pr.month DESC`,
+      params,
+    )) || [];
   }
 
 
-  async getPayrollDetails(tenantId: string, month: number, year: number) {
+  async getPayrollDetails(tenantId: string, month: number, year: number, scope?: RequestScope) {
     const connection = await this.databaseService.getTenantConnectionById(tenantId);
+    // Salaries of the request's companies and branches only (rule 16).
+    const params: unknown[] = [month, year];
+    const where = scopeWhere(scope, 'pi', params);
     return (await connection.query(
       `SELECT pi.*, u.full_name as employee_name, u.email, u.department
       FROM payroll_items pi
       JOIN users u ON pi.user_id = u.id
       JOIN payroll_runs pr ON pi.payroll_run_id = pr.id
-      WHERE pr.month = $1 AND pr.year = $2 ORDER BY u.full_name`,
-      [month, year],
+      WHERE pr.month = $1 AND pr.year = $2${where} ORDER BY u.full_name`,
+      params,
     )) || [];
   }
 
@@ -717,8 +755,8 @@ export class PayrollService {
     return result[0];
   }
 
-  async exportPayroll(tenantId: string, month: number, year: number) {
-    return this.getPayrollDetails(tenantId, month, year);
+  async exportPayroll(tenantId: string, month: number, year: number, scope?: RequestScope) {
+    return this.getPayrollDetails(tenantId, month, year, scope);
   }
 
   async getCategoryAllowances(tenantId: string, categoryId: string) {

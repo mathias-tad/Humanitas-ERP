@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CalculationLog, CalculationStatus, CalculationType } from './entities/calculation-log.entity';
 import { DatabaseService } from '../database/database.service';
+import { scopeWhere, type RequestScope } from '../company-scope/request-scope';
 
 @Injectable()
 export class SystemLogsService {
@@ -58,7 +59,7 @@ export class SystemLogsService {
             .execute();
     }
 
-    async findAll(tenantId: string, type?: CalculationType, statuses?: CalculationStatus[], limit: number = 50): Promise<any[]> {
+    async findAll(tenantId: string, type?: CalculationType, statuses?: CalculationStatus[], limit: number = 50, scope?: RequestScope): Promise<any[]> {
         // 1. Get standard calculation logs
         const query = this.logsRepository.createQueryBuilder('log')
             .where('log.tenant_id = :tenantId', { tenantId })
@@ -83,9 +84,12 @@ export class SystemLogsService {
 
                 console.log(`[SystemLogs] Fetching payroll logs for tenant: ${tenantId}`);
                 const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Math.min(Math.floor(Number(limit)), 500) : 50;
+                // Payroll runs of the request's companies and branches (rule 16).
+                const runParams: unknown[] = [safeLimit];
+                const runWhere = scopeWhere(scope, 'pr', runParams);
                 const payrollRuns = await connection.query(
-                    `SELECT * FROM payroll_runs ORDER BY created_at DESC LIMIT $1`,
-                    [safeLimit],
+                    `SELECT * FROM payroll_runs pr WHERE true${runWhere} ORDER BY created_at DESC LIMIT $1`,
+                    runParams,
                 );
                 console.log(`[SystemLogs] Found ${payrollRuns.length} payroll runs`);
 
@@ -137,7 +141,8 @@ export class SystemLogsService {
     }
 
     async findOne(id: string, tenantId?: string): Promise<any | null> {
-        let log: any = await this.logsRepository.findOne({ where: { id } });
+        // Only this tenant's job logs.
+        let log: any = await this.logsRepository.findOne({ where: tenantId ? { id, tenant_id: tenantId } : { id } });
         if (log) return log;
 
         // Try Payroll Runs if tenantId provided
